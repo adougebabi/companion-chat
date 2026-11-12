@@ -1,0 +1,52 @@
+SOURCE_HEAD 3f136c762c998c7b58b45d89e8d22ec2ff81e10a CANDIDATE /private/tmp/fluctlight-m2-02-aa1q2lvu
+OVERLAYS apps/core-go/internal/core/m2_moment_media_claim_test.go,apps/core-go/internal/core/fact_only_moment_capability.go,apps/core-go/internal/core/direct_media_delivery_check.go,apps/core-go/internal/core/m2_moment_history_delivery_test.go,apps/core-go/internal/core/moment_media_delivery_evidence.go,apps/core-go/internal/core/direct_media_delivery_evidence.go
+COMMAND go test ./internal/core -count=1 -run ^(TestMomentHistoricalImageClaimUsesActualMomentDelivery|TestMomentHistoricalClaimCannotAddUnverifiedSubject|TestMomentCannotInventTimeForLatePrivateAttachment|TestMomentSelectedImageDoesNotProvePrivateDelivery|TestMomentWithOwnerSelectedAttachmentRemainsPublishable)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMomentHistoricalImageClaimUsesActualMomentDelivery
+2026/11/12 22:22:41 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-history metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentHistoricalImageClaimUsesActualMomentDelivery (2.81s)
+=== RUN   TestMomentHistoricalClaimCannotAddUnverifiedSubject
+2026/11/12 22:22:43 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-extra-subject metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:22:43 WARN tool.call.handled capability=moment.publish call_id=direct_call_fe523bf57903dfa4f70aa7053a482e61 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:22:43 WARN tool.call.handled capability=moment.publish call_id=direct_call_fe523bf57903dfa4f70aa7053a482e61 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestMomentHistoricalClaimCannotAddUnverifiedSubject (2.38s)
+=== RUN   TestMomentCannotInventTimeForLatePrivateAttachment
+2026/11/12 22:22:46 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-late-private metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:22:46 WARN tool.call.handled capability=moment.publish call_id=direct_call_6dee4bc86b62ea7c514910efb8a3641e warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:22:46 WARN tool.call.handled capability=moment.publish call_id=direct_call_6dee4bc86b62ea7c514910efb8a3641e warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestMomentCannotInventTimeForLatePrivateAttachment (2.60s)
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/image
+2026/11/12 22:22:47 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/mixed
+2026/11/12 22:22:50 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/ordinary
+2026/11/12 22:22:53 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable (7.45s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/image (1.81s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/mixed (2.74s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/ordinary (2.90s)
+=== RUN   TestMomentSelectedImageDoesNotProvePrivateDelivery
+=== RUN   TestMomentSelectedImageDoesNotProvePrivateDelivery/private-delivery
+2026/11/12 22:22:55 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-private-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:22:56 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:22:56 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentSelectedImageDoesNotProvePrivateDelivery/unverified-subject
+2026/11/12 22:22:57 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-private-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:22:57 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:22:57 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentSelectedImageDoesNotProvePrivateDelivery/unverified-selfie
+2026/11/12 22:22:59 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-private-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:22:59 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:22:59 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentSelectedImageDoesNotProvePrivateDelivery/missed-private-delivery
+2026/11/12 22:23:02 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-private-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:23:02 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:23:02 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestMomentSelectedImageDoesNotProvePrivateDelivery (8.64s)
+    --- PASS: TestMomentSelectedImageDoesNotProvePrivateDelivery/private-delivery (2.50s)
+    --- PASS: TestMomentSelectedImageDoesNotProvePrivateDelivery/unverified-subject (1.71s)
+    --- PASS: TestMomentSelectedImageDoesNotProvePrivateDelivery/unverified-selfie (2.13s)
+    --- PASS: TestMomentSelectedImageDoesNotProvePrivateDelivery/missed-private-delivery (2.29s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	24.583s
+EXIT_CODE 0

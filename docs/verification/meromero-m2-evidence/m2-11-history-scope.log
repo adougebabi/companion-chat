@@ -1,0 +1,33 @@
+SOURCE_HEAD 3f136c762c998c7b58b45d89e8d22ec2ff81e10a CANDIDATE /private/tmp/fluctlight-m2-02-zfxqxyf2
+OVERLAYS apps/core-go/internal/core/fact_only_moment_capability.go,apps/core-go/internal/core/direct_media_delivery_check.go,apps/core-go/internal/core/m2_moment_history_delivery_test.go,apps/core-go/internal/core/moment_media_delivery_evidence.go,apps/core-go/internal/core/direct_media_delivery_evidence.go
+COMMAND go test ./internal/core -count=1 -run ^TestMomentHistoricalClaimCannotBorrowWrongDelivery$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMomentHistoricalClaimCannotBorrowWrongDelivery
+=== RUN   TestMomentHistoricalClaimCannotBorrowWrongDelivery/current-post
+2026/11/12 22:00:28 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-wrong-current-post metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:00:28 WARN tool.call.handled capability=moment.publish call_id=direct_call_fefc7806c3f70b48b8e7757783767786 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:00:28 WARN tool.call.handled capability=moment.publish call_id=direct_call_fefc7806c3f70b48b8e7757783767786 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentHistoricalClaimCannotBorrowWrongDelivery/private-claim
+2026/11/12 22:00:31 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-wrong-private-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:00:31 WARN tool.call.handled capability=moment.publish call_id=direct_call_6aabf8b1038cc7aaddb9cbc479701cbc warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:00:31 WARN tool.call.handled capability=moment.publish call_id=direct_call_6aabf8b1038cc7aaddb9cbc479701cbc warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentHistoricalClaimCannotBorrowWrongDelivery/moment-claim
+2026/11/12 22:00:34 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-wrong-moment-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:00:34 WARN tool.call.handled capability=moment.publish call_id=direct_call_2e95abc3346b36a82b2c0f3df58d83d1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:00:34 WARN tool.call.handled capability=moment.publish call_id=direct_call_2e95abc3346b36a82b2c0f3df58d83d1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentHistoricalClaimCannotBorrowWrongDelivery/wrong-subject
+2026/11/12 22:00:36 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-wrong-wrong-subject metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:00:36 WARN tool.call.handled capability=moment.publish call_id=direct_call_cc6eeda3e6ba86b7c49dfb09d429fa8f warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:00:36 WARN tool.call.handled capability=moment.publish call_id=direct_call_cc6eeda3e6ba86b7c49dfb09d429fa8f warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentHistoricalClaimCannotBorrowWrongDelivery/ready-only
+2026/11/12 22:00:38 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-wrong-ready-only metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:00:38 WARN tool.call.handled capability=moment.publish call_id=direct_call_e55804c80f1d7d0e0f383fce43b29d5f warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:00:38 WARN tool.call.handled capability=moment.publish call_id=direct_call_e55804c80f1d7d0e0f383fce43b29d5f warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestMomentHistoricalClaimCannotBorrowWrongDelivery (12.91s)
+    --- PASS: TestMomentHistoricalClaimCannotBorrowWrongDelivery/current-post (2.87s)
+    --- PASS: TestMomentHistoricalClaimCannotBorrowWrongDelivery/private-claim (2.97s)
+    --- PASS: TestMomentHistoricalClaimCannotBorrowWrongDelivery/moment-claim (2.51s)
+    --- PASS: TestMomentHistoricalClaimCannotBorrowWrongDelivery/wrong-subject (2.54s)
+    --- PASS: TestMomentHistoricalClaimCannotBorrowWrongDelivery/ready-only (2.02s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	13.628s
+EXIT_CODE 0

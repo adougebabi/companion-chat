@@ -1,0 +1,13 @@
+SOURCE_HEAD 3f136c762c998c7b58b45d89e8d22ec2ff81e10a CANDIDATE /private/tmp/fluctlight-m2-02-gid9vvvd
+OVERLAYS apps/core-go/internal/core/m2_moment_history_delivery_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestMomentHistoricalImageClaimUsesActualMomentDelivery$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMomentHistoricalImageClaimUsesActualMomentDelivery
+2026/11/12 21:54:27 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-history metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:54:27 WARN tool.call.handled capability=moment.publish call_id=direct_call_bc2e4de849a7e109f87aa0652bb96103 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:54:27 WARN tool.call.handled capability=moment.publish call_id=direct_call_bc2e4de849a7e109f87aa0652bb96103 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+    m2_moment_history_delivery_test.go:59: matching historical Moment delivery was not usable: capability.CapabilityResult{ActingProfileID:"", CallID:"direct_call_bc2e4de849a7e109f87aa0652bb96103", CapabilityName:"moment.publish", Status:"handled", Output:map[string]interface {}{"detail":"This Moment was not published: the claimed image delivery lacks matching current evidence. Reconsider the post using actual results; do not invent delivery.", "disposition":"needs_input", "effect_applied":false, "handled":true, "mutation_committed":false, "refresh_context":false, "refresh_reply":false, "retry_same_arguments":false, "warning_code":"direct_media_delivery_unverified"}, ErrorCode:"", Retryable:false, ProviderRequestID:"", CorrelationID:"tool-operation:m2-moment-history", Duration:0, RequiredContext:[]capability.ContextSlot(nil)} evidence=false moments=1 err=<nil>
+--- FAIL: TestMomentHistoricalImageClaimUsesActualMomentDelivery (4.23s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	4.912s
+FAIL
+EXIT_CODE 1

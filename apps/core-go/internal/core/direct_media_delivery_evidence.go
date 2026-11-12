@@ -19,6 +19,7 @@ type directMediaDelivery struct {
 	assetID   string
 	messageID string
 	refID     string
+	momentID  string
 }
 
 // Both legacy and draft-bound paths require an actual message attachment and

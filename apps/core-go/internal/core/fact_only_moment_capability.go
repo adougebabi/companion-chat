@@ -117,18 +117,22 @@ func (c factOnlyMomentCapability) Prepare(ctx context.Context, inv CapabilityInv
 	return c.service.prepareUnattachedMediaClaims(ctx, prepared, draft)
 }
 
-// This guards the default Moment Writer only when the new Moment has no
-// Owner-selected attachment. Matching claims to selected or historical Moment
-// assets still needs its own evidence contract and is not asserted here.
+// Matching claims to the contents of Owner-selected images still needs its
+// own evidence contract and is not asserted here.
 func (s *factOnlyMomentService) prepareUnattachedMediaClaims(ctx context.Context, inv CapabilityInvocation, draft ReplyDraft) (CapabilityInvocation, error) {
 	surface := "moment_without_attachment"
+	hasCurrentImage := false
+	checkerInput := s.run.CurrentInput
 	if s.run.Scope.TargetKind == "owner_moment_request" {
 		var raw []byte
 		err := s.app.DB.Pool().QueryRow(ctx, `SELECT payload FROM public.owner_surface_records WHERE id=$1 AND owner_actor_id=$2 AND fluctlight_id=$3 AND kind='owner_request' AND status='pending' AND payload->>'kind'='moment_suggestion' AND payload->>'source_fact_id'=$4`, s.run.Scope.TargetRef, inv.Metadata.AuthorizationActorID, inv.Metadata.FluctlightID, inv.SourceFactID).Scan(&raw)
 		if err != nil {
 			return inv, err
 		}
-		selected := stringList(mapValue(decodeObject(raw)["payload"])["media_ids"])
+		request := mapValue(decodeObject(raw)["payload"])
+		// The checker needs the actual suggestion text, not Core asset IDs.
+		checkerInput = stringValue(request["text"])
+		selected := stringList(request["media_ids"])
 		assets, hasImage, err := s.app.selectedMomentMedia(ctx, s.app.DB.Pool(), inv.Metadata.AuthorizationActorID, selected, false)
 		if err != nil {
 			return inv, err
@@ -138,8 +142,11 @@ func (s *factOnlyMomentService) prepareUnattachedMediaClaims(ctx context.Context
 			return inv, err
 		}
 		inv, err = withCapabilityPreparedData(inv, "moment_owner_selected_assets", assets)
-		if err != nil || hasImage {
+		if err != nil {
 			return inv, err
+		}
+		if hasImage {
+			surface, hasCurrentImage = "moment_with_attachment", true
 		}
 		for _, asset := range assets {
 			kind := stringValue(asset["kind"])
@@ -148,8 +155,8 @@ func (s *factOnlyMomentService) prepareUnattachedMediaClaims(ctx context.Context
 			}
 		}
 	}
-	text, err := momentPublicationText(draft.Text, false)
-	if err != nil || !momentMediaMayNeedHistory(text, s.run.CurrentInput) {
+	text, err := momentPublicationText(draft.Text, hasCurrentImage)
+	if err != nil || !momentMediaMayNeedHistory(text, checkerInput) {
 		return inv, err
 	}
 	memoryMode := MemoryConversationExact
@@ -157,11 +164,11 @@ func (s *factOnlyMomentService) prepareUnattachedMediaClaims(ctx context.Context
 		memoryMode = MemoryConversationGlobalOnly
 	}
 	subject := firstString(inv.Metadata.SubjectActorID, inv.Metadata.AuthorizationActorID)
-	projection, err := s.app.BuildContextProjectionFor(ctx, ContextProjectionRequest{AuthorizationActorID: inv.Metadata.AuthorizationActorID, SpeakerActorID: subject, SourceFactID: inv.SourceFactID, FluctlightID: inv.Metadata.FluctlightID, ConversationID: inv.Metadata.ConversationID, WorkingProfileID: inv.Metadata.WorkingProfileID, CurrentUserText: s.run.CurrentInput, MemoryOperation: MemoryForConversation, MemoryConversationMode: memoryMode})
+	projection, err := s.app.BuildContextProjectionFor(ctx, ContextProjectionRequest{AuthorizationActorID: inv.Metadata.AuthorizationActorID, SpeakerActorID: subject, SourceFactID: inv.SourceFactID, FluctlightID: inv.Metadata.FluctlightID, ConversationID: inv.Metadata.ConversationID, WorkingProfileID: inv.Metadata.WorkingProfileID, CurrentUserText: checkerInput, MemoryOperation: MemoryForConversation, MemoryConversationMode: memoryMode})
 	if err != nil {
 		return inv, err
 	}
-	if !directMediaDeliveryCheckNeeded(text, s.run.CurrentInput, projection.RecentMessages) && !momentMediaCheckNeeded(text, s.run.CurrentInput, projection.RecentMessages) {
+	if !directMediaDeliveryCheckNeeded(text, checkerInput, projection.RecentMessages) && !momentMediaCheckNeeded(text, checkerInput, projection.RecentMessages) {
 		return inv, nil
 	}
 	var deliveries []directMediaDelivery
@@ -171,19 +178,28 @@ func (s *factOnlyMomentService) prepareUnattachedMediaClaims(ctx context.Context
 			return inv, newCapabilityError("direct_media_delivery_check_failed", true, err)
 		}
 	}
-	refs, err := s.app.checkDirectMediaDeliveryClaims(ctx, projection, s.run.CurrentInput, text, deliveries, nil, surface)
+	momentDeliveries, err := momentMediaDeliveriesForIntents(ctx, s.app.DB.Pool(), inv.Metadata.AuthorizationActorID, inv.Metadata.FluctlightID, nil, false)
+	if err != nil {
+		return inv, newCapabilityError("direct_media_delivery_check_failed", true, err)
+	}
+	deliveries = append(deliveries, momentDeliveries...)
+	refs, err := s.app.checkDirectMediaDeliveryClaims(ctx, projection, checkerInput, text, deliveries, nil, surface)
 	if err != nil {
 		return inv, err
 	}
-	intents := make([]string, 0, len(refs))
+	privateRefs, privateIntents, momentRefs, momentIntents := []string{}, []string{}, []string{}, []string{}
 	for _, ref := range refs {
 		delivery, err := directMediaDeliveryByRef(deliveries, ref)
 		if err != nil {
 			return inv, newCapabilityError("direct_media_delivery_unverified", false, err)
 		}
-		intents = append(intents, delivery.intentID)
+		if delivery.momentID != "" {
+			momentRefs, momentIntents = append(momentRefs, ref), append(momentIntents, delivery.intentID)
+		} else {
+			privateRefs, privateIntents = append(privateRefs, ref), append(privateIntents, delivery.intentID)
+		}
 	}
-	return withCapabilityPreparedData(inv, "moment_unattached_media_check", map[string]any{"refs": refs, "intents": intents})
+	return withCapabilityPreparedData(inv, "moment_unattached_media_check", map[string]any{"refs": privateRefs, "intents": privateIntents, "moment_refs": momentRefs, "moment_intents": momentIntents})
 }
 func (s *factOnlyMomentService) prepare(ctx context.Context, inv CapabilityInvocation) (ReplyDraft, error) {
 	if err := ctx.Err(); err != nil {
@@ -279,6 +295,9 @@ func requireMomentHistoricalMediaTx(ctx context.Context, tx pgx.Tx, inv Capabili
 	}
 	proof := mapValue(value)
 	if err := requireDirectMediaDeliveriesTx(ctx, tx, target.AuthorizationActorID, firstString(inv.Metadata.SubjectActorID, target.AuthorizationActorID), target.FluctlightID, target.ConversationID, arrayValue(proof["refs"]), arrayValue(proof["intents"])); err != nil {
+		return directMediaDeliveryTxError(err)
+	}
+	if err := requireMomentMediaDeliveriesTx(ctx, tx, target.AuthorizationActorID, target.FluctlightID, arrayValue(proof["moment_refs"]), arrayValue(proof["moment_intents"])); err != nil {
 		return directMediaDeliveryTxError(err)
 	}
 	return nil

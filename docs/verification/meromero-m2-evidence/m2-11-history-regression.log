@@ -1,0 +1,468 @@
+SOURCE_HEAD 3f136c762c998c7b58b45d89e8d22ec2ff81e10a CANDIDATE /private/tmp/fluctlight-m2-02-3f4dwvpc
+OVERLAYS apps/core-go/internal/core/m2_moment_media_claim_test.go,apps/core-go/internal/core/fact_only_moment_capability.go,apps/core-go/internal/core/direct_media_delivery_check.go,apps/core-go/internal/core/m2_moment_history_delivery_test.go,apps/core-go/internal/core/moment_media_delivery_evidence.go,apps/core-go/internal/core/direct_media_delivery_evidence.go
+COMMAND go test ./internal/core -count=1 -run ^(TestMomentWithoutMediaCannotPublishCompletedPhotoClaim|TestMomentExplicitAttachmentClaimIsRejectedWhenExtractorMissesIt|TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions|TestImplicitMomentMediaClaimUsesRecentHistory|TestMomentWithOwnerSelectedAttachmentRemainsPublishable|TestMomentSelectedImageDoesNotProvePrivateDelivery|TestMomentAudioAttachmentDoesNotProvePhoto|TestMomentSelectedAttachmentChangeRollsBackPublication|TestUnattachedMomentRechecksHistoricalDeliveryInTransaction|TestMomentHistoricalDeliveryLockBusyIsRetryable|TestLegacyMomentUsesTheSameUnattachedMediaGuard|TestDirectMomentMediaRejectionIsBounded|TestMomentMediaRejectionCountsPhysicalRounds|TestMomentHistoricalImageClaimUsesActualMomentDelivery|TestMomentHistoricalEvidenceRequiresScopedCommittedImage|TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable|TestMomentHistoricalClaimCannotBorrowWrongDelivery|TestMomentHistoricalClaimCannotAddUnverifiedSubject|TestMomentCannotInventTimeForLatePrivateAttachment|TestMomentPublicationFiltersNativeAndWriterText|TestMomentPublicationRejectsBodylessTextWithoutEffects|TestOwnerRequestedMomentBodyUsesAttachedMediaAndReplays|TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays|TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife|TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies|TestDirectMediaDeliveryEvidenceRequiresScopedCommittedAttachment|TestDirectMediaDeliveryEvidenceLocksTheCommittedRows|TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops|TestM1SameBatchDenialsDoNotBlockAuthorizedTool|TestM1ThirdDenialDoesNotBlockSameBatchAuthorizedTool|TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths|TestDirectMomentImageTargetsPublishedMoment|TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable|TestImageDisabledKeepsDirectChatAndTextMomentAvailable|TestPrivateReplyModeSwitchKeepsExplicitFactOnly)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/discuss_photo
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/user_sent_photo
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/user_sent_photo_variant
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_occurrence
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_tradition
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_question
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_photo_feeling
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivery_question
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/deny
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/cannot_send
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_misreads_denial
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/deny_with_completion_words
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/future
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/tonight
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/conditional_future
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_misreads_future
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/history_match
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/single_character_history_subject
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/unrelated_history
+2026/11/12 22:26:00 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:00 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:00 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:00 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:00 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:00 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/generic_subject_attack
+2026/11/12 22:26:03 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:03 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:03 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:03 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:03 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:03 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/generic_quote_attack
+2026/11/12 22:26:06 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:06 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:06 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:06 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:06 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:06 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/shared_location_attack
+2026/11/12 22:26:08 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:08 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:08 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:08 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:09 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:09 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/multi_subject_attack
+2026/11/12 22:26:11 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:11 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:11 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:11 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:11 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:11 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/short_quote_cannot_borrow_other_subject
+2026/11/12 22:26:14 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:14 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:14 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:14 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:14 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:14 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/no_delivery
+2026/11/12 22:26:17 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:17 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:17 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:17 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:17 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:17 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_identifies_posted_to_chat
+2026/11/12 22:26:19 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:19 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:19 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:19 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:19 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:20 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/implicit_photo_in_current_input
+2026/11/12 22:26:23 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:23 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:23 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:23 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:23 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:23 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/negated_surprise
+2026/11/12 22:26:25 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:25 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:25 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:25 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:25 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:25 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_omitted_obvious_claim
+2026/11/12 22:26:28 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:28 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:28 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:28 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:28 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:28 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivered_word
+2026/11/12 22:26:30 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:30 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:30 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:30 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:31 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:31 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivered_synonym
+2026/11/12 22:26:32 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:32 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:33 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:33 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:33 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:33 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/attached_english
+2026/11/12 22:26:35 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:35 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:35 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:35 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:35 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:26:35 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies (82.58s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary (2.66s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/discuss_photo (2.63s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/user_sent_photo (2.65s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/user_sent_photo_variant (2.83s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_occurrence (2.56s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_tradition (2.79s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_question (2.63s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_photo_feeling (2.84s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivery_question (1.47s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/deny (1.42s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/cannot_send (1.74s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_misreads_denial (2.79s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/deny_with_completion_words (2.68s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/future (1.79s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/tonight (2.14s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/conditional_future (1.57s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_misreads_future (2.59s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/history_match (2.36s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/single_character_history_subject (3.19s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/unrelated_history (2.42s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/generic_subject_attack (2.87s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/generic_quote_attack (2.89s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/shared_location_attack (2.44s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/multi_subject_attack (2.54s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/short_quote_cannot_borrow_other_subject (2.86s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/no_delivery (2.64s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_identifies_posted_to_chat (3.01s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/implicit_photo_in_current_input (3.20s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/negated_surprise (2.51s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_omitted_obvious_claim (2.66s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivered_word (2.68s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivered_synonym (1.99s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/attached_english (2.53s)
+=== RUN   TestDirectMediaDeliveryEvidenceRequiresScopedCommittedAttachment
+--- PASS: TestDirectMediaDeliveryEvidenceRequiresScopedCommittedAttachment (2.50s)
+=== RUN   TestDirectMediaDeliveryEvidenceLocksTheCommittedRows
+--- PASS: TestDirectMediaDeliveryEvidenceLocksTheCommittedRows (3.05s)
+=== RUN   TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays
+2026/11/12 22:26:43 INFO reply.evidence.reconciled correlation_id=tool-operation:writer-moment-operation metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays (2.60s)
+=== RUN   TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife
+=== RUN   TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/writer_failed
+2026/11/12 22:26:46 INFO reply.evidence.reconciled correlation_id=tool-operation:blocked-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/life_changed
+2026/11/12 22:26:48 INFO reply.evidence.reconciled correlation_id=tool-operation:blocked-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:26:48 WARN tool.call.handled capability=moment.publish call_id=direct_call_2bc862a0c556159e2f90e5288c3b7afc warning_code=moment_context_stale disposition=awaiting_state effect_applied=false
+--- PASS: TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife (5.17s)
+    --- PASS: TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/writer_failed (2.58s)
+    --- PASS: TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/life_changed (2.59s)
+=== RUN   TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops
+--- PASS: TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops (2.87s)
+=== RUN   TestM1SameBatchDenialsDoNotBlockAuthorizedTool
+2026/11/12 22:26:53 INFO capability lifecycle capability=capability.catalog call_id=batch-catalog type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestM1SameBatchDenialsDoNotBlockAuthorizedTool (1.35s)
+=== RUN   TestM1ThirdDenialDoesNotBlockSameBatchAuthorizedTool
+2026/11/12 22:26:55 INFO capability lifecycle capability=capability.catalog call_id=third-catalog type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestM1ThirdDenialDoesNotBlockSameBatchAuthorizedTool (2.30s)
+=== RUN   TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths
+--- PASS: TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths (0.00s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/12 22:26:57 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (2.64s)
+=== RUN   TestImageDisabledKeepsDirectChatAndTextMomentAvailable
+2026/11/12 22:27:00 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:image-off-chat metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 22:27:00 INFO reply.evidence.reconciled correlation_id=tool-operation:image-off-independent-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestImageDisabledKeepsDirectChatAndTextMomentAvailable (2.72s)
+=== RUN   TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable
+2026/11/12 22:27:03 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-existing-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:03 INFO capability lifecycle capability=capability.catalog call_id=m2-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable (2.67s)
+=== RUN   TestMomentHistoricalEvidenceRequiresScopedCommittedImage
+--- PASS: TestMomentHistoricalEvidenceRequiresScopedCommittedImage (2.53s)
+=== RUN   TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable
+=== RUN   TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable/removed
+2026/11/12 22:27:08 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-removed metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:08 WARN tool.call.handled capability=moment.publish call_id=direct_call_697e219e3ba0d6f544c734cf6cf4786a warning_code=direct_media_delivery_stale disposition=awaiting_state effect_applied=false
+=== RUN   TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable/busy
+2026/11/12 22:27:11 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-busy metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable (5.41s)
+    --- PASS: TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable/removed (2.79s)
+    --- PASS: TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable/busy (2.62s)
+=== RUN   TestMomentHistoricalImageClaimUsesActualMomentDelivery
+2026/11/12 22:27:13 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-history metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentHistoricalImageClaimUsesActualMomentDelivery (2.28s)
+=== RUN   TestMomentHistoricalClaimCannotBorrowWrongDelivery
+=== RUN   TestMomentHistoricalClaimCannotBorrowWrongDelivery/current-post
+2026/11/12 22:27:16 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-wrong-current-post metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:16 WARN tool.call.handled capability=moment.publish call_id=direct_call_fefc7806c3f70b48b8e7757783767786 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:27:16 WARN tool.call.handled capability=moment.publish call_id=direct_call_fefc7806c3f70b48b8e7757783767786 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentHistoricalClaimCannotBorrowWrongDelivery/private-claim
+2026/11/12 22:27:18 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-wrong-private-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:18 WARN tool.call.handled capability=moment.publish call_id=direct_call_6aabf8b1038cc7aaddb9cbc479701cbc warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:27:18 WARN tool.call.handled capability=moment.publish call_id=direct_call_6aabf8b1038cc7aaddb9cbc479701cbc warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentHistoricalClaimCannotBorrowWrongDelivery/moment-claim
+2026/11/12 22:27:21 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-wrong-moment-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:21 WARN tool.call.handled capability=moment.publish call_id=direct_call_2e95abc3346b36a82b2c0f3df58d83d1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:27:21 WARN tool.call.handled capability=moment.publish call_id=direct_call_2e95abc3346b36a82b2c0f3df58d83d1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentHistoricalClaimCannotBorrowWrongDelivery/old-moment-claim
+2026/11/12 22:27:23 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-wrong-old-moment-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:23 WARN tool.call.handled capability=moment.publish call_id=direct_call_0ac65eb906b79e9dbb170173ea8210e7 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:27:23 WARN tool.call.handled capability=moment.publish call_id=direct_call_0ac65eb906b79e9dbb170173ea8210e7 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentHistoricalClaimCannotBorrowWrongDelivery/unknown-delivery-time
+2026/11/12 22:27:25 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-wrong-unknown-delivery-time metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:25 WARN tool.call.handled capability=moment.publish call_id=direct_call_2991d9c3810a9dbf5e660a1dbd0e8154 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:27:25 WARN tool.call.handled capability=moment.publish call_id=direct_call_2991d9c3810a9dbf5e660a1dbd0e8154 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentHistoricalClaimCannotBorrowWrongDelivery/wrong-subject
+2026/11/12 22:27:27 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-wrong-wrong-subject metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:27 WARN tool.call.handled capability=moment.publish call_id=direct_call_cc6eeda3e6ba86b7c49dfb09d429fa8f warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:27:27 WARN tool.call.handled capability=moment.publish call_id=direct_call_cc6eeda3e6ba86b7c49dfb09d429fa8f warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentHistoricalClaimCannotBorrowWrongDelivery/ready-only
+2026/11/12 22:27:30 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-wrong-ready-only metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:30 WARN tool.call.handled capability=moment.publish call_id=direct_call_e55804c80f1d7d0e0f383fce43b29d5f warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:27:30 WARN tool.call.handled capability=moment.publish call_id=direct_call_e55804c80f1d7d0e0f383fce43b29d5f warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestMomentHistoricalClaimCannotBorrowWrongDelivery (16.45s)
+    --- PASS: TestMomentHistoricalClaimCannotBorrowWrongDelivery/current-post (2.74s)
+    --- PASS: TestMomentHistoricalClaimCannotBorrowWrongDelivery/private-claim (2.27s)
+    --- PASS: TestMomentHistoricalClaimCannotBorrowWrongDelivery/moment-claim (2.56s)
+    --- PASS: TestMomentHistoricalClaimCannotBorrowWrongDelivery/old-moment-claim (2.50s)
+    --- PASS: TestMomentHistoricalClaimCannotBorrowWrongDelivery/unknown-delivery-time (1.43s)
+    --- PASS: TestMomentHistoricalClaimCannotBorrowWrongDelivery/wrong-subject (2.27s)
+    --- PASS: TestMomentHistoricalClaimCannotBorrowWrongDelivery/ready-only (2.67s)
+=== RUN   TestMomentHistoricalClaimCannotAddUnverifiedSubject
+2026/11/12 22:27:32 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-extra-subject metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:32 WARN tool.call.handled capability=moment.publish call_id=direct_call_fe523bf57903dfa4f70aa7053a482e61 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:27:32 WARN tool.call.handled capability=moment.publish call_id=direct_call_fe523bf57903dfa4f70aa7053a482e61 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestMomentHistoricalClaimCannotAddUnverifiedSubject (2.82s)
+=== RUN   TestMomentCannotInventTimeForLatePrivateAttachment
+2026/11/12 22:27:35 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-late-private metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:35 WARN tool.call.handled capability=moment.publish call_id=direct_call_6dee4bc86b62ea7c514910efb8a3641e warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:27:35 WARN tool.call.handled capability=moment.publish call_id=direct_call_6dee4bc86b62ea7c514910efb8a3641e warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestMomentCannotInventTimeForLatePrivateAttachment (2.64s)
+=== RUN   TestDirectMomentImageTargetsPublishedMoment
+2026/11/12 22:27:38 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:m2-moment-image metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 22:27:38 INFO capability lifecycle capability=capability.catalog call_id=moment-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMomentImageTargetsPublishedMoment (3.20s)
+=== RUN   TestMomentWithoutMediaCannotPublishCompletedPhotoClaim
+2026/11/12 22:27:41 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-false-photo metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:41 WARN tool.call.handled capability=moment.publish call_id=direct_call_c81ccc6958e4c53836344ac3b93223de warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:27:41 WARN tool.call.handled capability=moment.publish call_id=direct_call_c81ccc6958e4c53836344ac3b93223de warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestMomentWithoutMediaCannotPublishCompletedPhotoClaim (2.41s)
+=== RUN   TestMomentExplicitAttachmentClaimIsRejectedWhenExtractorMissesIt
+2026/11/12 22:27:43 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-missed-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:43 WARN tool.call.handled capability=moment.publish call_id=direct_call_121dfaf43afff2727259c329c522df61 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:27:43 WARN tool.call.handled capability=moment.publish call_id=direct_call_121dfaf43afff2727259c329c522df61 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestMomentExplicitAttachmentClaimIsRejectedWhenExtractorMissesIt (2.20s)
+=== RUN   TestMomentMediaRejectionCountsPhysicalRounds
+--- PASS: TestMomentMediaRejectionCountsPhysicalRounds (0.00s)
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/image
+2026/11/12 22:27:45 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/mixed
+2026/11/12 22:27:48 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/ordinary
+2026/11/12 22:27:51 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable (7.54s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/image (2.26s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/mixed (2.60s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/ordinary (2.68s)
+=== RUN   TestMomentSelectedImageDoesNotProvePrivateDelivery
+=== RUN   TestMomentSelectedImageDoesNotProvePrivateDelivery/private-delivery
+2026/11/12 22:27:53 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-private-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:54 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:27:54 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentSelectedImageDoesNotProvePrivateDelivery/unverified-subject
+2026/11/12 22:27:56 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-private-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:56 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:27:56 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentSelectedImageDoesNotProvePrivateDelivery/unverified-selfie
+2026/11/12 22:27:58 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-private-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:27:58 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:27:58 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentSelectedImageDoesNotProvePrivateDelivery/missed-private-delivery
+2026/11/12 22:28:00 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-private-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:28:00 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:28:00 WARN tool.call.handled capability=moment.publish call_id=direct_call_65177bbcc7d447a7dd8bf51708bc437c warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestMomentSelectedImageDoesNotProvePrivateDelivery (9.61s)
+    --- PASS: TestMomentSelectedImageDoesNotProvePrivateDelivery/private-delivery (3.04s)
+    --- PASS: TestMomentSelectedImageDoesNotProvePrivateDelivery/unverified-subject (2.57s)
+    --- PASS: TestMomentSelectedImageDoesNotProvePrivateDelivery/unverified-selfie (2.04s)
+    --- PASS: TestMomentSelectedImageDoesNotProvePrivateDelivery/missed-private-delivery (1.97s)
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto/false-claim
+2026/11/12 22:28:03 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-audio-moment-false-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:28:03 WARN tool.call.handled capability=moment.publish call_id=direct_call_7d02ac9bd1d8c80d502c341f78bed43b warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:28:03 WARN tool.call.handled capability=moment.publish call_id=direct_call_7d02ac9bd1d8c80d502c341f78bed43b warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto/placeholder
+2026/11/12 22:28:05 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-audio-moment-placeholder metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto/audio-discussion
+2026/11/12 22:28:07 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-audio-moment-audio-discussion metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentAudioAttachmentDoesNotProvePhoto (7.27s)
+    --- PASS: TestMomentAudioAttachmentDoesNotProvePhoto/false-claim (2.67s)
+    --- PASS: TestMomentAudioAttachmentDoesNotProvePhoto/placeholder (2.36s)
+    --- PASS: TestMomentAudioAttachmentDoesNotProvePhoto/audio-discussion (2.25s)
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/selection
+2026/11/12 22:28:10 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/empty-to-image
+2026/11/12 22:28:12 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/image-kind
+2026/11/12 22:28:15 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/audio-to-image
+2026/11/12 22:28:17 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/version
+2026/11/12 22:28:20 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+--- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication (12.69s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/selection (2.28s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/empty-to-image (2.54s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/image-kind (2.67s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/audio-to-image (2.56s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/version (2.65s)
+=== RUN   TestUnattachedMomentRechecksHistoricalDeliveryInTransaction
+2026/11/12 22:28:23 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-history-stale metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:28:23 WARN tool.call.handled capability=moment.publish call_id=direct_call_f480913734d19f6155cb3c752edb9861 warning_code=direct_media_delivery_stale disposition=awaiting_state effect_applied=false
+--- PASS: TestUnattachedMomentRechecksHistoricalDeliveryInTransaction (2.52s)
+=== RUN   TestMomentHistoricalDeliveryLockBusyIsRetryable
+2026/11/12 22:28:24 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-history-busy metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentHistoricalDeliveryLockBusyIsRetryable (1.82s)
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/ordinary
+2026/11/12 22:28:27 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-ordinary metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/discussion
+2026/11/12 22:28:29 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-discussion metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/post-discussion
+2026/11/12 22:28:32 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-post-discussion metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/post-discussion-order
+2026/11/12 22:28:34 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-post-discussion-order metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/denial
+2026/11/12 22:28:36 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-denial metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/future
+2026/11/12 22:28:39 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-future metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/history-match
+2026/11/12 22:28:41 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-history-match metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/history-mismatch
+2026/11/12 22:28:44 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-history-mismatch metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:28:44 WARN tool.call.handled capability=moment.publish call_id=direct_call_6149b51c5dd417da7752c4e7d0f5343f warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:28:44 WARN tool.call.handled capability=moment.publish call_id=direct_call_6149b51c5dd417da7752c4e7d0f5343f warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/current-post-cannot-borrow-history
+2026/11/12 22:28:46 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-current-post-cannot-borrow-history metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:28:46 WARN tool.call.handled capability=moment.publish call_id=direct_call_43b20a1379854538c416cb0f634b79a1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:28:46 WARN tool.call.handled capability=moment.publish call_id=direct_call_43b20a1379854538c416cb0f634b79a1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/current-post-presence-cannot-borrow-history
+2026/11/12 22:28:49 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-current-post-presence-cannot-borrow-history metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:28:49 WARN tool.call.handled capability=moment.publish call_id=direct_call_b2aeb4bcd8dcb48b9ab1f907dcdf6159 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:28:49 WARN tool.call.handled capability=moment.publish call_id=direct_call_b2aeb4bcd8dcb48b9ab1f907dcdf6159 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/current-post-location-cannot-borrow-history
+2026/11/12 22:28:52 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-current-post-location-cannot-borrow-history metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:28:52 WARN tool.call.handled capability=moment.publish call_id=direct_call_853c6d665f7aef4ba7d954bf3bc1f4e3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:28:52 WARN tool.call.handled capability=moment.publish call_id=direct_call_853c6d665f7aef4ba7d954bf3bc1f4e3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions (27.77s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/ordinary (2.44s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/discussion (2.36s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/post-discussion (2.97s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/post-discussion-order (1.50s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/denial (2.51s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/future (2.65s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/history-match (2.40s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/history-mismatch (2.44s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/current-post-cannot-borrow-history (2.68s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/current-post-presence-cannot-borrow-history (2.84s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/current-post-location-cannot-borrow-history (2.97s)
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/chat/direct
+2026/11/12 22:28:55 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-implicit-chat-direct metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:28:55 WARN tool.call.handled capability=moment.publish call_id=direct_call_28ab64dc8700d77d762d4da509308bb4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:28:55 WARN tool.call.handled capability=moment.publish call_id=direct_call_28ab64dc8700d77d762d4da509308bb4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/chat/legacy
+2026/11/12 22:28:58 WARN tool.call.handled capability=moment.publish call_id=direct_call_f894f51c1768608ac24934344dd32d4e warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:28:58 WARN tool.call.handled capability=moment.publish call_id=direct_call_f894f51c1768608ac24934344dd32d4e warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/current-post/direct
+2026/11/12 22:29:00 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-implicit-current-post-direct metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:29:00 WARN tool.call.handled capability=moment.publish call_id=direct_call_e2432b9b36c41c479c206554ce9cefbd warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:29:00 WARN tool.call.handled capability=moment.publish call_id=direct_call_e2432b9b36c41c479c206554ce9cefbd warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/current-post/legacy
+2026/11/12 22:29:01 WARN tool.call.handled capability=moment.publish call_id=direct_call_210554ab2a9e92da5682cf55a445b628 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:29:01 WARN tool.call.handled capability=moment.publish call_id=direct_call_210554ab2a9e92da5682cf55a445b628 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/group-photo/direct
+2026/11/12 22:29:04 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-implicit-group-photo-direct metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:29:04 WARN tool.call.handled capability=moment.publish call_id=direct_call_b2ebb18a8b70311c246531148febb94d warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:29:04 WARN tool.call.handled capability=moment.publish call_id=direct_call_b2ebb18a8b70311c246531148febb94d warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/group-photo/legacy
+2026/11/12 22:29:06 WARN tool.call.handled capability=moment.publish call_id=direct_call_1f27232e7470f11a8900d53fa0aface7 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:29:06 WARN tool.call.handled capability=moment.publish call_id=direct_call_1f27232e7470f11a8900d53fa0aface7 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestImplicitMomentMediaClaimUsesRecentHistory (14.36s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/chat/direct (2.79s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/chat/legacy (3.01s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/current-post/direct (2.07s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/current-post/legacy (1.19s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/group-photo/direct (2.56s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/group-photo/legacy (2.74s)
+=== RUN   TestLegacyMomentUsesTheSameUnattachedMediaGuard
+=== RUN   TestLegacyMomentUsesTheSameUnattachedMediaGuard/false-claim
+2026/11/12 22:29:09 WARN tool.call.handled capability=moment.publish call_id=direct_call_7413426607689990847e215ca6755c67 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:29:09 WARN tool.call.handled capability=moment.publish call_id=direct_call_7413426607689990847e215ca6755c67 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestLegacyMomentUsesTheSameUnattachedMediaGuard/denial
+=== RUN   TestLegacyMomentUsesTheSameUnattachedMediaGuard/future
+=== RUN   TestLegacyMomentUsesTheSameUnattachedMediaGuard/ordinary-completion
+--- PASS: TestLegacyMomentUsesTheSameUnattachedMediaGuard (9.36s)
+    --- PASS: TestLegacyMomentUsesTheSameUnattachedMediaGuard/false-claim (2.58s)
+    --- PASS: TestLegacyMomentUsesTheSameUnattachedMediaGuard/denial (2.43s)
+    --- PASS: TestLegacyMomentUsesTheSameUnattachedMediaGuard/future (2.57s)
+    --- PASS: TestLegacyMomentUsesTheSameUnattachedMediaGuard/ordinary-completion (1.78s)
+=== RUN   TestDirectMomentMediaRejectionIsBounded
+2026/11/12 22:29:18 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:m2-moment-bounded metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 22:29:18 WARN tool.call.handled capability=moment.publish call_id=bounded-moment-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:29:18 WARN tool.call.handled capability=moment.publish call_id=bounded-moment-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestDirectMomentMediaRejectionIsBounded (2.51s)
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy/heading
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy/plain
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy/malformed-envelope
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy/fenced
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only/heading
+2026/11/12 22:29:23 INFO reply.evidence.reconciled correlation_id=tool-operation:moment-body-heading metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only/plain
+2026/11/12 22:29:23 INFO reply.evidence.reconciled correlation_id=tool-operation:moment-body-plain metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only/malformed-envelope
+2026/11/12 22:29:23 INFO reply.evidence.reconciled correlation_id=tool-operation:moment-body-malformed-envelope metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only/fenced
+2026/11/12 22:29:24 INFO reply.evidence.reconciled correlation_id=tool-operation:moment-body-fenced metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentPublicationFiltersNativeAndWriterText (5.32s)
+    --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy (2.59s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy/heading (0.02s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy/plain (0.02s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy/malformed-envelope (0.01s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy/fenced (0.01s)
+    --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only (2.73s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only/heading (0.06s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only/plain (0.04s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only/malformed-envelope (0.05s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only/fenced (0.05s)
+=== RUN   TestMomentPublicationRejectsBodylessTextWithoutEffects
+2026/11/12 22:29:26 WARN tool.call.handled capability=moment.publish call_id=direct_call_5e9f2a2382a25f9ca92a7a8b1ffc3a23 warning_code=invalid_arguments disposition=needs_input effect_applied=false
+2026/11/12 22:29:26 WARN tool.call.handled capability=moment.publish call_id=direct_call_5e9f2a2382a25f9ca92a7a8b1ffc3a23 warning_code=invalid_arguments disposition=needs_input effect_applied=false
+2026/11/12 22:29:26 WARN tool.call.handled capability=moment.publish call_id=direct_call_277f2634491ca8f31d2aa51c56f22d09 warning_code=invalid_arguments disposition=needs_input effect_applied=false
+--- PASS: TestMomentPublicationRejectsBodylessTextWithoutEffects (2.39s)
+=== RUN   TestOwnerRequestedMomentBodyUsesAttachedMediaAndReplays
+=== RUN   TestOwnerRequestedMomentBodyUsesAttachedMediaAndReplays/attached-false
+=== RUN   TestOwnerRequestedMomentBodyUsesAttachedMediaAndReplays/attached-true
+--- PASS: TestOwnerRequestedMomentBodyUsesAttachedMediaAndReplays (2.16s)
+    --- PASS: TestOwnerRequestedMomentBodyUsesAttachedMediaAndReplays/attached-false (0.02s)
+    --- PASS: TestOwnerRequestedMomentBodyUsesAttachedMediaAndReplays/attached-true (0.02s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	256.602s
+EXIT_CODE 0

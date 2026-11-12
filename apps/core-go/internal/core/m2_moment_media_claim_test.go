@@ -87,14 +87,26 @@ func TestMomentMediaRejectionCountsPhysicalRounds(t *testing.T) {
 }
 
 func TestMomentWithOwnerSelectedAttachmentRemainsPublishable(t *testing.T) {
-	for _, mixed := range []bool{false, true} {
-		t.Run(fmt.Sprintf("mixed-%t", mixed), func(t *testing.T) {
+	for _, sample := range []struct {
+		name, text string
+		mixed      bool
+		checks     int
+	}{
+		{"image", "我已经把这张照片附在这条动态里了。", false, 1},
+		{"mixed", "我已经把这张照片附在这条动态里了。", true, 1},
+		{"ordinary", "今天的风很好。", false, 0},
+	} {
+		t.Run(sample.name, func(t *testing.T) {
 			checks := 0
-			router := newFakeProviderRouter().on(directMediaDeliveryCheckSchema, func(map[string]any) fakeProviderResult {
+			router := newFakeProviderRouter().on(directMediaDeliveryCheckSchema, func(payload map[string]any) fakeProviderResult {
 				checks++
-				return fakeProviderResult{Status: 500}
+				wire := jsonString(payload["messages"])
+				if !strings.Contains(wire, "current_moment_attachment") || strings.Contains(wire, "m2-owner-asset") || strings.Contains(wire, "m2-owner-audio") {
+					t.Error("checker did not receive a scoped current attachment or saw Core asset IDs")
+				}
+				return fakeProviderResult{Structured: map[string]any{"claims": []any{map[string]any{"quote": "我已经把这张照片附在这条动态里了。", "delivery_ref": "current_moment_attachment", "subject_quote": ""}}}}
 			}).otherwise(func(map[string]any) fakeProviderResult {
-				return fakeProviderResult{Text: "我已经把这张照片附在这条动态里了。"}
+				return fakeProviderResult{Text: sample.text}
 			})
 			ctx, repo, app, owner, fid, _ := setupMixedMediaReplyTurnWithTransport(t, "m2-moment-owner-media", router)
 			app.Storage = &minio.Client{}
@@ -102,7 +114,7 @@ func TestMomentWithOwnerSelectedAttachmentRemainsPublishable(t *testing.T) {
 				t.Fatal(err)
 			}
 			selected := []any{"m2-owner-asset"}
-			if mixed {
+			if sample.mixed {
 				if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status) VALUES('m2-owner-audio',$1,'v1','audio','audio/mpeg',1,'fixture','fixture','fixture','m2-audio-provider','m2-audio-workflow','ready')`, fid); err != nil {
 					t.Fatal(err)
 				}
@@ -114,7 +126,7 @@ func TestMomentWithOwnerSelectedAttachmentRemainsPublishable(t *testing.T) {
 			}
 			request := ToolExecutionRequest{CapabilityName: "moment.publish", OperationID: "m2-owner-moment", AuthorizationActorID: owner, FluctlightID: fid, EvidenceID: "m2-owner-source", TargetKind: "owner_moment_request", TargetRef: "m2-owner-request", Arguments: jsonBytes(map[string]any{})}
 			receipt, err := app.ExecuteTool(ctx, request)
-			if err != nil || receipt.Result.Status != "completed" || checks != 0 {
+			if err != nil || receipt.Result.Status != "completed" || checks != sample.checks || stringValue(mapValue(receipt.Result.Output)["text"]) != sample.text {
 				t.Fatalf("Moment with selected attachment: %#v checks=%d err=%v", receipt.Result, checks, err)
 			}
 			id := stringValue(mapValue(receipt.Result.Output)["target_ref"])
@@ -122,6 +134,48 @@ func TestMomentWithOwnerSelectedAttachmentRemainsPublishable(t *testing.T) {
 			var refs int
 			if err := repo.Pool().QueryRow(ctx, `SELECT media_asset_ids,(SELECT count(*) FROM public.media_references WHERE target_type='moment' AND target_id=$1) FROM public.moments WHERE id=$1`, id).Scan(&assets, &refs); err != nil || jsonString(decodeArray(assets)) != jsonString(selected) || refs != len(selected) {
 				t.Fatalf("selected attachment was not committed: assets=%s refs=%d err=%v", assets, refs, err)
+			}
+		})
+	}
+}
+
+func TestMomentSelectedImageDoesNotProvePrivateDelivery(t *testing.T) {
+	for _, sample := range []struct {
+		name, text string
+		omit       bool
+	}{
+		{"private-delivery", "我已经把这张照片发给你了。", false},
+		{"unverified-subject", "我已经把窗外日落照片附在这条动态里了。", false},
+		{"unverified-selfie", "我已经把这张自拍附在这条动态里了。", false},
+		{"missed-private-delivery", "我已经把这张照片发给你了。", true},
+	} {
+		t.Run(sample.name, func(t *testing.T) {
+			router := newFakeProviderRouter().on(directMediaDeliveryCheckSchema, func(map[string]any) fakeProviderResult {
+				claims := []any{}
+				if !sample.omit {
+					claims = append(claims, map[string]any{"quote": sample.text, "delivery_ref": "current_moment_attachment", "subject_quote": ""})
+				}
+				return fakeProviderResult{Structured: map[string]any{"claims": claims}}
+			}).otherwise(func(map[string]any) fakeProviderResult {
+				return fakeProviderResult{Text: sample.text}
+			})
+			ctx, repo, app, owner, fid, _ := setupMixedMediaReplyTurnWithTransport(t, "m2-owner-private-claim", router)
+			app.Storage = &minio.Client{}
+			if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status) VALUES('m2-owner-private-asset',$1,'v1','image','image/png',1,'fixture','fixture','fixture','m2-owner-private-provider','m2-owner-private-workflow','ready')`, fid); err != nil {
+				t.Fatal(err)
+			}
+			payload := map[string]any{"kind": "moment_suggestion", "status": "pending", "source_fact_id": "m2-owner-private-source", "payload": map[string]any{"media_ids": []any{"m2-owner-private-asset"}}}
+			if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.owner_surface_records(id,owner_actor_id,fluctlight_id,kind,resource_key,status,payload) VALUES('m2-owner-private-request',$1,$2,'owner_request','m2-owner-private-request','pending',$3)`, owner, fid, jsonBytes(payload)); err != nil {
+				t.Fatal(err)
+			}
+			request := ToolExecutionRequest{CapabilityName: "moment.publish", OperationID: "m2-owner-private-claim", AuthorizationActorID: owner, FluctlightID: fid, EvidenceID: "m2-owner-private-source", TargetKind: "owner_moment_request", TargetRef: "m2-owner-private-request", Arguments: jsonBytes(map[string]any{})}
+			receipt, err := app.ExecuteTool(ctx, request)
+			var moments int
+			if queryErr := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.moments WHERE owner_fluctlight_id=$1`, fid).Scan(&moments); queryErr != nil {
+				t.Fatal(queryErr)
+			}
+			if err != nil || receipt.Result.Status != "handled" || stringValue(mapValue(receipt.Result.Output)["warning_code"]) != "direct_media_delivery_unverified" || moments != 0 {
+				t.Fatalf("selected post image authorized private delivery claim: %#v moments=%d err=%v", receipt.Result, moments, err)
 			}
 		})
 	}
@@ -179,7 +233,9 @@ func TestMomentAudioAttachmentDoesNotProvePhoto(t *testing.T) {
 func TestMomentSelectedAttachmentChangeRollsBackPublication(t *testing.T) {
 	for _, change := range []string{"selection", "empty-to-image", "image-kind", "audio-to-image", "version"} {
 		t.Run(change, func(t *testing.T) {
-			router := newFakeProviderRouter().otherwise(func(map[string]any) fakeProviderResult {
+			router := newFakeProviderRouter().on(directMediaDeliveryCheckSchema, func(map[string]any) fakeProviderResult {
+				return fakeProviderResult{Structured: map[string]any{"claims": []any{map[string]any{"quote": "我已经把这张照片附在这条动态里了。", "delivery_ref": "current_moment_attachment", "subject_quote": ""}}}}
+			}).otherwise(func(map[string]any) fakeProviderResult {
 				if change == "empty-to-image" || change == "audio-to-image" {
 					return fakeProviderResult{Text: "今天的动态。"}
 				}

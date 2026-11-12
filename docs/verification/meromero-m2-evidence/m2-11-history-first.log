@@ -1,0 +1,9 @@
+SOURCE_HEAD 3f136c762c998c7b58b45d89e8d22ec2ff81e10a CANDIDATE /private/tmp/fluctlight-m2-02-o90mv9rr
+OVERLAYS apps/core-go/internal/core/fact_only_moment_capability.go,apps/core-go/internal/core/direct_media_delivery_check.go,apps/core-go/internal/core/m2_moment_history_delivery_test.go,apps/core-go/internal/core/moment_media_delivery_evidence.go,apps/core-go/internal/core/direct_media_delivery_evidence.go
+COMMAND go test ./internal/core -count=1 -run ^TestMomentHistoricalImageClaimUsesActualMomentDelivery$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMomentHistoricalImageClaimUsesActualMomentDelivery
+2026/11/12 21:57:24 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-history metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentHistoricalImageClaimUsesActualMomentDelivery (2.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.794s
+EXIT_CODE 0

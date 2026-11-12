@@ -1,0 +1,20 @@
+SOURCE_HEAD 3f136c762c998c7b58b45d89e8d22ec2ff81e10a CANDIDATE /private/tmp/fluctlight-m2-02-tltk1p2u
+OVERLAYS apps/core-go/internal/core/fact_only_moment_capability.go,apps/core-go/internal/core/direct_media_delivery_check.go,apps/core-go/internal/core/m2_moment_history_delivery_test.go,apps/core-go/internal/core/moment_media_delivery_evidence.go,apps/core-go/internal/core/direct_media_delivery_evidence.go
+COMMAND go test ./internal/core -count=1 -run ^(TestMomentHistoricalImageClaimUsesActualMomentDelivery|TestMomentHistoricalEvidenceRequiresScopedCommittedImage|TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMomentHistoricalEvidenceRequiresScopedCommittedImage
+--- PASS: TestMomentHistoricalEvidenceRequiresScopedCommittedImage (1.90s)
+=== RUN   TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable
+=== RUN   TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable/removed
+2026/11/12 21:58:59 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-removed metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:58:59 WARN tool.call.handled capability=moment.publish call_id=direct_call_697e219e3ba0d6f544c734cf6cf4786a warning_code=direct_media_delivery_stale disposition=awaiting_state effect_applied=false
+=== RUN   TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable/busy
+2026/11/12 21:59:01 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-busy metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable (3.52s)
+    --- PASS: TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable/removed (1.80s)
+    --- PASS: TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable/busy (1.71s)
+=== RUN   TestMomentHistoricalImageClaimUsesActualMomentDelivery
+2026/11/12 21:59:02 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-history metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentHistoricalImageClaimUsesActualMomentDelivery (1.65s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	7.789s
+EXIT_CODE 0

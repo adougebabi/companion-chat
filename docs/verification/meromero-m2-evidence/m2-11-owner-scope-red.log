@@ -1,0 +1,11 @@
+SOURCE_HEAD 3f136c762c998c7b58b45d89e8d22ec2ff81e10a CANDIDATE /private/tmp/fluctlight-m2-02-q45aogo7
+OVERLAYS apps/core-go/internal/core/m2_moment_media_claim_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestMomentSelectedImageDoesNotProvePrivateDelivery$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMomentSelectedImageDoesNotProvePrivateDelivery
+2026/11/12 22:08:32 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-private-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+    m2_moment_media_claim_test.go:153: selected post image authorized private delivery claim: capability.CapabilityResult{ActingProfileID:"", CallID:"direct_call_65177bbcc7d447a7dd8bf51708bc437c", CapabilityName:"moment.publish", Status:"completed", Output:map[string]interface {}{"replayed":false, "target_kind":"moment", "target_ref":"moment_4c3c7d18ca9fa4e3f6c9d3602b610912", "text":"我已经把这张照片发给你了。"}, ErrorCode:"", Retryable:false, ProviderRequestID:"", CorrelationID:"moment:moment_4c3c7d18ca9fa4e3f6c9d3602b610912", Duration:0, RequiredContext:[]capability.ContextSlot(nil)} moments=1 err=<nil>
+--- FAIL: TestMomentSelectedImageDoesNotProvePrivateDelivery (2.13s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.866s
+FAIL
+EXIT_CODE 1

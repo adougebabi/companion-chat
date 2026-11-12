@@ -1,0 +1,27 @@
+SOURCE_HEAD 3f136c762c998c7b58b45d89e8d22ec2ff81e10a
+CANDIDATE /Users/vinson/Documents/project/个人/local-ai-companion
+MANIFEST /private/tmp/fluctlight-m2-11-resume-78nw569r/m2-11-resume-manifest.json (six M2 overlays; working tree also contains four prior drafts)
+COMMAND go test ./internal/core -count=1 -run ^(TestMomentHistoricalClaimIsRejectedWhenExtractorMissesIt|TestMomentWithOwnerSelectedAttachmentRemainsPublishable|TestPrivateReplyModeSwitchKeepsExplicitFactOnly)$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/12 22:41:06 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (2.76s)
+=== RUN   TestMomentHistoricalClaimIsRejectedWhenExtractorMissesIt
+2026/11/12 22:41:08 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-history-missed-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 22:41:09 WARN tool.call.handled capability=moment.publish call_id=direct_call_6a9e3844aa8c45c798545639f7a7fc2e warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 22:41:09 WARN tool.call.handled capability=moment.publish call_id=direct_call_6a9e3844aa8c45c798545639f7a7fc2e warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestMomentHistoricalClaimIsRejectedWhenExtractorMissesIt (2.34s)
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/image
+2026/11/12 22:41:11 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/mixed
+2026/11/12 22:41:13 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/ordinary
+2026/11/12 22:41:15 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable (6.95s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/image (2.22s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/mixed (2.40s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/ordinary (2.33s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	12.907s
+
+EXIT_CODE 0

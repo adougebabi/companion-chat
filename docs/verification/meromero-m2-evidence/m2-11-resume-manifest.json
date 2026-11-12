@@ -1,0 +1,11 @@
+{
+  "head": "3f136c762c998c7b58b45d89e8d22ec2ff81e10a",
+  "overlays": {
+    "apps/core-go/internal/core/m2_moment_media_claim_test.go": "b98e7866d1ace718bb90c90a8ff4e1b8dd3e942ff4d83ee2da080d0b4d803984",
+    "apps/core-go/internal/core/fact_only_moment_capability.go": "d7deae4efa25e25664719eea6477829d40585b90fb021683899f06d6bd29f879",
+    "apps/core-go/internal/core/direct_media_delivery_check.go": "546d8099f8faad84ca6ae444e521c36f380ff49efd9ad4f69d2e8123f1605774",
+    "apps/core-go/internal/core/m2_moment_history_delivery_test.go": "f8e99ce4cab266a74d1b9a83c3877b172a203a644169e7f14cb65bea30e3c2af",
+    "apps/core-go/internal/core/moment_media_delivery_evidence.go": "0393405b0b6fe80d707f5de67cdb76cc0271388eab57b4fa368deeb6f799fecd",
+    "apps/core-go/internal/core/direct_media_delivery_evidence.go": "13e95c43f8eff8d0a7bb81fffedb6e71956a285b8fd099641113883763d00d67"
+  }
+}
