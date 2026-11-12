@@ -12,6 +12,15 @@ import (
 // The media completion is controlled in the isolated database; cognition and
 // Writer requests still use the actual native Tool and continuation paths.
 func TestReplyContinuationKeepsOriginalCognitionModel(t *testing.T) {
+	testReplyContinuationCognitionBinding(t, false)
+}
+
+func TestReplyContinuationLegacyCognitionUsesCurrentModelWithoutInventingSnapshot(t *testing.T) {
+	testReplyContinuationCognitionBinding(t, true)
+}
+
+func testReplyContinuationCognitionBinding(t *testing.T, legacy bool) {
+	t.Helper()
 	var draftRef, actionRef string
 	var mainModels []string
 	writerCalls := 0
@@ -71,6 +80,16 @@ func TestReplyContinuationKeepsOriginalCognitionModel(t *testing.T) {
 	if err := repo.Pool().QueryRow(ctx, `SELECT id,binding_snapshot FROM public.conversation_reply_drafts WHERE source_fact_id=$1`, turn.InboxID).Scan(&draftRef, &binding); err != nil {
 		t.Fatal(err)
 	}
+	if legacy {
+		// Model an old draft that predates cognition snapshots. The test does
+		// not assert any knowable historical model for this legacy record.
+		if _, err := repo.Pool().Exec(ctx, `UPDATE public.conversation_reply_drafts SET binding_snapshot=binding_snapshot-$2 WHERE id=$1`, draftRef, replyCognitionSnapshotKey); err != nil {
+			t.Fatal(err)
+		}
+		if err := repo.Pool().QueryRow(ctx, `SELECT binding_snapshot FROM public.conversation_reply_drafts WHERE id=$1`, draftRef).Scan(&binding); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := repo.Pool().QueryRow(ctx, `SELECT ref FROM public.conversation_reply_actions WHERE draft_id=$1`, draftRef).Scan(&actionRef); err != nil {
 		t.Fatal(err)
 	}
@@ -95,28 +114,53 @@ func TestReplyContinuationKeepsOriginalCognitionModel(t *testing.T) {
 	if _, err := repo.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id='main-b' WHERE role=$1`, mainRole); err != nil {
 		t.Fatal(err)
 	}
+	initialRequests := len(mainModels)
+	if initialRequests == 0 {
+		t.Fatal("initial cognition request was not observed")
+	}
 	resume = true
 	_, err = app.ProcessReplyContinuation(ctx, draftRef)
 	if err == nil || !strings.Contains(err.Error(), "400") {
 		t.Fatalf("controlled continuation failure not returned: main_models=%v err=%v", mainModels, err)
 	}
-	for _, model := range mainModels {
-		if model != "main-a" {
-			t.Fatalf("same reply changed cognition model: %v", mainModels)
+	if len(mainModels) <= initialRequests {
+		t.Fatal("continuation did not make a new cognition request")
+	}
+	for index, model := range mainModels {
+		want := "main-a"
+		if legacy && index >= initialRequests {
+			want = "main-b"
+		}
+		if model != want {
+			t.Fatalf("unexpected cognition model at request %d: got=%s want=%s all=%v", index, model, want, mainModels)
 		}
 	}
 	var stored map[string]any
 	if err := json.Unmarshal(binding, &stored); err != nil || strings.Contains(string(binding), fixtureSecret) {
 		t.Fatalf("draft binding could not be read safely: %v", err)
 	}
-	if _, ok := stored[replyCognitionSnapshotKey]; !ok {
-		t.Fatal("draft did not persist the original cognition binding")
-	}
-	var cognition workflowModelSnapshot
-	if err := json.Unmarshal(jsonBytes(stored[replyCognitionSnapshotKey]), &cognition); err != nil || cognition.Assignment.ModelID != "main-a" || stringValue(mapValue(stored["assignment"])["ModelID"]) != "writer-model" {
-		t.Fatalf("cognition and Writer bindings were not kept distinct: %v", err)
+	_, hasSnapshot := stored[replyCognitionSnapshotKey]
+	if legacy {
+		var currentBinding []byte
+		var diagnostics int
+		if err := repo.Pool().QueryRow(ctx, `SELECT binding_snapshot,(SELECT count(*) FROM public.diagnostic_events WHERE correlation_id=$1 AND event_type='reply_continuation.model_binding.legacy_unfrozen' AND payload->>'reason_code'='legacy_model_binding_unavailable') FROM public.conversation_reply_drafts WHERE id=$1`, draftRef).Scan(&currentBinding, &diagnostics); err != nil {
+			t.Fatal(err)
+		}
+		_, fabricated := decodeObject(currentBinding)[replyCognitionSnapshotKey]
+		if hasSnapshot || fabricated || diagnostics != 1 {
+			t.Fatalf("legacy original model was fabricated or not recorded: original_snapshot=%t current_snapshot=%t diagnostics=%d", hasSnapshot, fabricated, diagnostics)
+		}
+	} else {
+		if !hasSnapshot {
+			t.Fatal("draft did not persist the original cognition binding")
+		}
+		var cognition workflowModelSnapshot
+		if err := json.Unmarshal(jsonBytes(stored[replyCognitionSnapshotKey]), &cognition); err != nil || cognition.Assignment.ModelID != "main-a" || stringValue(mapValue(stored["assignment"])["ModelID"]) != "writer-model" {
+			t.Fatalf("cognition and Writer bindings were not kept distinct: %v", err)
+		}
 	}
 	if writerCalls < 2 {
 		t.Fatalf("independent Writer was not used: calls=%d", writerCalls)
 	}
+	t.Logf("M1_04A legacy=%t initial_model=%s resumed_model=%s initial_requests=%d resumed_requests=%d snapshot_present=%t controlled_provider_http=400", legacy, mainModels[0], mainModels[initialRequests], initialRequests, len(mainModels)-initialRequests, hasSnapshot)
 }
