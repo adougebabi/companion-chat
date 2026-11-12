@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "id": "meromero-r1-model-override-isolation",
+  "definition_hash": "9813ac9a11bad72d7b09fbf3ead474649a6d927ac82756db42b33dc82b591959",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "fast",
+    "steps": [
+      "define",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "执行前阻塞：用户要求先将已完成的 T02 恢复为未完成；AEL 0.1.18 对 resume 返回 TERMINAL_TASK，现有 Edit/Resume 均不支持对 completed 任务重新打开。历史验收保留，R1 已单独登记但 A/B/C 未执行。",
+  "result": "",
+  "created": "2026-11-12T01:49:19.502514Z",
+  "updated": "2026-11-12T01:50:46.249455Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-daa4732681234bd902f9",
+        "unit": "define",
+        "executor": "codex-r1-status",
+        "input_version": "5f8c727cfad462a3abb78db24dde613ff5cc7c6c6a5164fc8d676c2d25e48adf",
+        "candidate_version": "5f8c727cfad462a3abb78db24dde613ff5cc7c6c6a5164fc8d676c2d25e48adf",
+        "started": "2026-11-12T01:49:47.34655Z",
+        "ended": "2026-11-12T01:50:42.067695Z",
+        "status": "blocked",
+        "reason": "执行前阻塞：用户要求先将已完成的 T02 恢复为未完成；AEL 0.1.18 对 resume 返回 TERMINAL_TASK，现有 Edit/Resume 均不支持对 completed 任务重新打开。历史验收保留，R1 已单独登记但 A/B/C 未执行。"
+      }
+    ],
+    "checks": null
+  }
+}

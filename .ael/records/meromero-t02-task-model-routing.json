@@ -22,9 +22,11 @@
   "failure": "",
   "result": "verified",
   "created": "2026-11-10T08:34:30.498512Z",
-  "updated": "2026-11-11T10:50:47.926099Z",
+  "updated": "2026-11-12T01:49:19.502737Z",
   "completed": "2026-11-11T10:50:47.925693Z",
-  "feedback": [],
+  "feedback": [
+    "meromero-r1-model-override-isolation"
+  ],
   "history": {
     "attempts": [
       {
