@@ -1,0 +1,31 @@
+{
+  "id": "meromero-m2-14-durable-reply-regression",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "9ba40dbccb3630312a9b3a01ee07e445d5107b145efef65d850031ac473fde55",
+  "completed": "2026-11-12T15:52:27.221609Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "m2-14-durable-regression",
+      "result": "pass",
+      "source": "scenario:codex-m2-14",
+      "config_hash": "fbca5a92251ed5353f1b65dfdaa5b67ed7b78dd5812c24eac945e85861e22c8f",
+      "at": "2026-11-12T15:52:16.97934Z",
+      "artifact_hashes": {
+        "apps/core-go/internal/core/durable_turn.go": "7d4bf9b1d83b604552ca638299d59a0c579e1d8faad0d0d0a8aad2f7b257b6ef",
+        "apps/core-go/internal/core/durable_turn_test.go": "fcf295aa0dfb907b0a75d89c01b8f3a03073a3a004feca1dc54a3720c15d27b7",
+        "apps/core-go/internal/httpapi/browser/ndjson.go": "c30e6b2f342c8a922680421b3c1d195baea94e7a43bbc52deeb222a9143d0f2d",
+        "apps/web/src/state/conversation.ts": "6e0f4cc2f6074ecd7c7a49b04522cdb0cc7d06b022b7d0eeb00d0353c73313ac",
+        "docs/verification/meromero-m2-evidence/m2-14-baseline.log": "6de2597c1f96da17540bec80861f5c8a610b9e7fbbb6c36d034411aa4fbe1bec",
+        "docs/verification/meromero-m2-evidence/m2-14-browser-web-version-check.log": "bafa1335318167f377ad8ca3b8b110f7c8a89b53953a40fc6b5512d21c82bad7",
+        "docs/verification/meromero-m2-evidence/m2-14-current.log": "cda27616d8fd7ff757a98a6890f1d93b9576bdc2571e90d053008cce497f9506",
+        "docs/verification/meromero-m2-evidence/m2-14-review-notes.md": "b67cb5fdafbfdc0df8af449f70e9845260c5e993e3c50fc060f49662158c5c4e",
+        "docs/verification/meromero-m2-evidence/m2-milestone-browser.log": "4f118ef80dce9a64819614031df7636e18ca12b375da7bc49c68b9d170e659f6",
+        "docs/verification/meromero-m2-evidence/m2-milestone-web.log": "7e9e48365837b8a328753925a0664fa0eeac469cabd90c7fcc712e7fadf5376c"
+      }
+    }
+  ]
+}
