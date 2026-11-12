@@ -1,0 +1,43 @@
+T11 Moment health, 2026-11-12
+
+Pre-commit candidate: f527ba9d plus the Moment health UI, its React test, and
+the HTTP integration test in this batch. The backend tests used a clean source
+export with the added HTTP test; four unrelated working-tree drafts were not
+included. This is evidence for the checks below, not T11 acceptance.
+
+1. React behavior: pnpm --dir apps/web exec node --test
+   test/plugin-health.test.mjs test/react-flows.test.mjs
+   Result: 18 passed, 0 failed, 0 skipped. The tests use a controlled client;
+   they cover independent Image/Moment probes, saved configuration identity,
+   stale responses and same-configuration reread while a probe is pending.
+   Log: /private/tmp/fluctlight-t11-moment-ui-regression.log
+
+2. Web typecheck: pnpm --filter @fluctlight/web typecheck
+   Result: exit 0. Log: /private/tmp/fluctlight-t11-moment-web-typecheck.log
+
+3. HTTP/BFF/Core/PostgreSQL: go test ./internal/httpapi -count=1
+   -run '^TestMomentHealth' -v, with an ephemeral PostgreSQL database in the
+   loopback-only Docker instance. The supplied fixture URL deliberately had
+   conflicting database query parameters. Result: 2 passed, 0 skipped. The
+   test verifies its repository is connected to the temporary database before
+   fixture writes. It uses httptest and a controlled session repository; the
+   Moment list is empty. Log: /private/tmp/fluctlight-t11-moment-http-pg-safe.log
+
+4. Core health: go test ./internal/core -count=1 -run
+   '^TestMomentPluginHealth' -v, same isolated PostgreSQL instance.
+   Result: 2 top-level tests passed, including 2 stale-result subtests.
+   Log: /private/tmp/fluctlight-t11-moment-core-pg-final.log
+
+5. Browser route package: go test ./internal/httpapi/browser -count=1
+   Result: exit 0. Log: /private/tmp/fluctlight-t11-moment-browser-final2.log
+
+6. Client contract: pnpm --dir packages/browser-client exec node --import tsx
+   --test test/moment-health.test.ts
+   Result: 1 passed, 0 skipped. Log: /private/tmp/fluctlight-t11-moment-client-final2.log
+
+The probe checks this process's Moment capability registration and the Owner
+list read path. It does not publish a Moment or invoke a model, and does not
+verify event delivery, another process, ComfyUI, or a real browser end-to-end.
+The production HTTP session implementation may update session access time;
+the test's session replacement cannot establish that all HTTP requests are
+free from every database write.

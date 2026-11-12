@@ -31,7 +31,7 @@
 | T08 | R07 表达学习 | IN_PROGRESS | 已接真实人类来源、候选持久化、Owner 审核及启停/撤销；隔离 PostgreSQL 与受控 Provider 验证同一候选从受理消息提取、启用进入 direct 请求、停用后新请求不再注入，学习开关与使用开关独立，测试中人格和关系语义未变化。关系含义称呼的兼容性、任意注入/日志内容排除、真实模型及 UI 到实际运行的闭环仍未完成或未验收。 |
 | T09 | R08 记忆治理 | IN_PROGRESS | 摘要、长期记忆、混合来源派生记忆和常驻快照读取均对已解析的纠错来源执行保守屏障；每日记忆在模型前和提交前复查整日来源。`memory.recall` 的原始会话回执区分真实发言主体并保留消息类型；隔离 PostgreSQL 与受控原生工具续轮验证主体标签和会话隔离。未知旧来源、可证明已吸收纠错的重建、全部在途请求及既有锁序仍未解决。 |
 | T10 | R09 现有领域回归 | IN_PROGRESS | 隔离 PostgreSQL 和受控 Provider 抽样验证 Goal 上限/空集、已完成旧愿望与 Owner 暂停保护、衣柜借还与穿着、人格切换、Actor/NPC 隔离、世界事件准入、Studio 与日记；四组 Goal/活动闭环测试在本轮及起始提交均失败，已另记 bug。真实模型、真实渲染及完整领域矩阵仍未验收。 |
-| T11 | R10 管理、Trace、重放 | IN_PROGRESS | 正式 React 管理页已接 Agent/variant 覆盖、恢复继承与 Image/Moment 开关；图片插件可显式检查已保存 ComfyUI 连接；Moment 已有 Owner 授权的只读注册与列表检查 API，页面接入尚在进行。两条诊断导出使用隐私安全投影，上游重试逐次记录安全状态与错误分类；Agent 错误及失败工具结果对可识别凭据进行有限脱敏。真实 ComfyUI/生成、完整 Prompt 的调试权限、通用隔离重放和真实页面到运行消费仍未完成或未验收。 |
+| T11 | R10 管理、Trace、重放 | IN_PROGRESS | 正式 React 管理页已接 Agent/variant 覆盖、恢复继承与 Image/Moment 开关；图片插件可显式检查已保存 ComfyUI 连接；Moment 卡片可显式检查当前进程的注册与 Owner 动态列表读取，并明确未验证发布和模型。两条诊断导出使用隐私安全投影，上游重试逐次记录安全状态与错误分类；Agent 错误及失败工具结果对可识别凭据进行有限脱敏。真实 ComfyUI/生成、完整 Prompt 的调试权限、通用隔离重放和真实页面到运行消费仍未完成或未验收。 |
 | T12 | R11 全链路验收 | IN_PROGRESS | 已更新主复核报告及 E01–E18 矩阵，在干净提交 `42b43abf` 上执行 Go 全量和 14 个隔离数据库/受控工具专项；Web 定向 8 项与类型检查通过。额外衣柜/无人主体回归 9 个顶层测试中 8 通过、1 失败，失败的两个回退纠错子场景在起始提交通过，已另记 bug；E14 旧 Goal/活动失败、E16 正文与媒体一致性，以及真实模型、渲染与 UI 到运行消费仍未全部验收。 |
 
 ## 已发现的冲突与依赖
@@ -74,6 +74,8 @@
 - 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
 
 ## 验收及变更记录
+
+- 2026-11-12：T11 Moment 插件卡接入显式健康检查；结果绑定 Owner、已保存插件版本和启停状态，重读或保存会使两种插件旧检查失效，即使配置版本未变化也不沿用旧成功或等待状态。受控 React 回归 18 项和 Web 类型检查通过；其中包含 Image/Moment 并行及同配置重读时旧请求迟到。浏览器路由经进程内 BFF、Core 和隔离 PostgreSQL 的集成测试，以及 Core 健康测试、浏览器路由包和客户端合同测试通过，见 [本批证据](../../evidence/meromero-t11-moment-health-20261112.txt)。HTTP 测试使用会话替身、空动态列表和 `httptest`，并非真实浏览器或网络端到端；仅证明当前进程注册与列表读取探测，不证明发布、模型、事件投递、其他进程健康或完整配置闭环。测试用连接 URL 的数据库查询参数被覆盖，并在写入前校验实际临时库；冲突参数场景已在本机隔离库通过。
 
 - 2026-11-12：T11 新增 Moment 只读健康检查后端与浏览器 API 合同：验证当前进程 `moment.publish`/`moment.inspect` 注册，以及 Owner 动态列表最多一条的真实读取；空列表正常，停用与检查失败分开，配置在检查中变化时旧成功或旧失败均标记过期。检查不发布动态、不执行模型，也不宣称事件投递或发布成功。隔离 PostgreSQL 验证无业务写入、Owner 访问、停用、缺少列表依赖及配置竞争，浏览器路由/CSRF 与客户端测试通过：`/private/tmp/fluctlight-t11-moment-backend-route-final.log`、`/private/tmp/fluctlight-t11-moment-browser-contract.log`、`/private/tmp/fluctlight-t11-moment-client.log`。此时管理页尚未接入该检查，不能将后端 API 视为 T11 完成。
 

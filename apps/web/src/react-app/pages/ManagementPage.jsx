@@ -135,7 +135,9 @@ function createManagementPageController(props, context, lifecycle) {
   let active = true,
     catalog = null,
     versions = {},
-    loaded = false;
+    loaded = false,
+    testReadEpoch = 0;
+  const pluginTestEpoch={media:0,moment:0};
   const live = () => active && w.state.session?.actorId === scope;
   const tab = selector({
       get: () => w.state.managementTab,
@@ -161,7 +163,7 @@ function createManagementPageController(props, context, lifecycle) {
     validationPending=lifecycle.cell(false),
     error = lifecycle.cell(""),
     reference = lifecycle.cell(""),
-    testResult = lifecycle.cell(""),testRaw=lifecycle.cell(null),testKind=lifecycle.cell('information'),
+    testResult = lifecycle.cell(""),testRaw=lifecycle.cell(null),testKind=lifecycle.cell('information'),pluginHealthReset=lifecycle.cell(0),
     currentSection=lifecycle.cell("服务地址"),selectedAgentRoute=lifecycle.cell(''),agentModelRoutes=lifecycle.cell([]),domainPlugins=lifecycle.cell([]);
   const catalogLoading=lifecycle.cell(true),catalogReady=lifecycle.cell(false);
   const settings = lifecycle.cell([]),
@@ -379,7 +381,13 @@ function createManagementPageController(props, context, lifecycle) {
       .map((a) => catalogLabel("agent", a.name, a.description)),
   );
   function confirmedEditable(){if(!catalog)return '';const hours=quiet.value._source||catalog.effective_values['product.autonomy']?.quiet_hours||{};return editableConfiguration(settings.value.map(group=>({...group,fields:group.fields.map(field=>uiField(field._settingKey,field._definition,catalog.effective_values[field._settingKey]))})),catalog.endpoints.map(endpoint=>({id:endpoint.id,name:endpoint.id,protocol:endpoint.kind,url:endpoint.base_url,secret:'',clearSecret:false})),modelBindingRows(catalog),{...quiet.value,enabled:!!hours.start,start:hours.start||'',end:hours.end||'',days:(hours.days||[0,1,2,3,4,5,6]).map(day=>weekdays[day])});}
+  function invalidateConfigurationTests(){
+    testReadEpoch++;pluginTestEpoch.media++;pluginTestEpoch.moment++;
+    pluginHealthReset.value++;
+    testResult.value='';testRaw.value=null;testKind.value='information';
+  }
   async function readCatalog() {
+    invalidateConfigurationTests();
     catalogLoading.value=true;
     const snapshot = await config.read();
     if (!live()) return;
@@ -620,6 +628,7 @@ function createManagementPageController(props, context, lifecycle) {
       error.value = "原角色设置结果尚未确认，请先重试原角色设置";
       return;
     }
+    invalidateConfigurationTests();
     recoveringConfiguration.value=true;error.value='';saveKind.value='progress';saveStatus.value='正在读取最新基线，当前输入保留…';
     try {
       const next = await config.read();
@@ -738,7 +747,7 @@ function createManagementPageController(props, context, lifecycle) {
           operation,
           result,
         );
-        testReadEpoch++;testResult.value='';testRaw.value=null;testKind.value='information';
+        invalidateConfigurationTests();
         clearAcknowledgedCredentials(
           endpoints.value,
           submitted.endpoints,
@@ -793,10 +802,10 @@ function createManagementPageController(props, context, lifecycle) {
       if (live()) saving.value = false;
     }
   }
-  let testReadEpoch=0;
   async function test(target) {
     const endpoint = typeof target === "object" ? target : null;
     const name = endpoint ? endpoint.name || "新服务" : target,token=endpoint?(endpoint.modelsEpoch=(endpoint.modelsEpoch||0)+1):++testReadEpoch;
+    const pluginKey=endpoint?'':name==='图片（ComfyUI）'?'media':name==='动态（Moment）'?'moment':'',pluginToken=pluginKey?++pluginTestEpoch[pluginKey]:0;
     if(!endpoint)testRaw.value=null;
     testResult.value = endpoint ? "" : name + "：测试中…";
     if(!endpoint)testKind.value='progress';
@@ -812,11 +821,12 @@ function createManagementPageController(props, context, lifecycle) {
       const result = endpoint
         ? await config.models(endpoint._source.id)
         : await config.test(
-            name === "高级" ? "kev" : name === "看图理解" ? "vision" : "media",
+            name === "高级" ? "kev" : name === "看图理解" ? "vision" : name === "动态（Moment）" ? "moment" : "media",
           );
       if (live()) {
         if(endpoint&&token!==endpoint.modelsEpoch)return;
-        if(!endpoint&&token!==testReadEpoch)return;
+        if(!endpoint&&pluginKey&&pluginToken!==pluginTestEpoch[pluginKey])return;
+        if(!endpoint&&!pluginKey&&token!==testReadEpoch)return;
         if (
           endpoint &&
           (!connectionIsSaved(endpoint) || endpoint._source !== source)
@@ -832,9 +842,20 @@ function createManagementPageController(props, context, lifecycle) {
             "已读取模型目录 " + endpoint.models.length + " 项";
           return;
         }
+        if(pluginKey&&token!==testReadEpoch)return result;
         testRaw.value=result;
         if(name==='图片（ComfyUI）'&&(result?.state==='configuration_changed'||(typeof result?.config_version==='number'&&result.config_version!==Number(versions['media.comfyui']??0)))){
           testKind.value='warning';testResult.value=name+'：配置已变化，请重新检查已保存配置。';return result;
+        }
+        if(name==='动态（Moment）'){
+          const version=Number(versions['plugins.domains']??0),plugin=domainPlugins.value.find(item=>item.id==='moment');
+          if(result?.state==='configuration_changed'||(typeof result?.config_version==='number'&&result.config_version!==version)||(typeof result?.plugin_enabled==='boolean'&&plugin&&result.plugin_enabled!==plugin.enabled)){
+            testKind.value='warning';testResult.value=name+'：配置已变化，请重新检查已保存配置。';return result;
+          }
+          const ready=result?.state==='ready'&&result.registry_checked===true&&result.data_read_tested===true&&result.publication_tested===false&&result.model_tested===false&&result.config_version===version&&plugin&&result.plugin_enabled===plugin.enabled;
+          testKind.value=ready?'success':result?.state==='unavailable'||result?.status==='failed'?'error':'warning';
+          testResult.value=name+'：'+(ready?'动态列表可读取，未验证发布和模型。':testKind.value==='error'?'动态能力检查未通过。':'检查回执未确认，请重新检查。');
+          return result;
         }
         const summary=configurationTestSummary(result);
         testKind.value=summary.state==='success'?'success':summary.state==='failed'?'error':'warning';
@@ -850,7 +871,7 @@ function createManagementPageController(props, context, lifecycle) {
       if (live()) {
         if(endpoint&&token!==endpoint.modelsEpoch)return;
         if (endpoint){endpoint.feedback = "";endpoint.modelsStatus="error";endpoint.modelsError=errorMessage(cause);}
-        else if(token===testReadEpoch){testRaw.value={status:"failed",reason:errorMessage(cause)};testKind.value='error';testResult.value = name + "：" + errorMessage(cause);return testRaw.value;}
+        else if(pluginKey?pluginToken===pluginTestEpoch[pluginKey]:token===testReadEpoch){const failure={status:"failed",reason:errorMessage(cause)};if(token===testReadEpoch){testRaw.value=failure;testKind.value='error';testResult.value = name + "：" + errorMessage(cause);}return failure;}
       }
     }
   }
@@ -992,7 +1013,8 @@ function createManagementPageController(props, context, lifecycle) {
         endpoints,
         test,
         bindings,selectedAgentRoute,agentModelRoutes,domainPlugins,
-        mediaHealthScope:()=>({owner:w.state.session?.actorId||'',version:Number(versions['media.comfyui']??0)}),
+        mediaHealthScope:()=>({owner:w.state.session?.actorId||'',version:Number(versions['media.comfyui']??0),reset:pluginHealthReset.value}),
+        momentHealthScope:()=>({owner:w.state.session?.actorId||'',version:Number(versions['plugins.domains']??0),reset:pluginHealthReset.value}),
         quiet,
         characters,
         settings,
