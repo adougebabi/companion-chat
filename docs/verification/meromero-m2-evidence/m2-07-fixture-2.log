@@ -1,0 +1,12 @@
+SOURCE_HEAD f8dc1edf7ce0f61c424682c72ae4346b7afcc8c6 CANDIDATE /private/tmp/fluctlight-m2-02-01nx62bs
+OVERLAYS apps/core-go/internal/core/m2_direct_wear_selfie_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestDefaultDirectWearsBeforeSelfieAndDeliversOnce$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDefaultDirectWearsBeforeSelfieAndDeliversOnce
+2026/11/12 19:12:11 INFO capability lifecycle capability=capability.catalog call_id=m2-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 19:12:11 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+    m2_direct_wear_selfie_test.go:193: process/replay 0 result=map[string]interface {}(nil) err=Get "http://controlled-renderer.invalid/history/m2-controlled-selfie": EOF
+--- FAIL: TestDefaultDirectWearsBeforeSelfieAndDeliversOnce (6.09s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.756s
+FAIL
+EXIT_CODE 1

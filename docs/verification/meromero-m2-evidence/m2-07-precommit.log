@@ -1,0 +1,60 @@
+SOURCE_HEAD f8dc1edf7ce0f61c424682c72ae4346b7afcc8c6 CANDIDATE /private/tmp/fluctlight-m2-02-fw1g38d9
+OVERLAYS apps/core-go/internal/core/m2_direct_wear_selfie_test.go
+COMMAND go test ./internal/core -count=1 -run ^(TestDefaultDirectWearsBeforeSelfieAndDeliversOnce|TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter|TestPrivateReplyModeSwitchKeepsExplicitFactOnly|TestImageDisabledKeepsDirectChatAndTextMomentAvailable|TestImageRunningJobRecoversAcrossProcessesAfterDisable|TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob|TestDirectMediaAndReplySameBatchAreNotCommitted|TestWardrobeIndependentToolKeepsItemsAndWearingDistinct|TestWardrobeIndependentToolRejectsUnavailableAndForeignOwner)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_false
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_true
+--- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted (3.21s)
+    --- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_false (1.68s)
+    --- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_true (1.53s)
+=== RUN   TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob
+    m2_ambiguous_image_submit_test.go:115: child phase=lost_response pid=5188 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:185: phase=lost_response actual_error=media_submission_ambiguous: Post "http://127.0.0.1:54031/prompt": EOF
+        --- PASS: TestImageAmbiguousSubmitChild (0.05s)
+        PASS
+    m2_ambiguous_image_submit_test.go:120: child phase=resume pid=5198 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:185: phase=resume actual_error=media_submission_ambiguous
+        --- PASS: TestImageAmbiguousSubmitChild (0.01s)
+        PASS
+--- PASS: TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob (1.55s)
+=== RUN   TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter
+--- PASS: TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter (1.59s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/12 19:14:38 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (2.28s)
+=== RUN   TestDefaultDirectWearsBeforeSelfieAndDeliversOnce
+2026/11/12 19:14:39 INFO capability lifecycle capability=capability.catalog call_id=m2-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 19:14:40 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDefaultDirectWearsBeforeSelfieAndDeliversOnce (1.94s)
+=== RUN   TestImageDisabledKeepsDirectChatAndTextMomentAvailable
+2026/11/12 19:14:42 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:image-off-chat metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 19:14:42 INFO reply.evidence.reconciled correlation_id=tool-operation:image-off-independent-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestImageDisabledKeepsDirectChatAndTextMomentAvailable (1.97s)
+=== RUN   TestImageRunningJobRecoversAcrossProcessesAfterDisable
+    m2_running_image_recovery_test.go:156: child phase=interrupt pid=6491 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:221: controlled renderer history failed after submission, as intended
+        --- PASS: TestImageRunningJobRecoveryChild (0.07s)
+        PASS
+    m2_running_image_recovery_test.go:166: child phase=resume pid=6510 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:231: resume and replay completed once; child pid=6510
+        --- PASS: TestImageRunningJobRecoveryChild (0.06s)
+        PASS
+--- PASS: TestImageRunningJobRecoversAcrossProcessesAfterDisable (1.76s)
+=== RUN   TestWardrobeIndependentToolKeepsItemsAndWearingDistinct
+2026/11/12 19:14:45 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_d9650d62b277ee291fb1a6d7284bb8e8 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 19:14:45 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_1ad49b3afa87b3d8c6d6105469973b1a type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 19:14:45 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_235fca0e61c417543f334d0ffab2ff08 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestWardrobeIndependentToolKeepsItemsAndWearingDistinct (1.94s)
+=== RUN   TestWardrobeIndependentToolRejectsUnavailableAndForeignOwner
+2026/11/12 19:14:48 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_e5bfbc3e971dc4ce338101c90df14789 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 19:14:48 WARN tool.call.handled capability=wardrobe.wear call_id=direct_call_78df6809216be18601fbab64ca9cfaab warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/12 19:14:48 WARN capability lifecycle capability=wardrobe.inspect call_id=direct_call_4131bd48046aba28777d77d3c159e89f type=query surface=native_cognition required_context=[] duration_ms=0 status=failed retryable=false intent_present=false intent_runes=0 error_code=wardrobe_item_not_found
+2026/11/12 19:14:48 WARN tool.call.handled capability=wardrobe.inspect call_id=direct_call_4131bd48046aba28777d77d3c159e89f warning_code=wardrobe_item_not_found disposition=no_results effect_applied=false
+--- PASS: TestWardrobeIndependentToolRejectsUnavailableAndForeignOwner (2.74s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	19.809s
+EXIT_CODE 0

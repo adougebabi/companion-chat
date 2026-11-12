@@ -10,6 +10,7 @@
 | M2-04 | T05/T06：已保存渲染 Job ID 的未完成图片跨进程恢复 | VERIFIED | 受检提交 `707ac2ad`：正式 Image 请求受理后，第一个进程在 Job ID 落库后遇到受控 503；Image 停用后第二个独立进程恢复同一 Job，经受控质量检查和存储后只交付一次，重放不重复；新图片请求被拒绝。干净提交的 7 个定向顶层回归通过、无 SKIP，含四处原有草稿的工作区主场景也通过；日志 `meromero-m2-evidence/m2-04-postcommit.log`、`meromero-m2-evidence/m2-04-working-tree.log`。渲染服务已接单但 ID 尚未落库的崩溃窗口仍为父任务缺口；受控服务不冒充真实 Temporal、ComfyUI 或模型。 |
 | M2-05 | T05/T06：渲染服务已接单、Job ID 未落库时避免重复提交 | VERIFIED | 受检提交 `6ba41249`：用户选择直接暂停、等待人工核对。发送前持久化标记；丢失响应后暂停，旧任务无可靠 Job ID 也保守处理；普通媒体经明确核对后可恢复已就绪资产或明确重新生成。干净提交的 19 个 Core、6 个受控工作流、4 个迁移、3 个浏览器边界及 11 个定向页面用例通过，均无 SKIP；含原有草稿的工作区主场景通过。旧红测和提交后证据均保留在 `meromero-m2-evidence/m2-05-*.log`。Studio 可核对后显式丢弃任务，Studio/视觉身份尚无核对后接回原任务的领域入口，不能据此称完整恢复；真实 Temporal/ComfyUI 未验证。 |
 | M2-06 | T05：无人物图片的 SDXL 正向文本边界 | VERIFIED | 受检提交 `d7e5f8ce`：正向 `text_g`/`text_l`、`positive_prompt` 和连接的 `PrimitiveString` 接入现有工作流事实边界。干净提交与隔离 PostgreSQL 上 12 个顶层专项及 4 个当前拍摄子场景通过，含四处原有草稿的工作区主场景通过，均无 SKIP；红测和提交后日志见 `meromero-m2-evidence/m2-06-*.log`。模型和渲染为受控替身，不代表真实生图或 T05 完整验收。`enum-rejected` 同环境基线失败单列 AEL；图片无字规则在 `PrimitiveString` 的独立问题登记为 `image-no-text-primitive-string-boundary`。 |
+| M2-07 | T04/T05：direct 主链先换衣再自拍的事实与交付 | IMPLEMENTED | 新增正式 `HandleTurn` 场景：实际衣柜查询回执驱动换衣，受理自拍前核对持久穿着，再核对媒体快照、受控渲染请求及附件幂等交付。提交前 9 个顶层直接回归通过，含默认配置与 `fact_only` 开关；首两次分别因测试衣物夹具、模拟渲染服务配置错误失败并已保留日志。待提交后复验；受控服务不代表真实模型或生图。 |
 
 M1 中同一调用 ID 重放的非阻断缺陷已登记 AEL，按用户要求暂缓，不在 M2 顺手修复。其余 M2 验收仍按原 T03～T06 和里程碑要求逐项处理，不以局部完成替代父任务验收。
 

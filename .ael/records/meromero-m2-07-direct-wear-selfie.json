@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-07-direct-wear-selfie",
+  "definition_hash": "5dc8ea601238018cc2f5955611ad51e1710f7faa8418426ae31bc659fbd4d447",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T11:06:53.649723Z",
+  "updated": "2026-11-12T11:08:25.234736Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-c53e0234eea2bec0c137",
+        "unit": "define",
+        "executor": "codex-m2-07",
+        "input_version": "1bacfa10ed8a52e5b7d8072b3de869b94d46a4ce9688d6a4fcc0b4ea6a40fdd2",
+        "candidate_version": "1bacfa10ed8a52e5b7d8072b3de869b94d46a4ce9688d6a4fcc0b4ea6a40fdd2",
+        "started": "2026-11-12T11:07:37.468128Z",
+        "ended": "2026-11-12T11:07:37.913962Z",
+        "status": "pass",
+        "reason": "范围仅为 direct 正式链路中真实换衣后的自拍事实冻结及受控媒体交付；不修改模型、Prompt 或用户原有媒体草稿。"
+      },
+      {
+        "id": "AT-512c34ae65e09e014323",
+        "unit": "analysis",
+        "executor": "codex-m2-07",
+        "input_version": "1bacfa10ed8a52e5b7d8072b3de869b94d46a4ce9688d6a4fcc0b4ea6a40fdd2",
+        "candidate_version": "1bacfa10ed8a52e5b7d8072b3de869b94d46a4ce9688d6a4fcc0b4ea6a40fdd2",
+        "started": "2026-11-12T11:08:02.581257Z",
+        "ended": "2026-11-12T11:08:02.941734Z",
+        "status": "pass",
+        "reason": "已核对旧模式换衣测试与已有媒体恢复夹具；通过隔离数据库、原生工具及受控服务验证先换衣后自拍的状态、快照、渲染与交付。"
+      },
+      {
+        "id": "AT-9879f1aab2f6f9aca6a3",
+        "unit": "execute",
+        "executor": "codex-m2-07",
+        "input_version": "1bacfa10ed8a52e5b7d8072b3de869b94d46a4ce9688d6a4fcc0b4ea6a40fdd2",
+        "candidate_version": "",
+        "started": "2026-11-12T11:08:24.985676Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}

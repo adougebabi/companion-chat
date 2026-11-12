@@ -1,0 +1,10 @@
+SOURCE_HEAD f8dc1edf7ce0f61c424682c72ae4346b7afcc8c6 CANDIDATE /private/tmp/fluctlight-m2-02-_yyxf2i8
+OVERLAYS apps/core-go/internal/core/m2_direct_wear_selfie_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestDefaultDirectWearsBeforeSelfieAndDeliversOnce$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDefaultDirectWearsBeforeSelfieAndDeliversOnce
+2026/11/12 19:13:24 INFO capability lifecycle capability=capability.catalog call_id=m2-load type=query surface=conversation required_context=[] duration_ms=2 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 19:13:25 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDefaultDirectWearsBeforeSelfieAndDeliversOnce (12.25s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	12.919s
+EXIT_CODE 0
