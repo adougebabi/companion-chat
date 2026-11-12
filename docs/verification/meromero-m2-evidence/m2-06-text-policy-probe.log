@@ -1,0 +1,7 @@
+=== RUN   TestPrimitiveStringTextRulePhysicalProbe
+2026/11/12 18:50:06 WARN Go Core diagnostic persistence failed component=event stage=create correlation_id=media: error_type=*errors.errorString safe_cause=diagnostics_unavailable event_type=media.comfyui.prompt_submitted
+    m2_text_policy_probe_test.go:13: primitive positive value lacks image text exclusion: "窗外风景"
+--- FAIL: TestPrimitiveStringTextRulePhysicalProbe (0.00s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.671s
+FAIL

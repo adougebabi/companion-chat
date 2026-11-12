@@ -1,0 +1,16 @@
+SOURCE_HEAD b8204c55c4bb36a52f8444f96bf144abaa5b176a CANDIDATE /private/tmp/fluctlight-m2-02-ccks86yk
+OVERLAYS apps/core-go/internal/core/m2_sdxl_positive_workflow_test.go,apps/core-go/internal/core/current_capture.go
+COMMAND go test ./internal/core -count=1 -run ^TestSDXLPositiveTextRejectsFixedPrimitiveString$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestSDXLPositiveTextRejectsFixedPrimitiveString
+=== RUN   TestSDXLPositiveTextRejectsFixedPrimitiveString/fixed
+    m2_sdxl_positive_workflow_test.go:113: primitive positive text accepted=true err=<nil>
+=== RUN   TestSDXLPositiveTextRejectsFixedPrimitiveString/frozen
+=== RUN   TestSDXLPositiveTextRejectsFixedPrimitiveString/empty
+--- FAIL: TestSDXLPositiveTextRejectsFixedPrimitiveString (0.00s)
+    --- FAIL: TestSDXLPositiveTextRejectsFixedPrimitiveString/fixed (0.00s)
+    --- PASS: TestSDXLPositiveTextRejectsFixedPrimitiveString/frozen (0.00s)
+    --- PASS: TestSDXLPositiveTextRejectsFixedPrimitiveString/empty (0.00s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.828s
+FAIL
+EXIT_CODE 1

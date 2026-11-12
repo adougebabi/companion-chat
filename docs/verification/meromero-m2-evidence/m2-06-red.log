@@ -1,0 +1,25 @@
+SOURCE_HEAD b8204c55c4bb36a52f8444f96bf144abaa5b176a CANDIDATE /private/tmp/fluctlight-m2-02-sf0g_3dd
+OVERLAYS apps/core-go/internal/core/m2_sdxl_positive_workflow_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestSDXLPositiveTextCannotOverrideNoPersonImage$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-global
+    m2_sdxl_positive_workflow_test.go:47: renderer received fixed person/clothing text
+    m2_sdxl_positive_workflow_test.go:76: fixed positive text reached renderer: calls=1 err=ComfyUI returned HTTP 400: {"error":{"type":"prompt_outputs_failed_validation"},"node_errors":{}}
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-local
+    m2_sdxl_positive_workflow_test.go:47: renderer received fixed person/clothing text
+    m2_sdxl_positive_workflow_test.go:76: fixed positive text reached renderer: calls=1 err=ComfyUI returned HTTP 400: {"error":{"type":"prompt_outputs_failed_validation"},"node_errors":{}}
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-via-positive-prompt-edge
+    m2_sdxl_positive_workflow_test.go:47: renderer received fixed person/clothing text
+    m2_sdxl_positive_workflow_test.go:76: fixed positive text reached renderer: calls=1 err=ComfyUI returned HTTP 400: {"error":{"type":"prompt_outputs_failed_validation"},"node_errors":{}}
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/both-frozen
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/empty-local
+--- FAIL: TestSDXLPositiveTextCannotOverrideNoPersonImage (15.50s)
+    --- FAIL: TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-global (4.14s)
+    --- FAIL: TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-local (3.24s)
+    --- FAIL: TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-via-positive-prompt-edge (2.58s)
+    --- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage/both-frozen (2.88s)
+    --- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage/empty-local (2.65s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	16.152s
+FAIL
+EXIT_CODE 1

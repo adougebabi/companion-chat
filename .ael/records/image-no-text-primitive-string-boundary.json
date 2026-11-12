@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "image-no-text-primitive-string-boundary",
+  "definition_hash": "c078cfbad0fc79651ade710eb0378226186bd8f7d6e3b6363d0338e58f8d7b18",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T10:53:29.233882Z",
+  "updated": "2026-11-12T10:53:29.233898Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}

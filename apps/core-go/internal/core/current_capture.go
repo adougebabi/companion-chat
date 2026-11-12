@@ -556,9 +556,19 @@ func validateCurrentCaptureWorkflow(workflow map[string]any) error {
 		visited[id] = true
 		node := mapValue(workflow[id])
 		inputs := mapValue(node["inputs"])
+		class := strings.ToLower(strings.TrimSpace(stringValue(node["class_type"])))
 		for key, value := range inputs {
-			if key == "text" || key == "prompt" {
+			switch key {
+			case "text", "prompt", "positive_prompt":
 				if text, ok := value.(string); ok && text != "{{prompt}}" {
+					return errors.New("current_capture_workflow_positive_override")
+				}
+			case "text_g", "text_l":
+				if text, ok := value.(string); ok && strings.TrimSpace(text) != "" && text != "{{prompt}}" {
+					return errors.New("current_capture_workflow_positive_override")
+				}
+			case "value":
+				if text, ok := value.(string); ok && strings.HasPrefix(class, "primitivestring") && strings.TrimSpace(text) != "" && text != "{{prompt}}" {
 					return errors.New("current_capture_workflow_positive_override")
 				}
 			}
@@ -575,9 +585,17 @@ func validateCurrentCaptureWorkflow(workflow map[string]any) error {
 	for _, raw := range workflow {
 		node := mapValue(raw)
 		inputs := mapValue(node["inputs"])
-		if edge := arrayValue(inputs["positive"]); len(edge) == 2 {
-			if err := positive(stringValue(edge[0])); err != nil {
-				return err
+		for _, key := range []string{"positive", "positive_prompt"} {
+			value := inputs[key]
+			if key == "positive_prompt" {
+				if text, ok := value.(string); ok && text != "{{prompt}}" {
+					return errors.New("current_capture_workflow_positive_override")
+				}
+			}
+			if edge := arrayValue(value); len(edge) == 2 {
+				if err := positive(stringValue(edge[0])); err != nil {
+					return err
+				}
 			}
 		}
 	}

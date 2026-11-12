@@ -1,0 +1,18 @@
+SOURCE_HEAD b8204c55c4bb36a52f8444f96bf144abaa5b176a CANDIDATE /private/tmp/fluctlight-m2-02-4pugo4vx
+OVERLAYS apps/core-go/internal/core/m2_sdxl_positive_workflow_test.go,apps/core-go/internal/core/current_capture.go
+COMMAND go test ./internal/core -count=1 -run ^TestSDXLPositiveTextCannotOverrideNoPersonImage$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-global
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-local
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-via-positive-prompt-edge
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/both-frozen
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/empty-local
+--- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage (11.04s)
+    --- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-global (1.92s)
+    --- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-local (2.44s)
+    --- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-via-positive-prompt-edge (2.45s)
+    --- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage/both-frozen (2.39s)
+    --- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage/empty-local (1.85s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	11.915s
+EXIT_CODE 0

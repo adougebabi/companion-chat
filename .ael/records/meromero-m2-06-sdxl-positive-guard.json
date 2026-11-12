@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-06-sdxl-positive-guard",
+  "definition_hash": "1fbf6e484d33736ac23b8e702a80c7a2b6952422efdd95b460716d37282f38d3",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T10:41:21.739772Z",
+  "updated": "2026-11-12T10:52:21.898656Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-99ecb51c27616eac5de7",
+        "unit": "define",
+        "executor": "codex-m2-06",
+        "input_version": "392ca04c98be18319e7e91d70189b5834c95e6604087883d23bdc588271d4f9c",
+        "candidate_version": "392ca04c98be18319e7e91d70189b5834c95e6604087883d23bdc588271d4f9c",
+        "started": "2026-11-12T10:41:50.863372Z",
+        "ended": "2026-11-12T10:41:51.231208Z",
+        "status": "pass",
+        "reason": "范围仅为 SDXL 正向条件文本绕过既有权威边界；不修改模型、Prompt 或用户原有媒体草稿。"
+      },
+      {
+        "id": "AT-97fdfb5343ff40e7fe10",
+        "unit": "analysis",
+        "executor": "codex-m2-06",
+        "input_version": "392ca04c98be18319e7e91d70189b5834c95e6604087883d23bdc588271d4f9c",
+        "candidate_version": "392ca04c98be18319e7e91d70189b5834c95e6604087883d23bdc588271d4f9c",
+        "started": "2026-11-12T10:42:06.633151Z",
+        "ended": "2026-11-12T10:42:06.938741Z",
+        "status": "pass",
+        "reason": "已核对正向图遍历和 SDXL 字段；先用隔离数据库和受控渲染请求证明绕过，再修复并保留负向和合法工作流对照。"
+      },
+      {
+        "id": "AT-401f752663827898aa7e",
+        "unit": "execute",
+        "executor": "codex-m2-06",
+        "input_version": "392ca04c98be18319e7e91d70189b5834c95e6604087883d23bdc588271d4f9c",
+        "candidate_version": "",
+        "started": "2026-11-12T10:42:15.434721Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}

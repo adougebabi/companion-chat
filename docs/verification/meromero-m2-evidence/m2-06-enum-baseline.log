@@ -1,0 +1,12 @@
+SOURCE_HEAD b8204c55c4bb36a52f8444f96bf144abaa5b176a CANDIDATE /private/tmp/fluctlight-m2-02-4l40xgs4
+OVERLAYS (none)
+COMMAND go test ./internal/core -count=1 -run ^TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides$/^enum-rejected$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
+=== RUN   TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides/enum-rejected
+    current_capture_test.go:167: invalid enum was silently accepted or retried {current-worker-wardrobe_1794480406410097000  direct_call_dbdf77cecb1788f170e13c3a50326790 { direct_call_dbdf77cecb1788f170e13c3a50326790 media.image.generate failed map[detail:capability execution failed: adk_final_contract_invalid: adk_final_output_invalid: field "framing": value is not in enum: adk_final_repair_invalid: adk_final_output_invalid: field "framing": value is not in enum] capability_prepare_failed true  capability:direct_call_dbdf77cecb1788f170e13c3a50326790 0s []} {<nil> 0 0  } false} capability execution failed: adk_final_contract_invalid: adk_final_output_invalid: field "framing": value is not in enum: adk_final_repair_invalid: adk_final_output_invalid: field "framing": value is not in enum 0 2
+--- FAIL: TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides (1.49s)
+    --- FAIL: TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides/enum-rejected (1.49s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.145s
+FAIL
+EXIT_CODE 1
