@@ -1,0 +1,30 @@
+SOURCE_HEAD 0ff0f2348f0027bd4d6edd0554f59f857b1474b6 (clean archive)
+CANDIDATE /private/tmp/fluctlight-m2-17-postcommit-o_py31ck
+MANIFEST /private/tmp/fluctlight-m2-17-postcommit-o_py31ck/docs/verification/meromero-m2-evidence/m2-17-final-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^(TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference|TestM2MomentDefaultRelationshipContextPreservesBusinessValues|TestM2MomentRelationshipEvidencePreservesBusinessValues|TestReplyOptionalEvidenceReconciliationKeepsExactScope|TestPrivateReplyModeSwitchKeepsExplicitFactOnly)$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/13 07:37:51 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (1.47s)
+=== RUN   TestM2MomentDefaultRelationshipContextPreservesBusinessValues
+2026/11/13 07:37:52 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+--- PASS: TestM2MomentDefaultRelationshipContextPreservesBusinessValues (1.22s)
+=== RUN   TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference
+=== RUN   TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/selected_twice
+2026/11/13 07:37:53 WARN reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:1 reasons:map[duplicate:1] requested_count:2 retained_count:1 surface:]"
+=== RUN   TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/invalid_reference
+2026/11/13 07:37:55 WARN reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:1 reasons:map[not_in_live_context:1] requested_count:1 retained_count:0 surface:]"
+=== RUN   TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/stale_reference
+2026/11/13 07:37:56 WARN reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:1 reasons:map[not_in_live_context:1] requested_count:1 retained_count:0 surface:]"
+--- PASS: TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference (3.67s)
+    --- PASS: TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/selected_twice (1.28s)
+    --- PASS: TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/invalid_reference (1.16s)
+    --- PASS: TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/stale_reference (1.23s)
+=== RUN   TestM2MomentRelationshipEvidencePreservesBusinessValues
+2026/11/13 07:37:57 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:1 retained_count:1 surface:]"
+--- PASS: TestM2MomentRelationshipEvidencePreservesBusinessValues (1.16s)
+=== RUN   TestReplyOptionalEvidenceReconciliationKeepsExactScope
+--- PASS: TestReplyOptionalEvidenceReconciliationKeepsExactScope (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	8.178s
+
+EXIT_CODE 0

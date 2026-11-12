@@ -16,14 +16,14 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "execute",
-  "status": "open",
-  "candidate": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "e1ef9b01f9c0e621f7038a2614448c93005a1a3637832aab23500228dda8b40a",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-12T16:40:27.886314Z",
-  "updated": "2026-11-12T23:36:28.6921Z",
-  "completed": null,
+  "updated": "2026-11-12T23:40:36.366887Z",
+  "completed": "2026-11-12T23:40:36.366747Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -65,13 +65,45 @@
         "unit": "execute",
         "executor": "codex-m2-17-resume",
         "input_version": "7fdbdceab480ad4cd15d5cce9d9258e7b099818d87f5fb3b12eb725ff84928d3",
-        "candidate_version": "",
+        "candidate_version": "e1ef9b01f9c0e621f7038a2614448c93005a1a3637832aab23500228dda8b40a",
         "started": "2026-11-12T23:21:42.614083Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-12T23:39:18.57239Z",
+        "status": "pass",
+        "reason": "提交 0ff0f234：Moment 默认关系与已选证据仅按 Core 已核验的完全相同引用去重，保留不同关系及业务值。隔离库红测复现重复；重复、无效、过期引用三个子场景、15 项相关回归、含四处草稿工作区场景及提交后 5 项均通过且无 SKIP；真实模型及其他上下文种类未验收。"
+      },
+      {
+        "id": "AT-6d04411dac8e98318ae3",
+        "unit": "check:m2-17-moment-relationship-dedup",
+        "executor": "codex-m2-17",
+        "input_version": "e1ef9b01f9c0e621f7038a2614448c93005a1a3637832aab23500228dda8b40a",
+        "candidate_version": "e1ef9b01f9c0e621f7038a2614448c93005a1a3637832aab23500228dda8b40a",
+        "started": "2026-11-12T23:40:28.945819Z",
+        "ended": "2026-11-12T23:40:29.02554Z",
+        "status": "pass",
+        "reason": "0ff0f234 干净源码、一次性 PostgreSQL 和受控 Writer：同一关系重复红测已修复，重复、无效、过期引用三个子场景及相同内容的不同关系对照通过；15 项相关回归、含四处草稿工作区场景和提交后 5 项均通过无 SKIP。静态复核未发现引用伪造或内部标识外泄；真实模型与其他上下文种类未验收。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "m2-17-moment-relationship-dedup",
+        "result": "pass",
+        "source": "scenario:codex-m2-17",
+        "config_hash": "2bf11814fa6b7ed75b4cca5b33e7cc860e4199be1bf99afc740d6f405f3949e0",
+        "at": "2026-11-12T23:40:29.025101Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/fact_only_moment_capability.go": "9cf94a4b5cc41c31905d549d758fb661336d793619c92e31cf9cb3dde54189d1",
+          "apps/core-go/internal/core/fact_only_reply_capability.go": "cd666e6b34d17b779af7109ac99a9dfa28135c318d75622740fb89e3490f66ae",
+          "apps/core-go/internal/core/m2_moment_relationship_dedup_test.go": "e77783de4b1db5d6ee7ca10bafdece4d5e7a4031fc1c9636688e1144f6579822",
+          "apps/core-go/internal/core/reply_context.go": "fc9d7470ce5522458c7228cae9995c9064231a181c377ee3e83b963c995ee3e5",
+          "docs/verification/meromero-m2-evidence/m2-17-final.log": "df9510e88cc3c9d1f276547966ab5e2763b323910ec002eec638d106e20adcd5",
+          "docs/verification/meromero-m2-evidence/m2-17-fixture-failure.log": "05786894e1379d882d9220bdd637218402d29466a07c4e05719bd45d50e53e3f",
+          "docs/verification/meromero-m2-evidence/m2-17-postcommit.log": "042ec4a5b0a36326daefe10c0e33bd314a17f2d2ec2476eed4275db99457dd20",
+          "docs/verification/meromero-m2-evidence/m2-17-red4.log": "5e45c65bcc95d8d564d82e6524eadfbcd80b34ac97eec86c6baee13ec54cd108",
+          "docs/verification/meromero-m2-evidence/m2-17-regression.log": "06fabee573b6378bbac0db999624ba4755b40f73cf2d9eff804f825601089faf",
+          "docs/verification/meromero-m2-evidence/m2-17-review-notes.md": "a635617ce6dea34d73b3e74801f520e86f0b24811b0596eb27e52b61b184dcc8",
+          "docs/verification/meromero-m2-evidence/m2-17-working-tree-final.log": "00037d17f2a90c00e740117f74d67ca7e5a60eea11bbe694188d40c4ee200c7c"
+        }
+      }
+    ]
   }
 }
