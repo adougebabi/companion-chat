@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "提交 5f902437 已针对无当前附件路径修复并在干净提交上完成 27 个定向顶层回归及含原草稿工作区主场景，均无 SKIP；旧红测、两次独立审查与修正均留证。Owner 已选附件的具体主体匹配、历史动态附件证据和真实模型语义仍未实现或验收，现有真实 Mero 媒体语义检查仍有失败，不能关闭本项。",
+  "failure": "提交 b3249912 保存历史动态与当前附件作用域核验及事务重查。隔离 PostgreSQL 和受控 Provider 下干净候选 9+27 顶层测试、含四处原有草稿的工作区 3 项、干净提交后 4 项关键测试均通过，退出 0 且无 SKIP。仍未验证已选素材具体画面主体和真实模型语义，未知交付时间的保守拒绝可能误挡合法表达；保留阻塞，不声称父任务完成。",
   "result": "",
   "created": "2026-11-12T12:09:52.532046Z",
-  "updated": "2026-11-12T13:52:22.778348Z",
+  "updated": "2026-11-12T14:46:32.392247Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -87,11 +87,11 @@
         "unit": "execute",
         "executor": "codex-m2-11-media-kind",
         "input_version": "3df193bf353e3591e921a3105e5a0f400398c4cd786a90160c116b7631c74d82",
-        "candidate_version": "",
+        "candidate_version": "2fb15b8eabfc83b62d9127a1452ecec33fcea4aecfdbf889c498540e5653c778",
         "started": "2026-11-12T13:28:36.976627Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-12T14:46:21.495528Z",
+        "status": "blocked",
+        "reason": "提交 b3249912 保存历史动态与当前附件作用域核验及事务重查。隔离 PostgreSQL 和受控 Provider 下干净候选 9+27 顶层测试、含四处原有草稿的工作区 3 项、干净提交后 4 项关键测试均通过，退出 0 且无 SKIP。仍未验证已选素材具体画面主体和真实模型语义，未知交付时间的保守拒绝可能误挡合法表达；保留阻塞，不声称父任务完成。"
       }
     ],
     "checks": null
