@@ -1,0 +1,14 @@
+SOURCE_HEAD 6ba4124943adbb1dba445fabf53d09bd96e5b0ad CANDIDATE /private/tmp/fluctlight-m2-02-eaw7257u
+OVERLAYS (none)
+COMMAND go test ./internal/migrations -count=1 -run ^(TestMediaSubmissionGuardUpgradePreservesLegacyAndMarksNew|TestMediaModelSnapshotUpgradeKeepsLegacyAndMarksNewIntents|TestRuntimeSummarySnapshotUpgradePreservesLegacyIntent|TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMediaModelSnapshotUpgradeKeepsLegacyAndMarksNewIntents
+--- PASS: TestMediaModelSnapshotUpgradeKeepsLegacyAndMarksNewIntents (3.12s)
+=== RUN   TestMediaSubmissionGuardUpgradePreservesLegacyAndMarksNew
+--- PASS: TestMediaSubmissionGuardUpgradePreservesLegacyAndMarksNew (2.97s)
+=== RUN   TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests
+--- PASS: TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests (0.00s)
+=== RUN   TestRuntimeSummarySnapshotUpgradePreservesLegacyIntent
+--- PASS: TestRuntimeSummarySnapshotUpgradePreservesLegacyIntent (4.21s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	10.787s
+EXIT_CODE 0

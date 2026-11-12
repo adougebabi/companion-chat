@@ -1,0 +1,17 @@
+SOURCE_HEAD 6ba4124943adbb1dba445fabf53d09bd96e5b0ad WORKING_TREE includes four preserved pre-existing drafts
+COMMAND go test ./internal/core -count=1 -run ^TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob
+    m2_ambiguous_image_submit_test.go:115: child phase=lost_response pid=83922 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:185: phase=lost_response actual_error=media_submission_ambiguous: Post "http://127.0.0.1:63495/prompt": EOF
+        --- PASS: TestImageAmbiguousSubmitChild (0.05s)
+        PASS
+    m2_ambiguous_image_submit_test.go:120: child phase=resume pid=83925 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:185: phase=resume actual_error=media_submission_ambiguous
+        --- PASS: TestImageAmbiguousSubmitChild (0.01s)
+        PASS
+--- PASS: TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob (2.03s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.891s
+EXIT_CODE 0

@@ -1,0 +1,34 @@
+{
+  "id": "meromero-m2-05-image-submit-ambiguity",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "7478f985d6e30de4b97729738085d74b9d474916ac447baf59f25c22edbfed62",
+  "completed": "2026-11-12T10:35:37.781588Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "m2-05-scenario",
+      "result": "pass",
+      "source": "scenario:codex-m2-05",
+      "config_hash": "76cb45bd6af54d4d576663d8e6c03c12725a99ae2878b1d7faf385011207ca97",
+      "at": "2026-11-12T10:35:27.664512Z",
+      "artifact_hashes": {
+        "apps/core-go/internal/core/diagnostic_media_recovery.go": "b139905360d8f5f0c713ffd96126bae210fb3e15085531ff0629ed5bea099d84",
+        "apps/core-go/internal/core/m2_ambiguous_image_submit_test.go": "90ae84d24c8c4077ac39b4c08128d521c48e336a661c798b34f6265b89bc5177",
+        "apps/core-go/internal/core/media.go": "45da292777b9045d4f5cb80f040ae4b7dc99889976ac53daed544e9bd0baf80e",
+        "apps/core-go/internal/core/media_submission_guard.go": "0bed477d3fb994f8a58d208b80406b106cc9b1f64de5699992e64b70b0f2b2f3",
+        "apps/core-go/internal/migrations/media_submission_guard.go": "66f3d1a7a19bc4a284fd2f072e6e311c32d033c7f39de0de54faf8cb6c38ab93",
+        "apps/core-go/internal/workflow/m2_media_submission_reconcile_test.go": "541f59d5736e9d48d9c0c19aeaf107112d7b30b5115cf08c4590cb8979a63cf6",
+        "apps/web/src/react-app/shared/MediaTaskRecovery.tsx": "a2c2ae8911114b7f3b6ad8a997b57810c87d971139c5b61c804660eacf8c64e1",
+        "docs/verification/meromero-m2-evidence/m2-05-legacy-ready-final.log": "c98cb0e15ecfca4a2190d10fcac10899899cbfac53dd7ee8731252e53a147d75",
+        "docs/verification/meromero-m2-evidence/m2-05-migrations-final.log": "5fa536f0ad178b88a6eb6224b128b323605e0c7549bbc17a1c698e4318e3014d",
+        "docs/verification/meromero-m2-evidence/m2-05-red.log": "a27bfbd35fc9d472d39f27d89aba353433fe9dfde001d2e7ccc75f03d9f8dafe",
+        "docs/verification/meromero-m2-evidence/m2-05-visual-domain.log": "eaec42e26a24aa8172afef43ca093daa9e98d45c4f94f4b9669180e383bdc584",
+        "docs/verification/meromero-m2-evidence/m2-05-web-precommit.log": "f22919b0d798a01c6b6f42f0ecaf7fab91e48c5f950104d64f0b9b469a2dc366",
+        "docs/verification/meromero-m2-evidence/m2-05-workflow-final.log": "01dce418b121c750234a80906d05409ed8bb140a73b1d7125ef8083db035aa4a"
+      }
+    }
+  ]
+}

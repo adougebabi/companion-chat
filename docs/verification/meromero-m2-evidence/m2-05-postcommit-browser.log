@@ -1,0 +1,12 @@
+SOURCE_HEAD 6ba4124943adbb1dba445fabf53d09bd96e5b0ad CANDIDATE /private/tmp/fluctlight-m2-02-uhjbce4w
+OVERLAYS (none)
+COMMAND go test ./internal/httpapi/browser -count=1 -run ^(TestMediaRecoveryReviewAcknowledgementMapsToCore|TestBrowserRouteMatrixMatchesOpenAPIArtifact|TestSurfaceRoutesRequireOwnerSessionAndCSRF)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMediaRecoveryReviewAcknowledgementMapsToCore
+--- PASS: TestMediaRecoveryReviewAcknowledgementMapsToCore (0.00s)
+=== RUN   TestBrowserRouteMatrixMatchesOpenAPIArtifact
+--- PASS: TestBrowserRouteMatrixMatchesOpenAPIArtifact (0.02s)
+=== RUN   TestSurfaceRoutesRequireOwnerSessionAndCSRF
+--- PASS: TestSurfaceRoutesRequireOwnerSessionAndCSRF (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser	0.442s
+EXIT_CODE 0
