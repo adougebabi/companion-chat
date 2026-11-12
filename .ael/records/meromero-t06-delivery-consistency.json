@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "T06 部分完成：已分批提交 direct 同批媒体与回复的未执行保护、有界重复检测，以及回复读取既有媒体取消/失败状态和附件选择；隔离 PostgreSQL 与受控 Provider 回归通过。仍未完成：无媒体调用却声称已发送的正文语义核验；Temporal 取消与媒体状态、在途 Activity、已交付效果、视觉身份及 ActionOutcome 的一致性；其余 queued/ready/failed/delivered/cancelled/部分完成全矩阵与真实渲染验收。取消直接落库实验因独立复核发现竞态而撤回，实验 patch 和测试保存在 /private/tmp/fluctlight-t06-cancellation-reconcile-wip.patch 与 /private/tmp/fluctlight-t06-cancellation-reconcile-test.go。依用户指示卡壳先跳过，后续回到 execute 继续，不降低原验收条件；已登记任务外媒体重试 bug 的未提交草稿保持原样。",
+  "failure": "T06 的能力目录/运行权限子节点已提交 8bdddb03：完整安装注册表与当前 Agent 允许集合分开核对，区分未安装、无权、插件禁用和无法确认；目录报告当前已加载披露窗口；正式 Agent 按本次任务定义限制工具，跨场景/跨阶段调用在参数校验前返回无副作用拒绝，已提交有效工具回执仍可在插件停用后重放。提交后的干净源码在隔离 PostgreSQL 与受控原生循环中 21 个顶层测试通过；Go 全量 18 包、3125 测试事件通过、1076 跳过；前一候选的 4 个重点专项 race 通过。正文在没有媒体调用时仍可能声称已发送，尚无同时满足独立事实核验、非固定双模型及全语义覆盖的实现；工作流取消与在途媒体、交付、视觉身份及 ActionOutcome 竞态仍未完成。真实模型/渲染未验收。按用户授权先保留该缺口，继续其他原任务。",
   "result": "",
   "created": "2026-11-10T08:34:30.844802Z",
-  "updated": "2026-11-11T16:11:49.071318Z",
+  "updated": "2026-11-12T00:12:23.834636Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -59,6 +59,28 @@
         "ended": "2026-11-11T16:11:38.207793Z",
         "status": "fail",
         "reason": "T06 部分完成：已分批提交 direct 同批媒体与回复的未执行保护、有界重复检测，以及回复读取既有媒体取消/失败状态和附件选择；隔离 PostgreSQL 与受控 Provider 回归通过。仍未完成：无媒体调用却声称已发送的正文语义核验；Temporal 取消与媒体状态、在途 Activity、已交付效果、视觉身份及 ActionOutcome 的一致性；其余 queued/ready/failed/delivered/cancelled/部分完成全矩阵与真实渲染验收。取消直接落库实验因独立复核发现竞态而撤回，实验 patch 和测试保存在 /private/tmp/fluctlight-t06-cancellation-reconcile-wip.patch 与 /private/tmp/fluctlight-t06-cancellation-reconcile-test.go。依用户指示卡壳先跳过，后续回到 execute 继续，不降低原验收条件；已登记任务外媒体重试 bug 的未提交草稿保持原样。"
+      },
+      {
+        "id": "AT-a4cdf616d91cdf765094",
+        "unit": "execute",
+        "executor": "codex-t06-consistency",
+        "input_version": "b5fa6331c2ad4308fcc2902b171491b569677f99ab93bf93d119a5339ea852ba",
+        "candidate_version": "",
+        "started": "2026-11-11T23:18:29.461423Z",
+        "ended": "2026-11-12T00:01:41.825285Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-78324cb6f1a7fa3d82ac",
+        "unit": "execute",
+        "executor": "codex-t06-catalog",
+        "input_version": "dc62ee9d1ca6c2c9c2face2c51c7eea618df204e0b3d126bc5a23d5af84edc5f",
+        "candidate_version": "f27cb4b7aa068fae8fb5c9bb5f6dffdbe882049cc1900e66e42a21e7c6d6670d",
+        "started": "2026-11-12T00:02:00.91597Z",
+        "ended": "2026-11-12T00:12:13.2805Z",
+        "status": "fail",
+        "reason": "T06 的能力目录/运行权限子节点已提交 8bdddb03：完整安装注册表与当前 Agent 允许集合分开核对，区分未安装、无权、插件禁用和无法确认；目录报告当前已加载披露窗口；正式 Agent 按本次任务定义限制工具，跨场景/跨阶段调用在参数校验前返回无副作用拒绝，已提交有效工具回执仍可在插件停用后重放。提交后的干净源码在隔离 PostgreSQL 与受控原生循环中 21 个顶层测试通过；Go 全量 18 包、3125 测试事件通过、1076 跳过；前一候选的 4 个重点专项 race 通过。正文在没有媒体调用时仍可能声称已发送，尚无同时满足独立事实核验、非固定双模型及全语义覆盖的实现；工作流取消与在途媒体、交付、视觉身份及 ActionOutcome 竞态仍未完成。真实模型/渲染未验收。按用户授权先保留该缺口，继续其他原任务。"
       }
     ],
     "checks": null
