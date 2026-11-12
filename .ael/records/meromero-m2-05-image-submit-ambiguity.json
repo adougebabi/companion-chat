@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-05-image-submit-ambiguity",
+  "definition_hash": "8ed4ea27a739f7ffb6450c77a6853ac4dce65d20b5c108005da0e19918b11282",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "受控 renderer 首次接单后丢失响应，两个独立进程导致同一 intent 自动提交两次；目标验收红测退出 1。当前无可靠方式证明未提交，上游未保证同 ID 幂等；自动对账与不确定时暂停涉及恢复策略及旧任务兼容，待用户确定，未修改生产代码。",
+  "result": "",
+  "created": "2026-11-12T08:59:39.16773Z",
+  "updated": "2026-11-12T09:06:25.539777Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-78a86e4c55d395d21468",
+        "unit": "define",
+        "executor": "codex-m2-05",
+        "input_version": "cd679338197e4e1ba74687102dfdd114ce7186e76cb029ccc25f6dca367eafcd",
+        "candidate_version": "cd679338197e4e1ba74687102dfdd114ce7186e76cb029ccc25f6dca367eafcd",
+        "started": "2026-11-12T09:00:06.878292Z",
+        "ended": "2026-11-12T09:00:07.271832Z",
+        "status": "pass",
+        "reason": "范围仅为 renderer 已接单但 job ID 尚未本地持久化时的重复提交风险；不更改未明确的恢复策略。"
+      },
+      {
+        "id": "AT-6e820a0f816a466a21ff",
+        "unit": "analysis",
+        "executor": "codex-m2-05",
+        "input_version": "cd679338197e4e1ba74687102dfdd114ce7186e76cb029ccc25f6dca367eafcd",
+        "candidate_version": "cd679338197e4e1ba74687102dfdd114ce7186e76cb029ccc25f6dca367eafcd",
+        "started": "2026-11-12T09:00:27.959566Z",
+        "ended": "2026-11-12T09:00:28.346438Z",
+        "status": "pass",
+        "reason": "已核对 renderer 提交及 job 持久化顺序；先用隔离数据库和受控 HTTP 连接中断重现并区分已知与未知。"
+      },
+      {
+        "id": "AT-f3cc97f28215a5b73340",
+        "unit": "execute",
+        "executor": "codex-m2-05",
+        "input_version": "cd679338197e4e1ba74687102dfdd114ce7186e76cb029ccc25f6dca367eafcd",
+        "candidate_version": "4ba25cc479b185ebefbc05d413ea0487d54da45805c1d3aa62d714800ca97b92",
+        "started": "2026-11-12T09:00:49.257751Z",
+        "ended": "2026-11-12T09:06:15.22349Z",
+        "status": "blocked",
+        "reason": "受控 renderer 首次接单后丢失响应，两个独立进程导致同一 intent 自动提交两次；目标验收红测退出 1。当前无可靠方式证明未提交，上游未保证同 ID 幂等；自动对账与不确定时暂停涉及恢复策略及旧任务兼容，待用户确定，未修改生产代码。"
+      }
+    ],
+    "checks": null
+  }
+}

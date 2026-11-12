@@ -1,0 +1,23 @@
+SOURCE_HEAD c7ef1faa1cbb5806ff3982d4a1836bcddf54b61f CANDIDATE /private/tmp/fluctlight-m2-02-bgv1wytx
+OVERLAYS apps/core-go/internal/core/m2_ambiguous_image_submit_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob
+    m2_ambiguous_image_submit_test.go:111: child phase=lost_response pid=51649 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:146: phase=lost_response actual_error=Post "http://127.0.0.1:56615/prompt": EOF
+        --- PASS: TestImageAmbiguousSubmitChild (0.05s)
+        PASS
+    m2_ambiguous_image_submit_test.go:116: child phase=resume pid=51651 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:146: phase=resume actual_error=ComfyUI history returned HTTP 503
+        --- PASS: TestImageAmbiguousSubmitChild (0.02s)
+        PASS
+    m2_ambiguous_image_submit_test.go:121: unknown submission was retried automatically: renderer_submissions=2 recovery==== RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:146: phase=resume actual_error=ComfyUI history returned HTTP 503
+        --- PASS: TestImageAmbiguousSubmitChild (0.02s)
+        PASS
+--- FAIL: TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob (1.72s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.436s
+FAIL
+EXIT_CODE 1

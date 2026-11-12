@@ -234,8 +234,29 @@
       }
     },
     {
+      "path": "docs/verification/meromero-m2-evidence/m2-05-service-contract.md",
+      "hash": "e19494d2262ff8cc56a5e41ef86c0fc50df9e226036b1e0b60822c2d1089beca",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/meromero-m2-evidence/m2-05-service-contract.md",
+        "title": "m2-05-service-contract.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/meromero-m2-evidence/m2-05-service-contract.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/meromero-m2-evidence/m2-05-service-contract.md",
+        "hash": "e19494d2262ff8cc56a5e41ef86c0fc50df9e226036b1e0b60822c2d1089beca",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
       "path": "docs/verification/meromero-m2-progress-20261112.md",
-      "hash": "9465094f19e6887ba1d9ed0bd9f0e3744ebd7829374120ed84e0263e3426d0df",
+      "hash": "7eb14af4d388bbc9312ffda9fda5a0eacf3b8b792ac8b3c488c1c664d1ff4f00",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -249,7 +270,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/verification/meromero-m2-progress-20261112.md",
-        "hash": "9465094f19e6887ba1d9ed0bd9f0e3744ebd7829374120ed84e0263e3426d0df",
+        "hash": "7eb14af4d388bbc9312ffda9fda5a0eacf3b8b792ac8b3c488c1c664d1ff4f00",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -362,7 +383,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 15,
+    "historical": 16,
     "retired": 1
   }
 }
