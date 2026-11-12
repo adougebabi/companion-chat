@@ -1,0 +1,9 @@
+COMMAND go test ./internal/core -count=1 -run ^TestDirectReplyDoesNotPublishUndeliveredPhotoClaimFromPreviousTurn$ -v -timeout=10m
+SOURCE 838bb902b18280cbe5eeb119fb500db5da30ffa2 plus M2-01 changes; protected drafts excluded
+=== RUN   TestDirectReplyDoesNotPublishUndeliveredPhotoClaimFromPreviousTurn
+    m2_media_context_test.go:52: unsupported cross-turn delivery was not rejected: published=1 media_intents=0 claim_checks=0 main_calls=2 err=<nil>
+--- FAIL: TestDirectReplyDoesNotPublishUndeliveredPhotoClaimFromPreviousTurn (2.46s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.306s
+FAIL
+EXIT_CODE 1

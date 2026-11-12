@@ -1,0 +1,47 @@
+COMMAND go test ./internal/core -count=1 -run ^(TestDirectReplyDoesNotPublishUndeliveredPhotoClaimFromPreviousTurn|TestDirectReplyRejectsOmittedCrossTurnPhotoClaim|TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery|TestDirectMediaContextPrefilterIgnoresOlderUnrelatedTopic)$ -v -timeout=10m
+SOURCE 838bb902b18280cbe5eeb119fb500db5da30ffa2 plus M2-01 changes; protected drafts excluded
+=== RUN   TestDirectReplyDoesNotPublishUndeliveredPhotoClaimFromPreviousTurn
+2026/11/12 15:57:50 WARN tool.call.handled capability=conversation.reply call_id=context-reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:57:50 WARN tool.call.handled capability=conversation.reply call_id=context-reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:57:51 WARN tool.call.handled capability=conversation.reply call_id=context-reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:57:51 WARN tool.call.handled capability=conversation.reply call_id=context-reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:57:51 WARN tool.call.handled capability=conversation.reply call_id=context-reply-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:57:51 WARN tool.call.handled capability=conversation.reply call_id=context-reply-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestDirectReplyDoesNotPublishUndeliveredPhotoClaimFromPreviousTurn (2.12s)
+=== RUN   TestDirectReplyRejectsOmittedCrossTurnPhotoClaim
+2026/11/12 15:57:53 WARN tool.call.handled capability=conversation.reply call_id=context-reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:57:53 WARN tool.call.handled capability=conversation.reply call_id=context-reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:57:53 WARN tool.call.handled capability=conversation.reply call_id=context-reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:57:53 WARN tool.call.handled capability=conversation.reply call_id=context-reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:57:53 WARN tool.call.handled capability=conversation.reply call_id=context-reply-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:57:53 WARN tool.call.handled capability=conversation.reply call_id=context-reply-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestDirectReplyRejectsOmittedCrossTurnPhotoClaim (2.45s)
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/ordinary
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/matching_delivery
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/matching_full_quote
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/additional_unsupported_claim
+2026/11/12 15:58:01 WARN tool.call.handled capability=conversation.reply call_id=context-additional_unsupported_claim-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:58:01 WARN tool.call.handled capability=conversation.reply call_id=context-additional_unsupported_claim-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:58:01 WARN tool.call.handled capability=conversation.reply call_id=context-additional_unsupported_claim-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:58:01 WARN tool.call.handled capability=conversation.reply call_id=context-additional_unsupported_claim-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:58:01 WARN tool.call.handled capability=conversation.reply call_id=context-additional_unsupported_claim-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:58:01 WARN tool.call.handled capability=conversation.reply call_id=context-additional_unsupported_claim-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/unrelated_delivery
+2026/11/12 15:58:02 WARN tool.call.handled capability=conversation.reply call_id=context-unrelated_delivery-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:58:02 WARN tool.call.handled capability=conversation.reply call_id=context-unrelated_delivery-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:58:02 WARN tool.call.handled capability=conversation.reply call_id=context-unrelated_delivery-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:58:02 WARN tool.call.handled capability=conversation.reply call_id=context-unrelated_delivery-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:58:02 WARN tool.call.handled capability=conversation.reply call_id=context-unrelated_delivery-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:58:02 WARN tool.call.handled capability=conversation.reply call_id=context-unrelated_delivery-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery (9.14s)
+    --- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/ordinary (2.24s)
+    --- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/matching_delivery (2.43s)
+    --- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/matching_full_quote (1.31s)
+    --- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/additional_unsupported_claim (1.81s)
+    --- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/unrelated_delivery (1.36s)
+=== RUN   TestDirectMediaContextPrefilterIgnoresOlderUnrelatedTopic
+--- PASS: TestDirectMediaContextPrefilterIgnoresOlderUnrelatedTopic (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	14.540s
+EXIT_CODE 0

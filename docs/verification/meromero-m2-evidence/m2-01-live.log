@@ -1,0 +1,23 @@
+M2_COMMAND go test ./internal/core -count=1 -run ^TestLiveDirectMediaDeliveryChecker$ -v -timeout=40m
+M2_SOURCE 838bb902b18280cbe5eeb119fb500db5da30ffa2 plus M2-01 changes
+=== RUN   TestLiveDirectMediaDeliveryChecker
+=== RUN   TestLiveDirectMediaDeliveryChecker/round_1
+    direct_media_delivery_live_test.go:85: M1_LIVE round=1 case=unfounded request_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 response_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 http=200 response_file=/private/tmp/fluctlight-m2/live-responses-01/m1-check-round-1/unfounded-media-check-001.json
+    direct_media_delivery_live_test.go:98: M1_LIVE_RESULT round=1 case=unfounded contract=pass evidence_refs=0
+    direct_media_delivery_live_test.go:85: M1_LIVE round=1 case=denial request_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 response_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 http=200 response_file=/private/tmp/fluctlight-m2/live-responses-01/m1-check-round-1/denial-media-check-002.json
+    direct_media_delivery_live_test.go:98: M1_LIVE_RESULT round=1 case=denial contract=pass evidence_refs=0
+    direct_media_delivery_live_test.go:85: M1_LIVE round=1 case=future request_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 response_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 http=200 response_file=/private/tmp/fluctlight-m2/live-responses-01/m1-check-round-1/future-media-check-003.json
+    direct_media_delivery_live_test.go:98: M1_LIVE_RESULT round=1 case=future contract=pass evidence_refs=0
+    direct_media_delivery_live_test.go:85: M1_LIVE round=1 case=cross_turn_unfounded request_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 response_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 http=200 response_file=/private/tmp/fluctlight-m2/live-responses-01/m1-check-round-1/cross_turn_unfounded-media-check-004.json
+    direct_media_delivery_live_test.go:98: M1_LIVE_RESULT round=1 case=cross_turn_unfounded contract=pass evidence_refs=0
+    direct_media_delivery_live_test.go:85: M1_LIVE round=1 case=history request_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 response_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 http=200 response_file=/private/tmp/fluctlight-m2/live-responses-01/m1-check-round-1/history-media-check-005.json
+    direct_media_delivery_live_test.go:98: M1_LIVE_RESULT round=1 case=history contract=pass evidence_refs=1
+    direct_media_delivery_live_test.go:85: M1_LIVE round=1 case=unrelated request_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 response_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 http=200 response_file=/private/tmp/fluctlight-m2/live-responses-01/m1-check-round-1/unrelated-media-check-006.json
+    direct_media_delivery_live_test.go:98: M1_LIVE_RESULT round=1 case=unrelated contract=pass evidence_refs=0
+    direct_media_delivery_live_test.go:85: M1_LIVE round=1 case=cross_turn_matching request_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 response_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 http=200 response_file=/private/tmp/fluctlight-m2/live-responses-01/m1-check-round-1/cross_turn_matching-media-check-007.json
+    direct_media_delivery_live_test.go:96: real checker rejected a permitted case: case=cross_turn_matching refs=0 code=direct_media_delivery_unverified err=direct_media_delivery_unverified: invalid capability arguments
+--- FAIL: TestLiveDirectMediaDeliveryChecker (11.70s)
+    --- FAIL: TestLiveDirectMediaDeliveryChecker/round_1 (11.70s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	12.162s
+FAIL

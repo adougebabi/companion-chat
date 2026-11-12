@@ -1,0 +1,19 @@
+COMMAND go test ./internal/core -count=1 -run ^TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery$|^TestDirectReplyDoesNotPublishUndeliveredPhotoClaimFromPreviousTurn$ -v -timeout=10m
+SOURCE 838bb902b18280cbe5eeb119fb500db5da30ffa2 plus M2-01 changes; protected drafts excluded
+=== RUN   TestDirectReplyDoesNotPublishUndeliveredPhotoClaimFromPreviousTurn
+2026/11/12 15:50:22 WARN tool.call.handled capability=conversation.reply call_id=context-reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:50:22 WARN tool.call.handled capability=conversation.reply call_id=context-reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:50:22 WARN tool.call.handled capability=conversation.reply call_id=context-reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:50:22 WARN tool.call.handled capability=conversation.reply call_id=context-reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:50:23 WARN tool.call.handled capability=conversation.reply call_id=context-reply-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:50:23 WARN tool.call.handled capability=conversation.reply call_id=context-reply-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestDirectReplyDoesNotPublishUndeliveredPhotoClaimFromPreviousTurn (2.56s)
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/ordinary
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/matching_delivery
+--- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery (3.45s)
+    --- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/ordinary (1.93s)
+    --- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/matching_delivery (1.52s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.705s
+EXIT_CODE 0

@@ -47,14 +47,17 @@ func TestLiveDirectMediaDeliveryChecker(t *testing.T) {
 			cases := []struct {
 				name, input, candidate string
 				deliver                bool
+				priorMedia             bool
 				wantRef                bool
 				wantRejection          bool
 			}{
 				{name: "unfounded", input: "照片发了吗？", candidate: "我已经把照片发给你了。", wantRejection: true},
 				{name: "denial", input: "照片发了吗？", candidate: "我还没发照片，等会儿再发给你。"},
 				{name: "future", input: "图片发了吗？", candidate: "等图片发送完成后，我会告诉你。"},
+				{name: "cross_turn_unfounded", input: "弄好了没？", candidate: "已经贴到聊天里了，你往上翻就能看到。", priorMedia: true, wantRejection: true},
 				{name: "history", input: "窗外日落的照片发过吗？", candidate: "我之前已经把窗外日落的照片发给你了。", deliver: true, wantRef: true},
 				{name: "unrelated", input: "海边落日的照片发过吗？", candidate: "我已经把海边落日的照片发给你了。", wantRejection: true},
+				{name: "cross_turn_matching", input: "窗外日落弄好了没？", candidate: "已经贴到聊天里了，你往上翻就能看到。", priorMedia: true, wantRef: true},
 			}
 			for _, tc := range cases {
 				if tc.deliver {
@@ -65,7 +68,15 @@ func TestLiveDirectMediaDeliveryChecker(t *testing.T) {
 					t.Fatal(err)
 				}
 				start := observer.begin(tc.name, "media-check")
-				refs, checkErr := app.checkDirectMediaDeliveryClaims(ctx, projection, tc.input, tc.candidate, deliveries, nil)
+				caseProjection := projection
+				if tc.priorMedia {
+					caseProjection.RecentMessages = []map[string]any{
+						{"kind": "user", "text": "想看看窗外日落的照片。"},
+						{"kind": "assistant", "text": "照片还没准备好。"},
+						{"kind": "user", "text": tc.input},
+					}
+				}
+				refs, checkErr := app.checkDirectMediaDeliveryClaims(ctx, caseProjection, tc.input, tc.candidate, deliveries, nil)
 				requests, evidenceErr := observer.since(start)
 				if evidenceErr != nil || len(requests) == 0 {
 					t.Fatalf("real checker evidence unavailable: case=%s requests=%d err=%v", tc.name, len(requests), evidenceErr)

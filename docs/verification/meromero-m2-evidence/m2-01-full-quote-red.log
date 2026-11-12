@@ -1,0 +1,19 @@
+COMMAND go test ./internal/core -count=1 -run ^TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery$/^matching_full_quote$ -v -timeout=10m
+SOURCE 838bb902b18280cbe5eeb119fb500db5da30ffa2 plus M2-01 changes; protected drafts excluded
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/matching_full_quote
+2026/11/12 15:55:56 WARN tool.call.handled capability=conversation.reply call_id=context-matching_full_quote-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:55:56 WARN tool.call.handled capability=conversation.reply call_id=context-matching_full_quote-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:55:56 WARN tool.call.handled capability=conversation.reply call_id=context-matching_full_quote-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:55:56 WARN tool.call.handled capability=conversation.reply call_id=context-matching_full_quote-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:55:56 WARN tool.call.handled capability=conversation.reply call_id=context-matching_full_quote-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:55:56 WARN tool.call.handled capability=conversation.reply call_id=context-matching_full_quote-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+    m2_media_context_test.go:126: valid reply did not complete: main_calls=4 checks=3 result=core.TurnResult{ReplyStatus:"", UserMessage:map[string]interface {}(nil), Assistant:map[string]interface {}(nil), MediaIntentID:"", TurnID:"", InboxID:"", CorrelationID:""} err=adk_run: [NodeRunError] direct_media_delivery_unresolved: direct_media_delivery_unresolved
+        ------------------------
+        node path: [node_1, ChatModel]
+--- FAIL: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery (2.69s)
+    --- FAIL: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/matching_full_quote (2.69s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.557s
+FAIL
+EXIT_CODE 1

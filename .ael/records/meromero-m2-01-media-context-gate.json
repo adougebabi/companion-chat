@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-01-media-context-gate",
+  "definition_hash": "05ffae701f038718cb3e7d98a86436b0732f4da7343a6f9695532062a5758d05",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "跨轮无依据声明在正式隔离场景修复并通过受控回归；真实 MeroMero 两次无依据场景通过，匹配交付场景先因后端完整引用误拦而修正，随后模型返回空主体引用导致保守拒绝。按用户授权暂停模型字段/Prompt调试，保留真实响应与失败；不能标 VERIFIED。后续仅继续已授权的默认主链工作。",
+  "result": "",
+  "created": "2026-11-12T07:41:45.80501Z",
+  "updated": "2026-11-12T08:04:30.577409Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-f6e934eb3cf9744c82a7",
+        "unit": "define",
+        "executor": "codex-m2-01",
+        "input_version": "5a9da9f27ab012d9562a89b3c016a04fd708e977e7b8d60ef778b867ef65c777",
+        "candidate_version": "5a9da9f27ab012d9562a89b3c016a04fd708e977e7b8d60ef778b867ef65c777",
+        "started": "2026-11-12T07:41:56.896705Z",
+        "ended": "2026-11-12T07:42:38.640013Z",
+        "status": "pass",
+        "reason": "仅处理切换默认私聊前的跨轮图片完成声明漏检；模型继续来自现有设置，不引入硬编码模型或固定二段式。"
+      },
+      {
+        "id": "AT-8418f4b3a995744762e1",
+        "unit": "analysis",
+        "executor": "codex-m2-01",
+        "input_version": "5a9da9f27ab012d9562a89b3c016a04fd708e977e7b8d60ef778b867ef65c777",
+        "candidate_version": "5a9da9f27ab012d9562a89b3c016a04fd708e977e7b8d60ef778b867ef65c777",
+        "started": "2026-11-12T07:42:59.407261Z",
+        "ended": "2026-11-12T07:43:25.967895Z",
+        "status": "pass",
+        "reason": "预筛选在查看历史媒体话题前要求候选命中固定动作词，疑似使当前输入与候选省略照片名时跳过正式核验；先用真实 HandleTurn 复现，修复限于上下文选择并保留普通交流。"
+      },
+      {
+        "id": "AT-f7a47a9b7b1781117822",
+        "unit": "execute",
+        "executor": "codex-m2-01",
+        "input_version": "5a9da9f27ab012d9562a89b3c016a04fd708e977e7b8d60ef778b867ef65c777",
+        "candidate_version": "b8de813cbf425ae1d0f79f9be46ddea2e28a8cac2a609bf3d490e82e41ea3a12",
+        "started": "2026-11-12T07:43:46.967896Z",
+        "ended": "2026-11-12T08:04:19.018667Z",
+        "status": "blocked",
+        "reason": "跨轮无依据声明在正式隔离场景修复并通过受控回归；真实 MeroMero 两次无依据场景通过，匹配交付场景先因后端完整引用误拦而修正，随后模型返回空主体引用导致保守拒绝。按用户授权暂停模型字段/Prompt调试，保留真实响应与失败；不能标 VERIFIED。后续仅继续已授权的默认主链工作。"
+      }
+    ],
+    "checks": null
+  }
+}

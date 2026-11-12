@@ -16,23 +16,48 @@ const directMediaDeliveryCheckSchema = "direct_media_delivery_check_v1"
 // necessary. It is not evidence that an image was or was not delivered.
 func directMediaDeliveryCheckNeeded(candidate, currentInput string, history ...[]map[string]any) bool {
 	mediaWords := []string{"照片", "图片", "相片", "图像", "自拍", "美照", "风景照", "合照", "张图", "发图", "图发", "图传", "图给", "图已", "图交付", "图附", "photo", "picture", "image", "selfie", "snapshot"}
-	if containsAnyDirectMedia(strings.ToLower(candidate), mediaWords) {
+	lowerCandidate := strings.ToLower(candidate)
+	if containsAnyDirectMedia(lowerCandidate, mediaWords) {
 		return true
 	}
 	// A current media question can be answered by an implicit completed action
 	// (“已经放到聊天里了”). Avoid forcing a checker call for a plain refusal
 	// or other response with no apparent action/completion language.
-	if containsAnyDirectMedia(strings.ToLower(currentInput), mediaWords) &&
-		(directMediaDeliveryVerb(candidate) || containsAnyDirectMedia(strings.ToLower(candidate), []string{"已经", "刚", "已", "好了", "完成", "already", "just", "done"})) {
+	completionCue := containsAnyDirectMedia(lowerCandidate, []string{"已经", "刚", "已", "好了", "完成", "already", "just", "done"})
+	deliveryVerb := directMediaDeliveryVerb(candidate)
+	if containsAnyDirectMedia(strings.ToLower(currentInput), mediaWords) && (deliveryVerb || completionCue) {
 		return true
 	}
-	if !directMediaDeliveryVerb(candidate) {
+	if len(history) == 0 {
 		return false
 	}
-	if len(history) > 0 {
+	if deliveryVerb {
 		for _, message := range history[0] {
 			if containsAnyDirectMedia(strings.ToLower(stringValue(message["text"])), mediaWords) {
 				return true
+			}
+		}
+	}
+	// A recent media exchange can be followed by an implicit completion such
+	// as “已经贴到聊天里了”. Restrict this additional check to the immediately
+	// preceding interaction and an explicit conversation destination; older
+	// photos must not turn unrelated ordinary chat into a fixed second pass.
+	if completionCue && containsAnyDirectMedia(lowerCandidate, []string{"聊天", "对话", "消息里", "chat", "conversation"}) {
+		start := len(history[0])
+		if current := currentInputRecentMessageIndex(history[0], currentInput); current >= 0 {
+			start = current
+		}
+		for index := start - 1; index >= 0; index-- {
+			message := history[0][index]
+			kind := stringValue(message["kind"])
+			if kind != "user" && kind != "assistant" {
+				continue
+			}
+			if containsAnyDirectMedia(strings.ToLower(stringValue(message["text"])), mediaWords) {
+				return true
+			}
+			if kind == "user" {
+				break
 			}
 		}
 	}
@@ -142,6 +167,13 @@ func directClearlyNoDeliveryClaim(candidate string) bool {
 	if directObviousMediaCompletion(candidate) {
 		return false
 	}
+	for _, raw := range directMediaClauses(strings.ToLower(candidate)) {
+		clause := strings.TrimSpace(raw)
+		position := strings.Index(clause, "贴到聊天里")
+		if position >= 0 && directMediaSubjectResidue(clause) == "" && !directMediaClauseQuestion(clause) && !directMediaNegatedOrConditional(clause, position) {
+			return false
+		}
+	}
 	if !directMediaDeliveryVerb(candidate) {
 		return true
 	}
@@ -247,7 +279,7 @@ func (a *App) checkDirectMediaDeliveryClaims(ctx context.Context, projection Con
 			seen[ref] = true
 			refs = append(refs, ref)
 		}
-		remaining = strings.Replace(remaining, quote, "", 1)
+		remaining = strings.Replace(remaining, clause, "", 1)
 	}
 	if !directClearlyNoDeliveryClaim(remaining) {
 		return nil, newCapabilityError("direct_media_delivery_unverified", false, ErrInvalidArguments)
@@ -272,8 +304,11 @@ func directMediaClaimClause(candidate, quote string) string {
 		start = boundary + size
 	}
 	end := len(candidate)
-	if suffix := strings.IndexAny(candidate[index+len(quote):], "。！？；，!?;,\n"); suffix >= 0 {
-		boundary := index + len(quote) + suffix
+	// A model may quote the whole reply, including a following explanatory
+	// clause. Bind evidence to the first clause intersecting the quote and
+	// leave the rest for independent completion checks.
+	if suffix := strings.IndexAny(candidate[index:], "。！？；，!?;,\n"); suffix >= 0 {
+		boundary := index + suffix
 		_, size := utf8.DecodeRuneInString(candidate[boundary:])
 		end = boundary + size
 	}
@@ -311,7 +346,7 @@ func directMediaSubjectMatches(subject, claimQuote, currentInput, intent string)
 
 func directMediaSubjectResidue(value string) string {
 	value = strings.ToLower(value)
-	for _, generic := range []string{"照片", "图片", "相片", "图像", "自拍", "photo", "picture", "image", "selfie", "已经", "之前", "发送", "发给", "给你", "给您", "我家", "我的", "你的", "这张", "那张", "这个", "那个", "我", "你", "您", "他", "她", "它", "的", "了", "过", "图", "发", "给", "把", "向", "已", "是", " ", "，", "。", "！", "？", ",", ".", "!", "?"} {
+	for _, generic := range []string{"照片", "图片", "相片", "图像", "自拍", "photo", "picture", "image", "selfie", "已经", "之前", "发送", "发给", "给你", "给您", "贴到聊天里", "我家", "我的", "你的", "这张", "那张", "这个", "那个", "我", "你", "您", "他", "她", "它", "的", "了", "过", "图", "发", "给", "把", "向", "已", "是", " ", "，", "。", "！", "？", ",", ".", "!", "?"} {
 		value = strings.ReplaceAll(value, generic, "")
 	}
 	return value

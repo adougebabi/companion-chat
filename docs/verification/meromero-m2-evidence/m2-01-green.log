@@ -1,0 +1,13 @@
+COMMAND go test ./internal/core -count=1 -run ^TestDirectReplyDoesNotPublishUndeliveredPhotoClaimFromPreviousTurn$ -v -timeout=10m
+SOURCE 838bb902b18280cbe5eeb119fb500db5da30ffa2 plus M2-01 changes; protected drafts excluded
+=== RUN   TestDirectReplyDoesNotPublishUndeliveredPhotoClaimFromPreviousTurn
+2026/11/12 15:47:14 WARN tool.call.handled capability=conversation.reply call_id=context-reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:47:14 WARN tool.call.handled capability=conversation.reply call_id=context-reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:47:14 WARN tool.call.handled capability=conversation.reply call_id=context-reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:47:14 WARN tool.call.handled capability=conversation.reply call_id=context-reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:47:14 WARN tool.call.handled capability=conversation.reply call_id=context-reply-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 15:47:14 WARN tool.call.handled capability=conversation.reply call_id=context-reply-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestDirectReplyDoesNotPublishUndeliveredPhotoClaimFromPreviousTurn (2.86s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.597s
+EXIT_CODE 0
