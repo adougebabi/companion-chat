@@ -1,0 +1,6 @@
+{
+  "head": "554eddb8f4c80526bf23db2deaa943bc6901fffb",
+  "overlays": {
+    "apps/core-go/internal/core/m2_moment_npc_comment_recovery_test.go": "cc854c6caa05f85b09e0aede244c7ab72561bd2d8f77dc8ce9eac73458b0a593"
+  }
+}

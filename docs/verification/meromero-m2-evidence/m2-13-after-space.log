@@ -1,0 +1,19 @@
+SOURCE_HEAD 554eddb8f4c80526bf23db2deaa943bc6901fffb (clean archive + test overlay)
+CANDIDATE /private/tmp/fluctlight-m2-13-first-h9_d09tn
+MANIFEST /private/tmp/fluctlight-m2-13-first-h9_d09tn/m2-13-first-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^TestM2MomentNPCCommentPersistsAndRespectsDisableRecovery$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestM2MomentNPCCommentPersistsAndRespectsDisableRecovery
+=== RUN   TestM2MomentNPCCommentPersistsAndRespectsDisableRecovery/normal
+2026/11/12 23:26:21 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-npc-moment-normal metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestM2MomentNPCCommentPersistsAndRespectsDisableRecovery/disabled_before_decision
+2026/11/12 23:26:23 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-npc-moment-disabled_before_decision metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestM2MomentNPCCommentPersistsAndRespectsDisableRecovery/disabled_after_checkpoint
+2026/11/12 23:26:26 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-npc-moment-disabled_after_checkpoint metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestM2MomentNPCCommentPersistsAndRespectsDisableRecovery (9.81s)
+    --- PASS: TestM2MomentNPCCommentPersistsAndRespectsDisableRecovery/normal (5.16s)
+    --- PASS: TestM2MomentNPCCommentPersistsAndRespectsDisableRecovery/disabled_before_decision (2.24s)
+    --- PASS: TestM2MomentNPCCommentPersistsAndRespectsDisableRecovery/disabled_after_checkpoint (2.41s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	10.685s
+
+EXIT_CODE 0

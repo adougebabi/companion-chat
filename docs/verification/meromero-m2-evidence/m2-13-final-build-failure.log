@@ -1,0 +1,10 @@
+SOURCE_HEAD 554eddb8f4c80526bf23db2deaa943bc6901fffb (clean archive + test overlay)
+CANDIDATE /private/tmp/fluctlight-m2-13-first-h9_d09tn
+MANIFEST /private/tmp/fluctlight-m2-13-first-h9_d09tn/m2-13-final-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^TestM2MomentNPCCommentPersistsAndRespectsDisableRecovery$ -v -timeout=8m DATABASE disposable-loopback
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core: open /var/folders/gv/hlfcpzxj63b3813yxlrkqv6r0000gn/T/go-build2509514732/b123/vet.cfg: no space left on device
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.test: open /var/folders/gv/hlfcpzxj63b3813yxlrkqv6r0000gn/T/go-build2509514732/b001/importcfg: no space left on device
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core [build failed]
+FAIL
+
+EXIT_CODE 1

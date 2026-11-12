@@ -1,0 +1,5 @@
+--- first/apps/core-go/internal/core/m2_moment_npc_comment_recovery_test.go
++++ final/apps/core-go/internal/core/m2_moment_npc_comment_recovery_test.go
+@@ -63 +63 @@
+-				if result, err := f.app.ProcessCognitionInbox(f.ctx, inboxID); err == nil || npcCalls != 1 {
++				if result, err := f.app.ProcessCognitionInbox(f.ctx, inboxID); err == nil || !strings.Contains(err.Error(), "m2_npc_comment_injected_failure") || npcCalls != 1 {

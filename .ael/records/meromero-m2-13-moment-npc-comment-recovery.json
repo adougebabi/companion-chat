@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-13-moment-npc-comment-recovery",
+  "definition_hash": "f1fed0d75ddfe49df541acc412b540eeb1f6b38a20115be018f45936c2bff9ba",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T15:19:32.956149Z",
+  "updated": "2026-11-12T15:32:19.103445Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-4b1364f8b6b13bad4e71",
+        "unit": "define",
+        "executor": "codex-m2-13",
+        "input_version": "457aaffc7edb66d7143c8567371bce6881454f7eeaf749ef24cd4223caa96508",
+        "candidate_version": "457aaffc7edb66d7143c8567371bce6881454f7eeaf749ef24cd4223caa96508",
+        "started": "2026-11-12T15:20:14.430488Z",
+        "ended": "2026-11-12T15:20:36.493642Z",
+        "status": "pass",
+        "reason": "T05 的单一行为：验证已有 NPC 动态评论的正式持久化、重放和插件停用恢复；不新增 NPC 功能或改变插件策略。"
+      },
+      {
+        "id": "AT-34c874abf34f52fd5a88",
+        "unit": "analysis",
+        "executor": "codex-m2-13",
+        "input_version": "457aaffc7edb66d7143c8567371bce6881454f7eeaf749ef24cd4223caa96508",
+        "candidate_version": "457aaffc7edb66d7143c8567371bce6881454f7eeaf749ef24cd4223caa96508",
+        "started": "2026-11-12T15:20:57.225003Z",
+        "ended": "2026-11-12T15:20:57.557293Z",
+        "status": "pass",
+        "reason": "复用已确认结识和正式动态发布入口，使用隔离数据库及受控 Provider 核对评论唯一性、停用前后状态与已持久决定恢复；区分真实模型未验证。"
+      },
+      {
+        "id": "AT-a59614899863143aa667",
+        "unit": "execute",
+        "executor": "codex-m2-13",
+        "input_version": "457aaffc7edb66d7143c8567371bce6881454f7eeaf749ef24cd4223caa96508",
+        "candidate_version": "",
+        "started": "2026-11-12T15:21:06.795247Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}

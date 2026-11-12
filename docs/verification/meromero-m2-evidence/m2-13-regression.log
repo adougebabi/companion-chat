@@ -1,0 +1,41 @@
+SOURCE_HEAD 554eddb8f4c80526bf23db2deaa943bc6901fffb (clean archive + test overlay)
+CANDIDATE /private/tmp/fluctlight-m2-13-first-h9_d09tn
+MANIFEST /private/tmp/fluctlight-m2-13-first-h9_d09tn/m2-13-first-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^(TestNPCNativeConsumerAndIndependentResponseUseSeparateInputs|TestNPCIndependentToolOutcomesRecoverWithoutRepeatingResponseModel|TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable|TestImageDisabledKeepsDirectChatAndTextMomentAvailable|TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays)$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays
+2026/11/12 23:27:12 INFO reply.evidence.reconciled correlation_id=tool-operation:writer-moment-operation metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays (2.77s)
+=== RUN   TestImageDisabledKeepsDirectChatAndTextMomentAvailable
+2026/11/12 23:27:15 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:image-off-chat metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 23:27:15 INFO reply.evidence.reconciled correlation_id=tool-operation:image-off-independent-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestImageDisabledKeepsDirectChatAndTextMomentAvailable (3.27s)
+=== RUN   TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable
+2026/11/12 23:27:18 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-existing-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 23:27:18 INFO capability lifecycle capability=capability.catalog call_id=m2-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable (2.18s)
+=== RUN   TestNPCNativeConsumerAndIndependentResponseUseSeparateInputs
+=== RUN   TestNPCNativeConsumerAndIndependentResponseUseSeparateInputs/accept
+=== RUN   TestNPCNativeConsumerAndIndependentResponseUseSeparateInputs/decline
+=== RUN   TestNPCNativeConsumerAndIndependentResponseUseSeparateInputs/cancel_during_response
+2026/11/12 23:27:27 WARN tool.call.handled capability=world.npc.encounter call_id=npc-character-approach warning_code=npc_opportunity_expired disposition=awaiting_state effect_applied=false
+=== RUN   TestNPCNativeConsumerAndIndependentResponseUseSeparateInputs/provider_failure
+--- PASS: TestNPCNativeConsumerAndIndependentResponseUseSeparateInputs (11.60s)
+    --- PASS: TestNPCNativeConsumerAndIndependentResponseUseSeparateInputs/accept (3.30s)
+    --- PASS: TestNPCNativeConsumerAndIndependentResponseUseSeparateInputs/decline (2.61s)
+    --- PASS: TestNPCNativeConsumerAndIndependentResponseUseSeparateInputs/cancel_during_response (3.47s)
+    --- PASS: TestNPCNativeConsumerAndIndependentResponseUseSeparateInputs/provider_failure (2.22s)
+=== RUN   TestNPCIndependentToolOutcomesRecoverWithoutRepeatingResponseModel
+=== RUN   TestNPCIndependentToolOutcomesRecoverWithoutRepeatingResponseModel/accept
+=== RUN   TestNPCIndependentToolOutcomesRecoverWithoutRepeatingResponseModel/decline
+=== RUN   TestNPCIndependentToolOutcomesRecoverWithoutRepeatingResponseModel/pass
+=== RUN   TestNPCIndependentToolOutcomesRecoverWithoutRepeatingResponseModel/cancelled_source
+2026/11/12 23:27:40 WARN tool.call.handled capability=world.npc.encounter call_id=direct_call_9afaca6638b705b5cce64e489865d4fe warning_code=npc_opportunity_expired disposition=awaiting_state effect_applied=false
+--- PASS: TestNPCIndependentToolOutcomesRecoverWithoutRepeatingResponseModel (11.04s)
+    --- PASS: TestNPCIndependentToolOutcomesRecoverWithoutRepeatingResponseModel/accept (2.36s)
+    --- PASS: TestNPCIndependentToolOutcomesRecoverWithoutRepeatingResponseModel/decline (3.62s)
+    --- PASS: TestNPCIndependentToolOutcomesRecoverWithoutRepeatingResponseModel/pass (2.72s)
+    --- PASS: TestNPCIndependentToolOutcomesRecoverWithoutRepeatingResponseModel/cancelled_source (2.34s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	31.314s
+
+EXIT_CODE 0
