@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "",
+  "failure": "提交 ef717eb1：direct 回复的 Goal 正向候选、静默期延期、正式评估和重放在受控隔离场景通过；但 3 项相关既有 Goal 回归失败，干净 f74fbc1c、无覆盖、同环境复现。已关联 goal-cadence-additional-baseline-regressions，未修改业务策略或旧测试；待明确并解决该基线回归后复验，不将本项标为通过。",
   "result": "",
   "created": "2026-11-12T11:47:25.222921Z",
-  "updated": "2026-11-12T11:48:13.142634Z",
+  "updated": "2026-11-12T11:56:22.269877Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -54,11 +54,11 @@
         "unit": "execute",
         "executor": "codex-m2-09",
         "input_version": "4dbafecdfa836386e48cb4add2d8ea6432373ee4749f4b1ef2c0aa727ef02b23",
-        "candidate_version": "",
+        "candidate_version": "f213bae4b2397c2bc02f0f89ceae7679fe47688d4b5f19f89a11d722b514ad2e",
         "started": "2026-11-12T11:48:12.988405Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-12T11:56:12.220298Z",
+        "status": "blocked",
+        "reason": "提交 ef717eb1：direct 回复的 Goal 正向候选、静默期延期、正式评估和重放在受控隔离场景通过；但 3 项相关既有 Goal 回归失败，干净 f74fbc1c、无覆盖、同环境复现。已关联 goal-cadence-additional-baseline-regressions，未修改业务策略或旧测试；待明确并解决该基线回归后复验，不将本项标为通过。"
       }
     ],
     "checks": null
