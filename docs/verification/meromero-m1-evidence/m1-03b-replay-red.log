@@ -1,0 +1,11 @@
+COMMAND go test ./internal/core -count=1 -run ^TestM1ReplayedUnauthorizedCallIDStopsWithoutDuplicateReceipt$ -v -timeout=10m
+SOURCE 5cf41aa955fbfabd032440a099875fc745fcfd89 plus M1-03b changes; protected drafts excluded
+=== RUN   TestM1ReplayedUnauthorizedCallIDStopsWithoutDuplicateReceipt
+    m1_replayed_denial_test.go:41: replayed denial was not bounded: model_calls=6 feedback=5 messages=0 unauthorized_executions=0 err=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 400: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel]
+--- FAIL: TestM1ReplayedUnauthorizedCallIDStopsWithoutDuplicateReceipt (2.53s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.369s
+FAIL
+EXIT_CODE 1

@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m1-03a-rejected-reply-loop",
+  "definition_hash": "25f10fca13cb366c78a8ed4b0e5bf100c7a7a4d237865277e0a8d8d5c4755e63",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 2,
+  "plan": {
+    "revision": 3,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "definition revised; relevant inputs and acceptance require revalidation",
+  "result": "",
+  "created": "2026-11-12T05:14:16.628343Z",
+  "updated": "2026-11-12T05:49:31.42492Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-6bb6c4b564631bdde420",
+        "unit": "define",
+        "executor": "codex-m1-03a",
+        "input_version": "b1ca428070d5857113682b0ea939c394dbd436c66f9ad0ce30932fa4d80e3691",
+        "candidate_version": "b1ca428070d5857113682b0ea939c394dbd436c66f9ad0ce30932fa4d80e3691",
+        "started": "2026-11-12T05:14:59.654444Z",
+        "ended": "2026-11-12T05:15:30.441303Z",
+        "status": "pass",
+        "reason": "仅处理会话回复在授权策略拒绝后持续以新调用 ID 重试；保持权限和正常回复语义，使用真实入口与隔离库验证。"
+      },
+      {
+        "id": "AT-02c8c36324ababd57355",
+        "unit": "analysis",
+        "executor": "codex-m1-03a",
+        "input_version": "b1ca428070d5857113682b0ea939c394dbd436c66f9ad0ce30932fa4d80e3691",
+        "candidate_version": "b1ca428070d5857113682b0ea939c394dbd436c66f9ad0ce30932fa4d80e3691",
+        "started": "2026-11-12T05:15:48.010101Z",
+        "ended": "2026-11-12T05:16:06.635949Z",
+        "status": "pass",
+        "reason": "策略拒绝写入 rejected 回执；会话无进展判断只识别 handled 和成功查询，故多次不同调用 ID 的重复回复拒绝未纳入边界。先用真实认知入口和隔离库复现，再仅扩展既有会话循环判断并验证正常路径；不改变授权规则。"
+      },
+      {
+        "id": "AT-1eaa69099f4c69e7181f",
+        "unit": "execute",
+        "executor": "codex-m1-03a",
+        "input_version": "b1ca428070d5857113682b0ea939c394dbd436c66f9ad0ce30932fa4d80e3691",
+        "candidate_version": "2fd7107248b39e1935ec9e2a3b7e71b0a4957689a31eaaeb0f7d7bfca4a8d4f6",
+        "started": "2026-11-12T05:16:15.016203Z",
+        "ended": "2026-11-12T05:21:44.042615Z",
+        "status": "fail",
+        "reason": "早期人工组合 direct 主链与自治授权的回执循环虽可在底层方法复现，但正常 HandleTurn 不形成该组合，不能作为主链验收；授权允许的人工对照还因 direct schema 与主动话题要求不匹配未完成。已保留测试、日志和实验补丁，撤回仅为该人工组合做的改动；转核验真实私聊中不同参数重复请求同一无权限工具的现象。"
+      }
+    ],
+    "checks": null
+  }
+}

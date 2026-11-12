@@ -1,0 +1,17 @@
+COMMAND go test ./internal/core -count=1 -run ^(TestReplyContinuationKeepsOriginalCognitionModel|TestReplyContinuationLegacyCognitionUsesCurrentModelWithoutInventingSnapshot|TestReplyCognitionSnapshotKeepsAgentScopeAndLegacyBehavior|TestDirectMainReplyRetainsExistingDraftContract)$ -v -timeout=10m
+SOURCE dce89ce816aaaf2a6c272028eae0088e7a818422 committed tree; protected drafts excluded
+=== RUN   TestDirectMainReplyRetainsExistingDraftContract
+--- PASS: TestDirectMainReplyRetainsExistingDraftContract (2.10s)
+=== RUN   TestReplyCognitionSnapshotKeepsAgentScopeAndLegacyBehavior
+--- PASS: TestReplyCognitionSnapshotKeepsAgentScopeAndLegacyBehavior (0.00s)
+=== RUN   TestReplyContinuationKeepsOriginalCognitionModel
+2026/11/12 14:32:18 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:cognition-snapshot-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+    reply_continuation_model_snapshot_integration_test.go:15: M1_04A legacy=false initial_model=main-a resumed_model=main-a initial_requests=3 resumed_requests=1 snapshot_present=true controlled_provider_http=400
+--- PASS: TestReplyContinuationKeepsOriginalCognitionModel (1.66s)
+=== RUN   TestReplyContinuationLegacyCognitionUsesCurrentModelWithoutInventingSnapshot
+2026/11/12 14:32:19 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:cognition-snapshot-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+    reply_continuation_model_snapshot_integration_test.go:19: M1_04A legacy=true initial_model=main-a resumed_model=main-b initial_requests=3 resumed_requests=1 snapshot_present=false controlled_provider_http=400
+--- PASS: TestReplyContinuationLegacyCognitionUsesCurrentModelWithoutInventingSnapshot (1.89s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.341s
+EXIT_CODE 0

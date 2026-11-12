@@ -1,0 +1,11 @@
+COMMAND go test ./internal/core -count=1 -run ^TestM1ClosedWindowSameBatchCountsAsOneResponse$ -v -timeout=10m
+SOURCE 5cf41aa955fbfabd032440a099875fc745fcfd89 plus M1-03b test only; protected drafts excluded
+=== RUN   TestM1ClosedWindowSameBatchCountsAsOneResponse
+    m1_replayed_denial_test.go:165: one response with two closed calls prematurely stopped: model_calls=4 closed_receipts=false messages=0 err=adk_run: [NodeRunError] tool_progress_stalled: tool_progress_stalled
+        ------------------------
+        node path: [node_1, ChatModel]
+--- FAIL: TestM1ClosedWindowSameBatchCountsAsOneResponse (2.31s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.027s
+FAIL
+EXIT_CODE 1

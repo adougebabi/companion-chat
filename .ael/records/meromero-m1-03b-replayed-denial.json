@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m1-03b-replayed-denial",
+  "definition_hash": "f39487c46ea19020d5679e6fbe3f837fe5f464f172cb1b949e8efe21ae3a8761",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "用户要求对偏离原任务的非阻断性问题只登记 AEL 缺陷、不继续修复。同一调用 ID 的条件性拒绝重放已记录为非阻断缺陷；正式路径红测与实验补丁已保留，实验业务代码已撤出工作树。此状态表示用户指定暂缓，而非声称主链环境故障或验收通过。",
+  "result": "",
+  "created": "2026-11-12T06:00:42.44921Z",
+  "updated": "2026-11-12T06:24:09.700107Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-b5f499ee4ec5cc66bb2d",
+        "unit": "define",
+        "executor": "codex-m1-03b",
+        "input_version": "3f3819a677823edf784e9034d2553496697c152a288c27451afe8d3a704b756b",
+        "candidate_version": "3f3819a677823edf784e9034d2553496697c152a288c27451afe8d3a704b756b",
+        "started": "2026-11-12T06:00:54.003687Z",
+        "ended": "2026-11-12T06:01:23.017947Z",
+        "status": "pass",
+        "reason": "范围仅为正式私聊同一越权工具相同原生调用 ID 的跨轮重复；保留真实回执和幂等，先复现后修复。"
+      },
+      {
+        "id": "AT-3b2d5868b2786d1b78d4",
+        "unit": "analysis",
+        "executor": "codex-m1-03b",
+        "input_version": "3f3819a677823edf784e9034d2553496697c152a288c27451afe8d3a704b756b",
+        "candidate_version": "3f3819a677823edf784e9034d2553496697c152a288c27451afe8d3a704b756b",
+        "started": "2026-11-12T06:01:44.438443Z",
+        "ended": "2026-11-12T06:02:12.471139Z",
+        "status": "pass",
+        "reason": "同一 call ID 的回执正确重放但 trace 不追加结果；物理模型响应批次在 runtimeContextRefresh 已另有记录。先通过 HandleTurn 验证循环，再仅将已有真实拒绝与实际物理响应关联，不能伪造回执或重放副作用，并测试同批与其他授权工具。"
+      },
+      {
+        "id": "AT-320458e453af1d253f3f",
+        "unit": "execute",
+        "executor": "codex-m1-03b",
+        "input_version": "3f3819a677823edf784e9034d2553496697c152a288c27451afe8d3a704b756b",
+        "candidate_version": "0aa3b0ef3af2494c822757868216e1c6752e03a7f7bfc1f72483cc265b7db88c",
+        "started": "2026-11-12T06:02:31.237628Z",
+        "ended": "2026-11-12T06:23:58.543059Z",
+        "status": "blocked",
+        "reason": "用户要求对偏离原任务的非阻断性问题只登记 AEL 缺陷、不继续修复。同一调用 ID 的条件性拒绝重放已记录为非阻断缺陷；正式路径红测与实验补丁已保留，实验业务代码已撤出工作树。此状态表示用户指定暂缓，而非声称主链环境故障或验收通过。"
+      }
+    ],
+    "checks": null
+  }
+}

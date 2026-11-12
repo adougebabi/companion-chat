@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "id": "meromero-m1-04b-direct-turn-model-snapshot",
+  "definition_hash": "2f7cf32368195e2efd35b20e432fd7096f1702ae05ac27904af3b62d5f8f80b9",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "open",
+  "candidate": "9ca602326cd4595870bad4cbbebeeed40cc0ddb872554f430097c63a4f158e25",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T06:39:22.051939Z",
+  "updated": "2026-11-12T07:29:10.525311Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-8d96a54a009d40ba00e2",
+        "unit": "define",
+        "executor": "codex-m1-04b",
+        "input_version": "bd6af7b348bb312e4ba6bbf0fd7b10fddf49516489a962f558daa0e88a5b7aeb",
+        "candidate_version": "bd6af7b348bb312e4ba6bbf0fd7b10fddf49516489a962f558daa0e88a5b7aeb",
+        "started": "2026-11-12T06:39:32.585675Z",
+        "ended": "2026-11-12T06:39:54.914568Z",
+        "status": "pass",
+        "reason": "原 T02 要求同一恢复任务不因配置变化静默换模型；仅处理新 direct 私聊 turn 的模型快照，保留旧记录未知策略和现有回复/授权边界。"
+      },
+      {
+        "id": "AT-d0856f7548f0f15ea399",
+        "unit": "analysis",
+        "executor": "codex-m1-04b",
+        "input_version": "bd6af7b348bb312e4ba6bbf0fd7b10fddf49516489a962f558daa0e88a5b7aeb",
+        "candidate_version": "bd6af7b348bb312e4ba6bbf0fd7b10fddf49516489a962f558daa0e88a5b7aeb",
+        "started": "2026-11-12T06:40:16.000666Z",
+        "ended": "2026-11-12T06:41:04.610861Z",
+        "status": "pass",
+        "reason": "静态核对显示 direct 新 turn 单次运行使用进程内绑定，实际新 attempt 重新装配；先用隔离库与正式 Worker 入口证明配置变化后的模型，再仅在同一逻辑 turn 边界冻结并恢复必要绑定。旧 turn 无可靠快照不可虚构原模型，凭据继续使用现有安全存储。"
+      },
+      {
+        "id": "AT-cfd1f33a96a9fee600a7",
+        "unit": "execute",
+        "executor": "codex-m1-04b",
+        "input_version": "bd6af7b348bb312e4ba6bbf0fd7b10fddf49516489a962f558daa0e88a5b7aeb",
+        "candidate_version": "",
+        "started": "2026-11-12T06:41:24.466491Z",
+        "ended": "2026-11-12T07:28:24.853442Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-7c4a6d12ecc9d78a3bc8",
+        "unit": "execute",
+        "executor": "codex-m1-final",
+        "input_version": "9ca602326cd4595870bad4cbbebeeed40cc0ddb872554f430097c63a4f158e25",
+        "candidate_version": "9ca602326cd4595870bad4cbbebeeed40cc0ddb872554f430097c63a4f158e25",
+        "started": "2026-11-12T07:28:36.586938Z",
+        "ended": "2026-11-12T07:29:00.247001Z",
+        "status": "pass",
+        "reason": "已提交 612966ec：新 direct 逻辑 turn 的模型绑定在首次请求前冻结，重试保持原绑定，新 turn 使用新配置；旧记录无快照诊断为 legacy_unfrozen，损坏快照不静默重绑。提交后的隔离库回归和真实回环 MeroMero direct 请求均通过；真实样本是同一模型三次物理请求、零独立 Writer。"
+      }
+    ],
+    "checks": null
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m1-04a-legacy-cognition-snapshot",
+  "definition_hash": "c3bc9a5596c96bd927caeebc34d76791d386b2fdf3e8e6503cde1c07d5a740c6",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "open",
+  "candidate": "bd6af7b348bb312e4ba6bbf0fd7b10fddf49516489a962f558daa0e88a5b7aeb",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T06:26:19.160532Z",
+  "updated": "2026-11-12T06:39:21.924043Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-a97ea7b140e0983af143",
+        "unit": "define",
+        "executor": "codex-m1-04a",
+        "input_version": "01bde1c082f96ee498e871dc97860841d493f59ae1827aecb95cdc4db2611d27",
+        "candidate_version": "01bde1c082f96ee498e871dc97860841d493f59ae1827aecb95cdc4db2611d27",
+        "started": "2026-11-12T06:26:31.824872Z",
+        "ended": "2026-11-12T06:26:58.816699Z",
+        "status": "pass",
+        "reason": "只验证私聊续接已有快照及旧记录缺失快照的现行策略，不修改旧任务业务政策，不虚构历史模型。"
+      },
+      {
+        "id": "AT-1577259e103c2391816c",
+        "unit": "analysis",
+        "executor": "codex-m1-04a",
+        "input_version": "01bde1c082f96ee498e871dc97860841d493f59ae1827aecb95cdc4db2611d27",
+        "candidate_version": "01bde1c082f96ee498e871dc97860841d493f59ae1827aecb95cdc4db2611d27",
+        "started": "2026-11-12T06:27:20.705332Z",
+        "ended": "2026-11-12T06:27:47.54771Z",
+        "status": "pass",
+        "reason": "现有正式续接先尝试恢复 cognition 快照；缺少时记录 legacy_unfrozen 并继续现有选模。已有原绑定集成测试在观察物理请求后故意返回 400；缺少旧记录真实续接选模与诊断的同路径证据，增加隔离集成测试，不修改生产策略。"
+      },
+      {
+        "id": "AT-8bb860978e625bdb83ec",
+        "unit": "execute",
+        "executor": "codex-m1-04a",
+        "input_version": "01bde1c082f96ee498e871dc97860841d493f59ae1827aecb95cdc4db2611d27",
+        "candidate_version": "bd6af7b348bb312e4ba6bbf0fd7b10fddf49516489a962f558daa0e88a5b7aeb",
+        "started": "2026-11-12T06:28:08.347843Z",
+        "ended": "2026-11-12T06:39:11.518538Z",
+        "status": "pass",
+        "reason": "已提交 dce89ce8。正式续接隔离测试证明有快照保持 main-a，无快照旧记录采用当前 main-b 并记录 legacy_unfrozen，未造快照；测试在观察 Provider 请求后有意返回 400，不代表真实媒体交付。提交后干净源码四项测试通过。"
+      }
+    ],
+    "checks": null
+  }
+}

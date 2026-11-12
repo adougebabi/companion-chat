@@ -88,7 +88,7 @@
     },
     {
       "path": "docs/llm-prompt-composition.md",
-      "hash": "00964b0320d82463cf4acb159ac5dc2a9f5791e01601ac71ecbc3c26c76fc0c6",
+      "hash": "2cd3e9031969507ea546b5b2a3461498e6204e52369682b89bc88fd3794756ce",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -102,14 +102,14 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-prompt-composition.md",
-        "hash": "00964b0320d82463cf4acb159ac5dc2a9f5791e01601ac71ecbc3c26c76fc0c6",
+        "hash": "2cd3e9031969507ea546b5b2a3461498e6204e52369682b89bc88fd3794756ce",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
     },
     {
       "path": "docs/llm-task-input-contracts.md",
-      "hash": "121e9ff764c2d4efb1d2d6ea0958f97a3ca483ffbd60465b647f7d7afd0d00f6",
+      "hash": "7c712f20dc35a748ce35afd3ab609ff4353c0767d9bdd172547eb0c95aa1d266",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -123,7 +123,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-task-input-contracts.md",
-        "hash": "121e9ff764c2d4efb1d2d6ea0958f97a3ca483ffbd60465b647f7d7afd0d00f6",
+        "hash": "7c712f20dc35a748ce35afd3ab609ff4353c0767d9bdd172547eb0c95aa1d266",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -208,6 +208,27 @@
         "critical": false,
         "path": "docs/verification/meromero-first-ledger-20261109.md",
         "hash": "2780f92594e8813cc19ea5adf87783c378baffa2953856bda6f2979d584119f4",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "docs/verification/meromero-m1-progress-20261112.md",
+      "hash": "8828b3be4f6d845ccb9a39b1c0d088a9f09dc1389657d6f14461050902ee2106",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/meromero-m1-progress-20261112.md",
+        "title": "meromero-m1-progress-20261112.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/meromero-m1-progress-20261112.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/meromero-m1-progress-20261112.md",
+        "hash": "8828b3be4f6d845ccb9a39b1c0d088a9f09dc1389657d6f14461050902ee2106",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -320,7 +341,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 13,
+    "historical": 14,
     "retired": 1
   }
 }

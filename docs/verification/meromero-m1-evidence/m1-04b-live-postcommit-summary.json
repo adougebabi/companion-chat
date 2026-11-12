@@ -1,0 +1,51 @@
+{
+  "request_count": 3,
+  "request_models": [
+    "llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4",
+    "llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4",
+    "llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4"
+  ],
+  "tool_response_shapes": [
+    {
+      "argument_keys": [],
+      "id_present": true,
+      "name": "conversation.reply"
+    },
+    {
+      "argument_keys": [],
+      "id_present": true,
+      "name": "conversation_reply"
+    },
+    {
+      "argument_keys": [],
+      "id_present": true,
+      "name": "conversation_reply"
+    }
+  ],
+  "feedback_by_request": [
+    [],
+    [
+      {
+        "status": "handled",
+        "warning_code": "invalid_arguments",
+        "error_code": null,
+        "detail": "required field \"text\" is missing"
+      }
+    ],
+    [
+      {
+        "status": "handled",
+        "warning_code": "invalid_arguments",
+        "error_code": null,
+        "detail": "required field \"text\" is missing"
+      },
+      {
+        "status": "failed",
+        "warning_code": null,
+        "error_code": "direct_reply_decision_invalid",
+        "detail": "capability execution failed: direct_reply_decision_invalid: decision_influence_0_ref_invalid"
+      }
+    ]
+  ],
+  "provider_response_model": "not captured by this test"
+}

@@ -1,0 +1,35 @@
+COMMAND go test ./internal/core -count=1 -run ^(TestM1Replayed|TestM1ClosedWindow|TestM1SameBatch|TestM1ThirdDenial|TestM1Unauthorized|TestM1RepeatedUnauthorized|TestM1AuthorizedTool|TestR9Discovery) -v -timeout=10m
+SOURCE 5cf41aa955fbfabd032440a099875fc745fcfd89 plus M1-03b changes; protected drafts excluded
+=== RUN   TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops
+--- PASS: TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops (4.22s)
+=== RUN   TestM1AuthorizedToolStillAvailableAfterTwoDenials
+2026/11/12 14:22:12 INFO capability lifecycle capability=capability.catalog call_id=load-memory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 14:22:12 INFO capability lifecycle capability=memory.recall call_id=recall-memory type=query surface=conversation required_context=[memory_scope] duration_ms=6 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestM1AuthorizedToolStillAvailableAfterTwoDenials (4.92s)
+=== RUN   TestM1SameBatchDenialsDoNotBlockAuthorizedTool
+2026/11/12 14:22:17 INFO capability lifecycle capability=capability.catalog call_id=batch-catalog type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestM1SameBatchDenialsDoNotBlockAuthorizedTool (4.90s)
+=== RUN   TestM1ThirdDenialDoesNotBlockSameBatchAuthorizedTool
+2026/11/12 14:22:21 INFO capability lifecycle capability=capability.catalog call_id=third-catalog type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestM1ThirdDenialDoesNotBlockSameBatchAuthorizedTool (3.66s)
+=== RUN   TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths
+--- PASS: TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths (0.00s)
+=== RUN   TestM1ReplayedUnauthorizedCallIDStopsWithoutDuplicateReceipt
+--- PASS: TestM1ReplayedUnauthorizedCallIDStopsWithoutDuplicateReceipt (9.24s)
+=== RUN   TestM1ReplayedUnauthorizedCallIDIgnoringReplyWindowStops
+--- PASS: TestM1ReplayedUnauthorizedCallIDIgnoringReplyWindowStops (2.92s)
+=== RUN   TestM1ReplayedClosedWindowReceiptStops
+--- PASS: TestM1ReplayedClosedWindowReceiptStops (2.57s)
+=== RUN   TestM1ClosedWindowSameBatchCountsAsOneResponse
+--- PASS: TestM1ClosedWindowSameBatchCountsAsOneResponse (2.45s)
+=== RUN   TestM1ReplayedDenialRestartsAfterRealAction
+--- PASS: TestM1ReplayedDenialRestartsAfterRealAction (0.00s)
+=== RUN   TestM1ClosedWindowRoundsResetAfterRealProgress
+--- PASS: TestM1ClosedWindowRoundsResetAfterRealProgress (0.00s)
+=== RUN   TestM1ReplayedDenialResetsAfterSameBatchRealAction
+--- PASS: TestM1ReplayedDenialResetsAfterSameBatchRealAction (2.96s)
+=== RUN   TestR9DiscoveryReadsBeforeReplyAndActualProgressReopensMedia
+--- PASS: TestR9DiscoveryReadsBeforeReplyAndActualProgressReopensMedia (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	38.523s
+EXIT_CODE 0

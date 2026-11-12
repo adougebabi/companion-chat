@@ -22,10 +22,12 @@
   "failure": "",
   "result": "verified",
   "created": "2026-11-10T08:34:30.498512Z",
-  "updated": "2026-11-12T01:49:19.502737Z",
+  "updated": "2026-11-12T06:39:22.052531Z",
   "completed": "2026-11-11T10:50:47.925693Z",
   "feedback": [
-    "meromero-r1-model-override-isolation"
+    "meromero-r1-model-override-isolation",
+    "meromero-m1-04a-legacy-cognition-snapshot",
+    "meromero-m1-04b-direct-turn-model-snapshot"
   ],
   "history": {
     "attempts": [

@@ -1,0 +1,11 @@
+COMMAND go test ./internal/core -count=1 -run ^TestM1ReplayedClosedWindowReceiptStops$ -v -timeout=10m
+SOURCE 5cf41aa955fbfabd032440a099875fc745fcfd89 plus M1-03b changes; protected drafts excluded
+=== RUN   TestM1ReplayedClosedWindowReceiptStops
+    m1_replayed_denial_test.go:127: replayed closed-window receipt was not bounded: model_calls=8 reply_only=5 closed_feedback=4 messages=0 unauthorized=0 err=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 400: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel]
+--- FAIL: TestM1ReplayedClosedWindowReceiptStops (2.18s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.992s
+FAIL
+EXIT_CODE 1

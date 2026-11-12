@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "id": "meromero-m1-01-direct-media-evidence",
+  "definition_hash": "3d23ce9c0cd9f02d0feab36d06f9a3336aba91aab623dbcfbfa59db53273c51e",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "open",
+  "candidate": "13bdb6d37862b8f3c19fb534b96de481e4d21a01a00f9eafb32058e24eb2c506",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T03:02:58.499371Z",
+  "updated": "2026-11-12T05:47:27.283679Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-fcb67c17f813676f6e08",
+        "unit": "define",
+        "executor": "codex-m1",
+        "input_version": "8c84f627cb392f3d4921b2ad37cbc76d7c8a90f697db374b9eabf983620581b5",
+        "candidate_version": "113ed8aa22158bef8d323c66327b6ba779db812cf3690fe9036387632b123428",
+        "started": "2026-11-12T03:03:30.831863Z",
+        "ended": "2026-11-12T03:04:09.628923Z",
+        "status": "pass",
+        "reason": "从已提交 direct 红测开始，按用户明确授权补齐所需真实交付证据引用、上下文和正式发布检查；当前/历史交付、无依据声明和普通交流必须分别验证。M1 其他子任务待当前单元收口。"
+      },
+      {
+        "id": "AT-5b3e4c12498ec1e4a38c",
+        "unit": "analysis",
+        "executor": "codex-m1",
+        "input_version": "113ed8aa22158bef8d323c66327b6ba779db812cf3690fe9036387632b123428",
+        "candidate_version": "113ed8aa22158bef8d323c66327b6ba779db812cf3690fe9036387632b123428",
+        "started": "2026-11-12T03:04:42.049697Z",
+        "ended": "2026-11-12T03:13:03.03711Z",
+        "status": "pass",
+        "reason": "复用 direct Prepare/事务发布边界及现有可配置的动作检查 Agent；为媒体完成声明提供受作用域约束的具体交付引用，Core 在事务内重查真实消息、素材和引用。语义提取与权威证据裁决分开，失败有界，正常交流不依赖固定 Qwen；覆盖旧式和草稿式交付、伪造/跨作用域、无依据及否认/未来。用户已授权必要的局部引用和上下文改动。"
+      },
+      {
+        "id": "AT-05171a714f7090531379",
+        "unit": "execute",
+        "executor": "codex-m1",
+        "input_version": "113ed8aa22158bef8d323c66327b6ba779db812cf3690fe9036387632b123428",
+        "candidate_version": "",
+        "started": "2026-11-12T03:14:28.935397Z",
+        "ended": "2026-11-12T03:49:25.631458Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-66dc56f808c5420cf427",
+        "unit": "execute",
+        "executor": "codex-m1-resumed",
+        "input_version": "073cc545acfe2422b27c8cbd468156485652fd1bf94196642675f875d8f4a2f0",
+        "candidate_version": "",
+        "started": "2026-11-12T03:49:36.887232Z",
+        "ended": "2026-11-12T05:03:41.678938Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-6ca7c205abfbff2a8f66",
+        "unit": "execute",
+        "executor": "codex-m1-continuation",
+        "input_version": "40fd7ae44bdf795b365c6ecee99a46e5eb5a9e79266b48d9276cee957812ced1",
+        "candidate_version": "30df96ba8c5566c87ccb9edb9ffb9813757fab7ec5d57732ab20a948b77d0111",
+        "started": "2026-11-12T05:04:28.050945Z",
+        "ended": "2026-11-12T05:05:36.49198Z",
+        "status": "blocked",
+        "reason": "正式 direct 受控 Provider 和隔离 PostgreSQL 回归已通过（含同批保护及提示词契约）；新增模型入口真实 MeroMero 两轮回归仍未完成，历史场景先遇显存不足 HTTP 400，随后本机 127.0.0.1:11234 拒绝连接，界面因锁屏不可访问。保留当前未提交源码和失败样本，恢复服务及资源后对当前版本复跑真实测试；不得以受控测试冒充真实模型通过。"
+      },
+      {
+        "id": "AT-c2659348683ea7f83f7d",
+        "unit": "execute",
+        "executor": "codex-m1-live",
+        "input_version": "2d471cdf53bfa469cbcaa381cf97d55e2d7e7c9b75674748c0edb74515217a66",
+        "candidate_version": "13bdb6d37862b8f3c19fb534b96de481e4d21a01a00f9eafb32058e24eb2c506",
+        "started": "2026-11-12T05:43:41.41811Z",
+        "ended": "2026-11-12T05:47:10.737176Z",
+        "status": "pass",
+        "reason": "正式 direct 发布前提取媒体声明、绑定同作用域已提交交付并在发布事务重查；修复及合成证据提交 3da8fefc。受控 Provider 与隔离 PostgreSQL 的正式路径矩阵通过；真实回环 MeroMero 检查器在提交前后均完成两轮，未代表真实生图或整个主链通过。提交后受控完整矩阵正在运行。"
+      }
+    ],
+    "checks": null
+  }
+}

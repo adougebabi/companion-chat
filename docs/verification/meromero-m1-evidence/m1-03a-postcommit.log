@@ -1,0 +1,54 @@
+COMMAND go test ./internal/core -count=1 -run ^(TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops|TestM1AuthorizedToolStillAvailableAfterTwoDenials|TestM1SameBatchDenialsDoNotBlockAuthorizedTool|TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths|TestR9DiscoveryReadsBeforeReplyAndActualProgressReopensMedia|TestNativeInvokerRejectsInstalledToolOutsideRunScope|TestNativeInvokerReportsCrossSurfaceDenialWithoutSchemaDetails|TestDirectMainReply|TestDirectMediaAndReply) -v -timeout=10m
+SOURCE c6d80502 committed tree; protected drafts excluded
+=== RUN   TestNativeInvokerRejectsInstalledToolOutsideRunScope
+--- PASS: TestNativeInvokerRejectsInstalledToolOutsideRunScope (0.00s)
+=== RUN   TestNativeInvokerReportsCrossSurfaceDenialWithoutSchemaDetails
+--- PASS: TestNativeInvokerReportsCrossSurfaceDenialWithoutSchemaDetails (0.00s)
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/commit
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/rollback
+--- PASS: TestDirectMainReplyPublishesAndSettlesAtomically (3.73s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/commit (1.82s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/rollback (1.91s)
+=== RUN   TestDirectMainReplyRetainsExistingDraftContract
+--- PASS: TestDirectMainReplyRetainsExistingDraftContract (1.16s)
+=== RUN   TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce
+--- PASS: TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce (1.19s)
+=== RUN   TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls
+=== RUN   TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/schema
+=== RUN   TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/foreign_goal
+--- PASS: TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls (2.51s)
+    --- PASS: TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/schema (1.21s)
+    --- PASS: TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/foreign_goal (1.30s)
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction/success
+2026/11/12 13:39:07 INFO capability lifecycle capability=capability.catalog call_id=direct-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction/settlement_failure
+2026/11/12 13:39:08 INFO capability lifecycle capability=capability.catalog call_id=direct-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMainReplyRetainsPriorNativeAction (2.53s)
+    --- PASS: TestDirectMainReplyRetainsPriorNativeAction/success (1.17s)
+    --- PASS: TestDirectMainReplyRetainsPriorNativeAction/settlement_failure (1.36s)
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_false
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_true
+--- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted (2.55s)
+    --- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_false (1.25s)
+    --- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_true (1.30s)
+=== RUN   TestDirectMediaAndReplyRepeatedBatchStops
+--- PASS: TestDirectMediaAndReplyRepeatedBatchStops (1.26s)
+=== RUN   TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops
+--- PASS: TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops (1.35s)
+=== RUN   TestM1AuthorizedToolStillAvailableAfterTwoDenials
+2026/11/12 13:39:15 INFO capability lifecycle capability=capability.catalog call_id=load-memory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 13:39:15 INFO capability lifecycle capability=memory.recall call_id=recall-memory type=query surface=conversation required_context=[memory_scope] duration_ms=2 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestM1AuthorizedToolStillAvailableAfterTwoDenials (1.24s)
+=== RUN   TestM1SameBatchDenialsDoNotBlockAuthorizedTool
+2026/11/12 13:39:16 INFO capability lifecycle capability=capability.catalog call_id=batch-catalog type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestM1SameBatchDenialsDoNotBlockAuthorizedTool (1.22s)
+=== RUN   TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths
+--- PASS: TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths (0.00s)
+=== RUN   TestR9DiscoveryReadsBeforeReplyAndActualProgressReopensMedia
+--- PASS: TestR9DiscoveryReadsBeforeReplyAndActualProgressReopensMedia (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	19.456s
+EXIT_CODE 0

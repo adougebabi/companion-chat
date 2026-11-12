@@ -22,9 +22,13 @@
   "failure": "B1 已提交受控回归 52de51e7，修复前隔离库复现空附件错误声明入库 1、媒体调用与意图均 0。未修改生产代码。B4 需要将正文所指历史媒体任务与可核对交付证据可靠关联；当前 direct 请求无此结构化指代，主会话投影也不提供历史媒体任务引用，现有媒体证据分旧/新两条链。以任意历史附件放行或仅靠正则/同模型 consistent 不满足用户限制；若建立新的目标引用/事实投影则超出本批遇到领域改造须停止的边界，故停止，B 未完成。",
   "result": "",
   "created": "2026-11-10T08:34:30.844802Z",
-  "updated": "2026-11-12T02:38:45.874038Z",
+  "updated": "2026-11-12T06:00:42.449927Z",
   "completed": null,
-  "feedback": [],
+  "feedback": [
+    "meromero-m1-01-direct-media-evidence",
+    "meromero-m1-03a-rejected-reply-loop",
+    "meromero-m1-03b-replayed-denial"
+  ],
   "history": {
     "attempts": [
       {
