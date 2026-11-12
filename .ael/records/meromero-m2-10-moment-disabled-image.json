@@ -16,14 +16,14 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "execute",
-  "status": "open",
-  "candidate": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "6f2ff29b9a21afdccb6475c1c5b8ba76587c0c09811b5279f187e2f70570d501",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-12T12:00:22.878719Z",
-  "updated": "2026-11-12T12:01:14.245826Z",
-  "completed": null,
+  "updated": "2026-11-12T12:07:16.66144Z",
+  "completed": "2026-11-12T12:07:16.661012Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -54,13 +54,40 @@
         "unit": "execute",
         "executor": "codex-m2-10",
         "input_version": "1b9c1f174d659532aa486ed488dd1a3f36d19fdde812f7c7a952196216436a74",
-        "candidate_version": "",
+        "candidate_version": "6f2ff29b9a21afdccb6475c1c5b8ba76587c0c09811b5279f187e2f70570d501",
         "started": "2026-11-12T12:01:14.094076Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-12T12:05:22.035309Z",
+        "status": "pass",
+        "reason": "提交 763ab46c：新增隔离 PostgreSQL 场景，正式设置停用 Moment 后旧回执可重放、新动态拒绝，默认 direct 私聊与独立 Image 工具仍按现有路径执行；无生产实现修改。"
+      },
+      {
+        "id": "AT-ebef6604f1a540873479",
+        "unit": "check:m2-10-scenario",
+        "executor": "codex-m2-10",
+        "input_version": "6f2ff29b9a21afdccb6475c1c5b8ba76587c0c09811b5279f187e2f70570d501",
+        "candidate_version": "6f2ff29b9a21afdccb6475c1c5b8ba76587c0c09811b5279f187e2f70570d501",
+        "started": "2026-11-12T12:07:10.827299Z",
+        "ended": "2026-11-12T12:07:10.915383Z",
+        "status": "pass",
+        "reason": "受检提交 763ab46c：干净导出无覆盖、隔离 PostgreSQL 与受控 Provider 下 11 个顶层测试通过、无 SKIP；含四处原有草稿的工作区主场景通过。Moment 停用后既有动态回执重放、新动态拒绝，默认 direct 私聊与独立 Image 正常受理并重放。提交后日志暂存 /private/tmp/fluctlight-m2-10-postcommit.log 和 /private/tmp/fluctlight-m2-10-postcommit-working-tree.log，随后归档；未验证真实模型或真实渲染。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "m2-10-scenario",
+        "result": "pass",
+        "source": "scenario:codex-m2-10",
+        "config_hash": "5995dec6daf74147b3ffbdd4eca39d5345a93b7ecb76e00eb18b7623502b65fa",
+        "at": "2026-11-12T12:07:10.914969Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/domain_plugins.go": "236916c540d8e7d63a3ad9d00a00877fdab595bbdd7e09c39a342236d55337a2",
+          "apps/core-go/internal/core/m2_image_disabled_text_moment_test.go": "987736c69fb9beadbcf631001a84a709ef0fd30e54bd88c76a06c94a00d73433",
+          "apps/core-go/internal/core/m2_moment_disabled_image_test.go": "4c8b4b5bbc60b23560c500a24235a4e5025579997c0ccb511172623c3d842f88",
+          "docs/verification/meromero-m2-evidence/m2-10-initial.log": "aa0ba0491b46486cf5ddd74e1e43f1f432ad740a325c0546c2aa0bfda16bf324",
+          "docs/verification/meromero-m2-evidence/m2-10-precommit.log": "588d8f3119a5c663074642da735727d1235c50a597e2fb56aa9eebec8a6de844",
+          "docs/verification/meromero-m2-evidence/m2-10-working-tree.log": "a4aabf9c200b284bd30bf1e2b87eb3dc81324b757d50624782ab0ec55627c7e2"
+        }
+      }
+    ]
   }
 }

@@ -1,0 +1,9 @@
+SOURCE_HEAD 763ab46c21378ae63bbc27179d1705d6b5f72be2 WORKING_TREE includes four preserved pre-existing drafts
+COMMAND go test ./internal/core -count=1 -run ^TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable
+2026/11/12 20:06:25 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-existing-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 20:06:25 INFO capability lifecycle capability=capability.catalog call_id=m2-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable (2.20s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.816s
+EXIT_CODE 0

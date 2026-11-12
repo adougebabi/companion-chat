@@ -1,0 +1,27 @@
+{
+  "id": "meromero-m2-10-moment-disabled-image",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "6f2ff29b9a21afdccb6475c1c5b8ba76587c0c09811b5279f187e2f70570d501",
+  "completed": "2026-11-12T12:07:16.661012Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "m2-10-scenario",
+      "result": "pass",
+      "source": "scenario:codex-m2-10",
+      "config_hash": "5995dec6daf74147b3ffbdd4eca39d5345a93b7ecb76e00eb18b7623502b65fa",
+      "at": "2026-11-12T12:07:10.914969Z",
+      "artifact_hashes": {
+        "apps/core-go/internal/core/domain_plugins.go": "236916c540d8e7d63a3ad9d00a00877fdab595bbdd7e09c39a342236d55337a2",
+        "apps/core-go/internal/core/m2_image_disabled_text_moment_test.go": "987736c69fb9beadbcf631001a84a709ef0fd30e54bd88c76a06c94a00d73433",
+        "apps/core-go/internal/core/m2_moment_disabled_image_test.go": "4c8b4b5bbc60b23560c500a24235a4e5025579997c0ccb511172623c3d842f88",
+        "docs/verification/meromero-m2-evidence/m2-10-initial.log": "aa0ba0491b46486cf5ddd74e1e43f1f432ad740a325c0546c2aa0bfda16bf324",
+        "docs/verification/meromero-m2-evidence/m2-10-precommit.log": "588d8f3119a5c663074642da735727d1235c50a597e2fb56aa9eebec8a6de844",
+        "docs/verification/meromero-m2-evidence/m2-10-working-tree.log": "a4aabf9c200b284bd30bf1e2b87eb3dc81324b757d50624782ab0ec55627c7e2"
+      }
+    }
+  ]
+}

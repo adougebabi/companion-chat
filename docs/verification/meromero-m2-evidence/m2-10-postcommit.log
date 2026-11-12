@@ -1,0 +1,57 @@
+SOURCE_HEAD 763ab46c21378ae63bbc27179d1705d6b5f72be2 CANDIDATE /private/tmp/fluctlight-m2-02-jibgvgl5
+OVERLAYS (none)
+COMMAND go test ./internal/core -count=1 -run ^(TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable|TestImageDisabledKeepsDirectChatAndTextMomentAvailable|TestDomainPluginConfigurationAndRegistration|TestDomainPluginDiscoveryAndExecutionAgree|TestDomainPluginDisabledToolsOnPhysicalRequests|TestDomainPluginPostgresSettingsAdmissionAndReplay|TestDomainPluginPostgresNativeAgentReceiptReplay|TestDirectMomentImageTargetsPublishedMoment|TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter|TestPrivateReplyModeSwitchKeepsExplicitFactOnly|TestImageRunningJobRecoversAcrossProcessesAfterDisable)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDomainPluginPostgresSettingsAdmissionAndReplay
+--- PASS: TestDomainPluginPostgresSettingsAdmissionAndReplay (1.92s)
+=== RUN   TestDomainPluginPostgresNativeAgentReceiptReplay
+--- PASS: TestDomainPluginPostgresNativeAgentReceiptReplay (2.45s)
+=== RUN   TestDomainPluginConfigurationAndRegistration
+--- PASS: TestDomainPluginConfigurationAndRegistration (0.00s)
+=== RUN   TestDomainPluginDiscoveryAndExecutionAgree
+--- PASS: TestDomainPluginDiscoveryAndExecutionAgree (0.00s)
+=== RUN   TestDomainPluginDisabledToolsOnPhysicalRequests
+=== RUN   TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=true/stream=false
+=== RUN   TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=true/stream=true
+=== RUN   TestDomainPluginDisabledToolsOnPhysicalRequests/image=true/moment=false/stream=false
+=== RUN   TestDomainPluginDisabledToolsOnPhysicalRequests/image=true/moment=false/stream=true
+=== RUN   TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=false/stream=false
+=== RUN   TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=false/stream=true
+--- PASS: TestDomainPluginDisabledToolsOnPhysicalRequests (0.03s)
+    --- PASS: TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=true/stream=false (0.01s)
+    --- PASS: TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=true/stream=true (0.01s)
+    --- PASS: TestDomainPluginDisabledToolsOnPhysicalRequests/image=true/moment=false/stream=false (0.00s)
+    --- PASS: TestDomainPluginDisabledToolsOnPhysicalRequests/image=true/moment=false/stream=true (0.00s)
+    --- PASS: TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=false/stream=false (0.00s)
+    --- PASS: TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=false/stream=true (0.00s)
+=== RUN   TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter
+--- PASS: TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter (2.78s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/12 20:06:02 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (2.46s)
+=== RUN   TestImageDisabledKeepsDirectChatAndTextMomentAvailable
+2026/11/12 20:06:04 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:image-off-chat metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 20:06:04 INFO reply.evidence.reconciled correlation_id=tool-operation:image-off-independent-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestImageDisabledKeepsDirectChatAndTextMomentAvailable (2.24s)
+=== RUN   TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable
+2026/11/12 20:06:05 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-existing-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 20:06:05 INFO capability lifecycle capability=capability.catalog call_id=m2-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable (1.27s)
+=== RUN   TestDirectMomentImageTargetsPublishedMoment
+2026/11/12 20:06:08 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:m2-moment-image metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 20:06:08 INFO capability lifecycle capability=capability.catalog call_id=moment-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMomentImageTargetsPublishedMoment (2.60s)
+=== RUN   TestImageRunningJobRecoversAcrossProcessesAfterDisable
+    m2_running_image_recovery_test.go:156: child phase=interrupt pid=41791 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:221: controlled renderer history failed after submission, as intended
+        --- PASS: TestImageRunningJobRecoveryChild (0.05s)
+        PASS
+    m2_running_image_recovery_test.go:166: child phase=resume pid=41793 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:231: resume and replay completed once; child pid=41793
+        --- PASS: TestImageRunningJobRecoveryChild (0.06s)
+        PASS
+--- PASS: TestImageRunningJobRecoversAcrossProcessesAfterDisable (2.06s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	18.522s
+EXIT_CODE 0
