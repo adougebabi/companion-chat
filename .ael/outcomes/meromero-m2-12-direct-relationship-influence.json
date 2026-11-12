@@ -1,0 +1,30 @@
+{
+  "id": "meromero-m2-12-direct-relationship-influence",
+  "definition_revision": 2,
+  "plan_revision": 2,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "5267a123d94885e2e98d8910c59b310ce4ee7562827fd23f96c280fffe8b28d2",
+  "completed": "2026-11-12T15:17:00.81951Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "m2-12-relationship-influence",
+      "result": "pass",
+      "source": "scenario:codex-m2-12",
+      "config_hash": "fc4707224406ddfbab74d52547155187a243be901832bbb9f518dad590bf55ca",
+      "at": "2026-11-12T15:16:54.926083Z",
+      "artifact_hashes": {
+        "apps/core-go/internal/core/m2_direct_relationship_influence_test.go": "56030e9e92a8d4dfec6197f05dc64b2944744caa89cca4dcc8335812745e52d1",
+        "apps/core-go/internal/core/provider_context.go": "6871d5b0f6eb8608f2d94a0586a7b0dcf364ebc6a6680ecc3e9d53b72e675220",
+        "docs/llm-task-input-contracts.md": "49f27b566ed56d355abbe0d4e32002dce65439b5e7634869188c6774b6034013",
+        "docs/verification/meromero-m2-evidence/m2-12-postcommit.log": "9059dcea866d7036e05c87024d13757ac4f86e932b4a8de0c9fe72a037930941",
+        "docs/verification/meromero-m2-evidence/m2-12-red.log": "1137c1a57ec25fefdb6bd6b1211faaf70425bd321f4c098c9ca75681a00725e8",
+        "docs/verification/meromero-m2-evidence/m2-12-review-notes.md": "5a857db68f947c2fdb1808378b46df50b871d678238578539ab140d851c1c690",
+        "docs/verification/meromero-m2-evidence/m2-12-scoped-focused.log": "5c63c5956126c2290ac6ed6c18fef7e6871052dce0354a6bb673530c1d84b329",
+        "docs/verification/meromero-m2-evidence/m2-12-scoped-regression.log": "22103d5dbee551130cbe16d4a36e0de3d3e056c158686c605491d07560014822",
+        "docs/verification/meromero-m2-evidence/m2-12-working-tree.log": "fc44bc158107703f2533670694955c7063c62e835a4e723057ee8205b52e6e8c"
+      }
+    }
+  ]
+}

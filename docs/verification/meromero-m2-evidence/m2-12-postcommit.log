@@ -1,0 +1,25 @@
+SOURCE_HEAD f6042a06b63166803a7822a32dfc195b37fb515e (clean archive)
+CANDIDATE /private/tmp/fluctlight-m2-12-postcommit-uzkr6ym6
+MANIFEST /private/tmp/fluctlight-m2-12-postcommit-uzkr6ym6/docs/verification/meromero-m2-evidence/m2-12-scoped-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^(TestM2DirectRelationshipInfluenceUsesOfferedReference|TestM2DirectRelationshipInfluenceRejectsForgedReference|TestM2RelationshipReferenceRemainsScopedToConversationMain|TestDirectMainReplyPublishesAndSettlesAtomically|TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce|TestPrivateReplyModeSwitchKeepsExplicitFactOnly)$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/commit
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/rollback
+--- PASS: TestDirectMainReplyPublishesAndSettlesAtomically (4.49s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/commit (1.96s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/rollback (2.53s)
+=== RUN   TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce
+--- PASS: TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce (3.62s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/12 23:13:42 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (2.59s)
+=== RUN   TestM2DirectRelationshipInfluenceUsesOfferedReference
+--- PASS: TestM2DirectRelationshipInfluenceUsesOfferedReference (3.23s)
+=== RUN   TestM2DirectRelationshipInfluenceRejectsForgedReference
+--- PASS: TestM2DirectRelationshipInfluenceRejectsForgedReference (2.25s)
+=== RUN   TestM2RelationshipReferenceRemainsScopedToConversationMain
+--- PASS: TestM2RelationshipReferenceRemainsScopedToConversationMain (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	16.901s
+
+EXIT_CODE 0

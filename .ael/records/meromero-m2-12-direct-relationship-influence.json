@@ -16,14 +16,14 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "execute",
-  "status": "open",
-  "candidate": "",
-  "failure": "definition revised; relevant inputs and acceptance require revalidation",
-  "result": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "5267a123d94885e2e98d8910c59b310ce4ee7562827fd23f96c280fffe8b28d2",
+  "failure": "",
+  "result": "verified",
   "created": "2026-11-12T14:52:39.690021Z",
-  "updated": "2026-11-12T15:12:11.219398Z",
-  "completed": null,
+  "updated": "2026-11-12T15:17:00.81981Z",
+  "completed": "2026-11-12T15:17:00.81951Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -87,13 +87,43 @@
         "unit": "execute",
         "executor": "codex-m2-12",
         "input_version": "0eac8eb922eaf997d100a4b18e2e3945233f706bb404baa0614c57b6b789668c",
-        "candidate_version": "",
+        "candidate_version": "5267a123d94885e2e98d8910c59b310ce4ee7562827fd23f96c280fffe8b28d2",
         "started": "2026-11-12T15:10:50.73762Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-12T15:15:23.337636Z",
+        "status": "pass",
+        "reason": "提交 f6042a06：在 direct 的已选关系投影中保留 Core 作用域引用，供 influence 正式结算；保留现有 Kev 选择和其他模式。隔离数据库/受控 Provider 的修复前红测、干净候选 3+12 顶层场景、含原草稿工作区 3 项及干净提交后 6 项均记录；通过项退出 0 且无 SKIP，真实模型未验证。"
+      },
+      {
+        "id": "AT-60f6d319cb964ed1bfaa",
+        "unit": "check:m2-12-relationship-influence",
+        "executor": "codex-m2-12",
+        "input_version": "5267a123d94885e2e98d8910c59b310ce4ee7562827fd23f96c280fffe8b28d2",
+        "candidate_version": "5267a123d94885e2e98d8910c59b310ce4ee7562827fd23f96c280fffe8b28d2",
+        "started": "2026-11-12T15:16:54.858834Z",
+        "ended": "2026-11-12T15:16:54.926382Z",
+        "status": "pass",
+        "reason": "f6042a06 干净源码、隔离 PostgreSQL 与受控 Provider：原关系引用缺失红测重现，最终候选 3 项定向和 12 项回归、含四处原草稿的工作区 3 项、提交后 6 项均通过、无 SKIP；覆盖已选关系影响结算、引用冻结、重放、伪造及跨会话拒绝、旧模式隔离。保留既有 Kev 选择；不代表真实模型或父任务已通过。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "m2-12-relationship-influence",
+        "result": "pass",
+        "source": "scenario:codex-m2-12",
+        "config_hash": "fc4707224406ddfbab74d52547155187a243be901832bbb9f518dad590bf55ca",
+        "at": "2026-11-12T15:16:54.926083Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/m2_direct_relationship_influence_test.go": "56030e9e92a8d4dfec6197f05dc64b2944744caa89cca4dcc8335812745e52d1",
+          "apps/core-go/internal/core/provider_context.go": "6871d5b0f6eb8608f2d94a0586a7b0dcf364ebc6a6680ecc3e9d53b72e675220",
+          "docs/llm-task-input-contracts.md": "49f27b566ed56d355abbe0d4e32002dce65439b5e7634869188c6774b6034013",
+          "docs/verification/meromero-m2-evidence/m2-12-postcommit.log": "9059dcea866d7036e05c87024d13757ac4f86e932b4a8de0c9fe72a037930941",
+          "docs/verification/meromero-m2-evidence/m2-12-red.log": "1137c1a57ec25fefdb6bd6b1211faaf70425bd321f4c098c9ca75681a00725e8",
+          "docs/verification/meromero-m2-evidence/m2-12-review-notes.md": "5a857db68f947c2fdb1808378b46df50b871d678238578539ab140d851c1c690",
+          "docs/verification/meromero-m2-evidence/m2-12-scoped-focused.log": "5c63c5956126c2290ac6ed6c18fef7e6871052dce0354a6bb673530c1d84b329",
+          "docs/verification/meromero-m2-evidence/m2-12-scoped-regression.log": "22103d5dbee551130cbe16d4a36e0de3d3e056c158686c605491d07560014822",
+          "docs/verification/meromero-m2-evidence/m2-12-working-tree.log": "fc44bc158107703f2533670694955c7063c62e835a4e723057ee8205b52e6e8c"
+        }
+      }
+    ]
   }
 }
