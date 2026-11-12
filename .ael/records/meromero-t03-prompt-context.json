@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "本批提交 17cc7fb2：Moment 选中 Active Memory 时保留业务内容、有效性及时间，将作用域中的 Actor ID 投影为关联人物别名或未知，并明确关联不等于语义主体；提交后的干净源码在隔离 PostgreSQL 与受控 Writer 的 11 个顶层相关回归通过，实际 Moment 准备入口验证 offered/live 引用及物理请求。外貌证据仍经递归删键，伤情值混合用户内容和系统事件 ID，直接整体保留会泄露后者；暂未安全解决。Outcome 等其他证据的业务语义与 Core 引用仍需逐类界定；通用大整数精度已有独立 bug，未在此顺手修改。真实模型及全 Agent/variant 完整验收未完成，按用户授权保留未完成并继续不依赖这些缺口的原任务。",
+  "failure": "用户要求先逐项说明尚未完成内容；当前单元停止，未修改 T03 业务代码。既有提交 17cc7fb2 仅覆盖 Moment Active Memory；外貌证据、其他证据类型、全 Agent/variant 实际输入及来源追踪仍未完成或未验收。后续须遵循用户要求，按任务逐个收敛，不把受控测试或局部实现标为整体完成。",
   "result": "",
   "created": "2026-11-10T08:34:30.58656Z",
-  "updated": "2026-11-11T19:32:12.417493Z",
+  "updated": "2026-11-12T00:57:57.120407Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -92,6 +92,17 @@
         "ended": "2026-11-11T19:32:02.671855Z",
         "status": "fail",
         "reason": "本批提交 17cc7fb2：Moment 选中 Active Memory 时保留业务内容、有效性及时间，将作用域中的 Actor ID 投影为关联人物别名或未知，并明确关联不等于语义主体；提交后的干净源码在隔离 PostgreSQL 与受控 Writer 的 11 个顶层相关回归通过，实际 Moment 准备入口验证 offered/live 引用及物理请求。外貌证据仍经递归删键，伤情值混合用户内容和系统事件 ID，直接整体保留会泄露后者；暂未安全解决。Outcome 等其他证据的业务语义与 Core 引用仍需逐类界定；通用大整数精度已有独立 bug，未在此顺手修改。真实模型及全 Agent/variant 完整验收未完成，按用户授权保留未完成并继续不依赖这些缺口的原任务。"
+      },
+      {
+        "id": "AT-2c3cb7ebc987aa048266",
+        "unit": "execute",
+        "executor": "codex-t03-sequential-resume",
+        "input_version": "fb4691838d34d1be9842913bdf2e3cbc8a2677c52a5f41d96af0d4ba08d1fc84",
+        "candidate_version": "fb4691838d34d1be9842913bdf2e3cbc8a2677c52a5f41d96af0d4ba08d1fc84",
+        "started": "2026-11-12T00:54:38.263161Z",
+        "ended": "2026-11-12T00:57:46.706915Z",
+        "status": "fail",
+        "reason": "用户要求先逐项说明尚未完成内容；当前单元停止，未修改 T03 业务代码。既有提交 17cc7fb2 仅覆盖 Moment Active Memory；外貌证据、其他证据类型、全 Agent/variant 实际输入及来源追踪仍未完成或未验收。后续须遵循用户要求，按任务逐个收敛，不把受控测试或局部实现标为整体完成。"
       }
     ],
     "checks": null
