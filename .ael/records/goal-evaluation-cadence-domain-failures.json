@@ -22,9 +22,11 @@
   "failure": "",
   "result": "",
   "created": "2026-11-11T17:21:47.017605Z",
-  "updated": "2026-11-11T17:21:47.017617Z",
+  "updated": "2026-11-12T11:54:28.261623Z",
   "completed": null,
-  "feedback": [],
+  "feedback": [
+    "goal-cadence-additional-baseline-regressions"
+  ],
   "history": {
     "attempts": null,
     "checks": null

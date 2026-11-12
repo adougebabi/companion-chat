@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-09-direct-goal-settlement",
+  "definition_hash": "5e7e64152742bbf5042e93f60e461024f67370ec01aa44bebb6db8fe83286598",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T11:47:25.222921Z",
+  "updated": "2026-11-12T11:48:13.142634Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-30cc5dbfbeaddab2f9a3",
+        "unit": "define",
+        "executor": "codex-m2-09",
+        "input_version": "4dbafecdfa836386e48cb4add2d8ea6432373ee4749f4b1ef2c0aa727ef02b23",
+        "candidate_version": "4dbafecdfa836386e48cb4add2d8ea6432373ee4749f4b1ef2c0aa727ef02b23",
+        "started": "2026-11-12T11:47:54.797882Z",
+        "ended": "2026-11-12T11:47:55.153331Z",
+        "status": "pass",
+        "reason": "范围仅为 direct 主链中 Goal 候选从已提交消息进入正式评估与结算；不调整 Goal 规则或用户原有媒体草稿。"
+      },
+      {
+        "id": "AT-a40ed0ea8ed94918bee7",
+        "unit": "analysis",
+        "executor": "codex-m2-09",
+        "input_version": "4dbafecdfa836386e48cb4add2d8ea6432373ee4749f4b1ef2c0aa727ef02b23",
+        "candidate_version": "4dbafecdfa836386e48cb4add2d8ea6432373ee4749f4b1ef2c0aa727ef02b23",
+        "started": "2026-11-12T11:48:04.224135Z",
+        "ended": "2026-11-12T11:48:04.472615Z",
+        "status": "pass",
+        "reason": "现有 direct 测试已证明真实消息候选及持久工作意图入队，但未对该 direct 触发的请求执行评估；复用正式评估入口及受控原生工具回执验证原条件、领域结算和幂等。"
+      },
+      {
+        "id": "AT-4daef540606bcc977a0e",
+        "unit": "execute",
+        "executor": "codex-m2-09",
+        "input_version": "4dbafecdfa836386e48cb4add2d8ea6432373ee4749f4b1ef2c0aa727ef02b23",
+        "candidate_version": "",
+        "started": "2026-11-12T11:48:12.988405Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}

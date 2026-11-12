@@ -12,6 +12,7 @@
 | M2-06 | T05：无人物图片的 SDXL 正向文本边界 | VERIFIED | 受检提交 `d7e5f8ce`：正向 `text_g`/`text_l`、`positive_prompt` 和连接的 `PrimitiveString` 接入现有工作流事实边界。干净提交与隔离 PostgreSQL 上 12 个顶层专项及 4 个当前拍摄子场景通过，含四处原有草稿的工作区主场景通过，均无 SKIP；红测和提交后日志见 `meromero-m2-evidence/m2-06-*.log`。模型和渲染为受控替身，不代表真实生图或 T05 完整验收。`enum-rejected` 同环境基线失败单列 AEL；图片无字规则在 `PrimitiveString` 的独立问题登记为 `image-no-text-primitive-string-boundary`。 |
 | M2-07 | T04/T05：direct 主链先换衣再自拍的事实与交付 | VERIFIED | 受检提交 `04ac059f`：正式 `HandleTurn` 中，实际衣柜查询回执驱动换衣，受理自拍前核对持久穿着，再核对媒体快照、受控渲染请求及附件幂等交付。干净提交的 9 个顶层回归及含四处原有草稿的工作区主场景通过，均无 SKIP，见 `meromero-m2-evidence/m2-07-postcommit*.log`；首两次测试夹具错误及修正日志保留。模型、渲染、质量审核及存储均为受控替身，不代表真实模型或真实生图验收。 |
 | M2-08 | T05/T06：direct 私聊中动态附图的目标绑定与交付 | VERIFIED | 受检提交 `dc78610b`：正式入口红测证明原图片任务落到会话而非动态；现可显式绑定本轮前一响应中实际发布的动态，经既有所有权及 Image 门禁交付。无目标、同批、非法目标、外部动态、Image 停用、普通会话图片和不确定提交均有对照。干净提交的 18 个顶层回归和含四处原有草稿的工作区主场景通过、无 SKIP，见 `meromero-m2-evidence/m2-08-postcommit*.log`；真实模型和真实渲染未验收。 |
+| M2-09 | T04：direct 主链 Goal 候选的实际下游结算 | BLOCKED | 正向场景已证明：候选先遵守原静默窗口，隔离库模拟窗口结束后，正式评估消费已提交消息和原 Goal 条件，完成领域结算及幂等重放。扩展回归中 3 项既有 Goal 测试失败，在干净提交 `f74fbc1c`、无源码覆盖及同一隔离库环境复现；其中两项实际返回静默期延期，另一项只报告未出现预期错误，原因待核查。见 `meromero-m2-evidence/m2-09-precommit.log`、`m2-09-baseline-goal.log`；已关联 AEL `goal-cadence-additional-baseline-regressions`，未更改 Goal 规则或既有测试，不能宣称本子项全部验收通过。 |
 
 M1 中同一调用 ID 重放的非阻断缺陷已登记 AEL，按用户要求暂缓，不在 M2 顺手修复。其余 M2 验收仍按原 T03～T06 和里程碑要求逐项处理，不以局部完成替代父任务验收。
 

@@ -1,0 +1,67 @@
+SOURCE_HEAD f74fbc1c36e31e7864d4c85064f305c7804cde13 CANDIDATE /private/tmp/fluctlight-m2-02-y34t4aqa
+OVERLAYS apps/core-go/internal/core/m2_direct_goal_settlement_test.go
+COMMAND go test ./internal/core -count=1 -run ^(TestDirectReplyGoalCandidateReachesActualSettlement|TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce|TestDirectMainReplyPublishesAndSettlesAtomically|TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls|TestGoalEvaluationGhostStageFailsBeforeDomainCommit|TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation|TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay|TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles|TestPrivateReplyModeSwitchKeepsExplicitFactOnly|TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/commit
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/rollback
+--- PASS: TestDirectMainReplyPublishesAndSettlesAtomically (4.70s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/commit (2.54s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/rollback (2.16s)
+=== RUN   TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce
+--- PASS: TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce (1.66s)
+=== RUN   TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls
+=== RUN   TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/schema
+=== RUN   TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/foreign_goal
+--- PASS: TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls (4.05s)
+    --- PASS: TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/schema (2.02s)
+    --- PASS: TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/foreign_goal (2.03s)
+=== RUN   TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles
+    goal_agent_cadence_test.go:29: { [] [] [] [] [] [] 0 [] [] goal_evaluation_aa1627425598f9193ba4e3f93bf6f04d independent_fluctlight_wardrobe_1794484301858376000   goal_activated_or_revised [] [] []} map[not_before:2026-11-12T12:21:41.926304Z reason:evaluation_cadence status:deferred] <nil>
+--- FAIL: TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles (1.94s)
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/empty_stage_ref
+    goal_closure_runtime_test.go:203: invalid native reference did not remain unresolved: <nil>
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_stage_ref
+    goal_closure_runtime_test.go:203: invalid native reference did not remain unresolved: <nil>
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/foreign_goal_ref
+    goal_closure_runtime_test.go:203: invalid native reference did not remain unresolved: <nil>
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_review_stage_ref
+    goal_closure_runtime_test.go:203: invalid native reference did not remain unresolved: <nil>
+--- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit (9.79s)
+    --- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/empty_stage_ref (2.61s)
+    --- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_stage_ref (2.60s)
+    --- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/foreign_goal_ref (2.47s)
+    --- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_review_stage_ref (2.11s)
+=== RUN   TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation
+=== RUN   TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/single_expression_is_not_acceptance
+=== RUN   TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/quote_is_not_actual_expression
+=== RUN   TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/user_statement_cannot_be_self_expression
+--- PASS: TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation (0.00s)
+    --- PASS: TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/single_expression_is_not_acceptance (0.00s)
+    --- PASS: TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/quote_is_not_actual_expression (0.00s)
+    --- PASS: TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/user_statement_cannot_be_self_expression (0.00s)
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan
+    goal_submission_recovery_integration_test.go:54: map[not_before:2026-11-12T12:21:53.916502Z reason:evaluation_cadence status:deferred] <nil>
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion
+    goal_submission_recovery_integration_test.go:54: map[not_before:2026-11-12T12:21:55.598902Z reason:evaluation_cadence status:deferred] <nil>
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan_ignores_tools
+    goal_submission_recovery_integration_test.go:54: map[not_before:2026-11-12T12:21:58.010281Z reason:evaluation_cadence status:deferred] <nil>
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion_ignores_tools
+    goal_submission_recovery_integration_test.go:54: map[not_before:2026-11-12T12:22:00.401495Z reason:evaluation_cadence status:deferred] <nil>
+--- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay (8.72s)
+    --- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan (2.18s)
+    --- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion (1.68s)
+    --- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan_ignores_tools (2.44s)
+    --- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion_ignores_tools (2.41s)
+=== RUN   TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter
+--- PASS: TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter (2.54s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/12 19:52:05 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (2.19s)
+=== RUN   TestDirectReplyGoalCandidateReachesActualSettlement
+--- PASS: TestDirectReplyGoalCandidateReachesActualSettlement (2.25s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	38.502s
+FAIL
+EXIT_CODE 1

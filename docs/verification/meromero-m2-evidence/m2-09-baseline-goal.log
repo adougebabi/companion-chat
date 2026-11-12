@@ -1,0 +1,38 @@
+SOURCE_HEAD f74fbc1c36e31e7864d4c85064f305c7804cde13 CANDIDATE /private/tmp/fluctlight-m2-02-s93ld3ud
+OVERLAYS (none)
+COMMAND go test ./internal/core -count=1 -run ^(TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles|TestGoalEvaluationGhostStageFailsBeforeDomainCommit|TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles
+    goal_agent_cadence_test.go:29: { [] [] [] [] [] [] 0 [] [] goal_evaluation_20fce4c3fc449a87957cadcb7e03c876 independent_fluctlight_wardrobe_1794484380576829000   goal_activated_or_revised [] [] []} map[not_before:2026-11-12T12:23:00.619734Z reason:evaluation_cadence status:deferred] <nil>
+--- FAIL: TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles (2.07s)
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/empty_stage_ref
+    goal_closure_runtime_test.go:203: invalid native reference did not remain unresolved: <nil>
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_stage_ref
+    goal_closure_runtime_test.go:203: invalid native reference did not remain unresolved: <nil>
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/foreign_goal_ref
+    goal_closure_runtime_test.go:203: invalid native reference did not remain unresolved: <nil>
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_review_stage_ref
+    goal_closure_runtime_test.go:203: invalid native reference did not remain unresolved: <nil>
+--- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit (8.82s)
+    --- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/empty_stage_ref (2.36s)
+    --- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_stage_ref (2.35s)
+    --- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/foreign_goal_ref (2.01s)
+    --- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_review_stage_ref (2.10s)
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan
+    goal_submission_recovery_integration_test.go:54: map[not_before:2026-11-12T12:23:11.18502Z reason:evaluation_cadence status:deferred] <nil>
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion
+    goal_submission_recovery_integration_test.go:54: map[not_before:2026-11-12T12:23:13.175501Z reason:evaluation_cadence status:deferred] <nil>
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan_ignores_tools
+    goal_submission_recovery_integration_test.go:54: map[not_before:2026-11-12T12:23:15.264968Z reason:evaluation_cadence status:deferred] <nil>
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion_ignores_tools
+    goal_submission_recovery_integration_test.go:54: map[not_before:2026-11-12T12:23:17.162099Z reason:evaluation_cadence status:deferred] <nil>
+--- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay (7.67s)
+    --- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan (1.69s)
+    --- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion (2.00s)
+    --- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan_ignores_tools (2.10s)
+    --- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion_ignores_tools (1.87s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	19.399s
+FAIL
+EXIT_CODE 1

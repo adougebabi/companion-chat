@@ -1,0 +1,8 @@
+SOURCE_HEAD f74fbc1c36e31e7864d4c85064f305c7804cde13 CANDIDATE /private/tmp/fluctlight-m2-02-7klb1zbl
+OVERLAYS apps/core-go/internal/core/m2_direct_goal_settlement_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestDirectReplyGoalCandidateReachesActualSettlement$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDirectReplyGoalCandidateReachesActualSettlement
+--- PASS: TestDirectReplyGoalCandidateReachesActualSettlement (2.70s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.532s
+EXIT_CODE 0
