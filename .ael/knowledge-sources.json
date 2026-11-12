@@ -88,7 +88,7 @@
     },
     {
       "path": "docs/llm-prompt-composition.md",
-      "hash": "2cd3e9031969507ea546b5b2a3461498e6204e52369682b89bc88fd3794756ce",
+      "hash": "27290ad2593dd10ff9259c90f1e00c6ca342a8854c1e7731312d3edefc7c46b1",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -102,7 +102,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-prompt-composition.md",
-        "hash": "2cd3e9031969507ea546b5b2a3461498e6204e52369682b89bc88fd3794756ce",
+        "hash": "27290ad2593dd10ff9259c90f1e00c6ca342a8854c1e7731312d3edefc7c46b1",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -234,6 +234,27 @@
       }
     },
     {
+      "path": "docs/verification/meromero-m2-progress-20261112.md",
+      "hash": "cf63c84e66cefb3a3856a835db3ffaad467e9e1dc4866e30055a87c71ed8017a",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/meromero-m2-progress-20261112.md",
+        "title": "meromero-m2-progress-20261112.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/meromero-m2-progress-20261112.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/meromero-m2-progress-20261112.md",
+        "hash": "cf63c84e66cefb3a3856a835db3ffaad467e9e1dc4866e30055a87c71ed8017a",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
       "path": "docs/verification/meromero-t03-context-isolation-20261111.md",
       "hash": "487737db96aaba184a31266e79c2203385de31ddca33b82363ee9650061fce4a",
       "action": "historical",
@@ -341,7 +362,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 14,
+    "historical": 15,
     "retired": 1
   }
 }

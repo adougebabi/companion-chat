@@ -1,0 +1,10 @@
+SOURCE_HEAD a16b8618e079c30f9079367be83ebce14c04bab3 CANDIDATE /private/tmp/fluctlight-m2-02-rja38ysd
+OVERLAYS apps/core-go/internal/core/m2_image_disabled_text_moment_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestImageDisabledKeepsDirectChatAndTextMomentAvailable$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestImageDisabledKeepsDirectChatAndTextMomentAvailable
+2026/11/12 16:36:32 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:image-off-chat metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 16:36:32 INFO reply.evidence.reconciled correlation_id=tool-operation:image-off-independent-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestImageDisabledKeepsDirectChatAndTextMomentAvailable (2.40s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.245s
+EXIT_CODE 0

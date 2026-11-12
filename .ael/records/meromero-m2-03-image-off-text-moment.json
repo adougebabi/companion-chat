@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-03-image-off-text-moment",
+  "definition_hash": "46bac47311d69f63879da6cb8f7e80cb15a03880c66f49e9a3af879b0fcf536a",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T08:33:18.77487Z",
+  "updated": "2026-11-12T08:38:18.576797Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-3de262257df43a55df23",
+        "unit": "define",
+        "executor": "codex-m2-03",
+        "input_version": "c50770c6a6a49a1c84b4f28c0d22934bb1784eb3e178fa851e4196681138b19a",
+        "candidate_version": "c50770c6a6a49a1c84b4f28c0d22934bb1784eb3e178fa851e4196681138b19a",
+        "started": "2026-11-12T08:34:17.424711Z",
+        "ended": "2026-11-12T08:34:17.828461Z",
+        "status": "pass",
+        "reason": "范围仅为 Image 停用时 direct 私聊与独立纯文字动态的生产准入和隔离，不扩展真实渲染或其他领域。"
+      },
+      {
+        "id": "AT-d105b37fd7213d96d474",
+        "unit": "analysis",
+        "executor": "codex-m2-03",
+        "input_version": "c50770c6a6a49a1c84b4f28c0d22934bb1784eb3e178fa851e4196681138b19a",
+        "candidate_version": "c50770c6a6a49a1c84b4f28c0d22934bb1784eb3e178fa851e4196681138b19a",
+        "started": "2026-11-12T08:34:40.648307Z",
+        "ended": "2026-11-12T08:34:41.047851Z",
+        "status": "pass",
+        "reason": "已核对现有插件设置、独立工具、Moment Writer 与原生入口；用隔离数据库和受控 Provider 在正式入口验证配置、结果与重放。"
+      },
+      {
+        "id": "AT-b101dc51e6784e3c008b",
+        "unit": "execute",
+        "executor": "codex-m2-03",
+        "input_version": "c50770c6a6a49a1c84b4f28c0d22934bb1784eb3e178fa851e4196681138b19a",
+        "candidate_version": "",
+        "started": "2026-11-12T08:35:02.744955Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}
