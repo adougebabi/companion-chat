@@ -269,7 +269,10 @@ func liveDirectConversationWithoutWriter(t *testing.T, explicitDirect bool) {
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600 WHERE role IN ('cognitive_assessment','conversation_reply') AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600 WHERE role='conversation_reply' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `DELETE FROM public.model_roles WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID); err != nil {
 		t.Fatal(err)
 	}
 	responseCapture := &liveResponseCapture{inner: http.DefaultTransport}
@@ -295,18 +298,27 @@ func liveDirectConversationWithoutWriter(t *testing.T, explicitDirect bool) {
 	if writerRuns != 0 {
 		t.Fatalf("ordinary direct conversation used %d independent Writer runs across %d physical requests; tools=%#v", writerRuns, capture.count(), responseCapture.snapshot())
 	}
-	if explicitDirect {
-		var status, contract string
-		var assessments int
-		if err := repository.Pool().QueryRow(turnCtx, `SELECT status,COALESCE(payload->'agent_result'->>'settlement_contract',''),
+	var status, contract string
+	var assessments int
+	if err := repository.Pool().QueryRow(turnCtx, `SELECT status,COALESCE(payload->'agent_result'->>'settlement_contract',''),
 			(SELECT count(*) FROM public.cognition_assessments WHERE fluctlight_id=$1)
 			FROM public.cognition_inbox WHERE fluctlight_id=$1 AND payload->>'turn_id'=$2`, fluctlightID, "live-direct-1").Scan(&status, &contract, &assessments); err != nil {
-			t.Fatal(err)
+		t.Fatal(err)
+	}
+	if status != "processed" || contract != "direct-main.v1" || assessments != 1 {
+		t.Fatalf("direct cognition was not settled once: status=%s contract=%s assessments=%d", status, contract, assessments)
+	}
+	t.Logf("direct cognition settlement: status=%s contract=%s assessments=%d", status, contract, assessments)
+	capture.mu.Lock()
+	requests := append([]map[string]any(nil), capture.decoded...)
+	capture.mu.Unlock()
+	if len(requests) == 0 {
+		t.Fatal("the configured model received no request")
+	}
+	for _, request := range requests {
+		if got := stringValue(request["model"]); got != model {
+			t.Fatalf("unexpected model request: got=%q want=%q", got, model)
 		}
-		if status != "processed" || contract != "direct-main.v1" || assessments != 1 {
-			t.Fatalf("direct cognition was not settled once: status=%s contract=%s assessments=%d", status, contract, assessments)
-		}
-		t.Logf("direct cognition settlement: status=%s contract=%s assessments=%d", status, contract, assessments)
 	}
 	t.Logf("ordinary direct conversation: physical requests=%d, independent Writer runs=%d", capture.count(), writerRuns)
 }

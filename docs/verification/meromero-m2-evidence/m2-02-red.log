@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/private/tmp/fluctlight-m2-02-run.py", line 9, in <module>
+    with tarfile.open(archive) as tf: tf.extractall(path,filter='data')
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: TarFile.extractall() got an unexpected keyword argument 'filter'

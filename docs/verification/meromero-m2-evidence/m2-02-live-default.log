@@ -1,0 +1,12 @@
+SOURCE_HEAD 9a8dbe25e2fe17961a64e51496655f79dbe2ccb3 CANDIDATE /private/tmp/fluctlight-m2-02-i_mm3sf5
+OVERLAYS apps/core-go/internal/core/m2_default_private_reply_test.go,apps/core-go/internal/core/reply_vision_settings.go,apps/core-go/internal/core/reply_vision_settings_test.go,apps/core-go/internal/core/provider_live_e2e_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestLiveDirectConversationDoesNotRequireASecondWriter$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestLiveDirectConversationDoesNotRequireASecondWriter
+    provider_live_e2e_test.go:246: direct conversation failed: adk_run: [NodeRunError] direct_reply_arguments_unresolved: direct_reply_arguments_unresolved
+        ------------------------
+        node path: [node_1, ChatModel]; physical requests=3; tools=[]map[string]interface {}{map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"conversation.reply"}, map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"conversation_reply"}, map[string]interface {}{"argument_keys":[]interface {}{}, "id_present":true, "name":"conversation_reply"}}
+--- FAIL: TestLiveDirectConversationDoesNotRequireASecondWriter (7.84s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	8.704s
+FAIL
+EXIT_CODE 1

@@ -1,0 +1,54 @@
+SOURCE_HEAD 9a8dbe25e2fe17961a64e51496655f79dbe2ccb3 CANDIDATE /private/tmp/fluctlight-m2-02-xkcwmkj0
+OVERLAYS apps/core-go/internal/core/m2_default_private_reply_test.go,apps/core-go/internal/core/reply_vision_settings.go,apps/core-go/internal/core/reply_vision_settings_test.go,apps/core-go/internal/core/provider_live_e2e_test.go
+COMMAND go test ./internal/core -count=1 -run ^(TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter|TestPrivateReplyModeSwitchKeepsExplicitFactOnly|TestReplyVisionSettingsAreIndependentAndDirectByDefault|TestDirectMainReplyPublishesAndSettlesAtomically|TestDirectMainReplyRetainsExistingDraftContract|TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce|TestDirectMainReplyRetainsPriorNativeAction|TestDirectTurnRetryKeepsOriginalModelBinding|TestDirectTurnRetryKeepsModelWhenReplyModeChanges|TestDurableObserverReceivesDirectMainReply|TestFactOnlyFollowupRejectsStaleWriterDraft|TestFactOnlyCommittedReplyMalformedFinalSettlement|TestAgentModelBindingCandidatesPreferVariantThenAgentThenDefault|TestAgentModelConfigurationSavesReadsRunsAndClears)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestAgentModelBindingCandidatesPreferVariantThenAgentThenDefault
+--- PASS: TestAgentModelBindingCandidatesPreferVariantThenAgentThenDefault (0.00s)
+=== RUN   TestAgentModelConfigurationSavesReadsRunsAndClears
+--- PASS: TestAgentModelConfigurationSavesReadsRunsAndClears (2.40s)
+=== RUN   TestFactOnlyFollowupRejectsStaleWriterDraft
+2026/11/12 16:23:03 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:writer-first metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 16:23:03 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:writer-followup metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestFactOnlyFollowupRejectsStaleWriterDraft (1.42s)
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/commit
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/rollback
+--- PASS: TestDirectMainReplyPublishesAndSettlesAtomically (4.47s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/commit (2.23s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/rollback (2.23s)
+=== RUN   TestDirectMainReplyRetainsExistingDraftContract
+--- PASS: TestDirectMainReplyRetainsExistingDraftContract (2.29s)
+=== RUN   TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce
+--- PASS: TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce (2.47s)
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction/success
+2026/11/12 16:23:15 INFO capability lifecycle capability=capability.catalog call_id=direct-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction/settlement_failure
+2026/11/12 16:23:18 INFO capability lifecycle capability=capability.catalog call_id=direct-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMainReplyRetainsPriorNativeAction (5.24s)
+    --- PASS: TestDirectMainReplyRetainsPriorNativeAction/success (2.70s)
+    --- PASS: TestDirectMainReplyRetainsPriorNativeAction/settlement_failure (2.53s)
+=== RUN   TestDirectTurnRetryKeepsOriginalModelBinding
+    direct_turn_model_snapshot_integration_test.go:108: M1_04B first=model-a retry=model-a new_turn=model-b fingerprint_preserved=true snapshot_has_secret=false
+--- PASS: TestDirectTurnRetryKeepsOriginalModelBinding (2.59s)
+=== RUN   TestDirectTurnRetryKeepsModelWhenReplyModeChanges
+--- PASS: TestDirectTurnRetryKeepsModelWhenReplyModeChanges (2.52s)
+=== RUN   TestDurableObserverReceivesDirectMainReply
+--- PASS: TestDurableObserverReceivesDirectMainReply (2.47s)
+=== RUN   TestFactOnlyCommittedReplyMalformedFinalSettlement
+=== RUN   TestFactOnlyCommittedReplyMalformedFinalSettlement/true
+2026/11/12 16:23:28 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:settlement-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestFactOnlyCommittedReplyMalformedFinalSettlement/false
+2026/11/12 16:23:30 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:settlement-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestFactOnlyCommittedReplyMalformedFinalSettlement (4.69s)
+    --- PASS: TestFactOnlyCommittedReplyMalformedFinalSettlement/true (2.32s)
+    --- PASS: TestFactOnlyCommittedReplyMalformedFinalSettlement/false (2.37s)
+=== RUN   TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter
+--- PASS: TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter (2.68s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/12 16:23:34 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (1.35s)
+=== RUN   TestReplyVisionSettingsAreIndependentAndDirectByDefault
+--- PASS: TestReplyVisionSettingsAreIndependentAndDirectByDefault (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	35.257s
+EXIT_CODE 0

@@ -1,0 +1,19 @@
+SOURCE_HEAD 9a8dbe25e2fe17961a64e51496655f79dbe2ccb3 CANDIDATE /private/tmp/fluctlight-m2-02-o94yvi0q
+OVERLAYS apps/core-go/internal/core/m2_default_private_reply_test.go,apps/core-go/internal/core/reply_vision_settings.go,apps/core-go/internal/core/reply_vision_settings_test.go
+COMMAND go test ./internal/core -count=1 -run ^(TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter|TestPrivateReplyModeSwitchKeepsExplicitFactOnly|TestReplyVisionSettingsAreIndependentAndDirectByDefault|TestDirectMainReplyRetainsExistingDraftContract|TestAgentModelBindingCandidatesPreferVariantThenAgentThenDefault)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestAgentModelBindingCandidatesPreferVariantThenAgentThenDefault
+--- PASS: TestAgentModelBindingCandidatesPreferVariantThenAgentThenDefault (0.00s)
+=== RUN   TestDirectMainReplyRetainsExistingDraftContract
+--- PASS: TestDirectMainReplyRetainsExistingDraftContract (1.78s)
+=== RUN   TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter
+--- PASS: TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter (2.26s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/12 16:18:52 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+    m2_default_private_reply_test.go:104: Revision conflict
+--- FAIL: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (2.51s)
+=== RUN   TestReplyVisionSettingsAreIndependentAndDirectByDefault
+--- PASS: TestReplyVisionSettingsAreIndependentAndDirectByDefault (0.00s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	7.191s
+FAIL
+EXIT_CODE 1

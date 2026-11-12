@@ -1,0 +1,12 @@
+✔ bindings and reply settings no longer expose or submit token limits (0.295291ms)
+✔ reply expression offers v8 user protocol and retains frozen v7/v6/v5/v4 choices (0.4825ms)
+✔ unset reply mode defaults to direct and React Select preserves explicit saved modes (1600.828375ms)
+✔ saved reply summary identifies the actual mode (0.319375ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2244.596875

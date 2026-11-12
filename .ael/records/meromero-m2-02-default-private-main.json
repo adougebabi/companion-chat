@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-02-default-private-main",
+  "definition_hash": "2a41e941668b9ff1cc7e8608a12400040f4c1d14fa481c41403892f6cf7ffe9e",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 2,
+  "plan": {
+    "revision": 2,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "默认 direct 与已保存 fact_only 切换在隔离库受控验证通过；本机 MeroMero 三次工具调用参数不符合当前合同，direct_reply_arguments_unresolved，未发布。按用户授权暂停真实模型验证，不更改 Prompt 或放宽合同；M2-02 保持 BLOCKED。",
+  "result": "",
+  "created": "2026-11-12T08:10:23.433124Z",
+  "updated": "2026-11-12T08:24:56.32362Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-36fbd6c363c94a832f28",
+        "unit": "define",
+        "executor": "codex-m2-02",
+        "input_version": "8eee480ac25be22db666d0fbb7af3091e9b4bcdaace9c2241000e0c56a439cdd",
+        "candidate_version": "8eee480ac25be22db666d0fbb7af3091e9b4bcdaace9c2241000e0c56a439cdd",
+        "started": "2026-11-12T08:10:46.906919Z",
+        "ended": "2026-11-12T08:11:31.524662Z",
+        "status": "pass",
+        "reason": "本子项仅切换无旧草稿的新私聊主轮次；沿用现有模型配置与显式覆盖，保留其他入口及旧草稿。"
+      },
+      {
+        "id": "AT-33ab50568a01e9b7272a",
+        "unit": "analysis",
+        "executor": "codex-m2-02",
+        "input_version": "8eee480ac25be22db666d0fbb7af3091e9b4bcdaace9c2241000e0c56a439cdd",
+        "candidate_version": "8eee480ac25be22db666d0fbb7af3091e9b4bcdaace9c2241000e0c56a439cdd",
+        "started": "2026-11-12T08:11:52.315677Z",
+        "ended": "2026-11-12T08:11:52.693577Z",
+        "status": "pass",
+        "reason": "已核对配置缺省、旧模式、主私聊正式入口、模型路由优先级与旧草稿；先经 HandleTurn 真实路由受控测试，再实施最小兼容切换。"
+      },
+      {
+        "id": "AT-2f6a57e99df9c71721fb",
+        "unit": "execute",
+        "executor": "codex-m2-02",
+        "input_version": "8eee480ac25be22db666d0fbb7af3091e9b4bcdaace9c2241000e0c56a439cdd",
+        "candidate_version": "",
+        "started": "2026-11-12T08:12:02.87782Z",
+        "ended": "2026-11-12T08:13:53.611541Z",
+        "status": "abandoned",
+        "reason": "definition changed; resume requires stopped-process acknowledgement"
+      },
+      {
+        "id": "AT-d63e5d0ae0ec2c7cdbf8",
+        "unit": "define",
+        "executor": "codex-m2-02",
+        "input_version": "8eee480ac25be22db666d0fbb7af3091e9b4bcdaace9c2241000e0c56a439cdd",
+        "candidate_version": "8eee480ac25be22db666d0fbb7af3091e9b4bcdaace9c2241000e0c56a439cdd",
+        "started": "2026-11-12T08:14:23.393305Z",
+        "ended": "2026-11-12T08:14:23.793273Z",
+        "status": "pass",
+        "reason": "用户澄清 fact_only 可开关：已保存或显式选择保留，仅未选择模式的默认私聊改为 direct。"
+      },
+      {
+        "id": "AT-5556a0d785733c1776c7",
+        "unit": "analysis",
+        "executor": "codex-m2-02",
+        "input_version": "4c0a7f9d8cb95f974c4ff7cd5980b742a5d1a8568ae28ac049467260e806426f",
+        "candidate_version": "4c0a7f9d8cb95f974c4ff7cd5980b742a5d1a8568ae28ac049467260e806426f",
+        "started": "2026-11-12T08:14:45.635562Z",
+        "ended": "2026-11-12T08:14:45.973227Z",
+        "status": "pass",
+        "reason": "现有配置解码保留明确模式，正式主私聊 direct 与旧草稿兼容已有实现；以默认值和现有前端显示为切入，使用隔离库和受控 Provider 验证。"
+      },
+      {
+        "id": "AT-94220698714c2cb1fa82",
+        "unit": "execute",
+        "executor": "codex-m2-02",
+        "input_version": "4c0a7f9d8cb95f974c4ff7cd5980b742a5d1a8568ae28ac049467260e806426f",
+        "candidate_version": "367bcbcbc92cbe9d55f2ac44068527a9891103acff55b173a2832e23d241fe35",
+        "started": "2026-11-12T08:15:04.352979Z",
+        "ended": "2026-11-12T08:24:45.127443Z",
+        "status": "blocked",
+        "reason": "默认 direct 与已保存 fact_only 切换在隔离库受控验证通过；本机 MeroMero 三次工具调用参数不符合当前合同，direct_reply_arguments_unresolved，未发布。按用户授权暂停真实模型验证，不更改 Prompt 或放宽合同；M2-02 保持 BLOCKED。"
+      }
+    ],
+    "checks": null
+  }
+}

@@ -1,0 +1,12 @@
+SOURCE_HEAD 9a8dbe25e2fe17961a64e51496655f79dbe2ccb3 CANDIDATE /private/tmp/fluctlight-m2-02-2oce_muk
+OVERLAYS apps/core-go/internal/core/m2_default_private_reply_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter
+    m2_default_private_reply_test.go:38: default direct reply: models=[selected-default-model] direct_tool=false result=map[string]interface {}(nil) err=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 400: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel]
+--- FAIL: TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter (2.40s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.141s
+FAIL
+EXIT_CODE 1

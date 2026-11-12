@@ -2,7 +2,7 @@ import {autonomyModes} from './autonomy-modes.js';
 const f=(key,label,type='text',extra={})=>({key,label,type,...extra});
 export function conversationReplyDisplayValue(value){
  const next=value&&typeof value==='object'&&!Array.isArray(value)?{...value}:{};
- if(next.mode==null||String(next.mode).trim()==='')next.mode='fact_only';
+ if(next.mode==null||String(next.mode).trim()==='')next.mode='direct';
  return next;
 }
 export const configurationFields={
