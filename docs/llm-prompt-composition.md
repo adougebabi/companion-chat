@@ -324,7 +324,8 @@ Core 仅在规范位置缺省或为 null 时移入该位置；两处均有值时
 H 现在明确放在历史数据块。Moment 不是私聊续写，不能复制父 Agent 草稿或
 把私聊全文作为公开动态。默认关系上下文和已选关系证据以关系业务值和语义人物
 呈现，Core 关系外壳和身份留在 Core；关系业务对象内的字段按原值保留，不按名称
-递归删键。
+递归删键。若已选证据与默认关系是同一 Core 引用及快照，只保留已选证据一份；
+无效引用不移除默认关系，不同关系即使内容相同也分别保留。
 
 私聊 Writer 输出通过 `parseReplyDraft` / `extractReplyBody` 提取正文，
 `ToolPublicationService.PublishConversationReplyTx` 对原生 Tool 和准备草稿再次

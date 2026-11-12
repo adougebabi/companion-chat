@@ -271,7 +271,7 @@ func (s *factOnlyReplyService) prepare(ctx context.Context, invocation Capabilit
 		return ReplyDraft{}, ref, newCapabilityError(run.AssignmentError.Error(), false, run.AssignmentError)
 	}
 	// Reconcile optional hints before acquiring a durable generation lease.
-	projection, evidenceFacts, err := s.resolveReplyEvidence(ctx, invocation, run, args.EvidenceRefs)
+	projection, evidenceFacts, _, err := s.resolveReplyEvidence(ctx, invocation, run, args.EvidenceRefs)
 	if err != nil {
 		return ReplyDraft{}, ref, err
 	}
@@ -345,7 +345,7 @@ func (s *factOnlyReplyService) prepare(ctx context.Context, invocation Capabilit
 	return draft, ref, nil
 }
 
-func (s *factOnlyReplyService) resolveReplyEvidence(ctx context.Context, invocation CapabilityInvocation, run *privateReplyRun, evidenceRefs []string) (ContextProjection, []map[string]any, error) {
+func (s *factOnlyReplyService) resolveReplyEvidence(ctx context.Context, invocation CapabilityInvocation, run *privateReplyRun, evidenceRefs []string) (ContextProjection, []map[string]any, []ContextReference, error) {
 	memoryMode := MemoryConversationExact
 	if invocation.Metadata.ConversationID == "" {
 		memoryMode = MemoryConversationGlobalOnly
@@ -355,7 +355,7 @@ func (s *factOnlyReplyService) resolveReplyEvidence(ctx context.Context, invocat
 		FluctlightID: invocation.Metadata.FluctlightID, ConversationID: invocation.Metadata.ConversationID, WorkingProfileID: invocation.Metadata.WorkingProfileID,
 		CurrentUserText: run.CurrentInput, MemoryOperation: MemoryForConversation, MemoryConversationMode: memoryMode})
 	if err != nil {
-		return ContextProjection{}, nil, err
+		return ContextProjection{}, nil, nil, err
 	}
 	entries, report := reconcileReplyEvidence(invocation, projection, evidenceRefs)
 	report["surface"], report["capability_name"] = invocation.Metadata.Surface, invocation.CapabilityName
@@ -368,19 +368,22 @@ func (s *factOnlyReplyService) resolveReplyEvidence(ctx context.Context, invocat
 		s.app.recordDiagnosticEvent(ctx, "reply.evidence.reconciled", severity, invocation.Metadata.FluctlightID, invocation.SourceFactID, invocation.Metadata.CorrelationID, report)
 	}
 	var toolFacts []map[string]any
+	var includedEntries []ContextReference
 	for _, entry := range entries {
 		if invocation.CapabilityName == "moment.publish" {
 			if fact := momentReplyEvidenceFact(entry, projection); fact != nil {
 				toolFacts = append(toolFacts, fact)
+				includedEntries = append(includedEntries, entry)
 			}
 			continue
 		}
 		if fact := factOnlyReplyEvidenceFact(entry, projection); fact != nil {
 			toolFacts = append(toolFacts, fact)
+			includedEntries = append(includedEntries, entry)
 		}
 	}
 	toolFacts = append(toolFacts, s.currentActionFacts(ctx, invocation)...)
-	return projection, toolFacts, nil
+	return projection, toolFacts, includedEntries, nil
 }
 
 // Optional hints grant no authority. Keep the exact offered/live match, exclude
@@ -410,7 +413,7 @@ func reconcileReplyEvidence(inv CapabilityInvocation, live ContextProjection, re
 }
 
 func (s *factOnlyReplyService) generate(ctx context.Context, invocation CapabilityInvocation, run *privateReplyRun, ref string, evidenceRefs []string) (ReplyDraft, error) {
-	projection, facts, err := s.resolveReplyEvidence(ctx, invocation, run, evidenceRefs)
+	projection, facts, _, err := s.resolveReplyEvidence(ctx, invocation, run, evidenceRefs)
 	if err != nil {
 		return ReplyDraft{}, err
 	}

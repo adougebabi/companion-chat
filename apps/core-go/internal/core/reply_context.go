@@ -137,6 +137,9 @@ type ReplyContextInput struct {
 	// ToolFacts is server-owned typed semantic output, never model arguments
 	// or a freely written constraints/direction object.
 	ToolFacts []map[string]any
+	// Only Core-validated selected relationship references may replace their
+	// matching default Moment rows; this is never serialized to the Provider.
+	momentSelectedRelationshipRefs map[string]struct{}
 }
 
 func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssignment) (PromptAssemblyResult, error) {
@@ -283,7 +286,7 @@ func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssig
 func momentReplyWorkingInput(input ReplyContextInput) WorkingMemoryInput {
 	projection := input.Projection
 	compact := compactCognitionContextForSurface(projection, ProviderContextSurfaceFactOnlyReply)
-	if relationships := momentReplyRelationshipContext(projection); len(relationships) > 0 {
+	if relationships := momentReplyRelationshipContextExcept(projection, input.momentSelectedRelationshipRefs); len(relationships) > 0 {
 		compact["relationships"] = relationships
 	} else {
 		delete(compact, "relationships")
@@ -376,8 +379,17 @@ func momentReplyWorkingInput(input ReplyContextInput) WorkingMemoryInput {
 // Moment keeps the same relationship rows and actor view as before, but
 // selects the Core envelope explicitly so nested business values stay opaque.
 func momentReplyRelationshipContext(projection ContextProjection) []map[string]any {
+	return momentReplyRelationshipContextExcept(projection, nil)
+}
+
+func momentReplyRelationshipContextExcept(projection ContextProjection, selected map[string]struct{}) []map[string]any {
 	result := make([]map[string]any, 0, len(projection.Relationships))
 	for _, row := range projection.Relationships {
+		if ref := stringValue(row["ref"]); ref != "" {
+			if _, duplicate := selected[ref]; duplicate {
+				continue
+			}
+		}
 		item := map[string]any{}
 		for _, key := range []string{"role", "metrics", "trend", "summary", "emotional_association"} {
 			if raw, ok := row[key]; ok && raw != nil && raw != "" {

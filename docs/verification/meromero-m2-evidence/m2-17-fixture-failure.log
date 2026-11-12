@@ -1,0 +1,18 @@
+SOURCE_HEAD 430e94f51edb65bb98ed465296d04502e0bfc713 (clean archive plus test overlay)
+CANDIDATE /private/tmp/fluctlight-m2-17-red-ig2kgtr_
+MANIFEST /private/tmp/fluctlight-m2-17-red-ig2kgtr_/m2-17-red-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference
+=== RUN   TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/selected_twice
+2026/11/13 00:43:50 WARN reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:1 reasons:map[duplicate:1] requested_count:2 retained_count:1 surface:]"
+=== RUN   TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/invalid_reference
+2026/11/13 00:43:52 WARN reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:1 reasons:map[not_in_live_context:1] requested_count:1 retained_count:0 surface:]"
+    m2_moment_relationship_dedup_test.go:75: two distinct relationships should appear once each, got 1: {"actor_background":[],"capability_boundaries":{"image_generation_registered":false,"media_requires_real_tool_result":true,"persona_detail_registered":false,"sticker_attachments":false,"vision_understanding":"disabled"},"current_speaker":{"display_name":"actor_user","type":"human"},"current_state":{"data":{"appearance":{"wearing_state":"known","worn_items":[{"category":"coat","description":"blue coat","slot":"outer"}]},"inner_state":{"momentum":{"trend":0,"value":0},"mood":{"intensity":0,"label":"neutral"},"pad":{"arousal":0,"dominance":0,"pleasure":0},"regulation":{"stability":0,"stress":0}},"life_context":{"authority_status":"pending","current_time":"2026-11-13T00:43:52.175+08:00","effective_at":"2026-11-13T00:00:00.000+08:00","expires_at":"2026-11-14T00:00:00.000+08:00","timezone":"Asia/Shanghai"}},"subject":"actor_self"},"goals":[],"relationships":[{"emotional_association":{"note":"SHARED_RELATIONSHIP_BUSINESS","source_ref":"business-ref","valid":false},"metrics":{},"role":{"label":"朋友"},"summary":null,"target_actor":{"display_name":"actor_user","type":"human"},"trend":"stable"}],"self_actor":{"display_name":"摇光","type":"fluctlight"},"time_view":{"actor_self_local_time":"2026-11-13T00:43:52.175+08:00","actor_user_local_time":null,"actor_user_timezone":null,"as_of":"2026-11-13T00:43:52.175+08:00","history_time_semantics":"Display timezone does not identify the sender's location.","reference_timezone":"Asia/Shanghai"},"visual_identity":{"available":false,"missing":true}}
+--- FAIL: TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference (4.04s)
+    --- PASS: TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/selected_twice (2.72s)
+    --- FAIL: TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/invalid_reference (1.32s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	4.697s
+FAIL
+
+EXIT_CODE 1

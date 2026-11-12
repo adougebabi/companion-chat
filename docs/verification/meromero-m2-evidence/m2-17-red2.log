@@ -1,0 +1,18 @@
+SOURCE_HEAD 430e94f51edb65bb98ed465296d04502e0bfc713 (clean archive plus test overlay)
+CANDIDATE /private/tmp/fluctlight-m2-17-red2-kro6_5ne
+MANIFEST /private/tmp/fluctlight-m2-17-red2-kro6_5ne/m2-17-red2-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference
+=== RUN   TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/selected_twice
+2026/11/13 07:20:22 WARN reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:1 reasons:map[duplicate:1] requested_count:2 retained_count:1 surface:]"
+    m2_moment_relationship_dedup_test.go:75: two distinct relationships should appear once each, got 3: {"actor_background":[],"capability_boundaries":{"image_generation_registered":false,"media_requires_real_tool_result":true,"persona_detail_registered":false,"sticker_attachments":false,"vision_understanding":"disabled"},"current_speaker":{"display_name":"actor_user","type":"human"},"current_state":{"data":{"appearance":{"wearing_state":"known","worn_items":[{"category":"coat","description":"blue coat","slot":"outer"}]},"inner_state":{"momentum":{"trend":0,"value":0},"mood":{"intensity":0,"label":"neutral"},"pad":{"arousal":0,"dominance":0,"pleasure":0},"regulation":{"stability":0,"stress":0}},"life_context":{"authority_status":"pending","current_time":"2026-11-13T07:20:22.142+08:00","effective_at":"2026-11-13T00:00:00.000+08:00","expires_at":"2026-11-14T00:00:00.000+08:00","timezone":"Asia/Shanghai"}},"subject":"actor_self"},"goals":[],"relationships":[{"emotional_association":{"note":"SHARED_RELATIONSHIP_BUSINESS","source_ref":"business-ref","valid":false},"metrics":{},"role":{"label":"朋友"},"summary":null,"target_actor":{"type":"human"},"trend":"stable"},{"emotional_association":{"note":"SHARED_RELATIONSHIP_BUSINESS","source_ref":"business-ref","valid":false},"metrics":{},"role":{"label":"朋友"},"summary":null,"target_actor":{"display_name":"actor_user","type":"human"},"trend":"stable"}],"self_actor":{"display_name":"摇光","type":"fluctlight"},"time_view":{"actor_self_local_time":"2026-11-13T07:20:22.142+08:00","actor_user_local_time":null,"actor_user_timezone":null,"as_of":"2026-11-13T07:20:22.142+08:00","history_time_semantics":"Display timezone does not identify the sender's location.","reference_timezone":"Asia/Shanghai"},"tool_facts":[{"certainty":"关系记录描述当前对象，不证明其他事件已经发生。","kind":"relationship","value":{"emotional_association":{"note":"SHARED_RELATIONSHIP_BUSINESS","source_ref":"business-ref","valid":false},"is_current_user":true,"metrics":{},"role":{"label":"朋友"},"summary":null,"target_actor":{"actor":"actor_user","display_name":"actor_user","type":"human"},"trend":"stable"}}],"visual_identity":{"available":false,"missing":true}}
+=== RUN   TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/invalid_reference
+2026/11/13 07:20:24 WARN reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:1 reasons:map[not_in_live_context:1] requested_count:1 retained_count:0 surface:]"
+--- FAIL: TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference (5.53s)
+    --- FAIL: TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/selected_twice (2.92s)
+    --- PASS: TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/invalid_reference (2.61s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.167s
+FAIL
+
+EXIT_CODE 1

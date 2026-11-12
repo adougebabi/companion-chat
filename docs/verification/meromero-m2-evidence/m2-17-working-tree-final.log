@@ -1,0 +1,19 @@
+SOURCE_HEAD 430e94f51edb65bb98ed465296d04502e0bfc713 (clean archive plus source and test overlays)
+CANDIDATE /Users/vinson/Documents/project/个人/local-ai-companion
+MANIFEST /private/tmp/fluctlight-m2-17-final2-4od7sio8/m2-17-final2-manifest.json (working tree includes four pre-existing drafts)
+COMMAND go test ./internal/core -count=1 -run ^TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference
+=== RUN   TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/selected_twice
+2026/11/13 07:34:09 WARN reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:1 reasons:map[duplicate:1] requested_count:2 retained_count:1 surface:]"
+=== RUN   TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/invalid_reference
+2026/11/13 07:34:11 WARN reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:1 reasons:map[not_in_live_context:1] requested_count:1 retained_count:0 surface:]"
+=== RUN   TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/stale_reference
+2026/11/13 07:34:13 WARN reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:1 reasons:map[not_in_live_context:1] requested_count:1 retained_count:0 surface:]"
+--- PASS: TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference (7.48s)
+    --- PASS: TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/selected_twice (3.00s)
+    --- PASS: TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/invalid_reference (2.62s)
+    --- PASS: TestM2MomentRelationshipEvidenceDeduplicatesOnlyExactReference/stale_reference (1.85s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	8.137s
+
+EXIT_CODE 0

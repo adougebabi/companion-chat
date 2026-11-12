@@ -230,7 +230,7 @@ func (s *factOnlyMomentService) prepare(ctx context.Context, inv CapabilityInvoc
 		}
 	}
 	reader := newFactOnlyReplyService(s.app)
-	projection, facts, err := reader.resolveReplyEvidence(ctx, inv, s.run, args.EvidenceRefs)
+	projection, facts, includedEntries, err := reader.resolveReplyEvidence(ctx, inv, s.run, args.EvidenceRefs)
 	if err != nil {
 		return ReplyDraft{}, err
 	}
@@ -240,6 +240,12 @@ func (s *factOnlyMomentService) prepare(ctx context.Context, inv CapabilityInvoc
 	input, err := reader.writerTaskInput(ctx, inv, s.run, key, projection, facts, replySceneMoment)
 	if err != nil {
 		return ReplyDraft{}, err
+	}
+	input.Context.momentSelectedRelationshipRefs = make(map[string]struct{})
+	for _, entry := range includedEntries {
+		if entry.Kind == ContextReferenceRelationship && entry.Ref != "" {
+			input.Context.momentSelectedRelationshipRefs[entry.Ref] = struct{}{}
+		}
 	}
 	input.CorrelationID = "moment-writer:" + stableDigest(key+inv.ProviderRequestID)
 	draft, err := s.app.runReplyWithFailurePolicy(ctx, input, s.run)
