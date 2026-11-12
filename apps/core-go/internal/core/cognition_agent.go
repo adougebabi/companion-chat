@@ -96,6 +96,14 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 	if err != nil {
 		return ConversationCognitionAgentResult{}, err
 	}
+	if run := replyRunFromContext(ctx); run != nil {
+		if main, _ := ctx.Value(directMainConversationKey{}).(bool); main {
+			ctx, err = a.withDirectTurnCognitionSnapshot(ctx, input, run.Settings.Mode == "direct")
+			if err != nil {
+				return ConversationCognitionAgentResult{}, err
+			}
+		}
+	}
 	definitions := capabilityCatalog(a.capabilityRegistryForContext(ctx), CapabilitySurfaceConversation)
 	if !isMultiPersonalityProjection(projection) {
 		definitions = filterPersonaActionCapabilities(definitions)

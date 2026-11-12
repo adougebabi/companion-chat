@@ -1,0 +1,14 @@
+{
+  "request_count": 1,
+  "request_models": [
+    "llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4"
+  ],
+  "tool_response_shapes": [
+    {
+      "argument_keys": [],
+      "id_present": true,
+      "name": "conversation.reply"
+    }
+  ],
+  "provider_response_model": "not captured by this test"
+}

@@ -1,0 +1,9 @@
+M1_COMMAND go test ./internal/core -count=1 -run ^TestLiveExplicitDirectConversationDoesNotRequireASecondWriter$ -v -timeout=20m
+R1_SOURCE dce89ce816aaaf2a6c272028eae0088e7a818422 plus M1-04b changes
+=== RUN   TestLiveExplicitDirectConversationDoesNotRequireASecondWriter
+2026/11/12 15:12:23 WARN tool.arguments.normalized capability=conversation.reply original_bytes=431 normalized_bytes=340
+    provider_live_e2e_test.go:250: direct cognition settlement: status=processed contract=direct-main.v1 assessments=1
+    provider_live_e2e_test.go:250: ordinary direct conversation: physical requests=1, independent Writer runs=0
+--- PASS: TestLiveExplicitDirectConversationDoesNotRequireASecondWriter (6.69s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	7.300s

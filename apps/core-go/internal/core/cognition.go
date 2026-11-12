@@ -75,6 +75,7 @@ func (a *App) processCognitionInbox(ctx context.Context, inboxID string) (map[st
 	if status == "failed" {
 		return map[string]any{"inbox_id": inboxID, "status": "failed"}, nil
 	}
+	ctx = context.WithValue(ctx, directTurnClaimKey{}, directTurnClaim{InboxID: inboxID, Owner: claimOwner})
 	claimSettled := false
 	defer func() {
 		if claimSettled {
@@ -491,6 +492,9 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 		attachmentRefs = []any{}
 	}
 	payload := map[string]any{"actor_id": actorID, "authorization_actor_id": authorizationActorID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "text": text, "attachment_refs": attachmentRefs, "idempotency_key": idempotency}
+	// New turns opt in to a recoverable direct-model binding. Pre-existing
+	// turns have no marker and retain their explicitly diagnosed legacy path.
+	payload[directTurnModelSnapshotContractKey] = workflowModelSnapshotVersion
 	budget, budgetErr := a.newConversationTurnBudget(ctx, 0)
 	if budgetErr != nil {
 		return "", nil, budgetErr

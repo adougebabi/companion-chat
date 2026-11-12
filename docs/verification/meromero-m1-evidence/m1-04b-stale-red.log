@@ -1,0 +1,9 @@
+COMMAND go test ./internal/core -count=1 -run ^TestDirectTurnStaleSnapshotClaimDoesNotFailNewOwner$ -v -timeout=10m
+SOURCE dce89ce816aaaf2a6c272028eae0088e7a818422 plus M1-04b test; protected drafts excluded
+=== RUN   TestDirectTurnStaleSnapshotClaimDoesNotFailNewOwner
+    direct_turn_model_snapshot_integration_test.go:267: stale worker damaged new claim: status=failed claimant= requests=0 err=resource revision conflict
+--- FAIL: TestDirectTurnStaleSnapshotClaimDoesNotFailNewOwner (1.99s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.820s
+FAIL
+EXIT_CODE 1

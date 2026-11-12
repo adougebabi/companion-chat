@@ -1,0 +1,25 @@
+COMMAND go test ./internal/core -count=1 -run ^(TestDirectTurnRetryKeepsOriginalModelBinding|TestDirectTurnMissingOrCorruptSnapshotDoesNotRebind|TestDirectTurnLegacyWithoutSnapshotUsesCurrentModelAndRecordsUnknown|TestDirectTurnRetryKeepsModelWhenReplyModeChanges|TestDirectTurnStaleSnapshotClaimDoesNotFailNewOwner)$ -v -timeout=10m
+SOURCE dce89ce816aaaf2a6c272028eae0088e7a818422 plus M1-04b test; protected drafts excluded
+=== RUN   TestDirectTurnRetryKeepsOriginalModelBinding
+    direct_turn_model_snapshot_integration_test.go:104: M1_04B first=model-a retry=model-a new_turn=model-b fingerprint_preserved=true snapshot_has_secret=false
+--- PASS: TestDirectTurnRetryKeepsOriginalModelBinding (1.93s)
+=== RUN   TestDirectTurnMissingOrCorruptSnapshotDoesNotRebind
+=== RUN   TestDirectTurnMissingOrCorruptSnapshotDoesNotRebind/missing
+=== RUN   TestDirectTurnMissingOrCorruptSnapshotDoesNotRebind/corrupt
+=== RUN   TestDirectTurnMissingOrCorruptSnapshotDoesNotRebind/marker_missing
+=== RUN   TestDirectTurnMissingOrCorruptSnapshotDoesNotRebind/partial_null
+--- PASS: TestDirectTurnMissingOrCorruptSnapshotDoesNotRebind (7.87s)
+    --- PASS: TestDirectTurnMissingOrCorruptSnapshotDoesNotRebind/missing (2.25s)
+    --- PASS: TestDirectTurnMissingOrCorruptSnapshotDoesNotRebind/corrupt (1.90s)
+    --- PASS: TestDirectTurnMissingOrCorruptSnapshotDoesNotRebind/marker_missing (1.64s)
+    --- PASS: TestDirectTurnMissingOrCorruptSnapshotDoesNotRebind/partial_null (2.08s)
+=== RUN   TestDirectTurnLegacyWithoutSnapshotUsesCurrentModelAndRecordsUnknown
+    direct_turn_model_snapshot_integration_test.go:203: M1_04B legacy_current_model=model-b prior_model_known=false snapshot_fabricated=false
+--- PASS: TestDirectTurnLegacyWithoutSnapshotUsesCurrentModelAndRecordsUnknown (1.84s)
+=== RUN   TestDirectTurnRetryKeepsModelWhenReplyModeChanges
+--- PASS: TestDirectTurnRetryKeepsModelWhenReplyModeChanges (1.97s)
+=== RUN   TestDirectTurnStaleSnapshotClaimDoesNotFailNewOwner
+--- PASS: TestDirectTurnStaleSnapshotClaimDoesNotFailNewOwner (1.25s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	15.525s
+EXIT_CODE 0

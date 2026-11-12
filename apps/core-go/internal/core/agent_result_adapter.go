@@ -301,10 +301,18 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		runID = fmt.Sprintf("%s:retry:%d", runID, retryCount)
 	}
 	runCtx := context.WithValue(WithProviderCorrelation(ctx, "turn:"+turnID), directMainConversationKey{}, true)
+	if claimOwner != "" {
+		runCtx = context.WithValue(runCtx, directTurnClaimKey{}, directTurnClaim{InboxID: inboxID, Owner: claimOwner})
+	}
 	run, err := a.RunConversationCognitionAgent(runCtx, ConversationCognitionAgentInput{
 		AuthorizationActorID: authorizationActorID, SpeakerActorID: actorID, FluctlightID: fluctlightID,
 		ConversationID: conversationID, SourceFactID: inboxID, RunID: runID, CorrelationID: "turn:" + turnID, CurrentInput: text, EnableStreaming: claimStream,
 	})
+	if errors.Is(err, errDirectTurnSnapshotStale) {
+		// A different worker owns the turn or a newer retry owns its budget.
+		// Do not mark that newer execution failed or clear its claim.
+		return TurnResult{}, err
+	}
 	projection := run.Projection
 	var atomicSettled bool
 	if readErr := a.DB.Pool().QueryRow(ctx, `SELECT status='processed' AND COALESCE(payload->'agent_result'->>'settlement_contract','')='direct-main.v1' FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&atomicSettled); readErr != nil {
@@ -535,7 +543,9 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 		if err := a.settleDueAgentFailureTx(ctx, tx, inboxID, fluctlightID, payload, outcome, code); err != nil {
 			return err
 		}
-		command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='failed',processed_at=now(),claimed_by=NULL,claimed_at=NULL,error_code=$2,payload=jsonb_set(payload,'{agent_partial}',$3::jsonb,true) WHERE id=$1 AND status IN ('pending','claimed')`, inboxID, code, jsonBytes(map[string]any{"capability_invocations": outcome.Invocations, "capability_results": outcome.Results}))
+		// A direct turn's model binding is runtime metadata, not a committed
+		// effect. Keep it across failure while replacing the partial receipts.
+		command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='failed',processed_at=now(),claimed_by=NULL,claimed_at=NULL,error_code=$2,payload=jsonb_set(payload,'{agent_partial}',$3::jsonb || CASE WHEN jsonb_typeof(payload->'agent_partial')='object' AND (payload->'agent_partial') ? $4::text THEN jsonb_build_object($4::text,payload->'agent_partial'->$4::text) ELSE '{}'::jsonb END,true) WHERE id=$1 AND status IN ('pending','claimed')`, inboxID, code, jsonBytes(map[string]any{"capability_invocations": outcome.Invocations, "capability_results": outcome.Results}), directTurnModelSnapshotKey)
 		if err != nil {
 			return err
 		}

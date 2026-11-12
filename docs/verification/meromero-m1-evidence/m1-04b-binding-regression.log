@@ -1,0 +1,15 @@
+COMMAND go test ./internal/core -count=1 -run ^(TestFormalAgentUsesAssemblyModelSnapshotWithoutSerializingCredential|TestFormalAgentRejectsConflictingAssemblyAndFrozenModel|TestNestedFormalAgentDoesNotUseParentAssignment|TestFrozenAssignmentFollowsTaskIdentityAndExplicitFallbackIsIsolated|TestDirectTurnSnapshotDoesNotSendRotatedCredentialToOldDestination)$ -v -timeout=10m
+SOURCE dce89ce816aaaf2a6c272028eae0088e7a818422 plus M1-04b test; protected drafts excluded
+=== RUN   TestDirectTurnSnapshotDoesNotSendRotatedCredentialToOldDestination
+--- PASS: TestDirectTurnSnapshotDoesNotSendRotatedCredentialToOldDestination (2.01s)
+=== RUN   TestFormalAgentUsesAssemblyModelSnapshotWithoutSerializingCredential
+--- PASS: TestFormalAgentUsesAssemblyModelSnapshotWithoutSerializingCredential (0.00s)
+=== RUN   TestFormalAgentRejectsConflictingAssemblyAndFrozenModel
+--- PASS: TestFormalAgentRejectsConflictingAssemblyAndFrozenModel (0.00s)
+=== RUN   TestNestedFormalAgentDoesNotUseParentAssignment
+--- PASS: TestNestedFormalAgentDoesNotUseParentAssignment (0.00s)
+=== RUN   TestFrozenAssignmentFollowsTaskIdentityAndExplicitFallbackIsIsolated
+--- PASS: TestFrozenAssignmentFollowsTaskIdentityAndExplicitFallbackIsIsolated (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.879s
+EXIT_CODE 0
