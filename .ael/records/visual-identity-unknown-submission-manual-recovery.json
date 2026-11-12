@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "visual-identity-unknown-submission-manual-recovery",
+  "definition_hash": "2b3b816d496e59d64c91f52a081e7ea858e05751942c7f177413260401e2bb36",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T16:21:16.692651Z",
+  "updated": "2026-11-12T16:21:16.693002Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}

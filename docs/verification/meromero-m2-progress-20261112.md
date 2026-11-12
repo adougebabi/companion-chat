@@ -39,3 +39,9 @@ M2-05 的静态复核还发现：提交歧义错误若包装上下文取消或�
 可能重试；现有持久标记仍会阻止第二次图片提交。真实 Temporal 行为尚未验证，
 已按任务外非阻断问题登记 `media-submission-ambiguous-context-retry-feedback`，
 未在 M2-11 顺手修改。
+
+人工核对后的领域处理缺口另关联
+`studio-unknown-submission-manual-recovery` 和
+`visual-identity-unknown-submission-manual-recovery`。Studio 当前可核对后丢弃；
+视觉身份仍缺完整的原工作流衔接。没有可证明同源的本地结果时继续暂停，外部
+结果归属和接管规则未确定；不自动查询或重新提交。

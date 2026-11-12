@@ -22,10 +22,12 @@
   "failure": "",
   "result": "verified",
   "created": "2026-11-12T08:59:39.16773Z",
-  "updated": "2026-11-12T14:38:03.135458Z",
+  "updated": "2026-11-12T16:21:16.692806Z",
   "completed": "2026-11-12T10:35:37.781588Z",
   "feedback": [
-    "media-submission-ambiguous-context-retry-feedback"
+    "media-submission-ambiguous-context-retry-feedback",
+    "studio-unknown-submission-manual-recovery",
+    "visual-identity-unknown-submission-manual-recovery"
   ],
   "history": {
     "attempts": [
