@@ -19,6 +19,7 @@
 .replica-notice-title{display:flex;align-items:center;gap:9px}
 .replica-notice-title h3{font-size:12px;font-weight:500;color:#70815f;line-height:1.75}
 .replica-notice-main p{font-size:11px;line-height:1.9;color:#9aa88c;margin:6px 0 9px;overflow-wrap:anywhere}
+.replica-notice-main p.replica-notice-summary{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;max-height:calc(2em * 1.9)}
 .replica-notice-main small{font-size:9px;color:#b0baa1}
 .replica-notice-main>svg{color:#b0bda2;margin-top:12px;flex-shrink:0}
 .replica-unread-dot{width:5px;height:5px;flex-shrink:0;border-radius:50%;background:#9eb686}

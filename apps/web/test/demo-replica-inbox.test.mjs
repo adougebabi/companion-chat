@@ -103,3 +103,19 @@ test('non-reply notifications retain ordinary JSON content',async()=>{
  const ui=await mountReact(vite,Inbox,{workspace:w});
  try{assert.equal(ui.host.querySelector('.replica-notice-main p').textContent,body);}finally{await ui.dispose();}
 });
+
+test('r23 inbox cards hide leaked chat protocol and clamp summaries to two lines',async()=>{
+ sessionStorage.clear();const {w,api}=fixture();
+ const leak='私聊运行协议 你以当前生效的人格通过聊天软件与对方打字交流。'.repeat(20)+'人格设定 {"working_persona":{"interpretation_boundary":"原文完整保留。"},"portrait_text":"FT-陈默"} persona.detail';
+ api.notifications=async()=>({items:[{id:'leak',title:'新回复',body:leak,source_kind:'conversation.reply.published',fluctlight_id:'A',created_at:'2026-11-04T12:00:00Z'},{id:'assistant',title:'新回复',body:'协议测试 看起来你直接发起了交流，没有传递协议相关指令。我是一个开放的人工智能助手。',source_kind:'conversation.reply.published',fluctlight_id:'A',created_at:'2026-11-03T12:00:00Z'}],as_of:'server-as-of',next_cursor:''});
+ const ui=await mountReact(vite,Inbox,{workspace:w});
+ try{
+  const summaries=[...ui.host.querySelectorAll('.replica-notice-main p.replica-notice-summary')];assert.equal(summaries.length,2);
+  assert.doesNotMatch(ui.host.textContent,/运行协议|working_persona|interpretation_boundary|portrait_text|persona\.detail|人工智能助手/);
+  await ui.click(ui.host.querySelector('.replica-notice-main'));
+  const disclosure=[...document.querySelectorAll('summary')].find(node=>node.textContent.includes('通知来源与标识'));if(disclosure)await ui.click(disclosure);
+  assert.doesNotMatch(document.querySelector('[role=dialog]').textContent,/运行协议|working_persona|interpretation_boundary|portrait_text/);
+ }finally{await ui.dispose();}
+ const css=await import('node:fs').then(fs=>fs.readFileSync(new URL('../src/styles/replica-management.css',import.meta.url),'utf8'));
+ assert.match(css,/\.replica-notice-main p\.replica-notice-summary\{[^}]*-webkit-line-clamp:2/);
+});
