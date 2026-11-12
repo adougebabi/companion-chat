@@ -1,0 +1,18 @@
+SOURCE_HEAD c6a380260022238af3ee518a1204f4cb30c8a955 CANDIDATE /private/tmp/fluctlight-m2-02-jfgq7_sw
+OVERLAYS apps/core-go/internal/core/m2_moment_image_target_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestDirectMomentImageTargetsPublishedMoment$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDirectMomentImageTargetsPublishedMoment
+2026/11/12 19:27:27 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:m2-moment-image metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 19:27:27 INFO capability lifecycle capability=capability.catalog call_id=moment-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 19:27:27 WARN tool.arguments.normalized capability=media.image.generate original_bytes=286 normalized_bytes=251
+2026/11/12 19:27:27 WARN tool.call.handled capability=conversation.reply call_id=moment-reply warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 19:27:27 WARN tool.call.handled capability=conversation.reply call_id=moment-reply warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+    m2_moment_image_target_test.go:65: unexpected main request 5
+    m2_moment_image_target_test.go:135: Moment/image native loop: main=5 moment=1 accepted=true turn=map[string]interface {}(nil) err=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 400: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel]
+--- FAIL: TestDirectMomentImageTargetsPublishedMoment (2.55s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.265s
+FAIL
+EXIT_CODE 1

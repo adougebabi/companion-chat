@@ -1,0 +1,11 @@
+SOURCE_HEAD c6a380260022238af3ee518a1204f4cb30c8a955 CANDIDATE /private/tmp/fluctlight-m2-02-lc8umn0m
+OVERLAYS apps/core-go/internal/core/m2_moment_image_target_test.go,apps/core-go/internal/core/adk_conversation_runtime.go,apps/core-go/internal/core/tool_contract.go,apps/core-go/internal/core/builtin_capabilities.go
+COMMAND go test ./internal/core -count=1 -run ^TestDirectMomentImageTargetRequiresEarlierResult$/^invalid-target$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDirectMomentImageTargetRequiresEarlierResult
+=== RUN   TestDirectMomentImageTargetRequiresEarlierResult/invalid-target
+2026/11/12 19:34:48 INFO capability lifecycle capability=capability.catalog call_id=boundary-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMomentImageTargetRequiresEarlierResult (2.34s)
+    --- PASS: TestDirectMomentImageTargetRequiresEarlierResult/invalid-target (2.34s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.007s
+EXIT_CODE 0

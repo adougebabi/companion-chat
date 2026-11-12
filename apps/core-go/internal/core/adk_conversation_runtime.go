@@ -357,13 +357,28 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 			}
 		}
 	}
-	i.recordADKToolDiagnostic(ctx, "adk.tool.dispatched", callID, capabilityName, "dispatched", "", argumentsJSON)
 	if gate := kevPersona(ctx); gate != nil && capabilityName == personaSwitchCapabilityName {
 		if revision, adopted := gate.adoptedRevision(ctx); adopted {
 			ctx = context.WithValue(ctx, kevPersonaExpectedRevisionKey{}, revision)
 		}
 	}
 
+	targetKind, targetRef := i.request.TargetKind, i.request.TargetRef
+	if capabilityName == "media.image.generate" && stringValue(decodeObject(arguments)["delivery_target"]) == "current_moment" && domainCapabilityEnabled(ctx, capabilityName) {
+		moment, found := committedMomentResult(i.trace)
+		identity, identified := i.trace.ModelIdentity(moment.CallID)
+		// A result in the same model response is not evidence the model has
+		// consumed it. Bind only a committed result from an earlier response.
+		if !found || !identified || identity.ModelCallSequence == 0 || identity.ModelCallSequence >= modelIdentity.ModelCallSequence {
+			result := handledCapabilityResult(invocation, "moment_media_target_unavailable", "needs_input", map[string]any{"detail": "No earlier completed Moment in this task is available. Publish the Moment first and use its actual result before requesting its image."})
+			i.trace.AppendResult(result)
+			i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, "moment_media_target_unavailable", argumentsJSON)
+			return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: result}, definition)
+		}
+		targetKind, targetRef = "moment", stringValue(mapValue(moment.Output)["target_ref"])
+	}
+
+	i.recordADKToolDiagnostic(ctx, "adk.tool.dispatched", callID, capabilityName, "dispatched", "", argumentsJSON)
 	agentDefinition, _ := formalAgentDefinitionFromContext(ctx)
 	receipt, execErr := i.app.ExecuteTool(ctx, ToolExecutionRequest{
 		AgentID: agentDefinition.ID, RunID: operationRoot,
@@ -379,7 +394,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		FrozenContextSnapshot:       invocation.ContextSnapshot,
 		ExpectedCorePersonaRevision: expectedPersonaRevision,
 		ExpectedOverlayRevision:     expectedOverlayRevision,
-		TargetKind:                  i.request.TargetKind, TargetRef: i.request.TargetRef,
+		TargetKind:                  targetKind, TargetRef: targetRef,
 	})
 	result := receipt.Result
 	if result.CallID == "" {

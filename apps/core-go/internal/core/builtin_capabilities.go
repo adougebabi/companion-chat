@@ -478,6 +478,10 @@ func (c imageGenerateCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 	if c.service == nil || c.publication == nil || c.publication.app == nil {
 		return failedCapabilityResultDetail(invocation, "media_capability_unavailable", true, "media capability is unavailable"), errors.New("media capability unavailable")
 	}
+	if stringValue(decodeObject(invocation.Arguments)["delivery_target"]) == "current_moment" && target.Kind != "moment" {
+		err := errors.New("an authorized Moment target is required")
+		return failedCapabilityResultDetail(invocation, "moment_media_target_required", false, err.Error()), newCapabilityError("moment_media_target_required", false, err)
+	}
 	preparedConcept, found, err := capabilityPreparedData(invocation, "media_concept")
 	if err != nil || !found || len(mapValue(preparedConcept)) == 0 {
 		if err == nil {

@@ -1,0 +1,118 @@
+SOURCE_HEAD c6a380260022238af3ee518a1204f4cb30c8a955 CANDIDATE /private/tmp/fluctlight-m2-02-n5uaacq9
+OVERLAYS apps/core-go/internal/core/m2_moment_image_target_test.go,apps/core-go/internal/core/adk_conversation_runtime.go,apps/core-go/internal/core/tool_contract.go,apps/core-go/internal/core/builtin_capabilities.go
+COMMAND go test ./internal/core -count=1 -run ^(TestDirectMomentImageTargetsPublishedMoment|TestDirectMomentImageTargetRequiresEarlierResult|TestIndependentMomentImageTargetChecksOwnershipAndPlugin|TestMomentImageUncertainSubmissionPausesWithoutAttachment|TestImageDisabledKeepsDirectChatAndTextMomentAvailable|TestDefaultDirectWearsBeforeSelfieAndDeliversOnce|TestDirectMediaAndReplySameBatchAreNotCommitted|TestDomainPluginPostgresSettingsAdmissionAndReplay|TestDomainPluginPostgresNativeAgentReceiptReplay|TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter|TestPrivateReplyModeSwitchKeepsExplicitFactOnly|TestR5MomentPublicationStopsRepeatGenerateAndStream|TestR5MomentFreshNativeCoordinatesReplaySameSourceBeforeWriter|TestR5MomentObligationDoesNotFakeReplyOrCloseMediaActions|TestCapabilityRendererKeepsProviderSchemaAtBoundary|TestMomentPublishCapabilityIsRegisteredDeferredOutput|TestModelFacingMutationReceiptsOmitCoreIdentifiers|TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_false
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_true
+--- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted (3.83s)
+    --- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_false (1.85s)
+    --- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_true (1.98s)
+=== RUN   TestDomainPluginPostgresSettingsAdmissionAndReplay
+--- PASS: TestDomainPluginPostgresSettingsAdmissionAndReplay (1.68s)
+=== RUN   TestDomainPluginPostgresNativeAgentReceiptReplay
+--- PASS: TestDomainPluginPostgresNativeAgentReceiptReplay (1.93s)
+=== RUN   TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob
+    m2_ambiguous_image_submit_test.go:115: child phase=lost_response pid=91807 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:185: phase=lost_response actual_error=media_submission_ambiguous: Post "http://127.0.0.1:59748/prompt": EOF
+        --- PASS: TestImageAmbiguousSubmitChild (0.05s)
+        PASS
+    m2_ambiguous_image_submit_test.go:120: child phase=resume pid=91809 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:185: phase=resume actual_error=media_submission_ambiguous
+        --- PASS: TestImageAmbiguousSubmitChild (0.01s)
+        PASS
+--- PASS: TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob (2.19s)
+=== RUN   TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter
+--- PASS: TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter (2.08s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/12 19:36:33 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (2.20s)
+=== RUN   TestDefaultDirectWearsBeforeSelfieAndDeliversOnce
+2026/11/12 19:36:34 INFO capability lifecycle capability=capability.catalog call_id=m2-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 19:36:34 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDefaultDirectWearsBeforeSelfieAndDeliversOnce (2.00s)
+=== RUN   TestImageDisabledKeepsDirectChatAndTextMomentAvailable
+2026/11/12 19:36:37 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:image-off-chat metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 19:36:37 INFO reply.evidence.reconciled correlation_id=tool-operation:image-off-independent-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestImageDisabledKeepsDirectChatAndTextMomentAvailable (2.47s)
+=== RUN   TestDirectMomentImageTargetsPublishedMoment
+2026/11/12 19:36:39 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:m2-moment-image metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 19:36:39 INFO capability lifecycle capability=capability.catalog call_id=moment-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMomentImageTargetsPublishedMoment (2.06s)
+=== RUN   TestDirectMomentImageTargetRequiresEarlierResult
+=== RUN   TestDirectMomentImageTargetRequiresEarlierResult/no-moment
+2026/11/12 19:36:41 INFO capability lifecycle capability=capability.catalog call_id=boundary-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestDirectMomentImageTargetRequiresEarlierResult/same-batch
+2026/11/12 19:36:44 INFO capability lifecycle capability=capability.catalog call_id=boundary-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 19:36:44 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:m2-boundary-same-batch metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestDirectMomentImageTargetRequiresEarlierResult/invalid-target
+2026/11/12 19:36:49 INFO capability lifecycle capability=capability.catalog call_id=boundary-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestDirectMomentImageTargetRequiresEarlierResult/conversation-default
+2026/11/12 19:36:53 INFO capability lifecycle capability=capability.catalog call_id=boundary-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 19:36:53 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:m2-boundary-conversation-default metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestDirectMomentImageTargetRequiresEarlierResult (13.94s)
+    --- PASS: TestDirectMomentImageTargetRequiresEarlierResult/no-moment (2.26s)
+    --- PASS: TestDirectMomentImageTargetRequiresEarlierResult/same-batch (3.10s)
+    --- PASS: TestDirectMomentImageTargetRequiresEarlierResult/invalid-target (4.00s)
+    --- PASS: TestDirectMomentImageTargetRequiresEarlierResult/conversation-default (4.58s)
+=== RUN   TestIndependentMomentImageTargetChecksOwnershipAndPlugin
+--- PASS: TestIndependentMomentImageTargetChecksOwnershipAndPlugin (3.38s)
+=== RUN   TestMomentImageUncertainSubmissionPausesWithoutAttachment
+--- PASS: TestMomentImageUncertainSubmissionPausesWithoutAttachment (2.88s)
+=== RUN   TestR5MomentPublicationStopsRepeatGenerateAndStream
+=== RUN   TestR5MomentPublicationStopsRepeatGenerateAndStream/false_false
+2026/11/12 19:37:02 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:source metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 19:37:02 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:source metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR5MomentPublicationStopsRepeatGenerateAndStream/false_true
+2026/11/12 19:37:04 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:source metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR5MomentPublicationStopsRepeatGenerateAndStream/true_false
+2026/11/12 19:37:06 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:source metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 19:37:07 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:source metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR5MomentPublicationStopsRepeatGenerateAndStream/true_true
+2026/11/12 19:37:09 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:source metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestR5MomentPublicationStopsRepeatGenerateAndStream (9.32s)
+    --- PASS: TestR5MomentPublicationStopsRepeatGenerateAndStream/false_false (2.75s)
+    --- PASS: TestR5MomentPublicationStopsRepeatGenerateAndStream/false_true (2.11s)
+    --- PASS: TestR5MomentPublicationStopsRepeatGenerateAndStream/true_false (2.19s)
+    --- PASS: TestR5MomentPublicationStopsRepeatGenerateAndStream/true_true (2.27s)
+=== RUN   TestR5MomentFreshNativeCoordinatesReplaySameSourceBeforeWriter
+2026/11/12 19:37:11 WARN tool.arguments.normalized capability=moment.publish original_bytes=22 normalized_bytes=2
+2026/11/12 19:37:11 INFO reply.evidence.reconciled correlation_id=tool-operation:conversation_moment_17202277a66f4b9efa34b6803c47e561 metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 19:37:11 INFO reply.evidence.reconciled correlation_id=tool-operation:conversation_moment_d84bb6fbbe5b3f32d5c78165081e7fb8 metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestR5MomentFreshNativeCoordinatesReplaySameSourceBeforeWriter (2.49s)
+=== RUN   TestR5MomentObligationDoesNotFakeReplyOrCloseMediaActions
+--- PASS: TestR5MomentObligationDoesNotFakeReplyOrCloseMediaActions (0.00s)
+=== RUN   TestCapabilityRendererKeepsProviderSchemaAtBoundary
+--- PASS: TestCapabilityRendererKeepsProviderSchemaAtBoundary (0.00s)
+=== RUN   TestMomentPublishCapabilityIsRegisteredDeferredOutput
+--- PASS: TestMomentPublishCapabilityIsRegisteredDeferredOutput (0.00s)
+=== RUN   TestModelFacingMutationReceiptsOmitCoreIdentifiers
+=== RUN   TestModelFacingMutationReceiptsOmitCoreIdentifiers/image
+=== RUN   TestModelFacingMutationReceiptsOmitCoreIdentifiers/scene
+=== RUN   TestModelFacingMutationReceiptsOmitCoreIdentifiers/presence
+=== RUN   TestModelFacingMutationReceiptsOmitCoreIdentifiers/schedule
+=== RUN   TestModelFacingMutationReceiptsOmitCoreIdentifiers/moment
+=== RUN   TestModelFacingMutationReceiptsOmitCoreIdentifiers/visual
+=== RUN   TestModelFacingMutationReceiptsOmitCoreIdentifiers/visual_initialize
+=== RUN   TestModelFacingMutationReceiptsOmitCoreIdentifiers/intention_decide
+=== RUN   TestModelFacingMutationReceiptsOmitCoreIdentifiers/appearance_style
+=== RUN   TestModelFacingMutationReceiptsOmitCoreIdentifiers/wardrobe_wear
+=== RUN   TestModelFacingMutationReceiptsOmitCoreIdentifiers/wardrobe_outfit
+=== RUN   TestModelFacingMutationReceiptsOmitCoreIdentifiers/intention_schedule
+--- PASS: TestModelFacingMutationReceiptsOmitCoreIdentifiers (0.00s)
+    --- PASS: TestModelFacingMutationReceiptsOmitCoreIdentifiers/image (0.00s)
+    --- PASS: TestModelFacingMutationReceiptsOmitCoreIdentifiers/scene (0.00s)
+    --- PASS: TestModelFacingMutationReceiptsOmitCoreIdentifiers/presence (0.00s)
+    --- PASS: TestModelFacingMutationReceiptsOmitCoreIdentifiers/schedule (0.00s)
+    --- PASS: TestModelFacingMutationReceiptsOmitCoreIdentifiers/moment (0.00s)
+    --- PASS: TestModelFacingMutationReceiptsOmitCoreIdentifiers/visual (0.00s)
+    --- PASS: TestModelFacingMutationReceiptsOmitCoreIdentifiers/visual_initialize (0.00s)
+    --- PASS: TestModelFacingMutationReceiptsOmitCoreIdentifiers/intention_decide (0.00s)
+    --- PASS: TestModelFacingMutationReceiptsOmitCoreIdentifiers/appearance_style (0.00s)
+    --- PASS: TestModelFacingMutationReceiptsOmitCoreIdentifiers/wardrobe_wear (0.00s)
+    --- PASS: TestModelFacingMutationReceiptsOmitCoreIdentifiers/wardrobe_outfit (0.00s)
+    --- PASS: TestModelFacingMutationReceiptsOmitCoreIdentifiers/intention_schedule (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	53.311s
+EXIT_CODE 0

@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-08-moment-image-target",
+  "definition_hash": "eef1797851f2b3b3fdd624c2a4867ff611c95fdb96d47ddb2b8a235b983b23db",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T11:24:30.334297Z",
+  "updated": "2026-11-12T11:25:24.256667Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-3ad22e2e54652cd2eda9",
+        "unit": "define",
+        "executor": "codex-m2-08",
+        "input_version": "3ac1ffe4053692846691a9bd1e6a9301c54f9c7f4976d4acbd1d6bb670bd9eea",
+        "candidate_version": "3ac1ffe4053692846691a9bd1e6a9301c54f9c7f4976d4acbd1d6bb670bd9eea",
+        "started": "2026-11-12T11:24:57.882945Z",
+        "ended": "2026-11-12T11:24:58.242286Z",
+        "status": "pass",
+        "reason": "范围仅为 direct 链路将可选图片明确绑定本轮已发布的动态，并复用现有授权及交付；不修改用户原有媒体草稿。"
+      },
+      {
+        "id": "AT-31a8a0ea0aaf10ded709",
+        "unit": "analysis",
+        "executor": "codex-m2-08",
+        "input_version": "3ac1ffe4053692846691a9bd1e6a9301c54f9c7f4976d4acbd1d6bb670bd9eea",
+        "candidate_version": "3ac1ffe4053692846691a9bd1e6a9301c54f9c7f4976d4acbd1d6bb670bd9eea",
+        "started": "2026-11-12T11:25:15.184466Z",
+        "ended": "2026-11-12T11:25:15.484444Z",
+        "status": "pass",
+        "reason": "当前原生 Image 工具的目标取自会话作用域，Moment 内部结果不向模型暴露目标 ID；先通过正式入口测试实际目标与异步交付，再实现有界绑定并验证独立调用、停用与无目标场景。"
+      },
+      {
+        "id": "AT-b36a93b39338f8d8c270",
+        "unit": "execute",
+        "executor": "codex-m2-08",
+        "input_version": "3ac1ffe4053692846691a9bd1e6a9301c54f9c7f4976d4acbd1d6bb670bd9eea",
+        "candidate_version": "",
+        "started": "2026-11-12T11:25:24.08455Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}

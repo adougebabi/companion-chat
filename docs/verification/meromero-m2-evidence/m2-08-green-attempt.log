@@ -1,0 +1,10 @@
+SOURCE_HEAD c6a380260022238af3ee518a1204f4cb30c8a955 CANDIDATE /private/tmp/fluctlight-m2-02-g3ojgqf1
+OVERLAYS apps/core-go/internal/core/m2_moment_image_target_test.go,apps/core-go/internal/core/adk_conversation_runtime.go,apps/core-go/internal/core/tool_contract.go,apps/core-go/internal/core/builtin_capabilities.go
+COMMAND go test ./internal/core -count=1 -run ^TestDirectMomentImageTargetsPublishedMoment$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDirectMomentImageTargetsPublishedMoment
+2026/11/12 19:30:15 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:m2-moment-image metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 19:30:15 INFO capability lifecycle capability=capability.catalog call_id=moment-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMomentImageTargetsPublishedMoment (2.55s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.205s
+EXIT_CODE 0
