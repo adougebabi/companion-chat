@@ -1,0 +1,6 @@
+{
+  "head": "d37da697d247bcb74c9b1b7d9de24d669790961c",
+  "overlays": {
+    "apps/core-go/internal/core/m2_moment_relationship_context_test.go": "727f5e0fb03192a8f15c2fb38bca4762de68e33cf6f93a58096d2b83408dfb26"
+  }
+}

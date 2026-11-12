@@ -322,8 +322,9 @@ Core 仅在规范位置缺省或为 null 时移入该位置；两处均有值时
 `conversation_reply` 另有 Moments 分支：Moment 协议 + Working Persona +
 生活/关系/目标/能力/真实工具事实 + 检索记忆/S + 按既有会话范围取得的 H。
 H 现在明确放在历史数据块。Moment 不是私聊续写，不能复制父 Agent 草稿或
-把私聊全文作为公开动态。已选关系证据以关系业务值和语义人物呈现，Core 关系
-外壳和身份留在 Core；关系业务对象内的字段按原值保留，不按名称递归删键。
+把私聊全文作为公开动态。默认关系上下文和已选关系证据以关系业务值和语义人物
+呈现，Core 关系外壳和身份留在 Core；关系业务对象内的字段按原值保留，不按名称
+递归删键。
 
 私聊 Writer 输出通过 `parseReplyDraft` / `extractReplyBody` 提取正文，
 `ToolPublicationService.PublishConversationReplyTx` 对原生 Tool 和准备草稿再次

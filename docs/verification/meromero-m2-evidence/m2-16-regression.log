@@ -1,0 +1,46 @@
+SOURCE_HEAD d37da697d247bcb74c9b1b7d9de24d669790961c (clean archive plus source and test overlays)
+CANDIDATE /private/tmp/fluctlight-m2-16-final-7eyhb7ak
+MANIFEST /private/tmp/fluctlight-m2-16-final-7eyhb7ak/m2-16-final-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^(TestM2MomentRelationshipEvidencePreservesBusinessValues|TestM2MomentRelationshipEvidenceKeepsUnknownTargetUnknown|TestFactOnlyMomentUsesSameFrozenWriterWithFeedScene|TestMomentWriterPreservesGoalConditionsWithoutPreviousStrategy|TestMomentActorEvidencePreservesBusinessValueWithoutCoreEnvelope|TestMomentActiveMemoryEvidenceKeepsAssociationsWithoutCoreIDs|TestMomentPublicationResolvesActiveMemoryEvidenceWithoutCoreIDs|TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays|TestReplyOptionalEvidenceReconciliationKeepsExactScope|TestMomentWithOwnerSelectedAttachmentRemainsPublishable|TestPrivateReplyModeSwitchKeepsExplicitFactOnly|TestEveryFormalAgentAndVariantHasAnInputContract)$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestFactOnlyMomentUsesSameFrozenWriterWithFeedScene
+2026/11/13 00:32:36 WARN Go Core diagnostic persistence failed component=event stage=create correlation_id=controlled-moment error_type=*errors.errorString safe_cause=diagnostics_unavailable event_type=reply.draft.prepared
+--- PASS: TestFactOnlyMomentUsesSameFrozenWriterWithFeedScene (0.01s)
+=== RUN   TestMomentWriterPreservesGoalConditionsWithoutPreviousStrategy
+--- PASS: TestMomentWriterPreservesGoalConditionsWithoutPreviousStrategy (0.00s)
+=== RUN   TestMomentActorEvidencePreservesBusinessValueWithoutCoreEnvelope
+--- PASS: TestMomentActorEvidencePreservesBusinessValueWithoutCoreEnvelope (0.00s)
+=== RUN   TestMomentActiveMemoryEvidenceKeepsAssociationsWithoutCoreIDs
+--- PASS: TestMomentActiveMemoryEvidenceKeepsAssociationsWithoutCoreIDs (0.00s)
+=== RUN   TestMomentPublicationResolvesActiveMemoryEvidenceWithoutCoreIDs
+2026/11/13 00:32:37 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:1 retained_count:1 surface:]"
+--- PASS: TestMomentPublicationResolvesActiveMemoryEvidenceWithoutCoreIDs (1.65s)
+=== RUN   TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays
+2026/11/13 00:32:38 INFO reply.evidence.reconciled correlation_id=tool-operation:writer-moment-operation metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays (1.14s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/13 00:32:40 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (1.37s)
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/image
+2026/11/13 00:32:41 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/mixed
+2026/11/13 00:32:42 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/ordinary
+2026/11/13 00:32:43 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable (3.43s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/image (1.15s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/mixed (1.14s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/ordinary (1.14s)
+=== RUN   TestM2MomentRelationshipEvidencePreservesBusinessValues
+2026/11/13 00:32:44 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:1 retained_count:1 surface:]"
+--- PASS: TestM2MomentRelationshipEvidencePreservesBusinessValues (1.09s)
+=== RUN   TestM2MomentRelationshipEvidenceKeepsUnknownTargetUnknown
+--- PASS: TestM2MomentRelationshipEvidenceKeepsUnknownTargetUnknown (0.00s)
+=== RUN   TestEveryFormalAgentAndVariantHasAnInputContract
+--- PASS: TestEveryFormalAgentAndVariantHasAnInputContract (0.00s)
+=== RUN   TestReplyOptionalEvidenceReconciliationKeepsExactScope
+--- PASS: TestReplyOptionalEvidenceReconciliationKeepsExactScope (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	9.338s
+
+EXIT_CODE 0

@@ -1,0 +1,9 @@
+{
+  "head": "d37da697d247bcb74c9b1b7d9de24d669790961c",
+  "overlays": {
+    "apps/core-go/internal/core/m2_moment_relationship_context_test.go": "8c406a39fab7b7ecd9112a4e0430feb2bbd3a2b7c876a2781c1ce406f04aacf7",
+    "apps/core-go/internal/core/reply_context.go": "06d8f6810094be486229c25df90c35abcf0efe8321dda934f3f0f1e48096babf",
+    "docs/llm-prompt-composition.md": "613b27d0b8b213b187252f078cf3c39ea655115d7e4b3834752a3837b24b0f4e",
+    "docs/llm-task-input-contracts.md": "70b58442af0d817b2bd53262d8d2c84f7bbd4afdeeafa40fda5734aaf8e8442b"
+  }
+}

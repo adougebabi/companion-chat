@@ -1,0 +1,13 @@
+SOURCE_HEAD d37da697d247bcb74c9b1b7d9de24d669790961c (clean archive plus test overlay)
+CANDIDATE /private/tmp/fluctlight-m2-16-red-lzf5yx_n
+MANIFEST /private/tmp/fluctlight-m2-16-red-lzf5yx_n/m2-16-red-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^TestM2MomentDefaultRelationshipContextPreservesBusinessValues$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestM2MomentDefaultRelationshipContextPreservesBusinessValues
+2026/11/13 00:29:12 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+    m2_moment_relationship_context_test.go:54: default relationship business data changed: got={"schema":{"properties":{"item_ids":{"type":"array"}}},"valid":false} want={"id":"business-context-id","revision":7,"schema":{"properties":{"item_ids":{"type":"array"}}},"source_ref":"business-context-ref","valid":false}
+--- FAIL: TestM2MomentDefaultRelationshipContextPreservesBusinessValues (2.56s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.365s
+FAIL
+
+EXIT_CODE 1

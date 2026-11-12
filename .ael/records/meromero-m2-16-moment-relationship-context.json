@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-16-moment-relationship-context",
+  "definition_hash": "f5f3a8aa2b1f7341a6ab5dc5a3d54a9297218763ec1522d9f2a7677768a45951",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T16:25:37.204531Z",
+  "updated": "2026-11-12T16:34:50.013996Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-c1bc1ddbc0d746e4692f",
+        "unit": "define",
+        "executor": "codex-m2-16",
+        "input_version": "09d750610496c254cfa6058db7cf4cab78df73d951f6d28b30b0e13570566095",
+        "candidate_version": "09d750610496c254cfa6058db7cf4cab78df73d951f6d28b30b0e13570566095",
+        "started": "2026-11-12T16:26:23.440911Z",
+        "ended": "2026-11-12T16:26:47.347026Z",
+        "status": "pass",
+        "reason": "T03 的单一行为：Moment 默认关系上下文保留业务值及人物指向，Core 内部标识留在 Core。"
+      },
+      {
+        "id": "AT-3fcb12157efd39516ef1",
+        "unit": "analysis",
+        "executor": "codex-m2-16",
+        "input_version": "09d750610496c254cfa6058db7cf4cab78df73d951f6d28b30b0e13570566095",
+        "candidate_version": "09d750610496c254cfa6058db7cf4cab78df73d951f6d28b30b0e13570566095",
+        "started": "2026-11-12T16:27:08.514016Z",
+        "ended": "2026-11-12T16:27:08.843414Z",
+        "status": "pass",
+        "reason": "先用隔离数据库和受控 Provider 沿正式 Moment 准备路径复现默认关系字段误删，再按现有关系范围投影并核验实际请求与相邻场景。"
+      },
+      {
+        "id": "AT-cc71d9eaaf5416d28e08",
+        "unit": "execute",
+        "executor": "codex-m2-16",
+        "input_version": "09d750610496c254cfa6058db7cf4cab78df73d951f6d28b30b0e13570566095",
+        "candidate_version": "",
+        "started": "2026-11-12T16:27:24.970698Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}

@@ -283,6 +283,11 @@ func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssig
 func momentReplyWorkingInput(input ReplyContextInput) WorkingMemoryInput {
 	projection := input.Projection
 	compact := compactCognitionContextForSurface(projection, ProviderContextSurfaceFactOnlyReply)
+	if relationships := momentReplyRelationshipContext(projection); len(relationships) > 0 {
+		compact["relationships"] = relationships
+	} else {
+		delete(compact, "relationships")
+	}
 	// Keep the original Goal criteria and current progress, not a previous
 	// evaluator's strategy/assessment prose or the parent decision plan.
 	compact["goals"] = momentReplyGoals(projection)
@@ -306,7 +311,7 @@ func momentReplyWorkingInput(input ReplyContextInput) WorkingMemoryInput {
 			continue
 		}
 		value := compact[key]
-		if key != "actor_background" && key != "goals" && key != "tool_facts" {
+		if key != "actor_background" && key != "goals" && key != "tool_facts" && key != "relationships" {
 			value = replySemanticValue(value)
 		}
 		workingInput.RuntimeFacts = append(workingInput.RuntimeFacts, PromptFragment{Kind: PromptFragmentRuntimeFact, Required: true, Priority: 100,
@@ -366,6 +371,27 @@ func momentReplyWorkingInput(input ReplyContextInput) WorkingMemoryInput {
 			Content: map[string]any{"content": content, "confidence": memory["confidence"], "certainty": "记忆或转述，不能代替当前状态/真实结果"}, SourceRefs: []string{"memory-semantic:" + stableDigest(content)}})
 	}
 	return workingInput
+}
+
+// Moment keeps the same relationship rows and actor view as before, but
+// selects the Core envelope explicitly so nested business values stay opaque.
+func momentReplyRelationshipContext(projection ContextProjection) []map[string]any {
+	result := make([]map[string]any, 0, len(projection.Relationships))
+	for _, row := range projection.Relationships {
+		item := map[string]any{}
+		for _, key := range []string{"role", "metrics", "trend", "summary", "emotional_association"} {
+			if raw, ok := row[key]; ok && raw != nil && raw != "" {
+				item[key] = copyPromptData(raw)
+			}
+		}
+		if actor := compactActorForSurface(actorRefForID(projection.Actors, stringValue(row["target_actor_id"]))); len(actor) > 0 {
+			item["target_actor"] = actor
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
 }
 
 // Moment's Writer needs the Goal and original conditions, not a previous
