@@ -1,0 +1,10 @@
+SOURCE_HEAD ab5c88bca5feeaf8fcf1df345218829e5e7ad8fe CANDIDATE /private/tmp/fluctlight-m2-02-p0qn9f2q
+OVERLAYS apps/core-go/internal/core/m2_moment_disabled_image_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable
+2026/11/12 20:02:47 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-existing-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 20:02:47 INFO capability lifecycle capability=capability.catalog call_id=m2-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable (2.78s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.524s
+EXIT_CODE 0
