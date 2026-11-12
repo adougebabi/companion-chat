@@ -1,0 +1,8 @@
+COMMAND go test ./internal/core -count=1 -run ^TestM1ThirdDenialDoesNotBlockSameBatchAuthorizedTool$ -v -timeout=10m
+SOURCE 3da8fefc228240084252f4e07e1aa55718b43425 plus M1-03a correction; protected drafts excluded
+=== RUN   TestM1ThirdDenialDoesNotBlockSameBatchAuthorizedTool
+2026/11/12 13:56:10 INFO capability lifecycle capability=capability.catalog call_id=third-catalog type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestM1ThirdDenialDoesNotBlockSameBatchAuthorizedTool (1.63s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.368s
+EXIT_CODE 0

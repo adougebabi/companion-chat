@@ -160,6 +160,52 @@ func TestM1SameBatchDenialsDoNotBlockAuthorizedTool(t *testing.T) {
 	}
 }
 
+func TestM1ThirdDenialDoesNotBlockSameBatchAuthorizedTool(t *testing.T) {
+	calls, denials := 0, 0
+	catalogLoaded := false
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		calls++
+		switch calls {
+		case 1, 2:
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall(fmt.Sprintf("prior-denied-%d", calls), "goal.decide", map[string]any{"reason": fmt.Sprintf("不同参数 %d", calls)})}}
+		case 3:
+			return fakeProviderResult{ToolCalls: []map[string]any{
+				nativePersonaToolCall("third-denied", "goal.decide", map[string]any{"reason": "第三个参数"}),
+				nativePersonaToolCall("third-catalog", capabilityCatalogName, map[string]any{"names": []any{"memory.recall"}}),
+			}}
+		case 4:
+			tools := arrayValue(payload["tools"])
+			if len(tools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(tools[0])["function"])["name"]), conversationReplyCapabilityName) {
+				t.Error("three separate denied responses did not transition to reply")
+			}
+			for _, id := range []string{"prior-denied-1", "prior-denied-2", "third-denied"} {
+				result := m1ToolResult(payload, id)
+				if result["status"] == "handled" && mapValue(result["output"])["warning_code"] == "capability_not_authorized" {
+					denials++
+				}
+			}
+			catalogLoaded = m1LoadedMemoryTool(m1ToolResult(payload, "third-catalog"))
+			decision := map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}}
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("third-reply", conversationReplyCapabilityName, map[string]any{"text": "我们继续聊。", "decision": decision})}}
+		default:
+			return fakeProviderResult{Status: 400}
+		}
+	})
+	ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "m1-third-denial-batch", router)
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, owner, fid, conversation); err != nil {
+		t.Fatal(err)
+	}
+	persistConversationReplyMode(t, ctx, repo, "direct")
+	_, runErr := app.HandleTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "你好", "turn_id": "m1-third-denial-batch", "idempotency_key": "m1-third-denial-batch", "attachment_refs": []any{}})
+	var messages int
+	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND text='我们继续聊。'`, conversation).Scan(&messages); err != nil {
+		t.Fatal(err)
+	}
+	if runErr != nil || calls != 4 || denials != 3 || !catalogLoaded || messages != 1 {
+		t.Fatalf("third denial blocked same-batch valid tool: model_calls=%d denials=%d catalog_loaded=%t messages=%d err=%v", calls, denials, catalogLoaded, messages, runErr)
+	}
+}
+
 func TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths(t *testing.T) {
 	trace := &ADKCapabilityTrace{}
 	invoker := &appADKCapabilityInvoker{trace: trace, scopeRegistry: mustCapabilityRegistry(builtinCapabilities(nil)...)}

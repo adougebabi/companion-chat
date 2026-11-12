@@ -181,7 +181,9 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		Metadata: InvocationMetadata{WorkingProfileID: workingProfileID, AuthorizationActorID: authorizationActorID, SubjectActorID: subjectActorID, CorrelationID: firstString(providerCorrelation(ctx), firstString(i.request.CorrelationID, "turn:"+i.request.SourceFactID)), OperationID: operationID, FluctlightID: i.request.FluctlightID, ConversationID: i.request.ConversationID, Surface: i.request.Surface, Source: "model_tool"},
 	}, i.request.FluctlightID, i.request.ConversationID, i.request.SourceFactID, i.request.SourceFactID, len(invocations))
 	invocation.ActionID = i.request.ActionID
-	if conversationPublicationPolicyEnabled(ctx) && !conversationLoopNeedsReply(ctx) {
+	publicationPolicy := conversationPublicationPolicyEnabled(ctx)
+	needsReply := publicationPolicy && conversationLoopNeedsReplyBeforeModelSequence(ctx, modelIdentity.ModelCallSequence)
+	if publicationPolicy && !needsReply {
 		if queries := conversationLoadedQueryPhase(ctx); len(queries) > 0 && !containsString(queries, capabilityName) {
 			if previous, found := i.trace.FindResult(callID); found {
 				return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), i.trace.ResultFailure(callID)
@@ -191,7 +193,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 			return jsonString(map[string]any{"status": result.Status, "output": result.Output}), nil
 		}
 	}
-	if conversationPublicationPolicyEnabled(ctx) && capabilityName != conversationReplyCapabilityName && conversationLoopNeedsReply(ctx) {
+	if publicationPolicy && capabilityName != conversationReplyCapabilityName && needsReply {
 		if previous, found := i.trace.FindResult(callID); found {
 			return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), i.trace.ResultFailure(callID)
 		}

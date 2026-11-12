@@ -1,0 +1,9 @@
+COMMAND go test ./internal/core -count=1 -run ^TestM1ThirdDenialDoesNotBlockSameBatchAuthorizedTool$ -v -timeout=10m
+SOURCE 3da8fefc228240084252f4e07e1aa55718b43425 plus M1-03a correction; protected drafts excluded
+=== RUN   TestM1ThirdDenialDoesNotBlockSameBatchAuthorizedTool
+    m1_rejected_reply_loop_test.go:201: third denial blocked same-batch valid tool: model_calls=4 denials=3 catalog_loaded=false messages=1 err=<nil>
+--- FAIL: TestM1ThirdDenialDoesNotBlockSameBatchAuthorizedTool (1.57s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.293s
+FAIL
+EXIT_CODE 1

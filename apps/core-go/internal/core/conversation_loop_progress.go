@@ -9,6 +9,13 @@ import (
 // create new business progress. Once exhausted, keep the turn in expression:
 // the independent Writer still decides its text from actual facts/history.
 func conversationLoopNeedsReply(ctx context.Context) bool {
+	return conversationLoopNeedsReplyBeforeModelSequence(ctx, 0)
+}
+
+// While executing a model response, do not treat a denial in that same
+// response as feedback the model has already received. The next physical
+// request evaluates all results through conversationLoopNeedsReply.
+func conversationLoopNeedsReplyBeforeModelSequence(ctx context.Context, currentSequence uint64) bool {
 	bridge, ok := adkCapabilityContext(ctx)
 	if !ok || bridge.Trace == nil {
 		return false
@@ -38,6 +45,9 @@ func conversationLoopNeedsReply(ctx context.Context) bool {
 			arguments := decodeObject(call.Arguments)
 			unauthorized := noEffect && stringValue(out["warning_code"]) == "capability_not_authorized"
 			if unauthorized {
+				if identity, ok := bridge.Trace.ModelIdentity(call.CallID); ok && currentSequence != 0 && identity.ModelCallSequence == currentSequence {
+					continue
+				}
 				// A run/surface denial cannot be repaired by changing arguments.
 				// Other handled results retain argument-sensitive recovery.
 				arguments = nil
