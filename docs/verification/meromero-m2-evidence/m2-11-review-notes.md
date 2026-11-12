@@ -21,4 +21,5 @@ T06 或 M2。早期测试引入的 legacy 准备凭据回归及修正分别保�
 被误当作图片以及自拍占位未移除。独立审查另指出空清单、音频转图片、
 素材版本变化和普通音频讨论需保持事务一致；对应实测见
 `m2-11-audio-review-fixes.log`，整体定向回归见
-`m2-11-media-kind-regression.log`。选中的真实图片仍不自动证明其画面主体。
+`m2-11-media-kind-regression.log`；受检提交 `b72c723e` 的提交后复验见
+`m2-11-media-kind-postcommit.log`。选中的真实图片仍不自动证明其画面主体。

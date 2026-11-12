@@ -1,0 +1,181 @@
+SOURCE_HEAD b72c723e523d898346b7b020595e7c43b998ba4b CANDIDATE /private/tmp/fluctlight-m2-02-wn4fm8za
+OVERLAYS (none)
+COMMAND go test ./internal/core -count=1 -run ^(TestMomentWithOwnerSelectedAttachmentRemainsPublishable|TestMomentAudioAttachmentDoesNotProvePhoto|TestMomentSelectedAttachmentChangeRollsBackPublication|TestMomentWithoutMediaCannotPublishCompletedPhotoClaim|TestMomentExplicitAttachmentClaimIsRejectedWhenExtractorMissesIt|TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions|TestImplicitMomentMediaClaimUsesRecentHistory|TestMomentPublicationFiltersNativeAndWriterText|TestMomentPublicationRejectsBodylessTextWithoutEffects|TestOwnerRequestedMomentBodyUsesAttachedMediaAndReplays|TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays|TestDirectMomentImageTargetsPublishedMoment|TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable|TestImageDisabledKeepsDirectChatAndTextMomentAvailable|TestPrivateReplyModeSwitchKeepsExplicitFactOnly)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays
+2026/11/12 21:49:18 INFO reply.evidence.reconciled correlation_id=tool-operation:writer-moment-operation metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays (2.47s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/12 21:49:21 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (2.63s)
+=== RUN   TestImageDisabledKeepsDirectChatAndTextMomentAvailable
+2026/11/12 21:49:23 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:image-off-chat metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 21:49:24 INFO reply.evidence.reconciled correlation_id=tool-operation:image-off-independent-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestImageDisabledKeepsDirectChatAndTextMomentAvailable (2.63s)
+=== RUN   TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable
+2026/11/12 21:49:25 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-existing-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:49:26 INFO capability lifecycle capability=capability.catalog call_id=m2-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable (2.18s)
+=== RUN   TestDirectMomentImageTargetsPublishedMoment
+2026/11/12 21:49:28 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:m2-moment-image metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 21:49:28 INFO capability lifecycle capability=capability.catalog call_id=moment-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMomentImageTargetsPublishedMoment (2.70s)
+=== RUN   TestMomentWithoutMediaCannotPublishCompletedPhotoClaim
+2026/11/12 21:49:31 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-false-photo metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:49:31 WARN tool.call.handled capability=moment.publish call_id=direct_call_c81ccc6958e4c53836344ac3b93223de warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:49:31 WARN tool.call.handled capability=moment.publish call_id=direct_call_c81ccc6958e4c53836344ac3b93223de warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestMomentWithoutMediaCannotPublishCompletedPhotoClaim (2.25s)
+=== RUN   TestMomentExplicitAttachmentClaimIsRejectedWhenExtractorMissesIt
+2026/11/12 21:49:33 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-missed-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:49:33 WARN tool.call.handled capability=moment.publish call_id=direct_call_121dfaf43afff2727259c329c522df61 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:49:33 WARN tool.call.handled capability=moment.publish call_id=direct_call_121dfaf43afff2727259c329c522df61 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestMomentExplicitAttachmentClaimIsRejectedWhenExtractorMissesIt (2.50s)
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/mixed-false
+2026/11/12 21:49:35 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/mixed-true
+2026/11/12 21:49:38 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable (4.39s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/mixed-false (2.17s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/mixed-true (2.22s)
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto/false-claim
+2026/11/12 21:49:40 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-audio-moment-false-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:49:40 WARN tool.call.handled capability=moment.publish call_id=direct_call_7d02ac9bd1d8c80d502c341f78bed43b warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:49:40 WARN tool.call.handled capability=moment.publish call_id=direct_call_7d02ac9bd1d8c80d502c341f78bed43b warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto/placeholder
+2026/11/12 21:49:42 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-audio-moment-placeholder metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto/audio-discussion
+2026/11/12 21:49:45 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-audio-moment-audio-discussion metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentAudioAttachmentDoesNotProvePhoto (7.29s)
+    --- PASS: TestMomentAudioAttachmentDoesNotProvePhoto/false-claim (2.40s)
+    --- PASS: TestMomentAudioAttachmentDoesNotProvePhoto/placeholder (2.49s)
+    --- PASS: TestMomentAudioAttachmentDoesNotProvePhoto/audio-discussion (2.39s)
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/selection
+2026/11/12 21:49:47 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/empty-to-image
+2026/11/12 21:49:50 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/image-kind
+2026/11/12 21:49:53 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/audio-to-image
+2026/11/12 21:49:54 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/version
+2026/11/12 21:49:57 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+--- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication (11.87s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/selection (2.64s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/empty-to-image (2.73s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/image-kind (2.47s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/audio-to-image (1.73s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/version (2.30s)
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/ordinary
+2026/11/12 21:49:59 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-ordinary metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/discussion
+2026/11/12 21:50:01 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-discussion metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/post-discussion
+2026/11/12 21:50:04 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-post-discussion metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/post-discussion-order
+2026/11/12 21:50:06 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-post-discussion-order metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/denial
+2026/11/12 21:50:09 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-denial metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/future
+2026/11/12 21:50:11 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-future metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/history-match
+2026/11/12 21:50:13 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-history-match metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/history-mismatch
+2026/11/12 21:50:16 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-history-mismatch metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:50:16 WARN tool.call.handled capability=moment.publish call_id=direct_call_6149b51c5dd417da7752c4e7d0f5343f warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:50:16 WARN tool.call.handled capability=moment.publish call_id=direct_call_6149b51c5dd417da7752c4e7d0f5343f warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/current-post-cannot-borrow-history
+2026/11/12 21:50:18 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-current-post-cannot-borrow-history metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:50:18 WARN tool.call.handled capability=moment.publish call_id=direct_call_43b20a1379854538c416cb0f634b79a1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:50:18 WARN tool.call.handled capability=moment.publish call_id=direct_call_43b20a1379854538c416cb0f634b79a1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/current-post-presence-cannot-borrow-history
+2026/11/12 21:50:22 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-current-post-presence-cannot-borrow-history metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:50:22 WARN tool.call.handled capability=moment.publish call_id=direct_call_b2aeb4bcd8dcb48b9ab1f907dcdf6159 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:50:22 WARN tool.call.handled capability=moment.publish call_id=direct_call_b2aeb4bcd8dcb48b9ab1f907dcdf6159 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/current-post-location-cannot-borrow-history
+2026/11/12 21:50:24 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-claim-current-post-location-cannot-borrow-history metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:50:24 WARN tool.call.handled capability=moment.publish call_id=direct_call_853c6d665f7aef4ba7d954bf3bc1f4e3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:50:24 WARN tool.call.handled capability=moment.publish call_id=direct_call_853c6d665f7aef4ba7d954bf3bc1f4e3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions (26.79s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/ordinary (2.29s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/discussion (2.43s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/post-discussion (2.42s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/post-discussion-order (2.36s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/denial (2.50s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/future (2.37s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/history-match (2.43s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/history-mismatch (2.42s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/current-post-cannot-borrow-history (2.46s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/current-post-presence-cannot-borrow-history (3.33s)
+    --- PASS: TestUnattachedMomentKeepsOrdinaryAndScopedHistoricalExpressions/current-post-location-cannot-borrow-history (1.79s)
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/chat/direct
+2026/11/12 21:50:26 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-implicit-chat-direct metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:50:26 WARN tool.call.handled capability=moment.publish call_id=direct_call_28ab64dc8700d77d762d4da509308bb4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:50:26 WARN tool.call.handled capability=moment.publish call_id=direct_call_28ab64dc8700d77d762d4da509308bb4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/chat/legacy
+2026/11/12 21:50:28 WARN tool.call.handled capability=moment.publish call_id=direct_call_f894f51c1768608ac24934344dd32d4e warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:50:28 WARN tool.call.handled capability=moment.publish call_id=direct_call_f894f51c1768608ac24934344dd32d4e warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/current-post/direct
+2026/11/12 21:50:30 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-implicit-current-post-direct metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:50:30 WARN tool.call.handled capability=moment.publish call_id=direct_call_e2432b9b36c41c479c206554ce9cefbd warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:50:30 WARN tool.call.handled capability=moment.publish call_id=direct_call_e2432b9b36c41c479c206554ce9cefbd warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/current-post/legacy
+2026/11/12 21:50:32 WARN tool.call.handled capability=moment.publish call_id=direct_call_210554ab2a9e92da5682cf55a445b628 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:50:32 WARN tool.call.handled capability=moment.publish call_id=direct_call_210554ab2a9e92da5682cf55a445b628 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/group-photo/direct
+2026/11/12 21:50:34 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-implicit-group-photo-direct metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:50:35 WARN tool.call.handled capability=moment.publish call_id=direct_call_b2ebb18a8b70311c246531148febb94d warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:50:35 WARN tool.call.handled capability=moment.publish call_id=direct_call_b2ebb18a8b70311c246531148febb94d warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/group-photo/legacy
+2026/11/12 21:50:37 WARN tool.call.handled capability=moment.publish call_id=direct_call_1f27232e7470f11a8900d53fa0aface7 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:50:37 WARN tool.call.handled capability=moment.publish call_id=direct_call_1f27232e7470f11a8900d53fa0aface7 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestImplicitMomentMediaClaimUsesRecentHistory (13.15s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/chat/direct (2.19s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/chat/legacy (2.38s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/current-post/direct (1.94s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/current-post/legacy (2.22s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/group-photo/direct (2.25s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/group-photo/legacy (2.16s)
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy/heading
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy/plain
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy/malformed-envelope
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy/fenced
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only/heading
+2026/11/12 21:50:42 INFO reply.evidence.reconciled correlation_id=tool-operation:moment-body-heading metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only/plain
+2026/11/12 21:50:42 INFO reply.evidence.reconciled correlation_id=tool-operation:moment-body-plain metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only/malformed-envelope
+2026/11/12 21:50:42 INFO reply.evidence.reconciled correlation_id=tool-operation:moment-body-malformed-envelope metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only/fenced
+2026/11/12 21:50:42 INFO reply.evidence.reconciled correlation_id=tool-operation:moment-body-fenced metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentPublicationFiltersNativeAndWriterText (4.98s)
+    --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy (2.40s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy/heading (0.02s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy/plain (0.01s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy/malformed-envelope (0.01s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy/fenced (0.01s)
+    --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only (2.58s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only/heading (0.08s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only/plain (0.06s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only/malformed-envelope (0.04s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only/fenced (0.04s)
+=== RUN   TestMomentPublicationRejectsBodylessTextWithoutEffects
+2026/11/12 21:50:44 WARN tool.call.handled capability=moment.publish call_id=direct_call_5e9f2a2382a25f9ca92a7a8b1ffc3a23 warning_code=invalid_arguments disposition=needs_input effect_applied=false
+2026/11/12 21:50:44 WARN tool.call.handled capability=moment.publish call_id=direct_call_5e9f2a2382a25f9ca92a7a8b1ffc3a23 warning_code=invalid_arguments disposition=needs_input effect_applied=false
+2026/11/12 21:50:44 WARN tool.call.handled capability=moment.publish call_id=direct_call_277f2634491ca8f31d2aa51c56f22d09 warning_code=invalid_arguments disposition=needs_input effect_applied=false
+--- PASS: TestMomentPublicationRejectsBodylessTextWithoutEffects (2.34s)
+=== RUN   TestOwnerRequestedMomentBodyUsesAttachedMediaAndReplays
+=== RUN   TestOwnerRequestedMomentBodyUsesAttachedMediaAndReplays/attached-false
+=== RUN   TestOwnerRequestedMomentBodyUsesAttachedMediaAndReplays/attached-true
+--- PASS: TestOwnerRequestedMomentBodyUsesAttachedMediaAndReplays (2.41s)
+    --- PASS: TestOwnerRequestedMomentBodyUsesAttachedMediaAndReplays/attached-false (0.02s)
+    --- PASS: TestOwnerRequestedMomentBodyUsesAttachedMediaAndReplays/attached-true (0.02s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	91.392s
+EXIT_CODE 0
