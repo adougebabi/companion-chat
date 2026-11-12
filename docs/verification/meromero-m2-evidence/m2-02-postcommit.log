@@ -1,5 +1,5 @@
 SOURCE_HEAD bd148af710aaffd72e761647684e0021c722ad40 CANDIDATE /private/tmp/fluctlight-m2-02-u57brrzi
-OVERLAYS 
+OVERLAYS
 COMMAND go test ./internal/core -count=1 -run ^(TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter|TestPrivateReplyModeSwitchKeepsExplicitFactOnly|TestReplyVisionSettingsAreIndependentAndDirectByDefault|TestDirectMainReplyPublishesAndSettlesAtomically|TestDirectMainReplyRetainsExistingDraftContract|TestDirectMainReplyRetainsPriorNativeAction|TestDirectTurnRetryKeepsOriginalModelBinding|TestDurableObserverReceivesDirectMainReply)$ -v -timeout=12m DATABASE disposable-loopback
 === RUN   TestDirectMainReplyPublishesAndSettlesAtomically
 === RUN   TestDirectMainReplyPublishesAndSettlesAtomically/commit
