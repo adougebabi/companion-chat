@@ -1,0 +1,9 @@
+SOURCE_HEAD 1d67046e5c24c5f5d44f4b4411f3461193ecbfec WORKING_TREE includes four preserved pre-existing drafts
+COMMAND go test ./internal/core -count=1 -run ^TestImageDisabledKeepsDirectChatAndTextMomentAvailable$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestImageDisabledKeepsDirectChatAndTextMomentAvailable
+2026/11/12 16:40:54 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:image-off-chat metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 16:40:54 INFO reply.evidence.reconciled correlation_id=tool-operation:image-off-independent-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestImageDisabledKeepsDirectChatAndTextMomentAvailable (1.66s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.511s
+EXIT_CODE 0

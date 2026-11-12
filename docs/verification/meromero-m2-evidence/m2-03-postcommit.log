@@ -1,0 +1,41 @@
+SOURCE_HEAD 1d67046e5c24c5f5d44f4b4411f3461193ecbfec CANDIDATE /private/tmp/fluctlight-m2-02-oyx6mrr1
+OVERLAYS (none)
+COMMAND go test ./internal/core -count=1 -run ^(TestImageDisabledKeepsDirectChatAndTextMomentAvailable|TestDomainPluginConfigurationAndRegistration|TestDomainPluginDiscoveryAndExecutionAgree|TestDomainPluginDisabledToolsOnPhysicalRequests|TestDomainPluginPostgresSettingsAdmissionAndReplay|TestDisabledImagePluginRecoversAcceptedReadyIntentOnce|TestDomainPluginPostgresNativeAgentReceiptReplay|TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays|TestFormalAgentReplaysCommittedToolAfterPluginDisabled|TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestFormalAgentReplaysCommittedToolAfterPluginDisabled
+--- PASS: TestFormalAgentReplaysCommittedToolAfterPluginDisabled (2.10s)
+=== RUN   TestDomainPluginPostgresSettingsAdmissionAndReplay
+--- PASS: TestDomainPluginPostgresSettingsAdmissionAndReplay (2.28s)
+=== RUN   TestDisabledImagePluginRecoversAcceptedReadyIntentOnce
+--- PASS: TestDisabledImagePluginRecoversAcceptedReadyIntentOnce (1.50s)
+=== RUN   TestDomainPluginPostgresNativeAgentReceiptReplay
+--- PASS: TestDomainPluginPostgresNativeAgentReceiptReplay (1.99s)
+=== RUN   TestDomainPluginConfigurationAndRegistration
+--- PASS: TestDomainPluginConfigurationAndRegistration (0.00s)
+=== RUN   TestDomainPluginDiscoveryAndExecutionAgree
+--- PASS: TestDomainPluginDiscoveryAndExecutionAgree (0.00s)
+=== RUN   TestDomainPluginDisabledToolsOnPhysicalRequests
+=== RUN   TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=true/stream=false
+=== RUN   TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=true/stream=true
+=== RUN   TestDomainPluginDisabledToolsOnPhysicalRequests/image=true/moment=false/stream=false
+=== RUN   TestDomainPluginDisabledToolsOnPhysicalRequests/image=true/moment=false/stream=true
+=== RUN   TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=false/stream=false
+=== RUN   TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=false/stream=true
+--- PASS: TestDomainPluginDisabledToolsOnPhysicalRequests (0.03s)
+    --- PASS: TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=true/stream=false (0.01s)
+    --- PASS: TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=true/stream=true (0.00s)
+    --- PASS: TestDomainPluginDisabledToolsOnPhysicalRequests/image=true/moment=false/stream=false (0.00s)
+    --- PASS: TestDomainPluginDisabledToolsOnPhysicalRequests/image=true/moment=false/stream=true (0.00s)
+    --- PASS: TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=false/stream=false (0.00s)
+    --- PASS: TestDomainPluginDisabledToolsOnPhysicalRequests/image=false/moment=false/stream=true (0.00s)
+=== RUN   TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays
+2026/11/12 16:39:46 INFO reply.evidence.reconciled correlation_id=tool-operation:writer-moment-operation metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays (1.91s)
+=== RUN   TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter
+--- PASS: TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter (1.60s)
+=== RUN   TestImageDisabledKeepsDirectChatAndTextMomentAvailable
+2026/11/12 16:39:50 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:image-off-chat metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 16:39:50 INFO reply.evidence.reconciled correlation_id=tool-operation:image-off-independent-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestImageDisabledKeepsDirectChatAndTextMomentAvailable (2.11s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	14.193s
+EXIT_CODE 0

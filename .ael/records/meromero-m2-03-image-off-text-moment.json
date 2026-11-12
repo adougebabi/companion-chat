@@ -16,14 +16,14 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "execute",
-  "status": "open",
-  "candidate": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "3c9e349936307ca2e719d7c806c4728ca3cf007fa60e31f2d41894d196e17da8",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-12T08:33:18.77487Z",
-  "updated": "2026-11-12T08:38:18.576797Z",
-  "completed": null,
+  "updated": "2026-11-12T08:43:09.930614Z",
+  "completed": "2026-11-12T08:43:09.930432Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -54,13 +54,40 @@
         "unit": "execute",
         "executor": "codex-m2-03",
         "input_version": "c50770c6a6a49a1c84b4f28c0d22934bb1784eb3e178fa851e4196681138b19a",
-        "candidate_version": "",
+        "candidate_version": "3c9e349936307ca2e719d7c806c4728ca3cf007fa60e31f2d41894d196e17da8",
         "started": "2026-11-12T08:35:02.744955Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-12T08:38:54.110285Z",
+        "status": "pass",
+        "reason": "提交 1d67046e；隔离 PostgreSQL 和受控 Provider 证明禁用 Image 不阻碍 direct 私聊、Agent/独立纯文字 Moment 与重放；新 Image 被拒绝。未修改生产实现，真实模型和渲染未以替身冒充。"
+      },
+      {
+        "id": "AT-389bd85fd419d40654c8",
+        "unit": "check:m2-03-scenario",
+        "executor": "codex-m2-03",
+        "input_version": "3c9e349936307ca2e719d7c806c4728ca3cf007fa60e31f2d41894d196e17da8",
+        "candidate_version": "3c9e349936307ca2e719d7c806c4728ca3cf007fa60e31f2d41894d196e17da8",
+        "started": "2026-11-12T08:42:53.654352Z",
+        "ended": "2026-11-12T08:42:53.763899Z",
+        "status": "pass",
+        "reason": "受检源码 1d67046e：干净导出在一次性隔离 PostgreSQL 执行 10 个顶层相关测试均通过、无 SKIP；另在含四处原有草稿的当前工作区运行主要场景通过。Provider 为受控替身，不等于真实模型或渲染通过。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "m2-03-scenario",
+        "result": "pass",
+        "source": "scenario:codex-m2-03",
+        "config_hash": "c79c0881309e32bbf04dfb0c68c7e32a522247c35a6469ccec50ccdedb3ae7ca",
+        "at": "2026-11-12T08:42:53.763445Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/domain_plugins.go": "236916c540d8e7d63a3ad9d00a00877fdab595bbdd7e09c39a342236d55337a2",
+          "apps/core-go/internal/core/domain_plugins_integration_test.go": "f5ffbeeb0a34ee97d83c6095eed9b9d111524f51e553ae597a7c7c9c798c4949",
+          "apps/core-go/internal/core/fact_only_moment_capability.go": "7335f99d0d1820ee833441b8806b12ffcaf96ae01c1498b67cd3a5b3f91b9ceb",
+          "apps/core-go/internal/core/m2_image_disabled_text_moment_test.go": "987736c69fb9beadbcf631001a84a709ef0fd30e54bd88c76a06c94a00d73433",
+          "docs/verification/meromero-m2-evidence/m2-03-initial.log": "24ff4fba324d01a41e82b078e5033db7f2f2b51a7e897f3603168b0a427cc9a6",
+          "docs/verification/meromero-m2-evidence/m2-03-regression.log": "ed2389ca8122470d1ccc8b820772fed36eaa30ca68faa5b6de4862283e474367"
+        }
+      }
+    ]
   }
 }
