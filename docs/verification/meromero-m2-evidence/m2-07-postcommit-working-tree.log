@@ -1,0 +1,9 @@
+SOURCE_HEAD 04ac059f29159ac2902f27990f1cc530323dd1fc WORKING_TREE includes four preserved pre-existing drafts
+COMMAND go test ./internal/core -count=1 -run ^TestDefaultDirectWearsBeforeSelfieAndDeliversOnce$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDefaultDirectWearsBeforeSelfieAndDeliversOnce
+2026/11/12 19:18:29 INFO capability lifecycle capability=capability.catalog call_id=m2-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 19:18:29 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDefaultDirectWearsBeforeSelfieAndDeliversOnce (2.86s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.544s
+EXIT_CODE 0

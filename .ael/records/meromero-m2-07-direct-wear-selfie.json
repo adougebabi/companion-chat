@@ -16,14 +16,14 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "execute",
-  "status": "open",
-  "candidate": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "c30156abb68ca43d0c2854a6759f54ac6638cb9cb8da2198f111d40e83fc343e",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-12T11:06:53.649723Z",
-  "updated": "2026-11-12T11:08:25.234736Z",
-  "completed": null,
+  "updated": "2026-11-12T11:19:22.620128Z",
+  "completed": "2026-11-12T11:19:22.619827Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -54,13 +54,41 @@
         "unit": "execute",
         "executor": "codex-m2-07",
         "input_version": "1bacfa10ed8a52e5b7d8072b3de869b94d46a4ce9688d6a4fcc0b4ea6a40fdd2",
-        "candidate_version": "",
+        "candidate_version": "c30156abb68ca43d0c2854a6759f54ac6638cb9cb8da2198f111d40e83fc343e",
         "started": "2026-11-12T11:08:24.985676Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-12T11:17:14.8068Z",
+        "status": "pass",
+        "reason": "提交 04ac059f：新增默认 direct 对话中查询衣柜、使用实际回执换衣、自拍快照、受控渲染和幂等交付的正式路径测试；无生产实现改动。前两次测试失败分别为测试衣物与渲染夹具问题，均已保存。"
+      },
+      {
+        "id": "AT-53a37cf9caab5fa2fde3",
+        "unit": "check:m2-07-scenario",
+        "executor": "codex-m2-07",
+        "input_version": "c30156abb68ca43d0c2854a6759f54ac6638cb9cb8da2198f111d40e83fc343e",
+        "candidate_version": "c30156abb68ca43d0c2854a6759f54ac6638cb9cb8da2198f111d40e83fc343e",
+        "started": "2026-11-12T11:19:14.282586Z",
+        "ended": "2026-11-12T11:19:14.391656Z",
+        "status": "pass",
+        "reason": "受检提交 04ac059f：干净导出无覆盖、隔离 PostgreSQL 与受控服务下，9 个顶层 Go 用例通过、无 SKIP；含四处原有草稿的工作区主场景通过。正式 direct 通过衣柜真实回执完成换衣，自拍受理前核对持久穿着，媒体快照和渲染请求使用该穿着，受控结果交付并重放各一次。提交后日志暂存 /private/tmp/fluctlight-m2-07-postcommit.log 和 /private/tmp/fluctlight-m2-07-postcommit-working-tree.log，随后归档。Provider、图片和审核均为受控替身，不代表真实生图、真实模型或 M2 整体验收。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "m2-07-scenario",
+        "result": "pass",
+        "source": "scenario:codex-m2-07",
+        "config_hash": "76216d041b056e4dc00e241d56f99c498258057868eff0061a122320a0983329",
+        "at": "2026-11-12T11:19:14.391403Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/m2_default_private_reply_test.go": "35a443ff51f13d9575e1aecb886c1a83a98b973116a4109049ffaf95b3ae94b4",
+          "apps/core-go/internal/core/m2_direct_wear_selfie_test.go": "2dd5c4169ec4ea49a1ccc296a10579996f0aa250d1d3daac01fc7c4a237ce532",
+          "apps/core-go/internal/core/media.go": "45da292777b9045d4f5cb80f040ae4b7dc99889976ac53daed544e9bd0baf80e",
+          "docs/verification/meromero-m2-evidence/m2-07-final-precommit.log": "0668b3cb99aeab8a78b5982bc448083b42085f92a18941877e60f76361507457",
+          "docs/verification/meromero-m2-evidence/m2-07-fixture-2.log": "4cd307091bbafc655eae75e4e3be56b2c357242b6abd899a1fe066121e60321b",
+          "docs/verification/meromero-m2-evidence/m2-07-initial.log": "3b72e2f2326ca0d8331e6b8305b3ac3d2f834ff6187deef195730c6aa3f18d67",
+          "docs/verification/meromero-m2-evidence/m2-07-precommit.log": "098825647d6a8c1646819407e7f3a5a6a22f89e041b8a2aebfb982ddad6ced22"
+        }
+      }
+    ]
   }
 }

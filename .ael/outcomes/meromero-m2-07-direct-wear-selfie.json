@@ -1,0 +1,28 @@
+{
+  "id": "meromero-m2-07-direct-wear-selfie",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "c30156abb68ca43d0c2854a6759f54ac6638cb9cb8da2198f111d40e83fc343e",
+  "completed": "2026-11-12T11:19:22.619827Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "m2-07-scenario",
+      "result": "pass",
+      "source": "scenario:codex-m2-07",
+      "config_hash": "76216d041b056e4dc00e241d56f99c498258057868eff0061a122320a0983329",
+      "at": "2026-11-12T11:19:14.391403Z",
+      "artifact_hashes": {
+        "apps/core-go/internal/core/m2_default_private_reply_test.go": "35a443ff51f13d9575e1aecb886c1a83a98b973116a4109049ffaf95b3ae94b4",
+        "apps/core-go/internal/core/m2_direct_wear_selfie_test.go": "2dd5c4169ec4ea49a1ccc296a10579996f0aa250d1d3daac01fc7c4a237ce532",
+        "apps/core-go/internal/core/media.go": "45da292777b9045d4f5cb80f040ae4b7dc99889976ac53daed544e9bd0baf80e",
+        "docs/verification/meromero-m2-evidence/m2-07-final-precommit.log": "0668b3cb99aeab8a78b5982bc448083b42085f92a18941877e60f76361507457",
+        "docs/verification/meromero-m2-evidence/m2-07-fixture-2.log": "4cd307091bbafc655eae75e4e3be56b2c357242b6abd899a1fe066121e60321b",
+        "docs/verification/meromero-m2-evidence/m2-07-initial.log": "3b72e2f2326ca0d8331e6b8305b3ac3d2f834ff6187deef195730c6aa3f18d67",
+        "docs/verification/meromero-m2-evidence/m2-07-precommit.log": "098825647d6a8c1646819407e7f3a5a6a22f89e041b8a2aebfb982ddad6ced22"
+      }
+    }
+  ]
+}
