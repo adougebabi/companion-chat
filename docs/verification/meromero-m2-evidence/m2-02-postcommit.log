@@ -1,0 +1,34 @@
+SOURCE_HEAD bd148af710aaffd72e761647684e0021c722ad40 CANDIDATE /private/tmp/fluctlight-m2-02-u57brrzi
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^(TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter|TestPrivateReplyModeSwitchKeepsExplicitFactOnly|TestReplyVisionSettingsAreIndependentAndDirectByDefault|TestDirectMainReplyPublishesAndSettlesAtomically|TestDirectMainReplyRetainsExistingDraftContract|TestDirectMainReplyRetainsPriorNativeAction|TestDirectTurnRetryKeepsOriginalModelBinding|TestDurableObserverReceivesDirectMainReply)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/commit
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/rollback
+--- PASS: TestDirectMainReplyPublishesAndSettlesAtomically (3.24s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/commit (2.09s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/rollback (1.16s)
+=== RUN   TestDirectMainReplyRetainsExistingDraftContract
+--- PASS: TestDirectMainReplyRetainsExistingDraftContract (1.28s)
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction/success
+2026/11/12 16:26:27 INFO capability lifecycle capability=capability.catalog call_id=direct-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction/settlement_failure
+2026/11/12 16:26:28 INFO capability lifecycle capability=capability.catalog call_id=direct-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMainReplyRetainsPriorNativeAction (3.26s)
+    --- PASS: TestDirectMainReplyRetainsPriorNativeAction/success (1.96s)
+    --- PASS: TestDirectMainReplyRetainsPriorNativeAction/settlement_failure (1.30s)
+=== RUN   TestDirectTurnRetryKeepsOriginalModelBinding
+    direct_turn_model_snapshot_integration_test.go:108: M1_04B first=model-a retry=model-a new_turn=model-b fingerprint_preserved=true snapshot_has_secret=false
+--- PASS: TestDirectTurnRetryKeepsOriginalModelBinding (1.77s)
+=== RUN   TestDurableObserverReceivesDirectMainReply
+--- PASS: TestDurableObserverReceivesDirectMainReply (1.49s)
+=== RUN   TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter
+--- PASS: TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter (1.59s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/12 16:26:34 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (1.11s)
+=== RUN   TestReplyVisionSettingsAreIndependentAndDirectByDefault
+--- PASS: TestReplyVisionSettingsAreIndependentAndDirectByDefault (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	14.454s
+EXIT_CODE 0

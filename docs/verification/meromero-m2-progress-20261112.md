@@ -8,3 +8,11 @@
 | M2-02 | T04：默认私聊使用现有配置的主模型及原生工具链，不固定进入独立 Writer | BLOCKED | 未设置 mode 时默认 direct；已保存或显式选择的 fact_only/legacy 继续生效，开关保留，不写死模型 ID。隔离库与受控 Provider 已验证默认选模、variant 覆盖、模式切换、原生查询、认知结算、幂等、旧草稿和相关回归；页面测试通过。本机真实 MeroMero 默认私聊发出 3 次请求后因 `direct_reply_arguments_unresolved` 未发布，真实模型合同未通过。保留日志 `meromero-m2-evidence/m2-02-live-default.log` 与请求证据 `meromero-m2-evidence/m2-02-live-default.json`，按用户要求不调整 Prompt、采样或合同。 |
 
 M1 中同一调用 ID 重放的非阻断缺陷已登记 AEL，按用户要求暂缓，不在 M2 顺手修复。其余 M2 验收仍按原 T03～T06 和里程碑要求逐项处理，不以局部完成替代父任务验收。
+
+M2-02 的受检代码已保全为 `bd148af710aaffd72e761647684e0021c722ad40`。
+提交后使用干净导出、无额外源码覆盖及一次性 PostgreSQL 复跑 8 个顶层 Go
+用例，退出 0、无 SKIP；Web 定向 4 项退出 0、无 SKIP。日志分别为
+`meromero-m2-evidence/m2-02-postcommit.log` 和 `meromero-m2-evidence/m2-02-web-postcommit.log`。
+真实模型失败前的请求证据含前两次工具参数，第三次响应仅保留工具名及调用 ID
+是否存在，不能当作完整原始响应；首次测试脚本不兼容本机 Python、以及切换测试
+读取版本类型错误的失败和修正也分别保留在对应日志中。
