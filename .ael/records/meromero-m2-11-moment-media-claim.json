@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "",
+  "failure": "提交 66b2cf94 保存红测：独立 Moment Writer 在没有附件时仍将照片已附在本条动态的正文正式发布。现有检查器证据域仅覆盖私聊实际交付，动态可在同一发布事务绑定 Owner 选定资产，历史动态也不在该证据域内；M2-01 的真实模型语义核验仍失败。需先补可事务复核的动态附件/历史证据及可靠语义核验，避免将任意现有附件误作当前动态证明或误拦历史表达。按用户要求遇阻跳过，未改生产代码；红测源码作为 .go.txt 保存，不进入正常套件。",
   "result": "",
   "created": "2026-11-12T12:09:52.532046Z",
-  "updated": "2026-11-12T12:10:34.091275Z",
+  "updated": "2026-11-12T12:18:43.647402Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -54,11 +54,11 @@
         "unit": "execute",
         "executor": "codex-m2-11",
         "input_version": "75e84cf99961a89071b411ac310d0dce28f9466a2118f2633972d0cfc4694caa",
-        "candidate_version": "",
+        "candidate_version": "930c19dae0967ac883469e20b1e297958eafd1567978d2dc9e77880b6cdc31ce",
         "started": "2026-11-12T12:10:33.899444Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-12T12:18:33.6099Z",
+        "status": "blocked",
+        "reason": "提交 66b2cf94 保存红测：独立 Moment Writer 在没有附件时仍将照片已附在本条动态的正文正式发布。现有检查器证据域仅覆盖私聊实际交付，动态可在同一发布事务绑定 Owner 选定资产，历史动态也不在该证据域内；M2-01 的真实模型语义核验仍失败。需先补可事务复核的动态附件/历史证据及可靠语义核验，避免将任意现有附件误作当前动态证明或误拦历史表达。按用户要求遇阻跳过，未改生产代码；红测源码作为 .go.txt 保存，不进入正常套件。"
       }
     ],
     "checks": null
