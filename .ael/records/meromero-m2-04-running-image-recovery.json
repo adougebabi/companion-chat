@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-04-running-image-recovery",
+  "definition_hash": "fe20896649c3e131c26dd3dbf5d0c51cc751e4ab9f969d1df79af9d929cf6028",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T08:48:43.260251Z",
+  "updated": "2026-11-12T08:54:08.524678Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-c33870cfe69234d1062e",
+        "unit": "define",
+        "executor": "codex-m2-04",
+        "input_version": "a54ef7e53d525424c1a0a59db1a5db6202e30ae86f690402fc7b9c84fcec15ad",
+        "candidate_version": "a54ef7e53d525424c1a0a59db1a5db6202e30ae86f690402fc7b9c84fcec15ad",
+        "started": "2026-11-12T08:49:10.571688Z",
+        "ended": "2026-11-12T08:49:10.949942Z",
+        "status": "pass",
+        "reason": "范围仅为已持久化 job ID、尚未 ready 的图片跨进程恢复，不宣称真实 Temporal 或渲染已验证。"
+      },
+      {
+        "id": "AT-f5b7ee7211328a29fe4e",
+        "unit": "analysis",
+        "executor": "codex-m2-04",
+        "input_version": "a54ef7e53d525424c1a0a59db1a5db6202e30ae86f690402fc7b9c84fcec15ad",
+        "candidate_version": "a54ef7e53d525424c1a0a59db1a5db6202e30ae86f690402fc7b9c84fcec15ad",
+        "started": "2026-11-12T08:49:31.596528Z",
+        "ended": "2026-11-12T08:49:31.97877Z",
+        "status": "pass",
+        "reason": "已核对媒体 intent、job 持久化、轮询及交付入口；用隔离数据库与本机受控 HTTP 服务验证跨进程恢复和幂等。"
+      },
+      {
+        "id": "AT-223a6620f69dd652482d",
+        "unit": "execute",
+        "executor": "codex-m2-04",
+        "input_version": "a54ef7e53d525424c1a0a59db1a5db6202e30ae86f690402fc7b9c84fcec15ad",
+        "candidate_version": "",
+        "started": "2026-11-12T08:49:52.816407Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}

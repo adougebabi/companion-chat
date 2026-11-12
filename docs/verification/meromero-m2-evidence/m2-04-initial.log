@@ -1,0 +1,18 @@
+SOURCE_HEAD 79aeafe8359e99ba365dc283cb08651841a70569 CANDIDATE /private/tmp/fluctlight-m2-02-_6k3gx_h
+OVERLAYS apps/core-go/internal/core/m2_running_image_recovery_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestImageRunningJobRecoversAcrossProcessesAfterDisable$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestImageRunningJobRecoversAcrossProcessesAfterDisable
+    m2_running_image_recovery_test.go:154: child phase=interrupt pid=18189 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:219: controlled renderer history failed after submission, as intended
+        --- PASS: TestImageRunningJobRecoveryChild (0.07s)
+        PASS
+    m2_running_image_recovery_test.go:164: child phase=resume pid=18191 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:229: resume and replay completed once; child pid=18191
+        --- PASS: TestImageRunningJobRecoveryChild (0.06s)
+        PASS
+--- PASS: TestImageRunningJobRecoversAcrossProcessesAfterDisable (2.04s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.786s
+EXIT_CODE 0
