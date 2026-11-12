@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "复核完整 Prompt/历史的调试权限：当前服务只有 Owner 与服务会话校验，没有可复用的独立调试授权；新旧 model-runs、media-prompts、事件 payload 及记录搜索都可能访问或间接探测原始内容。诊断写入由 API/Worker 和 ProviderRuntimeSupport 多入口执行，而 agent_runs.result 同时承担业务恢复，不能直接删减作为权限替代。未实现只覆盖单一 API 或仅隐藏 UI 的不完整开关，也未变更现有业务恢复和生产日志行为。仍需定义可控的默认关闭授权、覆盖写入/历史读取/搜索旁路并验证 UI 表达与保留期限；通用安全重放、真实服务和端到端仍未完成。按用户授权保留未完成并继续。",
+  "failure": "部分实施已提交 4f2cf83c：Moment 管理卡可显式检查当前进程注册和 Owner 动态列表，配置重读和并发请求不会沿用过期反馈。提交后受控 React 18 项和本机隔离 PostgreSQL HTTP 场景通过；未验证发布、模型、事件投递或真实浏览器端到端。完整 Prompt/历史独立调试权限、通用安全重放、真实 ComfyUI 与完整管理闭环仍未完成。按用户要求暂存本批，返回 T03 按顺序处理。",
   "result": "",
   "created": "2026-11-10T08:34:31.268392Z",
-  "updated": "2026-11-11T19:41:55.026744Z",
+  "updated": "2026-11-12T00:53:38.681537Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -81,6 +81,17 @@
         "ended": "2026-11-11T19:41:50.834187Z",
         "status": "fail",
         "reason": "复核完整 Prompt/历史的调试权限：当前服务只有 Owner 与服务会话校验，没有可复用的独立调试授权；新旧 model-runs、media-prompts、事件 payload 及记录搜索都可能访问或间接探测原始内容。诊断写入由 API/Worker 和 ProviderRuntimeSupport 多入口执行，而 agent_runs.result 同时承担业务恢复，不能直接删减作为权限替代。未实现只覆盖单一 API 或仅隐藏 UI 的不完整开关，也未变更现有业务恢复和生产日志行为。仍需定义可控的默认关闭授权、覆盖写入/历史读取/搜索旁路并验证 UI 表达与保留期限；通用安全重放、真实服务和端到端仍未完成。按用户授权保留未完成并继续。"
+      },
+      {
+        "id": "AT-39f1978236721c6f31b3",
+        "unit": "execute",
+        "executor": "codex-t11-moment-health",
+        "input_version": "e38c7c43bda849043a341ac5871c176cf430d9dd7523bcb39ae33302eb023d4a",
+        "candidate_version": "4c3a4659f449c572c09097a1438d7c81b411a3744dc9517e54b0b25314bb041d",
+        "started": "2026-11-12T00:13:14.320375Z",
+        "ended": "2026-11-12T00:53:27.588794Z",
+        "status": "fail",
+        "reason": "部分实施已提交 4f2cf83c：Moment 管理卡可显式检查当前进程注册和 Owner 动态列表，配置重读和并发请求不会沿用过期反馈。提交后受控 React 18 项和本机隔离 PostgreSQL HTTP 场景通过；未验证发布、模型、事件投递或真实浏览器端到端。完整 Prompt/历史独立调试权限、通用安全重放、真实 ComfyUI 与完整管理闭环仍未完成。按用户要求暂存本批，返回 T03 按顺序处理。"
       }
     ],
     "checks": null
