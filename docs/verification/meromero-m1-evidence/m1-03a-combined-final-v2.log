@@ -1,0 +1,58 @@
+COMMAND go test ./internal/core -count=1 -run ^(TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops|TestM1AuthorizedToolStillAvailableAfterTwoDenials|TestM1SameBatchDenialsDoNotBlockAuthorizedTool|TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths|TestR9DiscoveryReadsBeforeReplyAndActualProgressReopensMedia|TestDirectReplyDoesNotPublishUndeliveredPhotoClaim|TestDirectMediaAndReply|TestDirectMainReply) -v -timeout=10m
+SOURCE 988c7cc3b7166dd736d00dde45ba81295256f023 plus M1-01 and M1-03a files; protected drafts excluded
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/commit
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/rollback
+--- PASS: TestDirectMainReplyPublishesAndSettlesAtomically (2.81s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/commit (1.36s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/rollback (1.45s)
+=== RUN   TestDirectMainReplyRetainsExistingDraftContract
+--- PASS: TestDirectMainReplyRetainsExistingDraftContract (1.44s)
+=== RUN   TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce
+--- PASS: TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce (1.58s)
+=== RUN   TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls
+=== RUN   TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/schema
+=== RUN   TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/foreign_goal
+--- PASS: TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls (2.83s)
+    --- PASS: TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/schema (1.40s)
+    --- PASS: TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/foreign_goal (1.43s)
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction/success
+2026/11/12 13:36:55 INFO capability lifecycle capability=capability.catalog call_id=direct-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction/settlement_failure
+2026/11/12 13:36:57 INFO capability lifecycle capability=capability.catalog call_id=direct-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMainReplyRetainsPriorNativeAction (2.95s)
+    --- PASS: TestDirectMainReplyRetainsPriorNativeAction/success (1.46s)
+    --- PASS: TestDirectMainReplyRetainsPriorNativeAction/settlement_failure (1.48s)
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_false
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_true
+--- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted (2.72s)
+    --- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_false (1.43s)
+    --- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_true (1.29s)
+=== RUN   TestDirectMediaAndReplyRepeatedBatchStops
+--- PASS: TestDirectMediaAndReplyRepeatedBatchStops (0.92s)
+=== RUN   TestDirectReplyDoesNotPublishUndeliveredPhotoClaim
+2026/11/12 13:37:01 WARN tool.call.handled capability=conversation.reply call_id=direct-media-claim-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 13:37:01 WARN tool.call.handled capability=conversation.reply call_id=direct-media-claim-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 13:37:01 WARN tool.call.handled capability=conversation.reply call_id=direct-media-claim-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 13:37:01 WARN tool.call.handled capability=conversation.reply call_id=direct-media-claim-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 13:37:02 WARN tool.call.handled capability=conversation.reply call_id=direct-media-claim-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 13:37:02 WARN tool.call.handled capability=conversation.reply call_id=direct-media-claim-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestDirectReplyDoesNotPublishUndeliveredPhotoClaim (1.09s)
+=== RUN   TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops
+--- PASS: TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops (1.18s)
+=== RUN   TestM1AuthorizedToolStillAvailableAfterTwoDenials
+2026/11/12 13:37:04 INFO capability lifecycle capability=capability.catalog call_id=load-memory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 13:37:04 INFO capability lifecycle capability=memory.recall call_id=recall-memory type=query surface=conversation required_context=[memory_scope] duration_ms=2 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestM1AuthorizedToolStillAvailableAfterTwoDenials (1.13s)
+=== RUN   TestM1SameBatchDenialsDoNotBlockAuthorizedTool
+2026/11/12 13:37:05 INFO capability lifecycle capability=capability.catalog call_id=batch-catalog type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestM1SameBatchDenialsDoNotBlockAuthorizedTool (1.19s)
+=== RUN   TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths
+--- PASS: TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths (0.00s)
+=== RUN   TestR9DiscoveryReadsBeforeReplyAndActualProgressReopensMedia
+--- PASS: TestR9DiscoveryReadsBeforeReplyAndActualProgressReopensMedia (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	20.519s
+EXIT_CODE 0

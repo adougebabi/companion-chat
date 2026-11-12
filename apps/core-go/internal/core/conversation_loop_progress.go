@@ -1,6 +1,9 @@
 package core
 
-import "context"
+import (
+	"context"
+	"strconv"
+)
 
 // Re-reading the same facts or repeating the same no-effect rejection cannot
 // create new business progress. Once exhausted, keep the turn in expression:
@@ -20,6 +23,7 @@ func conversationLoopNeedsReply(ctx context.Context) bool {
 		calls[call.CallID] = call
 	}
 	seen := map[string]int{}
+	deniedRounds := map[string]map[string]bool{}
 	ready := false
 	for _, result := range results {
 		call, exists := calls[result.CallID]
@@ -31,13 +35,37 @@ func conversationLoopNeedsReply(ctx context.Context) bool {
 		noEffect := result.Status == "handled" && out["effect_applied"] == false
 		query := installed && definition.Type == CapabilityTypeQuery && result.Status == "completed" && result.CapabilityName != capabilityCatalogName && result.CapabilityName != capabilityDiscoverName
 		if query || noEffect {
-			fingerprint := jsonString(map[string]any{"name": result.CapabilityName, "arguments": decodeObject(call.Arguments), "status": result.Status, "output": result.Output})
-			seen[fingerprint]++
+			arguments := decodeObject(call.Arguments)
+			unauthorized := noEffect && stringValue(out["warning_code"]) == "capability_not_authorized"
+			if unauthorized {
+				// A run/surface denial cannot be repaired by changing arguments.
+				// Other handled results retain argument-sensitive recovery.
+				arguments = nil
+			}
+			fingerprint := jsonString(map[string]any{"name": result.CapabilityName, "arguments": arguments, "status": result.Status, "output": result.Output})
+			if unauthorized {
+				// Multiple calls returned by one physical model response have not
+				// yet received feedback and count as one attempt, not a loop.
+				round := "call:" + call.CallID
+				if identity, ok := bridge.Trace.ModelIdentity(call.CallID); ok && identity.ModelCallSequence != 0 {
+					round = "model:" + strconv.FormatUint(identity.ModelCallSequence, 10)
+				}
+				if deniedRounds[fingerprint] == nil {
+					deniedRounds[fingerprint] = map[string]bool{}
+				}
+				if !deniedRounds[fingerprint][round] {
+					deniedRounds[fingerprint][round] = true
+					seen[fingerprint]++
+				}
+			} else {
+				seen[fingerprint]++
+			}
 			if seen[fingerprint] >= 3 {
 				ready = true
 			}
 		} else if installed && definition.Type == CapabilityTypeAction && (result.Status == "completed" || result.Status == "accepted") {
 			seen = map[string]int{}
+			deniedRounds = map[string]map[string]bool{}
 			ready = false
 		}
 	}

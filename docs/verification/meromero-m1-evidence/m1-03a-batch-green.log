@@ -1,0 +1,12 @@
+COMMAND go test ./internal/core -count=1 -run ^TestM1SameBatchDenialsDoNotBlockAuthorizedTool$|^TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops$|^TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths$ -v -timeout=10m
+SOURCE 988c7cc3b7166dd736d00dde45ba81295256f023 plus M1-03a files; protected drafts excluded
+=== RUN   TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops
+--- PASS: TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops (1.93s)
+=== RUN   TestM1SameBatchDenialsDoNotBlockAuthorizedTool
+2026/11/12 13:32:24 INFO capability lifecycle capability=capability.catalog call_id=batch-catalog type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestM1SameBatchDenialsDoNotBlockAuthorizedTool (1.76s)
+=== RUN   TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths
+--- PASS: TestM1UnauthorizedRepetitionKeepsOtherRecoveryPaths (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	4.395s
+EXIT_CODE 0

@@ -1,0 +1,9 @@
+COMMAND go test ./internal/core -count=1 -run ^TestM1AuthorizedToolStillAvailableAfterTwoDenials$ -v -timeout=10m
+SOURCE 988c7cc3b7166dd736d00dde45ba81295256f023 plus M1-03a files; protected drafts excluded
+=== RUN   TestM1AuthorizedToolStillAvailableAfterTwoDenials
+2026/11/12 13:35:36 INFO capability lifecycle capability=capability.catalog call_id=load-memory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 13:35:36 INFO capability lifecycle capability=memory.recall call_id=recall-memory type=query surface=conversation required_context=[memory_scope] duration_ms=3 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestM1AuthorizedToolStillAvailableAfterTwoDenials (1.85s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.677s
+EXIT_CODE 0

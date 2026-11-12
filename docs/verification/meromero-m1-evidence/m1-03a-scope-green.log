@@ -1,0 +1,7 @@
+COMMAND go test ./internal/core -count=1 -run ^TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops$ -v -timeout=10m
+SOURCE 988c7cc3b7166dd736d00dde45ba81295256f023 plus M1-03a files; protected drafts excluded
+=== RUN   TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops
+--- PASS: TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops (2.40s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.072s
+EXIT_CODE 0

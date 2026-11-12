@@ -1,0 +1,11 @@
+COMMAND go test ./internal/core -count=1 -run ^TestM1DeniedReplyDoesNotLoopOnFreshCallIDs$ -v -timeout=10m
+SOURCE 988c7cc3b7166dd736d00dde45ba81295256f023 plus M1-03a files; protected drafts excluded
+=== RUN   TestM1DeniedReplyDoesNotLoopOnFreshCallIDs
+    m1_rejected_reply_loop_test.go:42: denied reply was not bounded: model_calls=6 denied=5 messages=0 err=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 400: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel]
+--- FAIL: TestM1DeniedReplyDoesNotLoopOnFreshCallIDs (2.20s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.897s
+FAIL
+EXIT_CODE 1

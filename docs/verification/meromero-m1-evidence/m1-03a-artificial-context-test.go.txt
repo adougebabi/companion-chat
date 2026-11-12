@@ -1,0 +1,74 @@
+package core
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"testing"
+)
+
+// Each model response has a different native call ID, but the same denied
+// publication. The real authorization transaction must remain authoritative.
+func TestM1DeniedReplyDoesNotLoopOnFreshCallIDs(t *testing.T) {
+	calls := 0
+	router := newFakeProviderRouter().otherwise(func(map[string]any) fakeProviderResult {
+		calls++
+		if calls > 5 {
+			// The pre-fix loop must not run indefinitely during the red test.
+			return fakeProviderResult{Status: 400}
+		}
+		decision := map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}}
+		return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall(fmt.Sprintf("denied-reply-%d", calls), conversationReplyCapabilityName, map[string]any{"text": "你好。", "decision": decision})}}
+	})
+	ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "m1-denied-reply-loop", router)
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, owner, fid, conversation); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.autonomy_policies(fluctlight_id,mode,allowed_actions,budget_remaining,quiet_hours,concurrency_limit,revision) VALUES($1,'active','["capability"]',5,'{}',1,0) ON CONFLICT(fluctlight_id) DO UPDATE SET mode='active',allowed_actions='["capability"]',budget_remaining=5`, fid); err != nil {
+		t.Fatal(err)
+	}
+	persistConversationReplyMode(t, ctx, repo, "direct")
+	turn, err := app.AcceptTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "你好", "turn_id": "m1-denied-reply", "idempotency_key": "m1-denied-reply", "attachment_refs": []any{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx = context.WithValue(ctx, directMainConversationKey{}, true)
+	_, runErr := app.RunConversationCognitionAgent(ctx, ConversationCognitionAgentInput{AuthorizationActorID: owner, SpeakerActorID: owner, FluctlightID: fid, ConversationID: conversation, SourceFactID: turn.InboxID, RunID: turn.TurnID, CurrentInput: "你好", AuthorizationPolicy: "autonomy"})
+	var messages, denied int
+	if err := repo.Pool().QueryRow(ctx, `SELECT (SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'), (SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$2 AND capability_name='conversation.reply' AND result->>'error_code'='policy_action_not_allowed')`, conversation, fid).Scan(&messages, &denied); err != nil {
+		t.Fatal(err)
+	}
+	if runErr == nil || !strings.Contains(runErr.Error(), "tool_progress_stalled") || calls != 3 || denied != 3 || messages != 0 {
+		t.Fatalf("denied reply was not bounded: model_calls=%d denied=%d messages=%d err=%v", calls, denied, messages, runErr)
+	}
+}
+
+func TestM1AllowedDelegatedReplyStillPublishes(t *testing.T) {
+	calls := 0
+	router := newFakeProviderRouter().otherwise(func(map[string]any) fakeProviderResult {
+		calls++
+		decision := map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}}
+		return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("allowed-reply", conversationReplyCapabilityName, map[string]any{"text": "你好。", "decision": decision})}}
+	})
+	ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "m1-allowed-reply", router)
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, owner, fid, conversation); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.autonomy_policies(fluctlight_id,mode,allowed_actions,budget_remaining,quiet_hours,concurrency_limit,revision) VALUES($1,'active','["capability","proactive_message"]',5,'{}',1,0) ON CONFLICT(fluctlight_id) DO UPDATE SET mode='active',allowed_actions='["capability","proactive_message"]',budget_remaining=5`, fid); err != nil {
+		t.Fatal(err)
+	}
+	persistConversationReplyMode(t, ctx, repo, "direct")
+	turn, err := app.AcceptTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "你好", "turn_id": "m1-allowed-reply", "idempotency_key": "m1-allowed-reply", "attachment_refs": []any{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx = context.WithValue(ctx, directMainConversationKey{}, true)
+	_, runErr := app.RunConversationCognitionAgent(ctx, ConversationCognitionAgentInput{AuthorizationActorID: owner, SpeakerActorID: owner, FluctlightID: fid, ConversationID: conversation, SourceFactID: turn.InboxID, RunID: turn.TurnID, CurrentInput: "你好", AuthorizationPolicy: "autonomy"})
+	var messages int
+	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND text='你好。'`, conversation).Scan(&messages); err != nil {
+		t.Fatal(err)
+	}
+	if runErr != nil || calls != 1 || messages != 1 {
+		t.Fatalf("authorized reply failed: model_calls=%d messages=%d err=%v", calls, messages, runErr)
+	}
+}

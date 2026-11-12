@@ -1,0 +1,8 @@
+COMMAND go test ./internal/core -count=1 -run ^TestM1AllowedDelegatedReplyStillPublishes$ -v -timeout=10m
+SOURCE 988c7cc3b7166dd736d00dde45ba81295256f023 plus M1-03a files; protected drafts excluded
+=== RUN   TestM1AllowedDelegatedReplyStillPublishes
+2026/11/12 13:18:50 WARN tool.call.handled capability=conversation.reply call_id=allowed-reply warning_code=proactive_topic_and_purpose_required disposition=needs_input effect_applied=false
+Traceback (most recent call last):
+  File "/private/tmp/fluctlight-m1/run-03a.py", line 33, in <module>
+    for line in proc.stdout:
+KeyboardInterrupt
