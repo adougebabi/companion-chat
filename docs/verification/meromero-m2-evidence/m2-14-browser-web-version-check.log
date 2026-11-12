@@ -1,0 +1,6 @@
+SOURCE_HEAD 02db92f33193fca2baed4fc1b592312879c90047
+COMMAND git diff --quiet 58ce5f98894428da5376333091ccb08ad543c1ad HEAD -- apps/web packages/browser-client apps/core-go/internal/httpapi/browser apps/core-go/internal/httpapi/browser_backend.go
+EXIT_CODE 0
+COMMAND git status --porcelain -- apps/web packages/browser-client apps/core-go/internal/httpapi/browser apps/core-go/internal/httpapi/browser_backend.go
+OUTPUT empty
+EXIT_CODE 0

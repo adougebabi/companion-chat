@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-14-durable-reply-regression",
+  "definition_hash": "fcb3c2a83479a176e631be876be7c571f4ff37d1b6ded508c3ca2326b60737e4",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T15:45:18.464106Z",
+  "updated": "2026-11-12T15:50:05.564407Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-ad3be88677454ade4620",
+        "unit": "define",
+        "executor": "codex-m2-14",
+        "input_version": "733a14ba42da7c9e480426d32c072bc7ec9787635b7b9c1395e2c7b7f9befa6e",
+        "candidate_version": "733a14ba42da7c9e480426d32c072bc7ec9787635b7b9c1395e2c7b7f9befa6e",
+        "started": "2026-11-12T15:46:02.771233Z",
+        "ended": "2026-11-12T15:46:27.511689Z",
+        "status": "pass",
+        "reason": "T04 的单一验收：对照起始与当前 direct durable 已提交消息流及浏览器消费，不实现已登记的实时 token 缺陷。"
+      },
+      {
+        "id": "AT-c626e38774e293b3bfb9",
+        "unit": "analysis",
+        "executor": "codex-m2-14",
+        "input_version": "733a14ba42da7c9e480426d32c072bc7ec9787635b7b9c1395e2c7b7f9befa6e",
+        "candidate_version": "733a14ba42da7c9e480426d32c072bc7ec9787635b7b9c1395e2c7b7f9befa6e",
+        "started": "2026-11-12T15:46:43.847616Z",
+        "ended": "2026-11-12T15:46:44.167936Z",
+        "status": "pass",
+        "reason": "在相同隔离数据库环境运行起始及当前的同一正式 direct durable 用例；核对已有浏览器/Web 测试版本，区分终态消息与生成期增量。"
+      },
+      {
+        "id": "AT-4aaffda514b02c0e0fbb",
+        "unit": "execute",
+        "executor": "codex-m2-14",
+        "input_version": "733a14ba42da7c9e480426d32c072bc7ec9787635b7b9c1395e2c7b7f9befa6e",
+        "candidate_version": "",
+        "started": "2026-11-12T15:46:59.41505Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}

@@ -1,0 +1,10 @@
+SOURCE_HEAD 838bb902b18280cbe5eeb119fb500db5da30ffa2 (clean archive, no overlays)
+CANDIDATE /private/tmp/fluctlight-m2-14-baseline-qau57147
+MANIFEST /private/tmp/fluctlight-m2-14-baseline-qau57147/m2-14-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^TestDurableObserverReceivesDirectMainReply$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestDurableObserverReceivesDirectMainReply
+--- PASS: TestDurableObserverReceivesDirectMainReply (2.85s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.797s
+
+EXIT_CODE 0

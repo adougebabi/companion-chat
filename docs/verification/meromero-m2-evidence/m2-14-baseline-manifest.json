@@ -1,0 +1,10 @@
+{
+  "head": "838bb902b18280cbe5eeb119fb500db5da30ffa2",
+  "overlays": {},
+  "examined_sha256": {
+    "apps/core-go/internal/core/durable_turn.go": "7d4bf9b1d83b604552ca638299d59a0c579e1d8faad0d0d0a8aad2f7b257b6ef",
+    "apps/core-go/internal/core/durable_turn_test.go": "fcf295aa0dfb907b0a75d89c01b8f3a03073a3a004feca1dc54a3720c15d27b7",
+    "apps/core-go/internal/core/agent_result_adapter.go": "516eb1500de2241ceb3538875685be85893efd2d52bf6f004e939322fe242bd3",
+    "apps/core-go/internal/core/mutations.go": "fa7fc929efb9f45be9b52ed82dc787c606480378303f4446e4ae22901366c316"
+  }
+}

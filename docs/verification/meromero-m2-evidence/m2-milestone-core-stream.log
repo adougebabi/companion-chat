@@ -1,0 +1,8 @@
+SOURCE_HEAD 58ce5f98894428da5376333091ccb08ad543c1ad CANDIDATE /private/tmp/fluctlight-m2-02-ge_dfq_e
+OVERLAYS (none)
+COMMAND go test ./internal/core -count=1 -run ^TestDurableObserverReceivesDirectMainReply$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDurableObserverReceivesDirectMainReply
+--- PASS: TestDurableObserverReceivesDirectMainReply (2.53s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.180s
+EXIT_CODE 0

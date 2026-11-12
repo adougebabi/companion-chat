@@ -1,0 +1,58 @@
+SOURCE_HEAD 58ce5f98894428da5376333091ccb08ad543c1ad CANDIDATE /private/tmp/fluctlight-m2-02-nzrehahe
+OVERLAYS (none)
+COMMAND go test ./internal/httpapi/browser -count=1 -run ^TestTranslateCoreNDJSON -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestTranslateCoreNDJSONPreservesSplitUTF8AndMapsTerminal
+--- PASS: TestTranslateCoreNDJSONPreservesSplitUTF8AndMapsTerminal (0.00s)
+=== RUN   TestTranslateCoreNDJSONWorksWithHTTPTestServerReader
+--- PASS: TestTranslateCoreNDJSONWorksWithHTTPTestServerReader (0.00s)
+=== RUN   TestTranslateCoreNDJSONNormalizesBusinessErrorPayload
+=== RUN   TestTranslateCoreNDJSONNormalizesBusinessErrorPayload/legacy_error_field
+=== RUN   TestTranslateCoreNDJSONNormalizesBusinessErrorPayload/current_code_field
+=== RUN   TestTranslateCoreNDJSONNormalizesBusinessErrorPayload/provider_request_failure_remains_classified
+=== RUN   TestTranslateCoreNDJSONNormalizesBusinessErrorPayload/final_contract_failure_remains_classified
+=== RUN   TestTranslateCoreNDJSONNormalizesBusinessErrorPayload/business_final_contract_failure_remains_classified
+=== RUN   TestTranslateCoreNDJSONNormalizesBusinessErrorPayload/unknown_code
+--- PASS: TestTranslateCoreNDJSONNormalizesBusinessErrorPayload (0.00s)
+    --- PASS: TestTranslateCoreNDJSONNormalizesBusinessErrorPayload/legacy_error_field (0.00s)
+    --- PASS: TestTranslateCoreNDJSONNormalizesBusinessErrorPayload/current_code_field (0.00s)
+    --- PASS: TestTranslateCoreNDJSONNormalizesBusinessErrorPayload/provider_request_failure_remains_classified (0.00s)
+    --- PASS: TestTranslateCoreNDJSONNormalizesBusinessErrorPayload/final_contract_failure_remains_classified (0.00s)
+    --- PASS: TestTranslateCoreNDJSONNormalizesBusinessErrorPayload/business_final_contract_failure_remains_classified (0.00s)
+    --- PASS: TestTranslateCoreNDJSONNormalizesBusinessErrorPayload/unknown_code (0.00s)
+=== RUN   TestTranslateCoreNDJSONRejectsInvalidJSONAndUTF8
+=== RUN   TestTranslateCoreNDJSONRejectsInvalidJSONAndUTF8/invalid_json
+=== RUN   TestTranslateCoreNDJSONRejectsInvalidJSONAndUTF8/invalid_utf8
+=== RUN   TestTranslateCoreNDJSONRejectsInvalidJSONAndUTF8/wrong_envelope_shape
+--- PASS: TestTranslateCoreNDJSONRejectsInvalidJSONAndUTF8 (0.00s)
+    --- PASS: TestTranslateCoreNDJSONRejectsInvalidJSONAndUTF8/invalid_json (0.00s)
+    --- PASS: TestTranslateCoreNDJSONRejectsInvalidJSONAndUTF8/invalid_utf8 (0.00s)
+    --- PASS: TestTranslateCoreNDJSONRejectsInvalidJSONAndUTF8/wrong_envelope_shape (0.00s)
+=== RUN   TestTranslateCoreNDJSONRejectsNestedHiddenPayload
+--- PASS: TestTranslateCoreNDJSONRejectsNestedHiddenPayload (0.00s)
+=== RUN   TestTranslateCoreNDJSONMapsActionResultMessageAndMedia
+--- PASS: TestTranslateCoreNDJSONMapsActionResultMessageAndMedia (0.00s)
+=== RUN   TestTranslateCoreNDJSONRejectsSequenceAndTurnViolations
+=== RUN   TestTranslateCoreNDJSONRejectsSequenceAndTurnViolations/sequence_skip
+=== RUN   TestTranslateCoreNDJSONRejectsSequenceAndTurnViolations/turn_mismatch
+--- PASS: TestTranslateCoreNDJSONRejectsSequenceAndTurnViolations (0.00s)
+    --- PASS: TestTranslateCoreNDJSONRejectsSequenceAndTurnViolations/sequence_skip (0.00s)
+    --- PASS: TestTranslateCoreNDJSONRejectsSequenceAndTurnViolations/turn_mismatch (0.00s)
+=== RUN   TestTranslateCoreNDJSONReportsIncompleteEOFAndStopsAfterTerminal
+=== RUN   TestTranslateCoreNDJSONReportsIncompleteEOFAndStopsAfterTerminal/empty
+=== RUN   TestTranslateCoreNDJSONReportsIncompleteEOFAndStopsAfterTerminal/final_frame_has_no_newline
+=== RUN   TestTranslateCoreNDJSONReportsIncompleteEOFAndStopsAfterTerminal/nonterminal_then_EOF
+=== RUN   TestTranslateCoreNDJSONReportsIncompleteEOFAndStopsAfterTerminal/terminal_suppresses_later_frames
+--- PASS: TestTranslateCoreNDJSONReportsIncompleteEOFAndStopsAfterTerminal (0.00s)
+    --- PASS: TestTranslateCoreNDJSONReportsIncompleteEOFAndStopsAfterTerminal/empty (0.00s)
+    --- PASS: TestTranslateCoreNDJSONReportsIncompleteEOFAndStopsAfterTerminal/final_frame_has_no_newline (0.00s)
+    --- PASS: TestTranslateCoreNDJSONReportsIncompleteEOFAndStopsAfterTerminal/nonterminal_then_EOF (0.00s)
+    --- PASS: TestTranslateCoreNDJSONReportsIncompleteEOFAndStopsAfterTerminal/terminal_suppresses_later_frames (0.00s)
+=== RUN   TestTranslateCoreNDJSONAbortClosesReaderAndSuppressesLaterWrites
+--- PASS: TestTranslateCoreNDJSONAbortClosesReaderAndSuppressesLaterWrites (0.00s)
+=== RUN   TestTranslateCoreNDJSONAlreadyAbortedEmitsNoFrame
+--- PASS: TestTranslateCoreNDJSONAlreadyAbortedEmitsNoFrame (0.00s)
+=== RUN   TestTranslateCoreNDJSONMissingBodyReturnsBoundedSetupError
+--- PASS: TestTranslateCoreNDJSONMissingBodyReturnsBoundedSetupError (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser	0.509s
+EXIT_CODE 0
