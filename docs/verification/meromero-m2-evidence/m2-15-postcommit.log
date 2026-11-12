@@ -1,0 +1,21 @@
+SOURCE_HEAD ccb6b4a690ad24ddbbe77302846539414a251a9a (clean archive)
+CANDIDATE /private/tmp/fluctlight-m2-15-postcommit-ainr4qs6
+MANIFEST /private/tmp/fluctlight-m2-15-postcommit-ainr4qs6/docs/verification/meromero-m2-evidence/m2-15-final-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^(TestM2MomentRelationshipEvidencePreservesBusinessValues|TestM2MomentRelationshipEvidenceKeepsUnknownTargetUnknown|TestMomentActorEvidencePreservesBusinessValueWithoutCoreEnvelope|TestMomentPublicationResolvesActiveMemoryEvidenceWithoutCoreIDs|TestReplyOptionalEvidenceReconciliationKeepsExactScope)$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestMomentActorEvidencePreservesBusinessValueWithoutCoreEnvelope
+2026/11/13 00:12:22 WARN Go Core diagnostic persistence failed component=event stage=create correlation_id="" error_type=*errors.errorString safe_cause=diagnostics_unavailable event_type=reply.draft.prepared
+--- PASS: TestMomentActorEvidencePreservesBusinessValueWithoutCoreEnvelope (0.01s)
+=== RUN   TestMomentPublicationResolvesActiveMemoryEvidenceWithoutCoreIDs
+2026/11/13 00:12:24 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:1 retained_count:1 surface:]"
+--- PASS: TestMomentPublicationResolvesActiveMemoryEvidenceWithoutCoreIDs (2.64s)
+=== RUN   TestM2MomentRelationshipEvidencePreservesBusinessValues
+2026/11/13 00:12:27 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:1 retained_count:1 surface:]"
+--- PASS: TestM2MomentRelationshipEvidencePreservesBusinessValues (2.43s)
+=== RUN   TestM2MomentRelationshipEvidenceKeepsUnknownTargetUnknown
+--- PASS: TestM2MomentRelationshipEvidenceKeepsUnknownTargetUnknown (0.00s)
+=== RUN   TestReplyOptionalEvidenceReconciliationKeepsExactScope
+--- PASS: TestReplyOptionalEvidenceReconciliationKeepsExactScope (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	5.735s
+
+EXIT_CODE 0
