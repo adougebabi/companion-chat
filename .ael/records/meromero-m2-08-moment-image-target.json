@@ -16,14 +16,14 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "execute",
-  "status": "open",
-  "candidate": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "ccc05fc36f9e72f6ba0a2278f34dc0eb87dcc9e53176484a6f180c55b7ef9a0e",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-12T11:24:30.334297Z",
-  "updated": "2026-11-12T11:25:24.256667Z",
-  "completed": null,
+  "updated": "2026-11-12T11:43:41.673312Z",
+  "completed": "2026-11-12T11:43:41.673014Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -54,13 +54,44 @@
         "unit": "execute",
         "executor": "codex-m2-08",
         "input_version": "3ac1ffe4053692846691a9bd1e6a9301c54f9c7f4976d4acbd1d6bb670bd9eea",
-        "candidate_version": "",
+        "candidate_version": "ccc05fc36f9e72f6ba0a2278f34dc0eb87dcc9e53176484a6f180c55b7ef9a0e",
         "started": "2026-11-12T11:25:24.08455Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-12T11:40:20.172922Z",
+        "status": "pass",
+        "reason": "提交 dc78610b：Image 原生工具可显式绑定本轮前一响应已完成的 Moment，仍通过 Core 目标所有权、插件和正式异步交付；同批、无结果、非法目标和插件停用均不会错误创建附件。原目标红测与提交前 18 项受控回归已保留。"
+      },
+      {
+        "id": "AT-176fe69af43633219fd1",
+        "unit": "check:m2-08-scenario",
+        "executor": "codex-m2-08",
+        "input_version": "ccc05fc36f9e72f6ba0a2278f34dc0eb87dcc9e53176484a6f180c55b7ef9a0e",
+        "candidate_version": "ccc05fc36f9e72f6ba0a2278f34dc0eb87dcc9e53176484a6f180c55b7ef9a0e",
+        "started": "2026-11-12T11:43:31.681642Z",
+        "ended": "2026-11-12T11:43:31.771792Z",
+        "status": "pass",
+        "reason": "受检提交 dc78610b：干净导出无覆盖，隔离 PostgreSQL 和受控 Provider/renderer/质量审核/对象存储的 18 个顶层测试通过、无 SKIP；含四处原有草稿的工作区主场景通过。验证动态与真实同轮工具回执绑定、最终附件和重放、普通会话目标、无目标、同批、非法及跨主体目标、插件停用和不确定提交暂停；原失败及修正均保留。提交后日志暂存 /private/tmp/fluctlight-m2-08-postcommit.log 和 /private/tmp/fluctlight-m2-08-postcommit-working-tree.log，随后归档；不代表真实模型、渲染或 M2 整体验收。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "m2-08-scenario",
+        "result": "pass",
+        "source": "scenario:codex-m2-08",
+        "config_hash": "316805f31176e0967325b57f64be609c04227ba57fb27b9c0596d6320e2c6be0",
+        "at": "2026-11-12T11:43:31.771199Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/adk_conversation_runtime.go": "74d7ee8d3955b251dae829f03d1d932aa414b3e50fafb028cf72e10dd56a9fdd",
+          "apps/core-go/internal/core/builtin_capabilities.go": "19c0f5604a4fe64af2f7150189fedd209f4ea56cd7700a146fd0cc4cb0cc3cb5",
+          "apps/core-go/internal/core/m2_moment_image_target_test.go": "6cf70bf0b53a4f88f906e368b0e9496c90cc1316166d2c9a67560303a5c65ea0",
+          "apps/core-go/internal/core/tool_contract.go": "b376b59e848a2ee3945e93a6c622a7585564593270e8f00ec5734a963ad90b2c",
+          "docs/llm-prompt-composition.md": "94b30e8b24e78be9afa70dc62e0261b112f81785a43b40bf9cf9d9890a80c30c",
+          "docs/verification/meromero-m2-evidence/m2-08-offered-schema.log": "58765b0ed31cac0625c6927b2c2ceb98d25d5d7d1f0274006032906c3d0766da",
+          "docs/verification/meromero-m2-evidence/m2-08-precommit.log": "39bc52761b3b67bb7f3b35def66624845fc74d9304814f8195ec498a63e2778a",
+          "docs/verification/meromero-m2-evidence/m2-08-red-target.log": "1ac435cfe505a6f70adf2127876d0f4af3c1cb30f400b002aaae6010fc3a9b82",
+          "docs/verification/meromero-m2-evidence/m2-08-red.log": "143be4a95cf5d4cea3477b896aa794b84cb7bb6f082bf334f2e42642b4ddff13",
+          "docs/verification/meromero-m2-evidence/m2-08-uncertain.log": "774052be3b102cb152d7bfe3280e4db0b849f9ee199151a7921eba1ebe676e7d"
+        }
+      }
+    ]
   }
 }
