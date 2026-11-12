@@ -994,3 +994,37 @@ test("failed initial reads stay distinct from empty records and old library quer
     await f.dispose();
   }
 });
+
+for (const stage of ["candidate", "character_sheet"]) test(`visual ${stage} shows uncertain renderer submission as paused`, async () => {
+  const api = mediaFixture();
+  const visual = api.state().visual;
+  visual.session.status = stage === "candidate" ? "running" : "character_sheet_pending";
+  visual.session.candidate_submission_uncertain = stage === "candidate";
+  visual.session.character_sheet_submission_uncertain = stage === "character_sheet";
+  if (stage === "candidate") visual.session.attempts.find((item) => item.attempt_number === visual.session.current_attempt).candidate_asset_id = null;
+  const f = await fixture({ api, tab: "identity" });
+  try {
+    assert.match(f.v.host.textContent, /接单状态待人工核对/);
+    if (stage === "candidate") {
+      assert.match(f.v.host.textContent, /候选生成已暂停/);
+      assert.doesNotMatch(f.v.host.textContent, /正在准备实际候选/);
+    } else {
+      assert.match(f.v.host.textContent, /设定图任务已暂停/);
+      assert.doesNotMatch(f.v.host.textContent, /设定图仍在准备/);
+    }
+  } finally {
+    await f.dispose();
+  }
+});
+
+test("uncertain generated avatar is shown as paused for manual review", async () => {
+  const api = mediaFixture();
+  api.state().visual.generated_reviews.avatar = {id: "avatar-unknown", kind: "avatar", status: "submission_unknown"};
+  const f = await fixture({ api, tab: "identity" });
+  try {
+    assert.match(f.v.host.textContent, /头像生成任务已暂停/);
+    assert.match(f.v.host.textContent, /请人工核对原任务/);
+  } finally {
+    await f.dispose();
+  }
+});

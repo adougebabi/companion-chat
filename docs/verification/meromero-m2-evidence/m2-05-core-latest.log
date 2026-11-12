@@ -1,0 +1,42 @@
+SOURCE_HEAD 8922e15156c64e2311a39b7553697c3910898d97 CANDIDATE /private/tmp/fluctlight-m2-02-8wo9gqbu
+OVERLAYS apps/core-go/internal/core/studio_jobs.go,apps/core-go/internal/core/visual_brief.go,apps/core-go/internal/core/visual_identity_failure.go,packages/browser-client/openapi.json,apps/core-go/internal/httpapi/browser/media_submission_guard_test.go,apps/core-go/internal/workflow/m2_media_submission_reconcile_test.go,apps/core-go/internal/core/owner_media_requests.go,apps/core-go/internal/core/media_quality.go,apps/core-go/internal/core/diagnostic_media_recovery.go,apps/core-go/internal/core/operations.go,apps/core-go/internal/core/studio_media.go,apps/core-go/internal/core/studio_retry.go,apps/core-go/internal/core/visual_identity_agent.go,apps/core-go/internal/workflow/workflow.go,apps/core-go/internal/migrations/media_submission_guard_test.go,apps/core-go/internal/core/media.go,apps/core-go/internal/core/media_submission_guard.go,apps/core-go/internal/migrations/runner.go,apps/core-go/internal/migrations/current_chain_test.go,apps/core-go/internal/migrations/media_submission_guard.go,apps/core-go/internal/core/m2_ambiguous_image_submit_test.go
+COMMAND go test ./internal/core -count=1 -run ^(TestStudioAndVisualIdentityKeepAmbiguousMediaPaused|TestLegacyVisualIdentityWithoutJobRemainsUncertain|TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob|TestDefiniteRendererValidationRejectionCanBeRetried|TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset|TestImageRunningJobRecoversAcrossProcessesAfterDisable)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob
+    m2_ambiguous_image_submit_test.go:115: child phase=lost_response pid=49213 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:185: phase=lost_response actual_error=media_submission_ambiguous: Post "http://127.0.0.1:61191/prompt": EOF
+        --- PASS: TestImageAmbiguousSubmitChild (0.07s)
+        PASS
+    m2_ambiguous_image_submit_test.go:120: child phase=resume pid=49215 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:185: phase=resume actual_error=media_submission_ambiguous
+        --- PASS: TestImageAmbiguousSubmitChild (0.02s)
+        PASS
+--- PASS: TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob (2.25s)
+=== RUN   TestStudioAndVisualIdentityKeepAmbiguousMediaPaused
+--- PASS: TestStudioAndVisualIdentityKeepAmbiguousMediaPaused (2.37s)
+=== RUN   TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset
+--- PASS: TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset (2.43s)
+=== RUN   TestDefiniteRendererValidationRejectionCanBeRetried
+--- PASS: TestDefiniteRendererValidationRejectionCanBeRetried (1.94s)
+=== RUN   TestLegacyVisualIdentityWithoutJobRemainsUncertain
+=== RUN   TestLegacyVisualIdentityWithoutJobRemainsUncertain/candidate
+=== RUN   TestLegacyVisualIdentityWithoutJobRemainsUncertain/character_sheet
+--- PASS: TestLegacyVisualIdentityWithoutJobRemainsUncertain (2.99s)
+    --- PASS: TestLegacyVisualIdentityWithoutJobRemainsUncertain/candidate (1.23s)
+    --- PASS: TestLegacyVisualIdentityWithoutJobRemainsUncertain/character_sheet (1.76s)
+=== RUN   TestImageRunningJobRecoversAcrossProcessesAfterDisable
+    m2_running_image_recovery_test.go:156: child phase=interrupt pid=49221 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:221: controlled renderer history failed after submission, as intended
+        --- PASS: TestImageRunningJobRecoveryChild (0.06s)
+        PASS
+    m2_running_image_recovery_test.go:166: child phase=resume pid=49224 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:231: resume and replay completed once; child pid=49224
+        --- PASS: TestImageRunningJobRecoveryChild (0.07s)
+        PASS
+--- PASS: TestImageRunningJobRecoversAcrossProcessesAfterDisable (2.25s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	15.071s
+EXIT_CODE 0

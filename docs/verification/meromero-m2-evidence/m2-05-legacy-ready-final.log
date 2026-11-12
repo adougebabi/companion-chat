@@ -1,0 +1,8 @@
+SOURCE_HEAD 8922e15156c64e2311a39b7553697c3910898d97 CANDIDATE /private/tmp/fluctlight-m2-02-ydkq7mw9
+OVERLAYS apps/core-go/internal/core/visual_identity.go,apps/core-go/internal/core/generated_avatar.go,apps/core-go/internal/core/visual_asset_review.go,apps/core-go/internal/core/studio_jobs.go,apps/core-go/internal/core/visual_brief.go,apps/core-go/internal/core/visual_identity_failure.go,packages/browser-client/openapi.json,apps/core-go/internal/httpapi/browser/media_submission_guard_test.go,apps/core-go/internal/workflow/m2_media_submission_reconcile_test.go,apps/core-go/internal/core/owner_media_requests.go,apps/core-go/internal/core/media_quality.go,apps/core-go/internal/core/diagnostic_media_recovery.go,apps/core-go/internal/core/operations.go,apps/core-go/internal/core/studio_media.go,apps/core-go/internal/core/studio_retry.go,apps/core-go/internal/core/visual_identity_agent.go,apps/core-go/internal/workflow/workflow.go,apps/core-go/internal/migrations/media_submission_guard_test.go,apps/core-go/internal/core/media.go,apps/core-go/internal/core/media_submission_guard.go,apps/core-go/internal/migrations/runner.go,apps/core-go/internal/migrations/current_chain_test.go,apps/core-go/internal/migrations/media_submission_guard.go,apps/core-go/internal/core/m2_ambiguous_image_submit_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset
+--- PASS: TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset (2.28s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.957s
+EXIT_CODE 0

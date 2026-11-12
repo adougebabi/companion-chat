@@ -48,7 +48,8 @@ export default function StudioJobsView({ model: m }) {
     proposal,
   } = m;
   const complete = job?.status === "completed",
-    running = ["queued", "running"].includes(job?.status);
+    uncertain = job?.status !== "discarded" && (job?.error_code === "media_submission_ambiguous" || job?.submission_uncertain === true),
+    running = !uncertain && ["queued", "running"].includes(job?.status);
   return (
     <div className="r-sandbox-layout">
       <div className="r-form-stack">
@@ -241,7 +242,9 @@ export default function StudioJobsView({ model: m }) {
                 </small>
               </span>
               <Badge variant="outline" data-status={entry.status}>
-                {entry.result?.disposition === "needs_input"
+                {entry.status !== "discarded" && (entry.error_code === "media_submission_ambiguous" || entry.submission_uncertain === true)
+                  ? "接单状态待人工核对"
+                  : entry.result?.disposition === "needs_input"
                   ? "需要补充输入"
                   : jobStatusLabel(entry.status)}
               </Badge>
@@ -259,7 +262,9 @@ export default function StudioJobsView({ model: m }) {
             <h2>预览与建议</h2>
             {job && (
               <Badge variant="outline" data-status={job.status}>
-                {out.disposition === "needs_input"
+                {uncertain
+                  ? "接单状态待人工核对"
+                  : out.disposition === "needs_input"
                   ? "需要补充输入"
                   : jobStatusLabel(job.status)}
               </Badge>
@@ -283,6 +288,13 @@ export default function StudioJobsView({ model: m }) {
                   <p>写下方向，看看这份设定还能长出什么。</p>
                 </>
               )}
+            </div>
+          ) : uncertain ? (
+            <div className="studio-result-empty">
+              <h3>生成任务已暂停</h3>
+              <p>生成服务可能已接单，请人工核对原任务；系统不会自动再次提交。</p>
+              <Button variant="outline" disabled={reading} onClick={() => void m.observe()}>读取原任务进度</Button>
+              <Button variant="outline" disabled={busy || !!pending || !!m.receipt} onClick={() => void m.operate("discard")}>核对后丢弃此任务</Button>
             </div>
           ) : running ? (
             <div className="r-generation-loading">

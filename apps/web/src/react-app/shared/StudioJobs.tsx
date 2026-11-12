@@ -355,7 +355,7 @@ export default function StudioJobs({
     }
   }, [jobs.items]);
   useEffect(() => {
-    if (!job || !["queued", "running"].includes(job.status) || busy || adopting)
+    if (!job || job.error_code === 'media_submission_ambiguous' || job.submission_uncertain === true || !["queued", "running"].includes(job.status) || busy || adopting)
       return;
     let timer: ReturnType<typeof setTimeout>;
     const tick = () => {
@@ -464,7 +464,7 @@ export default function StudioJobs({
       op === "discard" &&
       !(await confirm({
         title: "丢弃创作结果",
-        text: "该任务迟到的结果不能重新发布，已明确保存的素材仍保留。",
+        text: selected.error_code === 'media_submission_ambiguous' || selected.submission_uncertain === true ? "请先人工核对原生成服务。丢弃只结束本地任务，不会撤回可能已接收的生成请求；迟到结果不能重新发布。" : "该任务迟到的结果不能重新发布，已明确保存的素材仍保留。",
         type: "danger",
       }))
     )

@@ -1,0 +1,18 @@
+✔ visual candidate shows uncertain renderer submission as paused (194.19975ms)
+✔ visual character_sheet shows uncertain renderer submission as paused (107.596542ms)
+✔ Studio shows an uncertain new renderer submission as paused (292.7525ms)
+✔ Studio shows an uncertain legacy renderer submission as paused (215.025417ms)
+✔ media retry uses explicit regenerate mode and keeps its original revision (1591.493417ms)
+✔ media recovery warns about an unknown provider submission only when job id is missing (153.590583ms)
+✔ media recovery warns about an unknown provider submission only when job id is saved (148.758083ms)
+✔ uncertain media submission_unknown requires explicit review before regeneration (225.739833ms)
+✔ uncertain media failed requires explicit review before regeneration (206.120042ms)
+✔ uncertain media with a ready asset offers reviewed recovery without regeneration (112.678083ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3122.440584

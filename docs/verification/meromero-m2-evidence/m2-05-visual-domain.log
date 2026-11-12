@@ -1,0 +1,28 @@
+SOURCE_HEAD 8922e15156c64e2311a39b7553697c3910898d97 CANDIDATE /private/tmp/fluctlight-m2-02-__cfiwc8
+OVERLAYS apps/core-go/internal/core/visual_identity.go,apps/core-go/internal/core/generated_avatar.go,apps/core-go/internal/core/visual_asset_review.go,apps/core-go/internal/core/studio_jobs.go,apps/core-go/internal/core/visual_brief.go,apps/core-go/internal/core/visual_identity_failure.go,packages/browser-client/openapi.json,apps/core-go/internal/httpapi/browser/media_submission_guard_test.go,apps/core-go/internal/workflow/m2_media_submission_reconcile_test.go,apps/core-go/internal/core/owner_media_requests.go,apps/core-go/internal/core/media_quality.go,apps/core-go/internal/core/diagnostic_media_recovery.go,apps/core-go/internal/core/operations.go,apps/core-go/internal/core/studio_media.go,apps/core-go/internal/core/studio_retry.go,apps/core-go/internal/core/visual_identity_agent.go,apps/core-go/internal/workflow/workflow.go,apps/core-go/internal/migrations/media_submission_guard_test.go,apps/core-go/internal/core/media.go,apps/core-go/internal/core/media_submission_guard.go,apps/core-go/internal/migrations/runner.go,apps/core-go/internal/migrations/current_chain_test.go,apps/core-go/internal/migrations/media_submission_guard.go,apps/core-go/internal/core/m2_ambiguous_image_submit_test.go
+COMMAND go test ./internal/core -count=1 -run ^(TestLegacyVisualIdentityWithoutJobRemainsUncertain|TestUncertainGeneratedAvatarDoesNotStartAnotherIntent|TestStudioAndVisualIdentityKeepAmbiguousMediaPaused|TestVisualIdentityAggregateRepairSQLUsesNullSafeBusinessFieldGuard|TestGeneratedAvatarRealMediaHTTPModelReview)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestGeneratedAvatarRealMediaHTTPModelReview
+=== RUN   TestGeneratedAvatarRealMediaHTTPModelReview/pass
+=== RUN   TestGeneratedAvatarRealMediaHTTPModelReview/reject_after_retry
+--- PASS: TestGeneratedAvatarRealMediaHTTPModelReview (4.32s)
+    --- PASS: TestGeneratedAvatarRealMediaHTTPModelReview/pass (2.45s)
+    --- PASS: TestGeneratedAvatarRealMediaHTTPModelReview/reject_after_retry (1.87s)
+=== RUN   TestStudioAndVisualIdentityKeepAmbiguousMediaPaused
+--- PASS: TestStudioAndVisualIdentityKeepAmbiguousMediaPaused (1.03s)
+=== RUN   TestLegacyVisualIdentityWithoutJobRemainsUncertain
+=== RUN   TestLegacyVisualIdentityWithoutJobRemainsUncertain/candidate
+=== RUN   TestLegacyVisualIdentityWithoutJobRemainsUncertain/character_sheet
+--- PASS: TestLegacyVisualIdentityWithoutJobRemainsUncertain (2.01s)
+    --- PASS: TestLegacyVisualIdentityWithoutJobRemainsUncertain/candidate (1.01s)
+    --- PASS: TestLegacyVisualIdentityWithoutJobRemainsUncertain/character_sheet (1.00s)
+=== RUN   TestUncertainGeneratedAvatarDoesNotStartAnotherIntent
+=== RUN   TestUncertainGeneratedAvatarDoesNotStartAnotherIntent/failed
+=== RUN   TestUncertainGeneratedAvatarDoesNotStartAnotherIntent/submission_unknown
+--- PASS: TestUncertainGeneratedAvatarDoesNotStartAnotherIntent (3.91s)
+    --- PASS: TestUncertainGeneratedAvatarDoesNotStartAnotherIntent/failed (1.81s)
+    --- PASS: TestUncertainGeneratedAvatarDoesNotStartAnotherIntent/submission_unknown (2.10s)
+=== RUN   TestVisualIdentityAggregateRepairSQLUsesNullSafeBusinessFieldGuard
+--- PASS: TestVisualIdentityAggregateRepairSQLUsesNullSafeBusinessFieldGuard (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	11.945s
+EXIT_CODE 0

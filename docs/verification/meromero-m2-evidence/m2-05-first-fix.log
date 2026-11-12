@@ -1,0 +1,18 @@
+SOURCE_HEAD b3f5cd40b125364a202b117d2b270e41dfb9e995 CANDIDATE /private/tmp/fluctlight-m2-02-p4qi94ck
+OVERLAYS apps/core-go/internal/core/media.go,apps/core-go/internal/core/media_submission_guard.go,apps/core-go/internal/migrations/runner.go,apps/core-go/internal/migrations/current_chain_test.go,apps/core-go/internal/migrations/media_submission_guard.go
+COMMAND go test ./internal/core -count=1 -run ^TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob
+    m2_ambiguous_image_submit_test.go:111: child phase=lost_response pid=55294 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:146: phase=lost_response actual_error=media_submission_ambiguous: Post "http://127.0.0.1:61078/prompt": EOF
+        --- PASS: TestImageAmbiguousSubmitChild (0.12s)
+        PASS
+    m2_ambiguous_image_submit_test.go:116: child phase=resume pid=55296 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:146: phase=resume actual_error=media_submission_ambiguous
+        --- PASS: TestImageAmbiguousSubmitChild (0.04s)
+        PASS
+--- PASS: TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob (3.03s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.854s
+EXIT_CODE 0

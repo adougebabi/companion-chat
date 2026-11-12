@@ -77,7 +77,7 @@ func (a *App) ReconcileStudioWorkflowFailure(ctx context.Context, intentID, fail
 		}
 		if job["kind"] == "image_preview" {
 			var delegated bool
-			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_intents WHERE studio_job_id=$1 AND studio_owner_actor_id=$2 AND media_scope='studio' AND status IN ('pending','running','completed'))`, id, owner).Scan(&delegated); err != nil {
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_intents WHERE studio_job_id=$1 AND studio_owner_actor_id=$2 AND media_scope='studio' AND (status IN ('pending','running','submitting','submission_unknown','completed') OR (status='failed' AND renderer_submission_started AND COALESCE(provider_job_id,'')='')))`, id, owner).Scan(&delegated); err != nil {
 				return err
 			}
 			if delegated {

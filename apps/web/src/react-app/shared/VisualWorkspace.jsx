@@ -55,9 +55,11 @@ export default function VisualWorkspace({ model: m }) {
       read: readIdentity,
       pending: (r) => {
         const sheet = r.generated_reviews?.character_sheet;
-        const visualPending = ["queued", "running"].includes(r.session?.status) ||
-          (r.session?.status === "character_sheet_pending" && !["awaiting_review", "failed"].includes(sheet?.status));
-        return visualPending || Object.values(r.generated_reviews || {}).some((row) => row?.status === "generating");
+        const candidatePaused = r.session?.candidate_submission_uncertain === true;
+        const sheetPaused = r.session?.character_sheet_submission_uncertain === true;
+        const visualPending = (!candidatePaused && ["queued", "running"].includes(r.session?.status)) ||
+          (!sheetPaused && r.session?.status === "character_sheet_pending" && !["awaiting_review", "failed"].includes(sheet?.status));
+        return visualPending || Object.entries(r.generated_reviews || {}).some(([kind, row]) => row?.status === "generating" && !(kind === "character_sheet" && sheetPaused));
       },
       guard: (old, row) => old.session?.id === row.session?.id,
     }),
@@ -704,6 +706,9 @@ export default function VisualWorkspace({ model: m }) {
           <Button variant="outline" onClick={(event) => reviewGenerated(event, row)}>继续核对{row.kind === "avatar" ? "头像" : "角色设定图"}评审</Button>
         </WorkspaceInfo>
       ))}
+      {Object.values(visual?.generated_reviews || {}).filter((row) => row?.status === "submission_unknown").map((row) => (
+        <WorkspaceInfo key={row.id}>{row.kind === "avatar" ? "头像" : "角色设定图"}生成任务已暂停；生成服务可能已接单，请人工核对原任务。</WorkspaceInfo>
+      ))}
       {Object.values(visual?.generated_reviews || {}).filter((row) => row?.status === "awaiting_review" && row?.candidate_asset_id && row?.reference_asset_id).map((row) => (
         <Surface className="panel r-padded r-form-stack" key={row.id}>
           <h2 className="r-inline-title">{row.kind === "avatar" ? "头像" : "角色设定图"}等待人工审核</h2>
@@ -797,7 +802,7 @@ export default function VisualWorkspace({ model: m }) {
             <Badge variant="outline">
               {visual
                 ? session
-                  ? visualSessionState(session.status)
+                  ? (session.candidate_submission_uncertain || session.character_sheet_submission_uncertain ? "接单状态待人工核对" : visualSessionState(session.status))
                   : "等待新尝试"
                 : "待读取"}
             </Badge>
@@ -810,6 +815,8 @@ export default function VisualWorkspace({ model: m }) {
               <h3>
                 {!visual
                   ? "候选状态待读取"
+                  : session?.candidate_submission_uncertain
+                    ? "候选生成已暂停"
                   : ["queued", "running"].includes(session?.status)
                     ? "正在准备实际候选"
                     : "给形象一点新的可能"}
@@ -817,6 +824,8 @@ export default function VisualWorkspace({ model: m }) {
               <p>
                 {!visual
                   ? "请重新读取当前会话与候选状态。"
+                  : session?.candidate_submission_uncertain
+                    ? "生成服务可能已接单，请人工核对原任务；系统不会自动再次提交。"
                   : session
                     ? "第 " +
                       session.current_attempt +
@@ -937,7 +946,9 @@ export default function VisualWorkspace({ model: m }) {
           />
         ) : (
           <p className="r-muted">
-            {session?.status === "character_sheet_pending"
+            {session?.character_sheet_submission_uncertain
+              ? "设定图任务已暂停；生成服务可能已接单，请人工核对原任务。"
+              : session?.status === "character_sheet_pending"
               ? "规范参考已接受，设定图仍在准备。"
               : "尚未读到完成的角色设定图。"}
           </p>

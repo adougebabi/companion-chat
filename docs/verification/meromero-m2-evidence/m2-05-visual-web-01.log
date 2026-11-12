@@ -1,0 +1,14 @@
+✔ visual candidate shows uncertain renderer submission as paused (199.824459ms)
+✔ visual character_sheet shows uncertain renderer submission as paused (106.582625ms)
+✔ Studio shows an uncertain renderer submission as paused (288.9605ms)
+✔ uncertain media submission_unknown requires explicit review before regeneration (1649.676125ms)
+✔ uncertain media failed requires explicit review before regeneration (232.643125ms)
+✔ uncertain media with a ready asset offers reviewed recovery without regeneration (116.283375ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2652.2745

@@ -759,3 +759,28 @@ test("Studio real editor applies linked world and result navigation retains orig
     assert.equal(f.writes().filter(c => c.path.endsWith("/apply")).length, 1);
   } finally { await f.dispose(); }
 });
+
+for (const legacy of [false, true]) test(`Studio shows an uncertain ${legacy ? "legacy" : "new"} renderer submission as paused`, async () => {
+  const api = studioFixture(), resource = api.resources.get("studio-world");
+  const f = await fixture({api, Component: Jobs, props: {resource, readDraft: () => ({name: "测试", body: {background: "测试"}}), adopt() {}}});
+  try {
+    await f.v.input(f.v.host.querySelector('[aria-label="创作请求"]'), "生成场景");
+    await f.v.click(button(f.v.host, "开始创作"));
+    const job = [...api.jobs.values()][0];
+    job.status = legacy ? "failed" : "running";
+    job.error_code = legacy ? "studio_media_generation_failed" : "media_submission_ambiguous";
+    job.submission_uncertain = true;
+    await f.v.click(button(f.v.host, "刷新任务状态"));
+    assert.match(f.v.host.textContent, /生成任务已暂停/);
+    assert.match(f.v.host.textContent, /人工核对原任务/);
+    assert.doesNotMatch(f.v.host.textContent, /正在展开这段想象/);
+    assert.equal(button(f.v.host, "重试这个任务"), undefined);
+    assert.ok(button(f.v.host, "核对后丢弃此任务"));
+    await f.v.click(button(f.v.host, "核对后丢弃此任务"));
+    const confirmation = document.querySelector('[role="alertdialog"]');
+    assert.match(confirmation.textContent, /不会撤回可能已接收的生成请求/);
+    await f.v.click(button(confirmation, "取消"));
+  } finally {
+    await f.dispose();
+  }
+});

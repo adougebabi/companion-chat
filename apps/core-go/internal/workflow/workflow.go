@@ -303,6 +303,15 @@ func VisualIdentityWorkflow(ctx workflow.Context, input Input) (map[string]any, 
 	if status == "completed" || status == "failed" || status == "cancelled" || status == "awaiting_review" {
 		return result, nil
 	}
+	stage := stringValue(result["stage"])
+	if stage == "image_submission_unknown" || stage == "character_sheet_submission_unknown" {
+		version := workflow.GetVersion(ctx, "visual-media-submission-unknown-pause", workflow.DefaultVersion, 1)
+		if version != workflow.DefaultVersion {
+			// A person must review the uncertain submission before the parent
+			// continues. Replaying older workflow histories keeps their old path.
+			control.paused = true
+		}
+	}
 	if err := control.waitUntilResumed(ctx); err != nil {
 		return nil, err
 	}
@@ -2051,6 +2060,9 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			}
 		}
 		if intentType == "media.generation" && intentStatus != "completed" {
+			if err := d.App.ReconcileUncertainMediaSubmission(ctx, intentID); err != nil {
+				return count, err
+			}
 			if err := d.App.ReconcileStudioMediaTerminal(ctx, intentID, "workflow_"+intentStatus); err != nil {
 				return count, err
 			}

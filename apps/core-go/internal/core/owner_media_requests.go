@@ -247,7 +247,7 @@ func (a *App) ownerMediaGenerationRead(ctx context.Context, owner string, p []st
 	}
 	request["tasks"], request["tasks_state"] = tasks, "available"
 	result := map[string]any{"fluctlight_id": fid, "request": request, "media": nil, "asset": nil, "factual": false, "label": "生成图·非事实"}
-	err = a.DB.Pool().QueryRow(ctx, `SELECT jsonb_build_object('id',id,'status',status,'workflow_id',workflow_id,'provider_job_id',provider_job_id,'quality_verdict',quality_verdict,'item_id',owner_item_id,'source',prompt::jsonb->'owner_media_request') FROM public.media_intents WHERE owner_request_id=$1 AND owner_fluctlight_id=$2`, p[3], fid).Scan(&raw)
+	err = a.DB.Pool().QueryRow(ctx, `SELECT jsonb_build_object('id',id,'status',status,'submission_uncertain',status='submission_unknown' OR (status='failed' AND renderer_submission_started AND COALESCE(provider_job_id,'')=''),'workflow_id',workflow_id,'provider_job_id',provider_job_id,'quality_verdict',quality_verdict,'item_id',owner_item_id,'source',prompt::jsonb->'owner_media_request') FROM public.media_intents WHERE owner_request_id=$1 AND owner_fluctlight_id=$2`, p[3], fid).Scan(&raw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return result, nil
 	}

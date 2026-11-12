@@ -29,11 +29,12 @@ func (a *App) settleVisualIdentityMediaFailure(ctx context.Context, state visual
 		if currentAttempt != state.Attempt {
 			return ErrConflict
 		}
-		var mediaStatus string
-		if err := tx.QueryRow(ctx, `SELECT status FROM public.media_intents WHERE id=$1 FOR SHARE`, mediaID).Scan(&mediaStatus); err != nil {
+		var mediaStatus, jobID string
+		var submissionStarted bool
+		if err := tx.QueryRow(ctx, `SELECT status,COALESCE(provider_job_id,''),renderer_submission_started FROM public.media_intents WHERE id=$1 FOR SHARE`, mediaID).Scan(&mediaStatus, &jobID, &submissionStarted); err != nil {
 			return err
 		}
-		if mediaStatus != "failed" {
+		if mediaStatus != "failed" || (submissionStarted && jobID == "") {
 			return ErrConflict
 		}
 		updated, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='failed',last_error=$2,updated_at=now() WHERE id=$1 AND status IN ('queued','running','character_sheet_pending')`, state.SessionID, cause.Error())

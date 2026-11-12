@@ -1,0 +1,14 @@
+SOURCE_HEAD b3f5cd40b125364a202b117d2b270e41dfb9e995 CANDIDATE /private/tmp/fluctlight-m2-02-ihqhnkge
+OVERLAYS apps/core-go/internal/core/owner_media_requests.go,apps/core-go/internal/core/media_quality.go,apps/core-go/internal/core/diagnostic_media_recovery.go,apps/core-go/internal/core/operations.go,apps/core-go/internal/core/studio_media.go,apps/core-go/internal/core/studio_retry.go,apps/core-go/internal/core/visual_identity_agent.go,apps/core-go/internal/workflow/workflow.go,apps/core-go/internal/migrations/media_submission_guard_test.go,apps/core-go/internal/core/media.go,apps/core-go/internal/core/media_submission_guard.go,apps/core-go/internal/migrations/runner.go,apps/core-go/internal/migrations/current_chain_test.go,apps/core-go/internal/migrations/media_submission_guard.go,apps/core-go/internal/core/m2_ambiguous_image_submit_test.go
+COMMAND go test ./internal/migrations -count=1 -run ^(TestMediaSubmissionGuardUpgradePreservesLegacyAndMarksNew|TestMediaModelSnapshotUpgradeKeepsLegacyAndMarksNewIntents|TestRuntimeSummarySnapshotUpgradePreservesLegacyIntent|TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMediaModelSnapshotUpgradeKeepsLegacyAndMarksNewIntents
+--- PASS: TestMediaModelSnapshotUpgradeKeepsLegacyAndMarksNewIntents (2.05s)
+=== RUN   TestMediaSubmissionGuardUpgradePreservesLegacyAndMarksNew
+--- PASS: TestMediaSubmissionGuardUpgradePreservesLegacyAndMarksNew (1.37s)
+=== RUN   TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests
+--- PASS: TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests (0.00s)
+=== RUN   TestRuntimeSummarySnapshotUpgradePreservesLegacyIntent
+--- PASS: TestRuntimeSummarySnapshotUpgradePreservesLegacyIntent (1.31s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	5.061s
+EXIT_CODE 0

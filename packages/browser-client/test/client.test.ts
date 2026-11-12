@@ -323,3 +323,16 @@ test("goal set and Actor context commands preserve versions, idempotency and sco
  assert.match(calls[0]!.url,/instance%2Fa\/goal-set$/);assert.equal(calls[0]!.body.autoPlanningEnabled,false);assert.deepEqual(calls[0]!.body.dependencies,{B:["A"]});
  assert.match(calls[1]!.url,/actor%2Fb$/);assert.equal(calls[1]!.body.expectedContextVersion,"v1");assert.equal(calls[1]!.body.background.timezone,null);
 });
+
+test("BrowserClient sends an explicit review acknowledgement with media recovery", async () => {
+  let requestedUrl = "";
+  let sent: unknown;
+  const client = new BrowserClient("http://fluctlight.local", async (input, init) => {
+    requestedUrl = String(input);
+    sent = JSON.parse(String(init?.body));
+    return Response.json({ media_intent_id: "media-1", status: "retry_queued" });
+  });
+  await client.retryOwnerDiagnosticMedia("media-1", { expectedRevision: 3, mode: "regenerate", reason: "已人工核对", idempotencyKey: "reviewed-1", submissionReviewed: true });
+  assert.equal(requestedUrl, "http://fluctlight.local/api/diagnostic-records/media-prompts/media-1/retry");
+  assert.deepEqual(sent, { expectedRevision: 3, mode: "regenerate", reason: "已人工核对", idempotencyKey: "reviewed-1", submissionReviewed: true });
+});

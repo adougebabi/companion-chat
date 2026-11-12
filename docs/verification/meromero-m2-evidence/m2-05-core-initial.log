@@ -1,0 +1,40 @@
+SOURCE_HEAD b3f5cd40b125364a202b117d2b270e41dfb9e995 CANDIDATE /private/tmp/fluctlight-m2-02-t2gzo4c_
+OVERLAYS apps/core-go/internal/core/media_quality.go,apps/core-go/internal/core/diagnostic_media_recovery.go,apps/core-go/internal/core/operations.go,apps/core-go/internal/core/studio_media.go,apps/core-go/internal/core/studio_retry.go,apps/core-go/internal/core/visual_identity_agent.go,apps/core-go/internal/workflow/workflow.go,apps/core-go/internal/migrations/media_submission_guard_test.go,apps/core-go/internal/core/media.go,apps/core-go/internal/core/media_submission_guard.go,apps/core-go/internal/migrations/runner.go,apps/core-go/internal/migrations/current_chain_test.go,apps/core-go/internal/migrations/media_submission_guard.go,apps/core-go/internal/core/m2_ambiguous_image_submit_test.go
+COMMAND go test ./internal/core -count=1 -run ^(TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob|TestMediaSubmissionGuardPausesLegacyAndInterruptedWork|TestImageRunningJobRecoversAcrossProcessesAfterDisable|TestMediaQualityRetryPersistsFeedbackAndRejectsSecondCandidate|TestDisabledImagePluginRecoversAcceptedReadyIntentOnce)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDisabledImagePluginRecoversAcceptedReadyIntentOnce
+--- PASS: TestDisabledImagePluginRecoversAcceptedReadyIntentOnce (2.20s)
+=== RUN   TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob
+    m2_ambiguous_image_submit_test.go:115: child phase=lost_response pid=81722 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:181: phase=lost_response actual_error=media_submission_ambiguous: Post "http://127.0.0.1:62716/prompt": EOF
+        --- PASS: TestImageAmbiguousSubmitChild (0.06s)
+        PASS
+    m2_ambiguous_image_submit_test.go:120: child phase=resume pid=81724 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:181: phase=resume actual_error=media_submission_ambiguous
+        --- PASS: TestImageAmbiguousSubmitChild (0.02s)
+        PASS
+--- PASS: TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob (2.50s)
+=== RUN   TestMediaSubmissionGuardPausesLegacyAndInterruptedWork
+=== RUN   TestMediaSubmissionGuardPausesLegacyAndInterruptedWork/legacy-no-job
+=== RUN   TestMediaSubmissionGuardPausesLegacyAndInterruptedWork/interrupted-submit
+--- PASS: TestMediaSubmissionGuardPausesLegacyAndInterruptedWork (2.32s)
+    --- PASS: TestMediaSubmissionGuardPausesLegacyAndInterruptedWork/legacy-no-job (0.02s)
+    --- PASS: TestMediaSubmissionGuardPausesLegacyAndInterruptedWork/interrupted-submit (0.02s)
+=== RUN   TestImageRunningJobRecoversAcrossProcessesAfterDisable
+    m2_running_image_recovery_test.go:156: child phase=interrupt pid=81733 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:221: controlled renderer history failed after submission, as intended
+        --- PASS: TestImageRunningJobRecoveryChild (0.06s)
+        PASS
+    m2_running_image_recovery_test.go:166: child phase=resume pid=81735 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:231: resume and replay completed once; child pid=81735
+        --- PASS: TestImageRunningJobRecoveryChild (0.09s)
+        PASS
+--- PASS: TestImageRunningJobRecoversAcrossProcessesAfterDisable (2.66s)
+=== RUN   TestMediaQualityRetryPersistsFeedbackAndRejectsSecondCandidate
+--- PASS: TestMediaQualityRetryPersistsFeedbackAndRejectsSecondCandidate (2.09s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	12.625s
+EXIT_CODE 0

@@ -94,10 +94,14 @@ func (a *App) generateOwnerAvatar(ctx context.Context, owner, fid string, body m
 		if revision != expected {
 			return nil, &SurfaceError{Status: 409, Code: "visual_generation_conflict", Message: "形象参考已变化，请重新读取后生成头像"}
 		}
-		var existingID, reviewID, status, mediaStatus string
-		err = tx.QueryRow(ctx, `SELECT r.media_intent_id,r.id,r.status,i.status FROM public.fluctlight_visual_asset_reviews r JOIN public.media_intents i ON i.id=r.media_intent_id WHERE r.fluctlight_id=$1 AND r.visual_revision=$2 AND r.kind='avatar' ORDER BY r.created_at DESC,r.id DESC LIMIT 1`, fid, revision).Scan(&existingID, &reviewID, &status, &mediaStatus)
+		var existingID, reviewID, status, mediaStatus, jobID string
+		var submissionStarted bool
+		err = tx.QueryRow(ctx, `SELECT r.media_intent_id,r.id,r.status,i.status,COALESCE(i.provider_job_id,''),i.renderer_submission_started FROM public.fluctlight_visual_asset_reviews r JOIN public.media_intents i ON i.id=r.media_intent_id WHERE r.fluctlight_id=$1 AND r.visual_revision=$2 AND r.kind='avatar' ORDER BY r.created_at DESC,r.id DESC LIMIT 1`, fid, revision).Scan(&existingID, &reviewID, &status, &mediaStatus, &jobID, &submissionStarted)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return nil, err
+		}
+		if err == nil && status == "generating" && (mediaStatus == mediaSubmissionUnknownStatus || (mediaStatus == "failed" && submissionStarted && jobID == "")) {
+			return nil, &SurfaceError{Status: 409, Code: "media_submission_review_required", Message: "头像生成服务可能已接单，请先人工核对原任务。"}
 		}
 		if err == nil && (status == "awaiting_review" || status == "generating" && mediaStatus != "failed") {
 			return map[string]any{"id": existingID, "review_id": reviewID, "fluctlight_id": fid, "visual_revision": revision, "status": status}, nil

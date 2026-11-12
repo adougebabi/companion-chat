@@ -228,8 +228,9 @@ func (a *App) settleStudioMedia(ctx context.Context, intent mediaIntent, success
 		if job["status"] != "running" {
 			return nil
 		}
-		var currentWorkflow, qualityVerdict string
-		if err := tx.QueryRow(ctx, `SELECT workflow_id,COALESCE(quality_verdict,'') FROM public.media_intents WHERE id=$1 AND studio_job_id=$2 AND studio_owner_actor_id=$3 FOR UPDATE`, intent.ID, intent.StudioJobID, intent.StudioOwner).Scan(&currentWorkflow, &qualityVerdict); err != nil {
+		var currentWorkflow, qualityVerdict, mediaStatus, providerJobID string
+		var submissionStarted bool
+		if err := tx.QueryRow(ctx, `SELECT workflow_id,COALESCE(quality_verdict,''),status,COALESCE(provider_job_id,''),renderer_submission_started FROM public.media_intents WHERE id=$1 AND studio_job_id=$2 AND studio_owner_actor_id=$3 FOR UPDATE`, intent.ID, intent.StudioJobID, intent.StudioOwner).Scan(&currentWorkflow, &qualityVerdict, &mediaStatus, &providerJobID, &submissionStarted); err != nil {
 			return err
 		}
 		if currentWorkflow != intent.WorkflowID {
@@ -244,12 +245,25 @@ func (a *App) settleStudioMedia(ctx context.Context, intent mediaIntent, success
 		if output["media_intent_id"] != intent.ID || output["workflow_id"] != intent.WorkflowID {
 			return nil
 		}
-		status := "failed"
-		var failure any = code
 		var ready bool
 		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_assets WHERE id=$1 AND status='ready' AND media_scope='studio' AND studio_job_id=$2 AND studio_owner_actor_id=$3)`, "asset_"+intent.ID, intent.StudioJobID, intent.StudioOwner).Scan(&ready); err != nil {
 			return err
 		}
+		if !success && submissionStarted && providerJobID == "" && (mediaStatus == "pending" || mediaStatus == "running" || mediaStatus == "submitting" || mediaStatus == "failed") {
+			if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET status=$2,revision=revision+1 WHERE id=$1`, intent.ID, mediaSubmissionUnknownStatus); err != nil {
+				return err
+			}
+			mediaStatus = mediaSubmissionUnknownStatus
+		}
+		if !success && mediaStatus == mediaSubmissionUnknownStatus {
+			if _, err := tx.Exec(ctx, `UPDATE public.studio_job_attempts SET error_code=$2 WHERE id=$1 AND status='running'`, aid, mediaSubmissionAmbiguousCode); err != nil {
+				return err
+			}
+			_, err := tx.Exec(ctx, `UPDATE public.studio_jobs SET error_code=$2,revision=revision+1,updated_at=now() WHERE id=$1 AND status='running' AND error_code IS DISTINCT FROM $2`, intent.StudioJobID, mediaSubmissionAmbiguousCode)
+			return err
+		}
+		status := "failed"
+		var failure any = code
 		if qualityVerdict == mediaQualityVerdictRetryAccepted || qualityVerdict == mediaQualityVerdictRetry || qualityVerdict == mediaQualityVerdictReject {
 			if success {
 				return newCapabilityError(mediaQualityFailureCode(qualityVerdict), false, nil)
@@ -273,7 +287,7 @@ func (a *App) settleStudioMedia(ctx context.Context, intent mediaIntent, success
 			status = "completed"
 			failure = nil
 		}
-		mediaStatus := "failed"
+		mediaStatus = "failed"
 		if ready {
 			mediaStatus = "completed"
 		}

@@ -284,7 +284,7 @@ export default function MediaGeneration({ model: m }) {
     read: () => read(selected),
     pending: (r) =>
       r.media
-        ? ["pending", "running"].includes(r.media.status)
+        ? ["pending", "running", "submitting", "reviewed_ready"].includes(r.media.status)
         : [
             "pending",
             "processing",
@@ -298,10 +298,12 @@ export default function MediaGeneration({ model: m }) {
     ownerRequest = record?.request,
     media = record?.media,
     asset = record?.asset,
+    uncertain = media?.status === "submission_unknown" || media?.submission_uncertain === true,
     failed =
+      !uncertain && (
       media?.status === "failed" ||
       ["failed", "rejected", "cancelled"].includes(ownerRequest?.status) ||
-      !!ownerRequest?.result?.error_code,
+      !!ownerRequest?.result?.error_code),
     complete = media?.status === "completed" && asset?.readable;
   const action = {
     identity: "media-generation:" + fid + ":" + epoch,
@@ -493,9 +495,11 @@ export default function MediaGeneration({ model: m }) {
             </div>
             <p>
               {stateLabel(ownerRequest.status)} ·{" "}
-              {media ? stateLabel(media.status) : "尚无已受理的生成任务"}
+              {media ? (uncertain ? "接单状态待人工核对" : stateLabel(media.status)) : "尚无已受理的生成任务"}
             </p>
-            {failed ? (
+            {uncertain ? (
+              <p role="status">生成服务可能已接单，任务已暂停；请人工核对，系统不会自动再次提交。</p>
+            ) : failed ? (
               <p role="alert">
                 {errorMessage(
                   {

@@ -474,7 +474,7 @@ func (a *App) loadVisualIdentityAgentState(ctx context.Context, sessionID string
 	state.RendererConstraints = decodeObject(constraints)
 
 	if state.MediaIntentID != "" {
-		if err := a.DB.Pool().QueryRow(ctx, `SELECT status FROM public.media_intents WHERE id=$1`, state.MediaIntentID).Scan(&state.MediaStatus); err != nil {
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT CASE WHEN status='failed' AND renderer_submission_started AND COALESCE(provider_job_id,'')='' THEN 'submission_unknown' ELSE status END FROM public.media_intents WHERE id=$1`, state.MediaIntentID).Scan(&state.MediaStatus); err != nil {
 			return state, err
 		}
 		if state.MediaStatus == "completed" && state.CandidateAssetID == "" {
@@ -490,7 +490,7 @@ func (a *App) loadVisualIdentityAgentState(ctx context.Context, sessionID string
 		state.CandidateAssetReady = err == nil && owner == state.FluctlightID && status == "ready"
 	}
 	if state.CharacterMediaIntentID != "" {
-		if err := a.DB.Pool().QueryRow(ctx, `SELECT status FROM public.media_intents WHERE id=$1`, state.CharacterMediaIntentID).Scan(&state.CharacterMediaStatus); err != nil {
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT CASE WHEN status='failed' AND renderer_submission_started AND COALESCE(provider_job_id,'')='' THEN 'submission_unknown' ELSE status END FROM public.media_intents WHERE id=$1`, state.CharacterMediaIntentID).Scan(&state.CharacterMediaStatus); err != nil {
 			return state, err
 		}
 		if state.CharacterMediaStatus == "completed" {
@@ -569,7 +569,7 @@ func classifyVisualIdentityAgentState(state *visualIdentityAgentState) error {
 		return nil
 	}
 	switch state.MediaStatus {
-	case "pending", "running", "retry":
+	case "pending", "running", "retry", "submitting", mediaSubmissionUnknownStatus:
 		state.WaitingStage = "image_" + state.MediaStatus
 		return nil
 	case "failed":

@@ -150,7 +150,22 @@ func (a *App) OwnerVisualIdentity(ctx context.Context, owner, fid string) (map[s
 	} else if err != nil {
 		return nil, err
 	} else {
-		result["session"] = decodeObject(session)
+		view := decodeObject(session)
+		var candidateUncertain, sheetUncertain bool
+		err := a.DB.Pool().QueryRow(ctx, `SELECT
+			EXISTS(SELECT 1 FROM public.fluctlight_visual_identity_attempts t JOIN public.media_intents m ON m.id=t.media_intent_id WHERE t.session_id=s.id AND t.attempt_number=s.current_attempt AND (m.status='submission_unknown' OR (m.status='failed' AND m.renderer_submission_started AND COALESCE(m.provider_job_id,'')=''))),
+			EXISTS(SELECT 1 FROM public.media_intents m WHERE m.id=s.character_sheet_media_intent_id AND (m.status='submission_unknown' OR (m.status='failed' AND m.renderer_submission_started AND COALESCE(m.provider_job_id,'')='')))
+			FROM public.fluctlight_visual_identity_sessions s WHERE s.id=$1 AND s.fluctlight_id=$2`, snapshot.ActiveSessionID, fid).Scan(&candidateUncertain, &sheetUncertain)
+		if errors.Is(err, pgx.ErrNoRows) {
+			result["session"] = nil
+			return result, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		view["candidate_submission_uncertain"] = candidateUncertain
+		view["character_sheet_submission_uncertain"] = sheetUncertain
+		result["session"] = view
 	}
 	return result, nil
 }

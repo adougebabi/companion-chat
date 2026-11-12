@@ -1,0 +1,24 @@
+SOURCE_HEAD b3f5cd40b125364a202b117d2b270e41dfb9e995 CANDIDATE /private/tmp/fluctlight-m2-02-ec0se66u
+OVERLAYS apps/core-go/internal/workflow/m2_media_submission_reconcile_test.go,apps/core-go/internal/core/owner_media_requests.go,apps/core-go/internal/core/media_quality.go,apps/core-go/internal/core/diagnostic_media_recovery.go,apps/core-go/internal/core/operations.go,apps/core-go/internal/core/studio_media.go,apps/core-go/internal/core/studio_retry.go,apps/core-go/internal/core/visual_identity_agent.go,apps/core-go/internal/workflow/workflow.go,apps/core-go/internal/migrations/media_submission_guard_test.go,apps/core-go/internal/core/media.go,apps/core-go/internal/core/media_submission_guard.go,apps/core-go/internal/migrations/runner.go,apps/core-go/internal/migrations/current_chain_test.go,apps/core-go/internal/migrations/media_submission_guard.go,apps/core-go/internal/core/m2_ambiguous_image_submit_test.go
+COMMAND go test ./internal/workflow -count=1 -run ^(TestAmbiguousMediaActivityIsNonRetryable|TestMediaReconcilePreservesUnknownSubmissionAfterWorkerLoss|TestMediaValidationFailureDoesNotRestartNormalization|TestMediaActivityKeepsTransportRetryAndCancellation|TestMediaWorkflowContinuesOneQualityRetry|TestMediaWorkflowStopsAfterOneQualityRetry)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestAmbiguousMediaActivityIsNonRetryable
+--- PASS: TestAmbiguousMediaActivityIsNonRetryable (0.00s)
+=== RUN   TestMediaReconcilePreservesUnknownSubmissionAfterWorkerLoss
+--- PASS: TestMediaReconcilePreservesUnknownSubmissionAfterWorkerLoss (2.16s)
+=== RUN   TestMediaValidationFailureDoesNotRestartNormalization
+2026/11/12 17:38:01 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType ProcessMediaActivity Attempt 1 Error media prompt generation failed: media_prompt_validation_failed (type: media_prompt_validation_failed, retryable: false): media prompt generation failed: media_prompt_validation_failed
+2026/11/12 17:38:01 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskFailedRequest. ActivityID 1 ActivityType ProcessMediaActivity
+--- PASS: TestMediaValidationFailureDoesNotRestartNormalization (0.09s)
+=== RUN   TestMediaActivityKeepsTransportRetryAndCancellation
+--- PASS: TestMediaActivityKeepsTransportRetryAndCancellation (0.00s)
+=== RUN   TestMediaWorkflowContinuesOneQualityRetry
+2026/11/12 17:38:01 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 1 ActivityType ProcessMediaActivity
+2026/11/12 17:38:01 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 2 ActivityType ProcessMediaActivity
+--- PASS: TestMediaWorkflowContinuesOneQualityRetry (0.00s)
+=== RUN   TestMediaWorkflowStopsAfterOneQualityRetry
+2026/11/12 17:38:01 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 1 ActivityType ProcessMediaActivity
+2026/11/12 17:38:01 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 2 ActivityType ProcessMediaActivity
+--- PASS: TestMediaWorkflowStopsAfterOneQualityRetry (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow	2.873s
+EXIT_CODE 0

@@ -251,6 +251,13 @@ func (a *App) DispatchStudioJobSurface(ctx context.Context, method, path string,
 				return nil, invalid("Only a failed job can be retried")
 			}
 			if job["kind"] == "image_preview" {
+				var uncertain bool
+				if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_intents WHERE studio_job_id=$1 AND studio_owner_actor_id=$2 AND (status='submission_unknown' OR (status='failed' AND renderer_submission_started AND COALESCE(provider_job_id,'')='')))`, id, owner).Scan(&uncertain); err != nil {
+					return nil, err
+				}
+				if uncertain {
+					return nil, &SurfaceError{Status: 409, Code: "media_submission_review_required", Message: "生成服务可能已接单，请先人工核对原任务。"}
+				}
 				var active bool
 				if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.platform_workflow_intents w JOIN public.media_intents i ON i.id=w.payload->>'intent_id' WHERE i.studio_job_id=$1 AND i.studio_owner_actor_id=$2 AND w.intent_type='media.generation' AND w.status IN ('pending','retry','started','cancel_requested'))`, id, owner).Scan(&active); err != nil {
 					return nil, err
@@ -308,11 +315,17 @@ func (a *App) StudioJob(ctx context.Context, owner, id string) (map[string]any, 
 	if err != nil {
 		return nil, err
 	}
-	media, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT jsonb_build_object('id',i.id,'status',i.status,'workflow_id',i.workflow_id,'provider_job_id',i.provider_job_id,'quality_verdict',i.quality_verdict,'workflows',COALESCE((SELECT jsonb_agg(jsonb_build_object('intent_id',w.intent_id,'workflow_id',w.workflow_id,'status',w.status,'error_code',CASE WHEN w.last_error IS NULL THEN NULL WHEN w.last_error='workflow_status_unavailable' THEN 'workflow_status_unavailable' ELSE 'workflow_execution_failed' END) ORDER BY w.created_at) FROM public.platform_workflow_intents w WHERE w.intent_type='media.generation' AND w.payload->>'intent_id'=i.id),'[]'::jsonb)) FROM public.media_intents i WHERE i.studio_job_id=$1 AND i.studio_owner_actor_id=$2`, id, owner)
+	media, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT jsonb_build_object('id',i.id,'status',i.status,'submission_uncertain',i.status='submission_unknown' OR (i.status='failed' AND i.renderer_submission_started AND COALESCE(i.provider_job_id,'')=''),'workflow_id',i.workflow_id,'provider_job_id',i.provider_job_id,'quality_verdict',i.quality_verdict,'workflows',COALESCE((SELECT jsonb_agg(jsonb_build_object('intent_id',w.intent_id,'workflow_id',w.workflow_id,'status',w.status,'error_code',CASE WHEN w.last_error IS NULL THEN NULL WHEN w.last_error='workflow_status_unavailable' THEN 'workflow_status_unavailable' ELSE 'workflow_execution_failed' END) ORDER BY w.created_at) FROM public.platform_workflow_intents w WHERE w.intent_type='media.generation' AND w.payload->>'intent_id'=i.id),'[]'::jsonb)) FROM public.media_intents i WHERE i.studio_job_id=$1 AND i.studio_owner_actor_id=$2`, id, owner)
 	if err != nil {
 		return nil, err
 	}
 	job["media_requests"] = media
+	for _, item := range media {
+		if mapValue(item)["submission_uncertain"] == true {
+			job["submission_uncertain"] = true
+			break
+		}
+	}
 	job["attempts"] = attempts
 	job["label"] = "虚构创作预览·不进入生活"
 	job["life_write"] = false
@@ -335,7 +348,7 @@ func (a *App) studioJobPage(ctx context.Context, owner, kind string, q url.Value
 	}
 	resource := q.Get("resource_id")
 	limit := pageLimit(q)
-	items, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT to_jsonb(j) FROM public.`+table+` j WHERE owner_actor_id=$1 AND ($2='' OR resource_id=$2) AND (created_at,id)<($3,$4) ORDER BY created_at DESC,id DESC LIMIT $5`, owner, resource, at, id, limit+1)
+	items, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT to_jsonb(j)||jsonb_build_object('submission_uncertain',EXISTS(SELECT 1 FROM public.media_intents m WHERE m.studio_job_id=j.id AND m.studio_owner_actor_id=j.owner_actor_id AND (m.status='submission_unknown' OR (m.status='failed' AND m.renderer_submission_started AND COALESCE(m.provider_job_id,'')='')))) FROM public.`+table+` j WHERE owner_actor_id=$1 AND ($2='' OR resource_id=$2) AND (created_at,id)<($3,$4) ORDER BY created_at DESC,id DESC LIMIT $5`, owner, resource, at, id, limit+1)
 	if err != nil {
 		return nil, err
 	}

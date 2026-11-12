@@ -12,8 +12,13 @@ func (a *App) RetryOwnerDiagnosticMedia(ctx context.Context, owner, id string, b
 	if err := a.requireOwner(ctx, owner); err != nil {
 		return nil, err
 	}
-	if !eventKeys(body, "expected_revision", "mode", "idempotency_key", "reason") {
+	if !eventKeys(body, "expected_revision", "mode", "idempotency_key", "reason", "submission_reviewed") {
 		return nil, ErrInvalidArguments
+	}
+	if value, present := body["submission_reviewed"]; present {
+		if _, ok := value.(bool); !ok {
+			return nil, ErrInvalidArguments
+		}
 	}
 	expected, ok := positiveInt64(body["expected_revision"])
 	mode := stringValue(body["mode"])
@@ -54,8 +59,13 @@ func (a *App) RetryOwnerDiagnosticMedia(ctx context.Context, owner, id string, b
 		} else {
 			return nil, ErrUnauthorized
 		}
-		if previous["status"] != "failed" {
+		status := stringValue(previous["status"])
+		if status != "failed" && status != mediaSubmissionUnknownStatus {
 			return nil, &SurfaceError{Status: 409, Code: "media_not_retryable", Message: "只有真实失败的媒体任务可以恢复"}
+		}
+		ambiguous := status == mediaSubmissionUnknownStatus || (previous["renderer_submission_started"] == true && stringValue(previous["provider_job_id"]) == "")
+		if ambiguous && body["submission_reviewed"] != true {
+			return nil, &SurfaceError{Status: 409, Code: "media_submission_review_required", Message: "生成服务可能已接单；必须先人工核对并明确确认，才能处理原任务。"}
 		}
 		qualityVerdict := stringValue(previous["quality_verdict"])
 		if qualityVerdict == mediaQualityVerdictRetryAccepted || ((qualityVerdict == mediaQualityVerdictReject || qualityVerdict == mediaQualityVerdictRetry) && stringValue(previous["provider_job_id"]) != "" && stringValue(previous["quality_candidate_sha256"]) != "") {
@@ -95,6 +105,9 @@ func (a *App) RetryOwnerDiagnosticMedia(ctx context.Context, owner, id string, b
 		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_assets WHERE id=$1 AND status='ready')`, "asset_"+id).Scan(&assetReady); err != nil {
 			return nil, err
 		}
+		if ambiguous && mode == "resume" && !assetReady {
+			return nil, &SurfaceError{Status: 409, Code: "media_submission_review_required", Message: "生成服务可能已接单，请先人工核对；没有任务编号或已就绪资产时不能自动继续原任务。"}
+		}
 		if mode == "regenerate" && assetReady {
 			return nil, &SurfaceError{Status: 409, Code: "media_result_already_ready", Message: "真实资产已就绪，请恢复原结果发布；不会覆盖已生成的资产"}
 		}
@@ -103,12 +116,15 @@ func (a *App) RetryOwnerDiagnosticMedia(ctx context.Context, owner, id string, b
 		intent := "media_recovery_intent:" + attempt
 		safePrevious := cloneMap(previous)
 		delete(safePrevious, "model_provenance")
+		if ambiguous {
+			safePrevious["submission_reviewed_by_owner"] = true
+		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.media_recovery_attempts(id,owner_actor_id,media_intent_id,source_workflow_id,workflow_id,intent_id,mode,reason,previous) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, attempt, owner, id, previous["workflow_id"], wf, intent, mode, body["reason"], jsonBytes(safePrevious)); err != nil {
 			return nil, err
 		}
 		// Resume retains prompt, provider job, quality verdict, retries and candidate.
 		// Explicit regeneration records them above before clearing only those stages.
-		if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET workflow_id=$2,status=CASE WHEN $3='resume' AND provider_job_id IS NOT NULL THEN 'running' ELSE 'pending' END,revision=revision+1,provider_job_id=CASE WHEN $3='regenerate' THEN NULL ELSE provider_job_id END,quality_verdict=CASE WHEN $3='regenerate' THEN '' ELSE quality_verdict END,quality_candidate_sha256=CASE WHEN $3='regenerate' THEN NULL ELSE quality_candidate_sha256 END,quality_checked_at=CASE WHEN $3='regenerate' THEN NULL ELSE quality_checked_at END WHERE id=$1`, id, wf, mode); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET workflow_id=$2,status=CASE WHEN $3='resume' AND $4::boolean AND renderer_submission_started AND COALESCE(provider_job_id,'')='' THEN 'reviewed_ready' WHEN $3='resume' AND provider_job_id IS NOT NULL THEN 'running' ELSE 'pending' END,revision=revision+1,provider_job_id=CASE WHEN $3='regenerate' THEN NULL ELSE provider_job_id END,renderer_submission_started=CASE WHEN $3='regenerate' THEN false ELSE renderer_submission_started END,quality_verdict=CASE WHEN $3='regenerate' THEN '' ELSE quality_verdict END,quality_candidate_sha256=CASE WHEN $3='regenerate' THEN NULL ELSE quality_candidate_sha256 END,quality_checked_at=CASE WHEN $3='regenerate' THEN NULL ELSE quality_checked_at END WHERE id=$1`, id, wf, mode, assetReady); err != nil {
 			return nil, err
 		}
 		payload := map[string]any{"intent_id": id, "fluctlight_id": previous["owner_fluctlight_id"], "provider_request_id": previous["provider_request_id"], "correlation_id": "media:" + id, "media_recovery_id": attempt}

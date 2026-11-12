@@ -176,3 +176,27 @@ for(const hasJob of [false,true])test(`media recovery warns about an unknown pro
  const view=await mountReact(vite,Record,{workspace:w,props:{taskId:'task-ambiguity-'+hasJob,onClose(){}}});
  try{const footer=document.querySelector('[data-slot=sheet-footer]');await view.click(button(footer,'从失败处重试'));const dialog=[...document.querySelectorAll('[role=dialog]')].at(-1);if(hasJob)assert.doesNotMatch(dialog.textContent,/可能产生重复生成/);else assert.match(dialog.textContent,/可能产生重复生成/);await view.click(button(dialog,'取消'));}finally{await view.dispose();}
 });
+
+for(const status of ['submission_unknown','failed'])test(`uncertain media ${status} requires explicit review before regeneration`,async()=>{
+ const {default:Record}=await vite.ssrLoadModule('/src/react-app/shared/TaskRecordDialog.tsx'),w=workspace(),writes=[];
+ const id='media-review-'+status,media={id,owner_fluctlight_id:'A',workflow_id:'wf-review-'+status,status,revision:5,prompt:'{}',provider_job_id:'',renderer_submission_started:true,quality_asset_ready:false};
+ w.services.operationsClient={task:async task=>({task_id:task,kind:'media.generation',fluctlight_id:'A',workflow_id:media.workflow_id,status:'failed',steps:[]})};
+ w.services.diagnosticsClient={workflow:async()=>({intent:{intent_type:'media.generation',status:'failed',payload:{intent_id:id}},runtime_state:'available',runtime:{run_id:'run',status:'failed'},allowed_actions:[],commands:[]}),page:async()=>({items:[{id,ref:'ref-'+id,data:media}],next_cursor:''}),mediaRetry:async(mediaId,body)=>{writes.push({id:mediaId,body:structuredClone(body)});return {media_intent_id:mediaId,intent_id:'next-review',workflow_id:'wf-next-review',mode:body.mode,status:'retry_queued'};}};
+ const view=await mountReact(vite,Record,{workspace:w,props:{taskId:'task-review-'+status,onClose(){}}});
+ try{
+  const footer=document.querySelector('[data-slot=sheet-footer]');assert.match(footer.textContent,/可能已接单.*人工核对/);assert.equal(button(footer,'从失败处重试'),undefined);
+  await view.click(button(footer,'核对后重新生成'));const dialog=[...document.querySelectorAll('[role=dialog]')].at(-1);assert.match(dialog.textContent,/可能产生重复生成/);
+  await view.input(dialog.querySelector('textarea'),'已核对原生成服务');assert.equal(button(dialog,'确认重新生成').disabled,true);assert.equal(writes.length,0);
+  await view.click(dialog.querySelector('input[type=checkbox]'));assert.equal(button(dialog,'确认重新生成').disabled,false);await view.click(button(dialog,'确认重新生成'));
+  assert.equal(writes.length,1);assert.equal(writes[0].body.mode,'regenerate');assert.equal(writes[0].body.submissionReviewed,true);
+ }finally{await view.dispose();}
+});
+
+test('uncertain media with a ready asset offers reviewed recovery without regeneration',async()=>{
+ const {default:Record}=await vite.ssrLoadModule('/src/react-app/shared/TaskRecordDialog.tsx'),w=workspace();const id='media-review-ready';
+ const media={id,owner_fluctlight_id:'A',workflow_id:'wf-review-ready',status:'submission_unknown',revision:3,prompt:'{}',provider_job_id:'',renderer_submission_started:true,quality_asset_ready:true};
+ w.services.operationsClient={task:async task=>({task_id:task,kind:'media.generation',fluctlight_id:'A',workflow_id:media.workflow_id,status:'failed',steps:[]})};
+ w.services.diagnosticsClient={workflow:async()=>({intent:{intent_type:'media.generation',status:'failed',payload:{intent_id:id}},runtime_state:'available',runtime:{run_id:'run',status:'failed'},allowed_actions:[],commands:[]}),page:async()=>({items:[{id,ref:'ref-'+id,data:media}],next_cursor:''}),mediaRetry:async()=>{throw Error('unexpected write');}};
+ const view=await mountReact(vite,Record,{workspace:w,props:{taskId:'task-review-ready',onClose(){}}});
+ try{const footer=document.querySelector('[data-slot=sheet-footer]');assert.ok(button(footer,'核对后恢复已有资产'));assert.equal(button(footer,'核对后重新生成'),undefined);await view.click(button(footer,'核对后恢复已有资产'));const dialog=[...document.querySelectorAll('[role=dialog]')].at(-1);assert.match(dialog.textContent,/不会再次提交生成请求/);}finally{await view.dispose();}
+});

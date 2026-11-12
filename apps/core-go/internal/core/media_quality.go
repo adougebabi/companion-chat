@@ -325,7 +325,7 @@ func (a *App) persistMediaQualityVerdict(ctx context.Context, intentID, provider
 }
 
 func (a *App) prepareMediaQualityRetry(ctx context.Context, intentID, providerJobID, guidance string, feedback map[string]any, candidateSHA string) error {
-	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET quality_retry_count=quality_retry_count+1,quality_retry_guidance=$2,quality_retry_feedback=$3::jsonb,quality_verdict='retry',quality_candidate_sha256=$4,quality_checked_at=now(),provider_job_id=NULL,status='pending',revision=revision+1 WHERE id=$1 AND provider_job_id=$5 AND status='running' AND quality_retry_count=0`, intentID, guidance, jsonBytes(feedback), candidateSHA, providerJobID)
+	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET quality_retry_count=quality_retry_count+1,quality_retry_guidance=$2,quality_retry_feedback=$3::jsonb,quality_verdict='retry',quality_candidate_sha256=$4,quality_checked_at=now(),provider_job_id=NULL,renderer_submission_started=false,status='pending',revision=revision+1 WHERE id=$1 AND provider_job_id=$5 AND status='running' AND quality_retry_count=0`, intentID, guidance, jsonBytes(feedback), candidateSHA, providerJobID)
 	if err != nil {
 		return err
 	}

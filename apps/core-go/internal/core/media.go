@@ -33,6 +33,7 @@ type mediaIntent struct {
 	QualityRetryFeedback                                                            map[string]any
 	QualityRetryCount                                                               int
 	ConversationID, MessageID, MomentID                                             *string
+	RendererSubmissionStarted                                                       bool
 	modelProvenance                                                                 map[string]any
 }
 
@@ -66,6 +67,12 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result m
 	}
 	if err := a.studioMediaActive(ctx, intent); err != nil {
 		return nil, err
+	}
+	if intent.Status == mediaSubmissionUnknownStatus {
+		return nil, newCapabilityError(mediaSubmissionAmbiguousCode, false, nil)
+	}
+	if intent.ProviderJobID == "" && intent.RendererSubmissionStarted && intent.Status != "reviewed_ready" && (intent.Status == "pending" || intent.Status == "running" || intent.Status == "submitting" || intent.Status == "failed") {
+		return nil, a.pauseUncertainMediaSubmission(ctx, intent, nil)
 	}
 	if !isDerivedVisualIdentityMedia(intent) && intent.Status == "completed" && intent.QualityVerdict == mediaQualityVerdictRetryAccepted {
 		// A completed historical task has already crossed its old publication
@@ -108,6 +115,9 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result m
 			return nil, err
 		}
 		return map[string]any{"intent_id": intent.ID, "status": "completed", "quality_verdict": intent.QualityVerdict}, nil
+	}
+	if intent.Status == "reviewed_ready" {
+		return nil, a.pauseUncertainMediaSubmission(ctx, intent, errors.New("reviewed_media_asset_unavailable"))
 	}
 	if intent.Status == "completed" {
 		return map[string]any{"intent_id": intent.ID, "status": "completed", "quality_verdict": intent.QualityVerdict}, nil
@@ -353,25 +363,40 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result m
 		if err != nil {
 			return nil, err
 		}
-		data, _ := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+		data, readErr := io.ReadAll(io.LimitReader(response.Body, 1<<20))
 		response.Body.Close()
+		if readErr != nil {
+			return nil, a.pauseUncertainMediaSubmission(ctx, intent, readErr)
+		}
 		if response.StatusCode < 200 || response.StatusCode >= 300 {
 			detail := strings.TrimSpace(string(data))
 			if len(detail) > 512 {
 				detail = detail[:512]
 			}
-			return nil, fmt.Errorf("ComfyUI returned HTTP %d: %s", response.StatusCode, detail)
+			failure := fmt.Errorf("ComfyUI returned HTTP %d: %s", response.StatusCode, detail)
+			if isDefiniteComfyValidationRejection(response.StatusCode, data) {
+				if err := a.clearRejectedMediaSubmission(ctx, intent); err == nil {
+					return nil, failure
+				} else {
+					return nil, a.pauseUncertainMediaSubmission(ctx, intent, errors.Join(failure, err))
+				}
+			}
+			return nil, a.pauseUncertainMediaSubmission(ctx, intent, failure)
 		}
 		var result map[string]any
 		if err := json.Unmarshal(data, &result); err != nil {
-			return nil, err
+			return nil, a.pauseUncertainMediaSubmission(ctx, intent, err)
 		}
 		providerJobID = stringValue(result["prompt_id"])
 		if providerJobID == "" {
-			return nil, errors.New("ComfyUI prompt ID is missing")
+			return nil, a.pauseUncertainMediaSubmission(ctx, intent, errors.New("ComfyUI prompt ID is missing"))
 		}
-		if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET provider_job_id=$2,status='running' WHERE id=$1`, intent.ID, providerJobID); err != nil {
-			return nil, err
+		command, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET provider_job_id=$2,status='running' WHERE id=$1 AND workflow_id=$3 AND status='submitting' AND renderer_submission_started AND provider_job_id IS NULL`, intent.ID, providerJobID, intent.WorkflowID)
+		if err != nil {
+			return nil, a.pauseUncertainMediaSubmission(ctx, intent, err)
+		}
+		if command.RowsAffected() != 1 {
+			return nil, a.pauseUncertainMediaSubmission(ctx, intent, ErrConflict)
 		}
 		intent.ProviderJobID = providerJobID
 		intent.Status = "running"
@@ -592,7 +617,7 @@ func (a *App) markMediaIntentCompleted(ctx context.Context, intentID, assetID st
 		if err := tx.QueryRow(ctx, `SELECT COALESCE(owner_fluctlight_id,''),prompt,status FROM public.media_intents WHERE id=$1 FOR UPDATE`, intentID).Scan(&owner, &prompt, &status); err != nil {
 			return err
 		}
-		if status != "pending" && status != "running" && status != "completed" {
+		if status != "pending" && status != "running" && status != "reviewed_ready" && status != "completed" {
 			return fmt.Errorf("media intent cannot complete from status %s", status)
 		}
 		observed := map[string]any{"media_intent_id": intentID, "asset_id": assetID, "delivery_status": "asset_ready"}
@@ -623,7 +648,7 @@ func (a *App) markMediaIntentCompleted(ctx context.Context, intentID, assetID st
 				stale = &changed
 				observed["context_stale_at_completion"] = changed
 			}
-			command, err := tx.Exec(ctx, `UPDATE public.media_intents SET status='completed',revision=revision+1,context_stale_at_completion=$2,capture_body_revision=$3,capture_wardrobe_revision=$4 WHERE id=$1 AND status IN ('pending','running')`, intentID, stale, captureBody, captureWardrobe)
+			command, err := tx.Exec(ctx, `UPDATE public.media_intents SET status='completed',revision=revision+1,context_stale_at_completion=$2,capture_body_revision=$3,capture_wardrobe_revision=$4 WHERE id=$1 AND status IN ('pending','running','reviewed_ready')`, intentID, stale, captureBody, captureWardrobe)
 			if err != nil || command.RowsAffected() != 1 {
 				if err == nil {
 					err = ErrConflict
@@ -685,7 +710,7 @@ func recordMediaHeartbeat(ctx context.Context, details any) {
 func (a *App) readMediaIntent(ctx context.Context, intentID string) (mediaIntent, error) {
 	var i mediaIntent
 	var qualityRetryFeedback, modelProvenance []byte
-	err := a.DB.Pool().QueryRow(ctx, `SELECT id,COALESCE(owner_fluctlight_id,''),prompt,COALESCE(provider_prompt,''),provider_request_id,COALESCE(provider_job_id,''),workflow_id,kind,mime_type,status,quality_retry_count,COALESCE(quality_retry_guidance,''),COALESCE(quality_retry_feedback,'{}'::jsonb),COALESCE(quality_verdict,''),COALESCE(quality_candidate_sha256,''),conversation_id,message_id,moment_id,COALESCE(studio_owner_actor_id,''),COALESCE(studio_job_id,''),COALESCE(owner_request_id,''),COALESCE(owner_item_id,''),model_provenance FROM public.media_intents WHERE id=$1`, intentID).Scan(&i.ID, &i.Owner, &i.Prompt, &i.ProviderPrompt, &i.ProviderRequestID, &i.ProviderJobID, &i.WorkflowID, &i.Kind, &i.MimeType, &i.Status, &i.QualityRetryCount, &i.QualityRetryGuidance, &qualityRetryFeedback, &i.QualityVerdict, &i.QualityCandidateSHA, &i.ConversationID, &i.MessageID, &i.MomentID, &i.StudioOwner, &i.StudioJobID, &i.OwnerRequestID, &i.OwnerItemID, &modelProvenance)
+	err := a.DB.Pool().QueryRow(ctx, `SELECT id,COALESCE(owner_fluctlight_id,''),prompt,COALESCE(provider_prompt,''),provider_request_id,COALESCE(provider_job_id,''),workflow_id,kind,mime_type,status,quality_retry_count,COALESCE(quality_retry_guidance,''),COALESCE(quality_retry_feedback,'{}'::jsonb),COALESCE(quality_verdict,''),COALESCE(quality_candidate_sha256,''),conversation_id,message_id,moment_id,COALESCE(studio_owner_actor_id,''),COALESCE(studio_job_id,''),COALESCE(owner_request_id,''),COALESCE(owner_item_id,''),renderer_submission_started,model_provenance FROM public.media_intents WHERE id=$1`, intentID).Scan(&i.ID, &i.Owner, &i.Prompt, &i.ProviderPrompt, &i.ProviderRequestID, &i.ProviderJobID, &i.WorkflowID, &i.Kind, &i.MimeType, &i.Status, &i.QualityRetryCount, &i.QualityRetryGuidance, &qualityRetryFeedback, &i.QualityVerdict, &i.QualityCandidateSHA, &i.ConversationID, &i.MessageID, &i.MomentID, &i.StudioOwner, &i.StudioJobID, &i.OwnerRequestID, &i.OwnerItemID, &i.RendererSubmissionStarted, &modelProvenance)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return i, ErrNotFound
 	}
@@ -1014,12 +1039,21 @@ func (a *App) submitComfyPrompt(ctx context.Context, intent mediaIntent, concept
 		return nil, err
 	}
 	request.Header.Set("Content-Type", "application/json")
+	if intent.ID != "" {
+		if err := a.beginMediaRendererSubmission(ctx, intent); err != nil {
+			return nil, err
+		}
+	}
 	a.recordDiagnosticEvent(ctx, "media.comfyui.prompt_submitted", "info", intent.Owner, intent.ProviderRequestID, "media:"+intent.ID, mediaComfyPromptSubmissionDiagnostic(intent, concept, prompt, workflow))
 	client := a.Provider.HTTP
 	if client == nil {
 		client = &http.Client{Timeout: 30 * time.Second}
 	}
-	return client.Do(request)
+	response, err := client.Do(request)
+	if err != nil && intent.ID != "" {
+		return nil, a.pauseUncertainMediaSubmission(ctx, intent, err)
+	}
+	return response, err
 }
 func (a *App) readScopedMediaAssetContent(ctx context.Context, owner, assetID string, studio bool) (string, []byte, error) {
 	if a.Storage == nil || strings.TrimSpace(assetID) == "" {

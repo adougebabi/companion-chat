@@ -8418,6 +8418,12 @@
             "items": {
               "$ref": "#/components/schemas/BrowserVisualAttempt"
             }
+          },
+          "candidate_submission_uncertain": {
+            "type": "boolean"
+          },
+          "character_sheet_submission_uncertain": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -10399,6 +10405,9 @@
               }
             ]
           },
+          "submission_uncertain": {
+            "type": "boolean"
+          },
           "created_at": {
             "type": "string"
           },
@@ -10630,6 +10639,9 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 256
+          },
+          "submissionReviewed": {
+            "type": "boolean"
           }
         },
         "required": [

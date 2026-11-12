@@ -1,0 +1,28 @@
+SOURCE_HEAD b3f5cd40b125364a202b117d2b270e41dfb9e995 CANDIDATE /private/tmp/fluctlight-m2-02-ayhroau5
+OVERLAYS apps/core-go/internal/core/visual_brief.go,apps/core-go/internal/core/visual_identity_failure.go,packages/browser-client/openapi.json,apps/core-go/internal/httpapi/browser/media_submission_guard_test.go,apps/core-go/internal/workflow/m2_media_submission_reconcile_test.go,apps/core-go/internal/core/owner_media_requests.go,apps/core-go/internal/core/media_quality.go,apps/core-go/internal/core/diagnostic_media_recovery.go,apps/core-go/internal/core/operations.go,apps/core-go/internal/core/studio_media.go,apps/core-go/internal/core/studio_retry.go,apps/core-go/internal/core/visual_identity_agent.go,apps/core-go/internal/workflow/workflow.go,apps/core-go/internal/migrations/media_submission_guard_test.go,apps/core-go/internal/core/media.go,apps/core-go/internal/core/media_submission_guard.go,apps/core-go/internal/migrations/runner.go,apps/core-go/internal/migrations/current_chain_test.go,apps/core-go/internal/migrations/media_submission_guard.go,apps/core-go/internal/core/m2_ambiguous_image_submit_test.go
+COMMAND go test ./internal/workflow -count=1 -run ^(TestAmbiguousMediaActivityIsNonRetryable|TestMediaReconcilePreservesUnknownSubmissionAfterWorkerLoss|TestVisualWorkflowWaitsForResumeAfterAmbiguousSubmission|TestMediaActivityKeepsTransportRetryAndCancellation|TestMediaWorkflowContinuesOneQualityRetry)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestAmbiguousMediaActivityIsNonRetryable
+--- PASS: TestAmbiguousMediaActivityIsNonRetryable (0.00s)
+=== RUN   TestVisualWorkflowWaitsForResumeAfterAmbiguousSubmission
+=== RUN   TestVisualWorkflowWaitsForResumeAfterAmbiguousSubmission/image_submission_unknown
+2026/11/12 18:02:55 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 2 ActivityType ProcessVisualIdentityActivity
+2026/11/12 18:02:55 DEBUG Auto fire timer TimerID 0 TimerDuration 1m0s TimeSkipped 1m0s
+2026/11/12 18:02:55 DEBUG Auto fire timer TimerID 3 TimerDuration 5s TimeSkipped 5s
+=== RUN   TestVisualWorkflowWaitsForResumeAfterAmbiguousSubmission/character_sheet_submission_unknown
+2026/11/12 18:02:55 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 2 ActivityType ProcessVisualIdentityActivity
+2026/11/12 18:02:55 DEBUG Auto fire timer TimerID 0 TimerDuration 1m0s TimeSkipped 1m0s
+2026/11/12 18:02:55 DEBUG Auto fire timer TimerID 3 TimerDuration 5s TimeSkipped 5s
+--- PASS: TestVisualWorkflowWaitsForResumeAfterAmbiguousSubmission (0.07s)
+    --- PASS: TestVisualWorkflowWaitsForResumeAfterAmbiguousSubmission/image_submission_unknown (0.07s)
+    --- PASS: TestVisualWorkflowWaitsForResumeAfterAmbiguousSubmission/character_sheet_submission_unknown (0.00s)
+=== RUN   TestMediaReconcilePreservesUnknownSubmissionAfterWorkerLoss
+--- PASS: TestMediaReconcilePreservesUnknownSubmissionAfterWorkerLoss (2.03s)
+=== RUN   TestMediaActivityKeepsTransportRetryAndCancellation
+--- PASS: TestMediaActivityKeepsTransportRetryAndCancellation (0.00s)
+=== RUN   TestMediaWorkflowContinuesOneQualityRetry
+2026/11/12 18:02:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 1 ActivityType ProcessMediaActivity
+2026/11/12 18:02:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 2 ActivityType ProcessMediaActivity
+--- PASS: TestMediaWorkflowContinuesOneQualityRetry (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow	2.749s
+EXIT_CODE 0

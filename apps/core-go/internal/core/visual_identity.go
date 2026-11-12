@@ -1144,7 +1144,7 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		}
 		return nil, err
 	}
-	if state.SessionStatus == "queued" || state.SessionStatus == "running" {
+	if (state.SessionStatus == "queued" || state.SessionStatus == "running") && state.WaitingStage != "image_"+mediaSubmissionUnknownStatus {
 		if err := a.refreshVisualIdentityRendererConstraints(ctx, state.FluctlightID, state.ProfileID); err != nil {
 			return nil, err
 		}
@@ -1322,10 +1322,11 @@ func (a *App) refreshVisualIdentityRendererConstraints(ctx context.Context, fluc
 			return err
 		}
 		var jobID, status, prompt string
-		if err := tx.QueryRow(ctx, `SELECT COALESCE(provider_job_id,''),status,prompt FROM public.media_intents WHERE id=$1 FOR UPDATE`, mediaID).Scan(&jobID, &status, &prompt); err != nil {
+		var submissionStarted bool
+		if err := tx.QueryRow(ctx, `SELECT COALESCE(provider_job_id,''),status,prompt,renderer_submission_started FROM public.media_intents WHERE id=$1 FOR UPDATE`, mediaID).Scan(&jobID, &status, &prompt, &submissionStarted); err != nil {
 			return err
 		}
-		if jobID != "" || (status != "failed" && status != "pending" && status != "retry" && status != "running") {
+		if jobID != "" || submissionStarted || (status != "failed" && status != "pending" && status != "retry" && status != "running") {
 			return nil
 		}
 		// A created media intent has already frozen the rendered identity text. Keep

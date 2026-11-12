@@ -1,0 +1,18 @@
+✔ Studio shows an uncertain renderer submission as paused (304.872583ms)
+✔ media retry uses explicit regenerate mode and keeps its original revision (1548.611959ms)
+✔ media quality recovery preserves a ready legacy asset (84.811042ms)
+✔ media quality recovery checks already delivered legacy results (unsettled) (117.217458ms)
+✔ media quality recovery checks already delivered legacy results (failed) (84.477208ms)
+✔ media recovery warns about an unknown provider submission only when job id is missing (144.428792ms)
+✔ media recovery warns about an unknown provider submission only when job id is saved (140.535791ms)
+✔ uncertain media submission_unknown requires explicit review before regeneration (200.608458ms)
+✔ uncertain media failed requires explicit review before regeneration (216.27825ms)
+✔ uncertain media with a ready asset offers reviewed recovery without regeneration (116.119ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3320.072917

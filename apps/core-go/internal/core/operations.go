@@ -2203,6 +2203,12 @@ func (a *App) RecordMediaActivityFailure(ctx context.Context, intentID, sourceWo
 	if mediaWorkflowIdentity(sourceWorkflow) != mediaWorkflowIdentity(intent.WorkflowID) {
 		return nil
 	}
+	if intent.RendererSubmissionStarted && intent.ProviderJobID == "" && (intent.Status == "pending" || intent.Status == "running" || intent.Status == "submitting" || intent.Status == "failed" || intent.Status == "reviewed_ready") {
+		if err := a.markMediaSubmissionUnknown(ctx, intent); err != nil {
+			return err
+		}
+		intent.Status = mediaSubmissionUnknownStatus
+	}
 	if intent.StudioJobID != "" {
 		if err := a.settleStudioMedia(ctx, intent, false, "studio_media_generation_failed"); err != nil {
 			return err
