@@ -1,0 +1,25 @@
+package core
+
+import "testing"
+
+// The Provider is controlled; the database and independent Moment Tool path
+// are real. A text claim cannot create an attachment or prove delivery.
+func TestMomentWithoutMediaCannotPublishCompletedPhotoClaim(t *testing.T) {
+	router := newFakeProviderRouter().otherwise(func(map[string]any) fakeProviderResult {
+		return fakeProviderResult{Text: "我已经把这张照片附在这条动态里了。"}
+	})
+	ctx, repo, app, owner, fid, _ := setupMixedMediaReplyTurnWithTransport(t, "m2-moment-false-photo", router)
+	role := agentModelBindingKey(FormalAgentConversationReply, "moment")
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,timeout_seconds) VALUES($1,'mixed-endpoint-m2-moment-false-photo','m2-moment-claim-model',30)`, role); err != nil {
+		t.Fatal(err)
+	}
+	request := ToolExecutionRequest{CapabilityName: "moment.publish", OperationID: "m2-moment-false-photo", AuthorizationActorID: owner, FluctlightID: fid, Arguments: jsonBytes(map[string]any{})}
+	receipt, err := app.ExecuteTool(ctx, request)
+	var moments, attachments int
+	if queryErr := repo.Pool().QueryRow(ctx, `SELECT count(*),COALESCE(sum(jsonb_array_length(media_asset_ids)),0) FROM public.moments WHERE owner_fluctlight_id=$1`, fid).Scan(&moments, &attachments); queryErr != nil {
+		t.Fatal(queryErr)
+	}
+	if err == nil || receipt.Result.Status == "completed" || moments != 0 || attachments != 0 {
+		t.Fatalf("unsupported photo completion was published: receipt=%#v err=%v moments=%d attachments=%d", receipt.Result, err, moments, attachments)
+	}
+}

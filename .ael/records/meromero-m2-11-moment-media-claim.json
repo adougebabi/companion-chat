@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-11-moment-media-claim",
+  "definition_hash": "9256364a92d4b1467b3ba2618a703fa053485102cda7863a75e28df7b745f9ae",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T12:09:52.532046Z",
+  "updated": "2026-11-12T12:10:34.091275Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-e46ec79d21acd062c674",
+        "unit": "define",
+        "executor": "codex-m2-11",
+        "input_version": "75e84cf99961a89071b411ac310d0dce28f9466a2118f2633972d0cfc4694caa",
+        "candidate_version": "75e84cf99961a89071b411ac310d0dce28f9466a2118f2633972d0cfc4694caa",
+        "started": "2026-11-12T12:10:15.587569Z",
+        "ended": "2026-11-12T12:10:15.83172Z",
+        "status": "pass",
+        "reason": "范围仅为动态正文中当前媒体完成声明与真实附件或历史交付的一致性；不调整模型配置或用户原有草稿。"
+      },
+      {
+        "id": "AT-29cca44640f55226cad0",
+        "unit": "analysis",
+        "executor": "codex-m2-11",
+        "input_version": "75e84cf99961a89071b411ac310d0dce28f9466a2118f2633972d0cfc4694caa",
+        "candidate_version": "75e84cf99961a89071b411ac310d0dce28f9466a2118f2633972d0cfc4694caa",
+        "started": "2026-11-12T12:10:24.755965Z",
+        "ended": "2026-11-12T12:10:25.042136Z",
+        "status": "pass",
+        "reason": "现有 Moment 文本解析只移除占位，正式发布路径尚未看到独立媒体声明核验；先在隔离库复现，再核对真实附件、历史依据与普通表达的正式边界。"
+      },
+      {
+        "id": "AT-60907afdc0683cfc0d42",
+        "unit": "execute",
+        "executor": "codex-m2-11",
+        "input_version": "75e84cf99961a89071b411ac310d0dce28f9466a2118f2633972d0cfc4694caa",
+        "candidate_version": "",
+        "started": "2026-11-12T12:10:33.899444Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}

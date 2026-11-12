@@ -1,0 +1,11 @@
+SOURCE_HEAD 3854dda5a3640c6c6a25290cf7fd049172b3fde6 CANDIDATE /private/tmp/fluctlight-m2-02-blvzgc1_
+OVERLAYS apps/core-go/internal/core/m2_moment_media_claim_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestMomentWithoutMediaCannotPublishCompletedPhotoClaim$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMomentWithoutMediaCannotPublishCompletedPhotoClaim
+2026/11/12 20:11:45 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-false-photo metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+    m2_moment_media_claim_test.go:23: unsupported photo completion was published: receipt=capability.CapabilityResult{ActingProfileID:"", CallID:"direct_call_c81ccc6958e4c53836344ac3b93223de", CapabilityName:"moment.publish", Status:"completed", Output:map[string]interface {}{"replayed":false, "target_kind":"moment", "target_ref":"moment_c81ccc6958e4c53836344ac3b93223de", "text":"我已经把这张照片附在这条动态里了。"}, ErrorCode:"", Retryable:false, ProviderRequestID:"", CorrelationID:"moment:moment_c81ccc6958e4c53836344ac3b93223de", Duration:0, RequiredContext:[]capability.ContextSlot(nil)} err=<nil> moments=1 attachments=0
+--- FAIL: TestMomentWithoutMediaCannotPublishCompletedPhotoClaim (2.26s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.083s
+FAIL
+EXIT_CODE 1

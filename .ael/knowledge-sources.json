@@ -256,7 +256,7 @@
     },
     {
       "path": "docs/verification/meromero-m2-progress-20261112.md",
-      "hash": "cdf33a5c5c732981b6617768bb3af5f32c53c13563f9333bfdef714e78e0c53b",
+      "hash": "3b8d954e8de7fc42eea8ff0c7f9b3cb5dcb530153e7179513f59d9aae7772ff5",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -270,7 +270,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/verification/meromero-m2-progress-20261112.md",
-        "hash": "cdf33a5c5c732981b6617768bb3af5f32c53c13563f9333bfdef714e78e0c53b",
+        "hash": "3b8d954e8de7fc42eea8ff0c7f9b3cb5dcb530153e7179513f59d9aae7772ff5",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
