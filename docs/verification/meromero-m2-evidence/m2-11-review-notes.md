@@ -8,8 +8,9 @@
 第二次指出“就在这条动态里”“照片在本条动态中”“合照”历史词，以及
 “动态里放在最前面的是我对照片的看法”等具体反例。对应回归见
 `m2-11-review-followup.log`；提取器未识别已知完成声明的对照见
-`m2-11-missed-claim.log`。复核前的相关回归见 `m2-11-final-regression.log`，
-复核后仍需在最终提交版本重验。
+`m2-11-missed-claim.log`。复核前的相关回归见 `m2-11-final-regression.log`；
+最终受检提交 `5f902437` 的回归见 `m2-11-postcommit.log` 和
+`m2-11-postcommit-working-tree.log`。
 
 上述证据只证明所列场景。Owner 已选附件与正文具体主体的匹配、历史动态
 附件证据、真实模型语义效果尚未解决或验收，不能以局部通过关闭 T05、
