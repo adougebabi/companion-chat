@@ -11,6 +11,7 @@ import (
 )
 
 type momentWriterRunKey struct{}
+type momentPublicationScopeKey struct{}
 
 // Moment generation shares the configured persona Writer but owns a separate
 // operation namespace. Committed replay is owned by the existing Tool ledger.
@@ -109,7 +110,63 @@ func (c factOnlyMomentCapability) Prepare(ctx context.Context, inv CapabilityInv
 	if err != nil {
 		return inv, err
 	}
-	return withCapabilityPreparedData(inv, "fact_only_moment", draft)
+	prepared, err := withCapabilityPreparedData(inv, "fact_only_moment", draft)
+	if err != nil {
+		return inv, err
+	}
+	return c.service.prepareUnattachedMediaClaims(ctx, prepared, draft)
+}
+
+// This guards the default Moment Writer only when the new Moment has no
+// Owner-selected attachment. Matching claims to selected or historical Moment
+// assets still needs its own evidence contract and is not asserted here.
+func (s *factOnlyMomentService) prepareUnattachedMediaClaims(ctx context.Context, inv CapabilityInvocation, draft ReplyDraft) (CapabilityInvocation, error) {
+	if s.run.Scope.TargetKind == "owner_moment_request" {
+		var raw []byte
+		err := s.app.DB.Pool().QueryRow(ctx, `SELECT payload FROM public.owner_surface_records WHERE id=$1 AND owner_actor_id=$2 AND fluctlight_id=$3 AND kind='owner_request' AND status='pending' AND payload->>'kind'='moment_suggestion' AND payload->>'source_fact_id'=$4`, s.run.Scope.TargetRef, inv.Metadata.AuthorizationActorID, inv.Metadata.FluctlightID, inv.SourceFactID).Scan(&raw)
+		if err != nil {
+			return inv, err
+		}
+		if selected := stringList(mapValue(decodeObject(raw)["payload"])["media_ids"]); len(selected) > 0 {
+			return withCapabilityPreparedData(inv, "moment_owner_selected_media", selected)
+		}
+	}
+	text, err := momentPublicationText(draft.Text, false)
+	if err != nil || !momentMediaMayNeedHistory(text, s.run.CurrentInput) {
+		return inv, err
+	}
+	memoryMode := MemoryConversationExact
+	if inv.Metadata.ConversationID == "" {
+		memoryMode = MemoryConversationGlobalOnly
+	}
+	subject := firstString(inv.Metadata.SubjectActorID, inv.Metadata.AuthorizationActorID)
+	projection, err := s.app.BuildContextProjectionFor(ctx, ContextProjectionRequest{AuthorizationActorID: inv.Metadata.AuthorizationActorID, SpeakerActorID: subject, SourceFactID: inv.SourceFactID, FluctlightID: inv.Metadata.FluctlightID, ConversationID: inv.Metadata.ConversationID, WorkingProfileID: inv.Metadata.WorkingProfileID, CurrentUserText: s.run.CurrentInput, MemoryOperation: MemoryForConversation, MemoryConversationMode: memoryMode})
+	if err != nil {
+		return inv, err
+	}
+	if !directMediaDeliveryCheckNeeded(text, s.run.CurrentInput, projection.RecentMessages) && !momentMediaCheckNeeded(text, s.run.CurrentInput, projection.RecentMessages) {
+		return inv, nil
+	}
+	var deliveries []directMediaDelivery
+	if inv.Metadata.ConversationID != "" {
+		deliveries, err = directMediaDeliveries(ctx, s.app.DB.Pool(), inv.Metadata.AuthorizationActorID, subject, inv.Metadata.FluctlightID, inv.Metadata.ConversationID, false)
+		if err != nil {
+			return inv, newCapabilityError("direct_media_delivery_check_failed", true, err)
+		}
+	}
+	refs, err := s.app.checkDirectMediaDeliveryClaims(ctx, projection, s.run.CurrentInput, text, deliveries, nil, "moment_without_attachment")
+	if err != nil {
+		return inv, err
+	}
+	intents := make([]string, 0, len(refs))
+	for _, ref := range refs {
+		delivery, err := directMediaDeliveryByRef(deliveries, ref)
+		if err != nil {
+			return inv, newCapabilityError("direct_media_delivery_unverified", false, err)
+		}
+		intents = append(intents, delivery.intentID)
+	}
+	return withCapabilityPreparedData(inv, "moment_unattached_media_check", map[string]any{"refs": refs, "intents": intents})
 }
 func (s *factOnlyMomentService) prepare(ctx context.Context, inv CapabilityInvocation) (ReplyDraft, error) {
 	if err := ctx.Err(); err != nil {
@@ -181,13 +238,51 @@ func (c factOnlyMomentCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx
 	if _, err := c.service.app.requireLifeContextRevisionTx(ctx, tx, target.FluctlightID, draft.LifeRevision, c.service.app.now().UTC()); err != nil {
 		return failedCapabilityResult(inv, "moment_context_stale", false), err
 	}
+	if err := requireMomentHistoricalMediaTx(ctx, tx, inv, target); err != nil {
+		code, retryable := capabilityErrorInfo(err, "moment_media_delivery_stale", false)
+		return failedCapabilityResult(inv, code, retryable), err
+	}
 	resource, err := c.service.app.publishInvocationMomentTx(ctx, tx, inv, target, draft.Text)
 	if err != nil {
 		code, retryable := publicationCapabilityError(err, "moment_publication_failed")
 		return failedCapabilityResult(inv, code, retryable), newCapabilityError(code, retryable, err)
 	}
+	if err := requireMomentSelectedMediaTx(ctx, tx, inv, target, resource.ID); err != nil {
+		code, retryable := capabilityErrorInfo(err, "moment_media_check_failed", true)
+		return failedCapabilityResult(inv, code, retryable), err
+	}
 	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", ProviderRequestID: inv.ProviderRequestID, CorrelationID: "moment:" + resource.ID,
 		Output: map[string]any{"text": resource.Text, "target_kind": "moment", "target_ref": resource.ID, "replayed": resource.Replayed}}, nil
+}
+
+func requireMomentHistoricalMediaTx(ctx context.Context, tx pgx.Tx, inv CapabilityInvocation, target DirectToolTarget) error {
+	value, found, err := capabilityPreparedData(inv, "moment_unattached_media_check")
+	if err != nil || !found {
+		return err
+	}
+	proof := mapValue(value)
+	if err := requireDirectMediaDeliveriesTx(ctx, tx, target.AuthorizationActorID, firstString(inv.Metadata.SubjectActorID, target.AuthorizationActorID), target.FluctlightID, target.ConversationID, arrayValue(proof["refs"]), arrayValue(proof["intents"])); err != nil {
+		return directMediaDeliveryTxError(err)
+	}
+	return nil
+}
+
+func requireMomentSelectedMediaTx(ctx context.Context, tx pgx.Tx, inv CapabilityInvocation, target DirectToolTarget, momentID string) error {
+	selected, found, err := capabilityPreparedData(inv, "moment_owner_selected_media")
+	if err != nil || !found {
+		return err
+	}
+	if target.Kind != "owner_moment_request" {
+		return newCapabilityError("moment_media_delivery_stale", false, ErrConflict)
+	}
+	var actual []byte
+	if err := tx.QueryRow(ctx, `SELECT media_asset_ids FROM public.moments WHERE id=$1 AND owner_fluctlight_id=$2`, momentID, target.FluctlightID).Scan(&actual); err != nil {
+		return err
+	}
+	if jsonString(decodeArray(actual)) != jsonString(arrayValue(selected)) {
+		return newCapabilityError("moment_media_delivery_stale", false, ErrConflict)
+	}
+	return nil
 }
 
 func momentWriterRequestDigest(inv CapabilityInvocation) string {

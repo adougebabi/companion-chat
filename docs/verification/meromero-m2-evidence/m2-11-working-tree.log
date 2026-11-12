@@ -1,0 +1,39 @@
+SOURCE_HEAD 58ce5f98894428da5376333091ccb08ad543c1ad WORKING_TREE includes four preserved pre-existing drafts
+COMMAND go test ./internal/core -count=1 -run ^(TestMomentWithoutMediaCannotPublishCompletedPhotoClaim|TestImplicitMomentMediaClaimUsesRecentHistory)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMomentWithoutMediaCannotPublishCompletedPhotoClaim
+2026/11/12 21:10:21 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-false-photo metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:10:21 WARN tool.call.handled capability=moment.publish call_id=direct_call_c81ccc6958e4c53836344ac3b93223de warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:10:21 WARN tool.call.handled capability=moment.publish call_id=direct_call_c81ccc6958e4c53836344ac3b93223de warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestMomentWithoutMediaCannotPublishCompletedPhotoClaim (2.40s)
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/chat/direct
+2026/11/12 21:10:23 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-implicit-chat-direct metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:10:23 WARN tool.call.handled capability=moment.publish call_id=direct_call_28ab64dc8700d77d762d4da509308bb4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:10:23 WARN tool.call.handled capability=moment.publish call_id=direct_call_28ab64dc8700d77d762d4da509308bb4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/chat/legacy
+2026/11/12 21:10:25 WARN tool.call.handled capability=moment.publish call_id=direct_call_f894f51c1768608ac24934344dd32d4e warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:10:25 WARN tool.call.handled capability=moment.publish call_id=direct_call_f894f51c1768608ac24934344dd32d4e warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/current-post/direct
+2026/11/12 21:10:27 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-implicit-current-post-direct metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:10:27 WARN tool.call.handled capability=moment.publish call_id=direct_call_e2432b9b36c41c479c206554ce9cefbd warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:10:27 WARN tool.call.handled capability=moment.publish call_id=direct_call_e2432b9b36c41c479c206554ce9cefbd warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/current-post/legacy
+2026/11/12 21:10:29 WARN tool.call.handled capability=moment.publish call_id=direct_call_210554ab2a9e92da5682cf55a445b628 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:10:29 WARN tool.call.handled capability=moment.publish call_id=direct_call_210554ab2a9e92da5682cf55a445b628 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/group-photo/direct
+2026/11/12 21:10:31 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-implicit-group-photo-direct metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:10:31 WARN tool.call.handled capability=moment.publish call_id=direct_call_b2ebb18a8b70311c246531148febb94d warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:10:31 WARN tool.call.handled capability=moment.publish call_id=direct_call_b2ebb18a8b70311c246531148febb94d warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestImplicitMomentMediaClaimUsesRecentHistory/group-photo/legacy
+2026/11/12 21:10:34 WARN tool.call.handled capability=moment.publish call_id=direct_call_1f27232e7470f11a8900d53fa0aface7 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:10:34 WARN tool.call.handled capability=moment.publish call_id=direct_call_1f27232e7470f11a8900d53fa0aface7 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestImplicitMomentMediaClaimUsesRecentHistory (12.37s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/chat/direct (1.73s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/chat/legacy (1.48s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/current-post/direct (2.22s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/current-post/legacy (2.25s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/group-photo/direct (2.39s)
+    --- PASS: TestImplicitMomentMediaClaimUsesRecentHistory/group-photo/legacy (2.31s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	15.609s
+EXIT_CODE 0

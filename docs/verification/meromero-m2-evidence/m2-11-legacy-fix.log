@@ -1,0 +1,47 @@
+SOURCE_HEAD 58ce5f98894428da5376333091ccb08ad543c1ad CANDIDATE /private/tmp/fluctlight-m2-02-3ie5ocrj
+OVERLAYS apps/core-go/internal/core/m2_moment_media_claim_test.go,apps/core-go/internal/core/fact_only_moment_capability.go,apps/core-go/internal/core/direct_media_delivery_check.go,apps/core-go/internal/core/tool_business_recovery.go,apps/core-go/internal/core/builtin_capabilities.go,apps/core-go/internal/core/tool_execution.go,apps/core-go/internal/core/conversation_loop_progress.go
+COMMAND go test ./internal/core -count=1 -run ^(TestMomentPublicationFiltersNativeAndWriterText|TestMomentPublicationRejectsBodylessTextWithoutEffects|TestLegacyMomentUsesTheSameUnattachedMediaGuard)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestLegacyMomentUsesTheSameUnattachedMediaGuard
+=== RUN   TestLegacyMomentUsesTheSameUnattachedMediaGuard/false-claim
+2026/11/12 20:48:48 WARN tool.call.handled capability=moment.publish call_id=direct_call_7413426607689990847e215ca6755c67 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 20:48:48 WARN tool.call.handled capability=moment.publish call_id=direct_call_7413426607689990847e215ca6755c67 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestLegacyMomentUsesTheSameUnattachedMediaGuard/denial
+=== RUN   TestLegacyMomentUsesTheSameUnattachedMediaGuard/future
+--- PASS: TestLegacyMomentUsesTheSameUnattachedMediaGuard (7.02s)
+    --- PASS: TestLegacyMomentUsesTheSameUnattachedMediaGuard/false-claim (2.42s)
+    --- PASS: TestLegacyMomentUsesTheSameUnattachedMediaGuard/denial (2.33s)
+    --- PASS: TestLegacyMomentUsesTheSameUnattachedMediaGuard/future (2.28s)
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy/heading
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy/plain
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy/malformed-envelope
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/legacy/fenced
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only/heading
+2026/11/12 20:48:56 INFO reply.evidence.reconciled correlation_id=tool-operation:moment-body-heading metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only/plain
+2026/11/12 20:48:56 INFO reply.evidence.reconciled correlation_id=tool-operation:moment-body-plain metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only/malformed-envelope
+2026/11/12 20:48:56 INFO reply.evidence.reconciled correlation_id=tool-operation:moment-body-malformed-envelope metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentPublicationFiltersNativeAndWriterText/fact_only/fenced
+2026/11/12 20:48:56 INFO reply.evidence.reconciled correlation_id=tool-operation:moment-body-fenced metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentPublicationFiltersNativeAndWriterText (3.96s)
+    --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy (1.76s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy/heading (0.01s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy/plain (0.01s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy/malformed-envelope (0.01s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/legacy/fenced (0.01s)
+    --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only (2.20s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only/heading (0.09s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only/plain (0.04s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only/malformed-envelope (0.04s)
+        --- PASS: TestMomentPublicationFiltersNativeAndWriterText/fact_only/fenced (0.04s)
+=== RUN   TestMomentPublicationRejectsBodylessTextWithoutEffects
+2026/11/12 20:48:58 WARN tool.call.handled capability=moment.publish call_id=direct_call_5e9f2a2382a25f9ca92a7a8b1ffc3a23 warning_code=invalid_arguments disposition=needs_input effect_applied=false
+2026/11/12 20:48:58 WARN tool.call.handled capability=moment.publish call_id=direct_call_5e9f2a2382a25f9ca92a7a8b1ffc3a23 warning_code=invalid_arguments disposition=needs_input effect_applied=false
+2026/11/12 20:48:58 WARN tool.call.handled capability=moment.publish call_id=direct_call_277f2634491ca8f31d2aa51c56f22d09 warning_code=invalid_arguments disposition=needs_input effect_applied=false
+--- PASS: TestMomentPublicationRejectsBodylessTextWithoutEffects (2.26s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	13.965s
+EXIT_CODE 0

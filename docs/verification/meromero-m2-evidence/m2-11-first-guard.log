@@ -1,0 +1,13 @@
+SOURCE_HEAD 58ce5f98894428da5376333091ccb08ad543c1ad CANDIDATE /private/tmp/fluctlight-m2-02-x9tozra7
+OVERLAYS apps/core-go/internal/core/m2_moment_media_claim_test.go,apps/core-go/internal/core/fact_only_moment_capability.go,apps/core-go/internal/core/direct_media_delivery_check.go
+COMMAND go test ./internal/core -count=1 -run ^TestMomentWithoutMediaCannotPublishCompletedPhotoClaim$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMomentWithoutMediaCannotPublishCompletedPhotoClaim
+2026/11/12 20:28:24 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-moment-false-photo metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 20:28:24 WARN tool.call.handled capability=moment.publish call_id=direct_call_c81ccc6958e4c53836344ac3b93223de warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 20:28:24 WARN tool.call.handled capability=moment.publish call_id=direct_call_c81ccc6958e4c53836344ac3b93223de warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+    m2_moment_media_claim_test.go:33: unsupported photo completion was published: receipt=capability.CapabilityResult{ActingProfileID:"", CallID:"direct_call_c81ccc6958e4c53836344ac3b93223de", CapabilityName:"moment.publish", Status:"handled", Output:map[string]interface {}{"detail":"This reply was not published: the claimed image delivery lacks matching current evidence. Reconsider the reply using actual results; do not invent delivery.", "disposition":"needs_input", "effect_applied":false, "handled":true, "mutation_committed":false, "refresh_context":false, "refresh_reply":false, "retry_same_arguments":false, "warning_code":"direct_media_delivery_unverified"}, ErrorCode:"", Retryable:false, ProviderRequestID:"", CorrelationID:"tool-operation:m2-moment-false-photo", Duration:0, RequiredContext:[]capability.ContextSlot(nil)} err=<nil> moments=0 attachments=0 checks=1
+--- FAIL: TestMomentWithoutMediaCannotPublishCompletedPhotoClaim (2.37s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.053s
+FAIL
+EXIT_CODE 1

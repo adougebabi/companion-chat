@@ -44,16 +44,18 @@ func conversationLoopNeedsReplyBeforeModelSequence(ctx context.Context, currentS
 		if query || noEffect {
 			arguments := decodeObject(call.Arguments)
 			unauthorized := noEffect && stringValue(out["warning_code"]) == "capability_not_authorized"
-			if unauthorized {
+			momentMediaRejected := noEffect && result.CapabilityName == "moment.publish" && (stringValue(out["warning_code"]) == "direct_media_delivery_unverified" || stringValue(out["warning_code"]) == "direct_media_delivery_stale" || stringValue(out["warning_code"]) == "moment_media_delivery_stale")
+			roundBounded := unauthorized || momentMediaRejected
+			if roundBounded {
 				if identity, ok := bridge.Trace.ModelIdentity(call.CallID); ok && currentSequence != 0 && identity.ModelCallSequence == currentSequence {
 					continue
 				}
-				// A run/surface denial cannot be repaired by changing arguments.
-				// Other handled results retain argument-sensitive recovery.
+				// Changing arguments alone cannot validate an unauthorized call or
+				// turn an unsupported Moment media claim into a delivery.
 				arguments = nil
 			}
 			fingerprint := jsonString(map[string]any{"name": result.CapabilityName, "arguments": arguments, "status": result.Status, "output": result.Output})
-			if unauthorized {
+			if roundBounded {
 				// Multiple calls returned by one physical model response have not
 				// yet received feedback and count as one attempt, not a loop.
 				round := "call:" + call.CallID

@@ -1,0 +1,13 @@
+SOURCE_HEAD 58ce5f98894428da5376333091ccb08ad543c1ad CANDIDATE /private/tmp/fluctlight-m2-02-qxcnmsg7
+OVERLAYS apps/core-go/internal/core/m2_moment_media_claim_test.go,apps/core-go/internal/core/fact_only_moment_capability.go,apps/core-go/internal/core/direct_media_delivery_check.go,apps/core-go/internal/core/tool_business_recovery.go,apps/core-go/internal/core/builtin_capabilities.go,apps/core-go/internal/core/tool_execution.go,apps/core-go/internal/core/conversation_loop_progress.go
+COMMAND go test ./internal/core -count=1 -run ^TestDirectMomentMediaRejectionIsBounded$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDirectMomentMediaRejectionIsBounded
+2026/11/12 20:41:22 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:m2-moment-bounded metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/12 20:41:22 WARN tool.call.handled capability=moment.publish call_id=bounded-moment-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 20:41:22 WARN tool.call.handled capability=moment.publish call_id=bounded-moment-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+    m2_moment_media_claim_test.go:272: Moment rejection was not bounded: turn=map[string]interface {}{"attachment_refs":[]interface {}{}, "author_actor_id":"mixed-fluctlight-m2-moment-bounded", "conversation_id":"mixed-conversation-m2-moment-bounded", "created_at":"2026-11-12T12:41:22.904+00:00", "id":"message_8f2d85d0a5c570d53a6a8e3f3244b5f0", "kind":"assistant", "sender_sent_at":"2026-11-12T12:41:22.913+00:00", "sender_timezone":(*string)(0xfeb60d4ce90), "sender_utc_offset_minutes":(*int)(0xfeb60b2dbb0), "sequence":2, "text":"这次先不发了。"} moments=0 main=4 writer=1 checks=1 err=<nil>
+--- FAIL: TestDirectMomentMediaRejectionIsBounded (2.89s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.609s
+FAIL
+EXIT_CODE 1

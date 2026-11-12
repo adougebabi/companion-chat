@@ -250,6 +250,9 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 		err := domainPluginDisabledError()
 		return toolExecutionReceipt(request, callID, failedCapabilityResult(invocation, "domain_plugin_disabled", false)), err
 	}
+	if definition.Name == "moment.publish" {
+		ctx = context.WithValue(ctx, momentPublicationScopeKey{}, request)
+	}
 	prepared, resolved, err := runtime.Prepare(ctx, invocation)
 	if err != nil {
 		code, retryable, detail := classifyToolPrepareError(err)

@@ -283,6 +283,28 @@ func (c momentPublishCapability) Execute(_ context.Context, invocation Capabilit
 	return executeToolRequired(invocation)
 }
 
+func (c momentPublishCapability) Prepare(ctx context.Context, invocation CapabilityInvocation, _ CapabilityContext) (CapabilityInvocation, error) {
+	text := stringValue(decodeObject(invocation.Arguments)["text"])
+	currentInput := ""
+	if current := replyRunFromContext(ctx); current != nil {
+		currentInput = current.CurrentInput
+	}
+	if !momentMediaMayNeedHistory(text, currentInput) {
+		return withCapabilityPreparedData(invocation, "moment_media_prepared", true)
+	}
+	scope, ok := ctx.Value(momentPublicationScopeKey{}).(ToolExecutionRequest)
+	if !ok || c.publication == nil || c.publication.app == nil {
+		return invocation, newCapabilityError("moment_media_check_unavailable", false, ErrUnauthorized)
+	}
+	run := &privateReplyRun{Scope: scope, CurrentInput: currentInput}
+	service := &factOnlyMomentService{app: c.publication.app, run: run}
+	prepared, err := service.prepareUnattachedMediaClaims(ctx, invocation, ReplyDraft{Text: text})
+	if err != nil {
+		return invocation, err
+	}
+	return withCapabilityPreparedData(prepared, "moment_media_prepared", true)
+}
+
 func (c momentPublishCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, _ CapabilityContext, target DirectToolTarget) (CapabilityResult, error) {
 	if c.publication == nil {
 		return failedCapabilityResultDetail(invocation, "moment_publication_unavailable", true, "Moment publication is unavailable"), errors.New("moment publication unavailable")
@@ -292,10 +314,18 @@ func (c momentPublishCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 		return failedCapabilityResult(invocation, "moment_arguments_invalid", false), newCapabilityError("moment_arguments_invalid", false, err)
 	}
 	text := strings.TrimSpace(stringValue(args["text"]))
+	if err := requireMomentHistoricalMediaTx(ctx, tx, invocation, target); err != nil {
+		code, retryable := capabilityErrorInfo(err, "moment_media_delivery_stale", false)
+		return failedCapabilityResult(invocation, code, retryable), err
+	}
 	resource, err := c.publication.app.publishInvocationMomentTx(ctx, tx, invocation, target, text)
 	if err != nil {
 		code, retryable := publicationCapabilityError(err, "moment_publication_failed")
 		return failedCapabilityResultDetail(invocation, code, retryable, err.Error()), newCapabilityError(code, retryable, err)
+	}
+	if err := requireMomentSelectedMediaTx(ctx, tx, invocation, target, resource.ID); err != nil {
+		code, retryable := capabilityErrorInfo(err, "moment_media_check_failed", true)
+		return failedCapabilityResult(invocation, code, retryable), err
 	}
 	return CapabilityResult{
 		CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed",
