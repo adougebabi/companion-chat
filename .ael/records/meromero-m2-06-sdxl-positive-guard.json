@@ -16,14 +16,14 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "execute",
-  "status": "open",
-  "candidate": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "9f86b461e9eefd77415e858032f5e06359a41cfdd531fc3a789a6cb9f314fce9",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-12T10:41:21.739772Z",
-  "updated": "2026-11-12T10:52:21.898656Z",
-  "completed": null,
+  "updated": "2026-11-12T11:00:48.966212Z",
+  "completed": "2026-11-12T11:00:48.964692Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -54,13 +54,41 @@
         "unit": "execute",
         "executor": "codex-m2-06",
         "input_version": "392ca04c98be18319e7e91d70189b5834c95e6604087883d23bdc588271d4f9c",
-        "candidate_version": "",
+        "candidate_version": "9f86b461e9eefd77415e858032f5e06359a41cfdd531fc3a789a6cb9f314fce9",
         "started": "2026-11-12T10:42:15.434721Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-12T10:56:32.018968Z",
+        "status": "pass",
+        "reason": "提交 d7e5f8ce：将 SDXL 正向文本字段、positive_prompt 以及 PrimitiveString 接线纳入现有冻结事实工作流校验。修复前红测和隔离库受控正式入口及直接回归证据已保存；既有枚举失败和图片无字策略独立登记，未改原有媒体草稿。"
+      },
+      {
+        "id": "AT-07652d2bf0e7737a2ddd",
+        "unit": "check:m2-06-scenario",
+        "executor": "codex-m2-06",
+        "input_version": "9f86b461e9eefd77415e858032f5e06359a41cfdd531fc3a789a6cb9f314fce9",
+        "candidate_version": "9f86b461e9eefd77415e858032f5e06359a41cfdd531fc3a789a6cb9f314fce9",
+        "started": "2026-11-12T11:00:42.051724Z",
+        "ended": "2026-11-12T11:00:42.15287Z",
+        "status": "pass",
+        "reason": "受检提交 d7e5f8ce：干净导出无源码覆盖，隔离 PostgreSQL 和受控 Provider/renderer 的 12 个顶层回归及 4 个当前拍摄子场景通过、无 SKIP；含四处原有草稿的工作区主场景也通过。固定 SDXL 文本及 PrimitiveString 在发送渲染前拒绝，冻结提示词、空值和负向质量对照通过。枚举既有基线失败另列 AEL；不代表真实模型、ComfyUI、全部主体视角或父任务验收通过。 提交后原始日志暂存 /private/tmp/fluctlight-m2-06-postcommit-k8t453of，将写回进度记录。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "m2-06-scenario",
+        "result": "pass",
+        "source": "scenario:codex-m2-06",
+        "config_hash": "ea7faba9eb533da3ad434576b8fefaa4f30f54bb3c276bbe57baf52578a8b25a",
+        "at": "2026-11-12T11:00:42.152337Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/current_capture.go": "3a76a860f824d19534819187b6d9e4937f1cd3521323c16995bf8e76d32badce",
+          "apps/core-go/internal/core/current_capture_test.go": "b2d4461a8621a455262fe7160ace27c464bbd89e4bc0e5ed48050eba69a4882e",
+          "apps/core-go/internal/core/m2_sdxl_positive_workflow_test.go": "199d1c0adee5a629e822d500fdb7929c6e54f0b2343df31daf395e69dbf4a4d9",
+          "docs/verification/meromero-m2-evidence/m2-06-precommit-capture.log": "3f5f5ff8bce74b0fe3bfa5549912b26d2ebfe7e5e7c618e8cb93267dc543c745",
+          "docs/verification/meromero-m2-evidence/m2-06-precommit.log": "47c6496047f1c50e6ee7f49ad5a30f35c0bf76015ccd444031922af42ec8fd43",
+          "docs/verification/meromero-m2-evidence/m2-06-primitive-red.log": "dd28ba708b70ee7cf750a27cf383b50569b35a2f913643b98fec0b935194766e",
+          "docs/verification/meromero-m2-evidence/m2-06-red.log": "437178ee6c26fa0d650a83f156f27140badbc11703a72ff53928852051083aad"
+        }
+      }
+    ]
   }
 }

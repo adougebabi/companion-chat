@@ -1,0 +1,28 @@
+{
+  "id": "meromero-m2-06-sdxl-positive-guard",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "9f86b461e9eefd77415e858032f5e06359a41cfdd531fc3a789a6cb9f314fce9",
+  "completed": "2026-11-12T11:00:48.964692Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "m2-06-scenario",
+      "result": "pass",
+      "source": "scenario:codex-m2-06",
+      "config_hash": "ea7faba9eb533da3ad434576b8fefaa4f30f54bb3c276bbe57baf52578a8b25a",
+      "at": "2026-11-12T11:00:42.152337Z",
+      "artifact_hashes": {
+        "apps/core-go/internal/core/current_capture.go": "3a76a860f824d19534819187b6d9e4937f1cd3521323c16995bf8e76d32badce",
+        "apps/core-go/internal/core/current_capture_test.go": "b2d4461a8621a455262fe7160ace27c464bbd89e4bc0e5ed48050eba69a4882e",
+        "apps/core-go/internal/core/m2_sdxl_positive_workflow_test.go": "199d1c0adee5a629e822d500fdb7929c6e54f0b2343df31daf395e69dbf4a4d9",
+        "docs/verification/meromero-m2-evidence/m2-06-precommit-capture.log": "3f5f5ff8bce74b0fe3bfa5549912b26d2ebfe7e5e7c618e8cb93267dc543c745",
+        "docs/verification/meromero-m2-evidence/m2-06-precommit.log": "47c6496047f1c50e6ee7f49ad5a30f35c0bf76015ccd444031922af42ec8fd43",
+        "docs/verification/meromero-m2-evidence/m2-06-primitive-red.log": "dd28ba708b70ee7cf750a27cf383b50569b35a2f913643b98fec0b935194766e",
+        "docs/verification/meromero-m2-evidence/m2-06-red.log": "437178ee6c26fa0d650a83f156f27140badbc11703a72ff53928852051083aad"
+      }
+    }
+  ]
+}

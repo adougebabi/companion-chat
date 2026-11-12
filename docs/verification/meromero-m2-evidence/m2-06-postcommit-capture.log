@@ -1,0 +1,16 @@
+SOURCE_HEAD d7e5f8ce9547048e71ca772de08e59534331167d CANDIDATE /private/tmp/fluctlight-m2-02-m_atizwy
+OVERLAYS (none)
+COMMAND go test ./internal/core -count=1 -run ^TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides$/(valid-frozen|explicit-selfie|model-clothing|workflow-clothing)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
+=== RUN   TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides/valid-frozen
+=== RUN   TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides/explicit-selfie
+=== RUN   TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides/model-clothing
+=== RUN   TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides/workflow-clothing
+--- PASS: TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides (9.66s)
+    --- PASS: TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides/valid-frozen (1.77s)
+    --- PASS: TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides/explicit-selfie (3.09s)
+    --- PASS: TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides/model-clothing (2.45s)
+    --- PASS: TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides/workflow-clothing (2.35s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	10.351s
+EXIT_CODE 0
