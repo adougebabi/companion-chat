@@ -1,0 +1,17 @@
+R1_COMMAND go test ./internal/core -count=1 -run ^TestLiveDirectMediaDeliveryChecker$ -v -timeout=40m
+R1_SOURCE 988c7cc3b7166dd736d00dde45ba81295256f023 plus M1-01 changes
+=== RUN   TestLiveDirectMediaDeliveryChecker
+=== RUN   TestLiveDirectMediaDeliveryChecker/round_1
+    direct_media_delivery_live_test.go:74: M1_LIVE round=1 case=unfounded request_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 response_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 http=200 response_file=/private/tmp/fluctlight-m1/live-responses-02/m1-check-round-1/unfounded-media-check-001.json
+    direct_media_delivery_live_test.go:87: M1_LIVE_RESULT round=1 case=unfounded contract=pass evidence_refs=0
+    direct_media_delivery_live_test.go:74: M1_LIVE round=1 case=denial request_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 response_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 http=200 response_file=/private/tmp/fluctlight-m1/live-responses-02/m1-check-round-1/denial-media-check-002.json
+    direct_media_delivery_live_test.go:87: M1_LIVE_RESULT round=1 case=denial contract=pass evidence_refs=0
+    direct_media_delivery_live_test.go:74: M1_LIVE round=1 case=future request_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 response_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 http=200 response_file=/private/tmp/fluctlight-m1/live-responses-02/m1-check-round-1/future-media-check-003.json
+    direct_media_delivery_live_test.go:87: M1_LIVE_RESULT round=1 case=future contract=pass evidence_refs=0
+    direct_media_delivery_live_test.go:74: M1_LIVE round=1 case=history request_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 response_model= http=400 response_file=/private/tmp/fluctlight-m1/live-responses-02/m1-check-round-1/history-media-check-004.json
+    direct_media_delivery_live_test.go:76: real checker model/HTTP mismatch: case=history
+--- FAIL: TestLiveDirectMediaDeliveryChecker (3.06s)
+    --- FAIL: TestLiveDirectMediaDeliveryChecker/round_1 (3.06s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.530s
+FAIL

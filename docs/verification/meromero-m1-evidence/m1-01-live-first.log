@@ -1,0 +1,13 @@
+R1_COMMAND go test ./internal/core -count=1 -run ^TestLiveDirectMediaDeliveryChecker$ -v -timeout=40m
+R1_SOURCE 988c7cc3b7166dd736d00dde45ba81295256f023 plus M1-01 changes
+=== RUN   TestLiveDirectMediaDeliveryChecker
+=== RUN   TestLiveDirectMediaDeliveryChecker/round_1
+    direct_media_delivery_live_test.go:74: M1_LIVE round=1 case=unfounded request_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 response_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 http=200 response_file=/private/tmp/fluctlight-m1/live-responses-01/m1-check-round-1/unfounded-media-check-001.json
+    direct_media_delivery_live_test.go:87: M1_LIVE_RESULT round=1 case=unfounded contract=pass evidence_refs=0
+    direct_media_delivery_live_test.go:74: M1_LIVE round=1 case=denial request_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 response_model=llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4 http=200 response_file=/private/tmp/fluctlight-m1/live-responses-01/m1-check-round-1/denial-media-check-002.json
+    direct_media_delivery_live_test.go:85: real checker rejected a permitted case: case=denial refs=0 code=direct_media_delivery_unverified err=direct_media_delivery_unverified: invalid capability arguments
+--- FAIL: TestLiveDirectMediaDeliveryChecker (5.68s)
+    --- FAIL: TestLiveDirectMediaDeliveryChecker/round_1 (5.68s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.159s
+FAIL

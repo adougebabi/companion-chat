@@ -1,0 +1,11 @@
+COMMAND go test ./internal/core -count=1 -run ^TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_identifies_posted_to_chat$ -v -timeout=10m
+SOURCE 988c7cc3b7166dd736d00dde45ba81295256f023 plus M1-01 files; protected drafts excluded
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_identifies_posted_to_chat
+    direct_media_delivery_claim_test.go:127: unsupported delivery was published or failed for an unrelated reason: messages=1 main=1 checker=1 error=<nil>
+--- FAIL: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies (2.48s)
+    --- FAIL: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_identifies_posted_to_chat (2.48s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.130s
+FAIL
+EXIT_CODE 1

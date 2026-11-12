@@ -1,0 +1,19 @@
+COMMAND go test ./internal/core -count=1 -run ^TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivery_question$ -v -timeout=10m
+SOURCE 988c7cc3b7166dd736d00dde45ba81295256f023 plus M1-01 files; protected drafts excluded
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivery_question
+2026/11/12 12:55:21 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 12:55:21 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 12:55:21 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 12:55:21 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 12:55:21 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 12:55:21 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+    direct_media_delivery_claim_test.go:128: valid reply was blocked: messages=0 result=core.TurnResult{ReplyStatus:"", UserMessage:map[string]interface {}(nil), Assistant:map[string]interface {}(nil), MediaIntentID:"", TurnID:"", InboxID:"", CorrelationID:""} error=adk_run: [NodeRunError] direct_media_delivery_unresolved: direct_media_delivery_unresolved
+        ------------------------
+        node path: [node_1, ChatModel]
+--- FAIL: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies (2.47s)
+    --- FAIL: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivery_question (2.47s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.130s
+FAIL
+EXIT_CODE 1

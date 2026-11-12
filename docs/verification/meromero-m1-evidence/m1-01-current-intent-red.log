@@ -1,0 +1,17 @@
+COMMAND go test ./internal/core -count=1 -run ^TestDirectCurrentMediaClaimUsesCommittedToolAndDelivery$ -v -timeout=10m
+SOURCE 988c7cc3b7166dd736d00dde45ba81295256f023 plus M1-01 files; protected drafts excluded
+=== RUN   TestDirectCurrentMediaClaimUsesCommittedToolAndDelivery
+2026/11/12 12:46:58 INFO capability lifecycle capability=capability.catalog call_id=load-image type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/12 12:46:58 WARN tool.call.handled capability=conversation.reply call_id=delivered-reply warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 12:46:58 WARN tool.call.handled capability=conversation.reply call_id=delivered-reply warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+    direct_media_delivery_claim_test.go:261: unexpected main-model continuation 4
+    direct_media_delivery_claim_test.go:261: unexpected main-model continuation 5
+    direct_media_delivery_claim_test.go:261: unexpected main-model continuation 6
+    direct_media_delivery_claim_test.go:292: current committed delivery reply failed: replies=0 attachments=1 main=6 checker=1 query=<nil> turn=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 500: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel]
+--- FAIL: TestDirectCurrentMediaClaimUsesCommittedToolAndDelivery (3.13s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.809s
+FAIL
+EXIT_CODE 1

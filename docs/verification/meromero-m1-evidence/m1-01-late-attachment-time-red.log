@@ -1,0 +1,9 @@
+COMMAND go test ./internal/core -count=1 -run ^TestDirectMediaDeliveryEvidenceDoesNotInventTimeForLateAttachment$ -v -timeout=10m
+SOURCE 988c7cc3b7166dd736d00dde45ba81295256f023 plus M1-01 files; protected drafts excluded
+=== RUN   TestDirectMediaDeliveryEvidenceDoesNotInventTimeForLateAttachment
+    direct_media_delivery_evidence_test.go:105: late attachment must be delivered but its exact delivery time is unknown: items=[]core.directMediaDelivery{core.directMediaDelivery{Ref:"delivery:c0abb1a33f8cbd30a5a7ccdf39e7ca70", Intent:"窗外的山", Delivered:time.Date(2020, time.January, 1, 8, 0, 0, 0, time.Local), intentID:"late-attachment-time", assetID:"asset_late-attachment-time", messageID:"late-attachment-message", refID:"media_ref_101f322f0f2f631b4591207053a1d287"}} err=<nil>
+--- FAIL: TestDirectMediaDeliveryEvidenceDoesNotInventTimeForLateAttachment (2.27s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.980s
+FAIL
+EXIT_CODE 1

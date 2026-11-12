@@ -128,7 +128,27 @@ func (c directMainReplyCapability) Prepare(ctx context.Context, invocation Capab
 	if err != nil {
 		return invocation, newCapabilityError("direct_reply_decision_invalid", false, err)
 	}
-	return withCapabilityPreparedData(invocation, "direct_main_settlement", map[string]any{"projection": projection, "decision": decision, "response_plan": plan, "expression_suggestions": suggestions})
+	var mediaRefs, mediaIntents []string
+	text := stringValue(args["text"])
+	if directMediaDeliveryCheckNeeded(text, run.CurrentInput, projection.RecentMessages) {
+		subject := firstString(invocation.Metadata.SubjectActorID, invocation.Metadata.AuthorizationActorID)
+		deliveries, err := directMediaDeliveries(ctx, c.app.DB.Pool(), invocation.Metadata.AuthorizationActorID, subject, invocation.Metadata.FluctlightID, invocation.Metadata.ConversationID, false)
+		if err != nil {
+			return invocation, newCapabilityError("direct_media_delivery_check_failed", true, err)
+		}
+		mediaRefs, err = c.app.checkDirectMediaDeliveryClaims(ctx, projection, run.CurrentInput, text, deliveries, directCurrentMediaIntents(bridge.Trace, invocation))
+		if err != nil {
+			return invocation, err
+		}
+		for _, ref := range mediaRefs {
+			delivery, err := directMediaDeliveryByRef(deliveries, ref)
+			if err != nil {
+				return invocation, newCapabilityError("direct_media_delivery_unverified", false, err)
+			}
+			mediaIntents = append(mediaIntents, delivery.intentID)
+		}
+	}
+	return withCapabilityPreparedData(invocation, "direct_main_settlement", map[string]any{"projection": projection, "decision": decision, "response_plan": plan, "expression_suggestions": suggestions, "media_delivery_refs": mediaRefs, "media_delivery_intents": mediaIntents})
 }
 
 func (c directMainReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext, target DirectToolTarget) (CapabilityResult, error) {
@@ -145,6 +165,11 @@ func (c directMainReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.T
 	if err := validateExpressionSuggestionsTx(ctx, tx, target.AuthorizationActorID, target.FluctlightID,
 		firstString(invocation.Metadata.SubjectActorID, target.AuthorizationActorID), target.ConversationID, suggestions); err != nil {
 		return CapabilityResult{}, err
+	}
+	if err := requireDirectMediaDeliveriesTx(ctx, tx, target.AuthorizationActorID,
+		firstString(invocation.Metadata.SubjectActorID, target.AuthorizationActorID), target.FluctlightID, target.ConversationID,
+		arrayValue(mapValue(data)["media_delivery_refs"]), arrayValue(mapValue(data)["media_delivery_intents"])); err != nil {
+		return CapabilityResult{}, directMediaDeliveryTxError(err)
 	}
 	return (conversationReplyCapability{publication: c.publication}).ExecuteDirectTx(ctx, tx, invocation, resolved, target)
 }

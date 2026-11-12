@@ -1,0 +1,1 @@
+{"error":{"message":"This prompt (454 tokens) does not fit in GPU memory even after freeing the prefix cache: it requires ~1007MB GPU memory but only ~827MB is available. It was refused before any work started. Reduce the prompt length, lower --ctx-size, or free memory on the machine.","type":"invalid_request_error","param":null,"code":400}}

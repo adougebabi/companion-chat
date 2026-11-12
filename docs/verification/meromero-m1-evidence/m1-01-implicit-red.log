@@ -1,0 +1,11 @@
+COMMAND go test ./internal/core -count=1 -run ^TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/implicit_photo_in_current_input$ -v -timeout=10m
+SOURCE 988c7cc3b7166dd736d00dde45ba81295256f023 plus M1-01 files; protected drafts excluded
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/implicit_photo_in_current_input
+    direct_media_delivery_claim_test.go:128: unsupported delivery was published or failed for an unrelated reason: messages=1 main=1 checker=0 error=<nil>
+--- FAIL: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies (2.45s)
+    --- FAIL: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/implicit_photo_in_current_input (2.45s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.109s
+FAIL
+EXIT_CODE 1

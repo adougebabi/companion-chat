@@ -68,6 +68,9 @@ func recoverToolBusinessResult(inv CapabilityInvocation, result CapabilityResult
 	if code == "reply_control_value_invalid" {
 		output["detail"] = "Control text was ignored; no message published. Use response_intent for the final silent decision."
 	}
+	if code == "direct_media_delivery_unverified" || code == "direct_media_delivery_stale" {
+		output["detail"] = "This reply was not published: the claimed image delivery lacks matching current evidence. Reconsider the reply using actual results; do not invent delivery."
+	}
 	if inv.CapabilityName == goalPlannerCommit {
 		for key, value := range goalPlannerCommitFeedback(code) {
 			output[key] = value

@@ -12,7 +12,7 @@ import (
 var agentModelVariants = map[FormalAgentID][]string{
 	FormalAgentConversationCognition: {"conversation_turn_response"},
 	FormalAgentConversationReply:     {"private_reply", "proactive", "moment"},
-	FormalAgentReplyActionCheck:      {"reply_action_consistency"},
+	FormalAgentReplyActionCheck:      {"reply_action_consistency", directMediaDeliveryCheckSchema},
 	FormalAgentExpressionLearning:    {expressionLearningSchema},
 	FormalAgentWakeUp:                {"wake_up_response"},
 	FormalAgentTakeoverJudge:         {"takeover_judge_response"},
@@ -126,6 +126,11 @@ func agentModelBindingCandidates(ctx context.Context, bindingRole string) []stri
 			result = append(result, key)
 		}
 		if bindingRole == "generic_llm" {
+			if route.agent == FormalAgentReplyActionCheck && route.variant == directMediaDeliveryCheckSchema {
+				// This direct-only checker follows the configured text model by
+				// default; an explicit Agent or variant override still wins.
+				bindingRole = conversationReplyModelRole
+			}
 			switch route.agent {
 			case FormalAgentConversationCognition, FormalAgentWakeUp, FormalAgentNPCResponse, FormalAgentExpressionLearning:
 				// The configured expression binding is the default text model for

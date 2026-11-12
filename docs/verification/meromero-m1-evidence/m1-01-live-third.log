@@ -1,0 +1,10 @@
+R1_COMMAND go test ./internal/core -count=1 -run ^TestLiveDirectMediaDeliveryChecker$ -v -timeout=40m
+R1_SOURCE 988c7cc3b7166dd736d00dde45ba81295256f023 plus M1-01 changes
+=== RUN   TestLiveDirectMediaDeliveryChecker
+=== RUN   TestLiveDirectMediaDeliveryChecker/round_1
+    direct_media_delivery_live_test.go:42: R1 test setup: save conversation_reply: provider_models_unavailable: Get "http://127.0.0.1:11234/v1/models": dial tcp 127.0.0.1:11234: connect: connection refused
+--- FAIL: TestLiveDirectMediaDeliveryChecker (1.95s)
+    --- FAIL: TestLiveDirectMediaDeliveryChecker/round_1 (1.95s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.394s
+FAIL

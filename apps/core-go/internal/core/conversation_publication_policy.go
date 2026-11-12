@@ -45,6 +45,9 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" && directMainInvalidReplyAttempts(adkContext.Trace) >= 3 {
 		return physicalModelRequestDecision{}, newCapabilityError("direct_reply_arguments_unresolved", false, errors.New("direct_reply_arguments_unresolved"))
 	}
+	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" && directMediaDeliveryRejectedAttempts(adkContext.Trace) >= 3 {
+		return physicalModelRequestDecision{}, newCapabilityError("direct_media_delivery_unresolved", false, errors.New("direct_media_delivery_unresolved"))
+	}
 	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" && directMediaReplyRejectedBatches(adkContext.Trace) >= 3 {
 		return physicalModelRequestDecision{}, newCapabilityError("direct_media_reply_stalled", false, errors.New("direct_media_reply_stalled"))
 	}
@@ -122,6 +125,29 @@ func directMainInvalidReplyAttempts(trace *ADKCapabilityTrace) int {
 			break
 		}
 		count++
+	}
+	return count
+}
+
+// Media-claim retries are bounded for the whole run, including when unrelated
+// Tool results are interleaved between rejected reply candidates.
+func directMediaDeliveryRejectedAttempts(trace *ADKCapabilityTrace) int {
+	if trace == nil {
+		return 0
+	}
+	_, results := trace.Snapshot()
+	count := 0
+	for _, result := range results {
+		if result.CapabilityName != conversationReplyCapabilityName {
+			continue
+		}
+		code := result.ErrorCode
+		if result.Status == "handled" {
+			code = stringValue(mapValue(result.Output)["warning_code"])
+		}
+		if (result.Status == "handled" || result.Status == "failed") && (code == "direct_media_delivery_unverified" || code == "direct_media_delivery_stale") {
+			count++
+		}
 	}
 	return count
 }
