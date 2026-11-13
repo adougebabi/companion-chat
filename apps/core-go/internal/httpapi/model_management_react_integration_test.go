@@ -89,8 +89,6 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 	if err != nil || len(compiled) != 1 || compiled[0].Status == "failed" {
 		t.Fatal("isolated working persona setup", compiled, err)
 	}
-	browser := httptest.NewServer(server.Handler())
-	defer browser.Close()
 	run := func(expected string) {
 		t.Helper()
 		projection, err := app.BuildContextProjectionFor(ctx, core.ContextProjectionRequest{
@@ -124,6 +122,12 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 		}
 		t.Logf("M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=%s contract=pass config_versions=%v", models[before], versions())
 	}
+	if manifest := os.Getenv("FLUCTLIGHT_M4_NATIVE_MANIFEST"); manifest != "" {
+		runM4NativeManagementFixture(t, ctx, server, webRoot, manifest, run)
+		return
+	}
+	browser := httptest.NewServer(server.Handler())
+	defer browser.Close()
 	run("m4-primary")
 	for _, phase := range []string{"set", "clear"} {
 		command := exec.CommandContext(ctx, "node", filepath.Join(webRoot, "test", "management-http-scenario.mjs"), phase)

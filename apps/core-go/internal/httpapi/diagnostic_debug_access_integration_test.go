@@ -25,7 +25,11 @@ func m4IsolatedHTTPFixture(t *testing.T) (context.Context, *core.PostgresReposit
 	if databaseURL == "" {
 		t.Skip("GO_CORE_TEST_DATABASE_URL required for the disposable PostgreSQL fixture")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	timeout := 90 * time.Second
+	if os.Getenv("FLUCTLIGHT_M4_NATIVE_MANIFEST") != "" {
+		timeout = 10 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	t.Cleanup(cancel)
 	config, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {

@@ -5,7 +5,7 @@
 | 单元 | 原始条目 | 唯一目标 | 状态 | 证据 |
 |---|---|---|---|---|
 | M4-01 | T11 14.3 开发调试权限 | 原始诊断读取和全文搜索需要 Operator 显式开启及 Owner 身份 | VERIFIED | 本目录 meromero-m4-evidence/debug-* |
-| M4-04 | T11 页面→运行消费 | 模型 variant 页面保存、重载与正式 reflection 请求消费及撤销恢复 | IMPLEMENTED，待提交后复验 | management-react-http-twice.log |
+| M4-04 | T11 页面→运行消费 | 模型 variant 页面保存、重载与正式 reflection 请求消费及撤销恢复 | VERIFIED | management-react-http-twice.log |
 | M4-03 | T11 14.3 诊断留存 | 证明已有周期清理删除过期/超量诊断并保留业务恢复 | VERIFIED | diagnostic_retention_integration_test.go |
 | M4-02 | T11 14.4 默认只读重放 | 在单个已存 correlation 范围内逐条回放记录，保留失败和分页缺口 | VERIFIED | 正式调用详情及现有 diagnostic-records GET |
 
@@ -57,7 +57,7 @@ M4-02 收口于提交 `0c0e259b8a9f300ed936ef31d49bbf7b8e954bb0`。提交后 HTT
 
 M4-03 提交 `43cb0753` 后同一隔离库验收通过，退出 0，无 SKIP，见 `retention-postcommit.log`。
 
-M4-04 IMPLEMENTED，待提交后复验，对应 T11 页面配置→回读→下一次正式任务消费。复用真实 React 管理页、BrowserClient、正式 HTTP 与 PostgreSQL。Provider 是透明受控响应，合成 session 只属于测试，不计入真实模型或原生浏览器 E2E。
+M4-04 VERIFIED，对应 T11 页面配置→回读→下一次正式任务消费。复用真实 React 管理页、BrowserClient、正式 HTTP 与 PostgreSQL。Provider 是透明受控响应，合成 session 只属于测试，不计入真实模型或原生浏览器 E2E。
 
 ### M4-04 实现与失败保留
 
@@ -68,3 +68,15 @@ M4-04 IMPLEMENTED，待提交后复验，对应 T11 页面配置→回读→下�
 首次完整通过 `management-react-http-timer.log`，退出 0、无 SKIP。后续在两个新隔离数据库、全新页面进程中按相同输入重复两次，全部通过，退出 0，无 SKIP。`management-react-http-twice.log` 记录各阶段正式请求模型、页面来源回读与配置版本。Provider 模型标识为 m4-primary/m4-override 的合成服务，session 解析器与 CSRF 传输为测试夹具。该结果属于 React+真实HTTP/数据库+受控Provider 跨层集成，不是本机真实模型或原生浏览器 E2E。
 
 提交 f62a11ee 后，全 HTTP/Browser/配置包与 API 编译通过、无 SKIP。两轮提交后专项首轮通过、第二轮测试在异步 catalog 返回前查找 variant 选项而失败，management-postcommit.log 保留。补测试等待真实选项出现，生产页面与路由未修改，待新提交复验。
+
+M4-04 在提交 aeb21237 的干净源码上两轮独立场景复验通过，退出 0，无 SKIP。`management-postcommit-wait1.log`。M4-05 开始补原生浏览器相同管理入口的保存→浏览器刷新→正式运行证据，使用本测试的隔离后端和生产 Web 构建。
+
+## M4-05 原生浏览器模型管理
+
+状态 IMPLEMENTED，待提交后复验。正式生产 Web 构建由一次性回环服务提供。控制的 session 及 CSRF 属于测试夹具，Provider 请求使用同一受控模型服务。
+
+实际浏览器进入管理中心的模型用途，选择正式 reflection_proposal_v2，确认默认来源后执行正式任务。页面保存 m4-override，真实浏览器 reload 后重新打开该变体，读回任务变体来源，正式任务请求 m4-override 并通过合同。恢复继承并保存、再次 reload 后读回默认来源，正式任务请求 m4-primary 并通过合同。三个阶段及配置版本见 `management-native.log`，退出 0，无 SKIP。API 原回执见 `native-initial.json` / `native-override.json` / `native-restored.json` / `native-finished.json`。
+
+浏览器首个临时标签在读取选项时失效，现有浏览器清单确认标签已消失；新建同一 IAB 标签并保持后完成操作，未重建数据库或覆盖任何失败样本。截图仅在仓库外 `/private/tmp/fluctlight-m4-native-override.png` 和 `/private/tmp/fluctlight-m4-native-restored.png`，不提交图片。
+
+该原生浏览器证据对应受检生产提交 aeb21237 和本单元测试夹具覆盖文件，生产 Web 源相对构建未变。完整应用页面、真实 BrowserClient、正式 Handler、PostgreSQL 和 typed reflection 任务真实执行；Provider 响应与身份是受控夹具。未作为真实模型推理证据。
