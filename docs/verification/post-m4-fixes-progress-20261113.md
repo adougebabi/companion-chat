@@ -8,7 +8,7 @@
 | F02 | 同ID无权限/关闭窗口回执跨轮重放有界 | VERIFIED | postdenial-* |
 | F03a | 诊断详情接入现有原媒体任务人工核对 | VERIFIED | entry-* |
 | F03b | Studio同源ready资产人工确认恢复 | VERIFIED | poststudio-*及studio-* |
-| F03c | 视觉身份同源ready资产人工恢复 | 实现及范围内验证通过，待提交后验收 | postvisual-*及visual-* |
+| F03c | 视觉身份同源ready资产人工恢复 | VERIFIED（同源ready/原paused Run范围） | postvisual-*及visual-* |
 | F04 | direct生成中的候选正文增量预览 | VERIFIED（direct预览范围） | postpreview-*及preview-* |
 
 F01修正当前用例配置，保留r5夹具fact_only模式；使用允许显式回退的503；在数据库独立配置generic_llm备用模型，保留原Writer冻结值。原输出、穿着、次数、未授权重执行及最终模型元数据断言保留。只改此用例，生产回退策略diff 0。红测与第一轮只修两前置仍失败的日志全部保留。
@@ -60,3 +60,23 @@ F03c独立静态审查未发现功能性缺陷；指出的额外质量、历史�
 F03c较大Core回归64项顶层通过、1项既有头像手工审核失败、2项真实模型门禁SKIP，整条命令退出1，不能计为全绿。相同环境与输入对起始10d797c4和当前代码单跑TestGeneratedAvatarRealMediaHTTPWaitsForManualReview，均为media_model_snapshot_failure: media_model_snapshot_invalid，且发生在媒体完成事务之前。沿用既有avatar-manual-review-snapshot-baseline-failure工单，本项未修复该非阻断基线问题。两个真实用例TestVisualIdentityLiveE2EPreflight、TestVisualIdentityAgentReviewsRealObjectImageAndSavesCanonical保留未验收。提交后将明确选择其余已执行的相关场景复验，并保留本次完整失败/跳过日志。
 
 F03c验证使用真实隔离PostgreSQL及正式Core入口，RPC来自受控WorkflowRuntime探针；未声称真实Temporal原Run已完成或真实图像/模型验收通过。无本地同源ready、无法证明外部结果、原workflow已终结或未知恢复结果已跨新session/Run时继续暂停核对。T05/T06、M1～M4与全链状态不据此改为完成。
+
+## 本轮最终回执
+
+受检生产实现提交f908e28737194aa3045c9170644dfc1cf4663693。F01、F02、F03a、F03b、F03c和F04（direct预览范围）已分批提交并完成各自AEL验收。父任务与M1～M4整体验收沿用既有未验收事项。
+
+| 最终验证 | 实际结果 | 证据 |
+| --- | --- | --- |
+| 干净提交后明确选择的相关Core场景 | 65项顶层PASS，退出0，无SKIP，141.793秒 | postvisual-postcommit.log、postvisual-postcommit-selection.json |
+| 干净提交后浏览器边界全包 | 88项顶层PASS，退出0，无SKIP | postvisual-browser-postcommit.log |
+| 干净提交后媒体/Studio前端 | 58 PASS，退出0，无SKIP | visual-web-postcommit.log |
+| 最终聊天/观察/React回归 | 60 PASS，退出0，无SKIP | final-chat-regression.log |
+| 最终诊断媒体入口与原任务恢复 | 22 PASS，退出0，无SKIP | final-diagnostic-media.log |
+| 四原稿只读叠加的兼容性 | 4项顶层及R6组22子场景PASS，退出0，无SKIP，48.676秒 | postfinal-workingtree.log |
+| 生成客户端、类型与产品构建 | client48 PASS，Web/client typecheck、产品build退出0 | visual-client-tests.log、visual-typecheck-final.log、visual-client-typecheck.log、visual-build.log |
+
+65项选择清单明确排除已有独立头像基线失败1项和按Owner决定保留未验收的真实模型门禁2项；前一次较大回归的64 PASS/1 FAIL/2 SKIP日志和前后同环境同输入对照保留。task detail整文件既有5项UI合同失败也保留在diagnostic-task-detail-baseline-regressions工单。上述缺陷继续按独立工作项处理，本轮局部通过不能替代它们的验收。
+
+Studio与视觉恢复均以本地可证明同源的ready记录为范围。外部结果接管、无法证明归属、缺ready、原视觉工作流已经终结及跨新session/Run的未知恢复结果继续保持暂停。真实模型native流式能力、实际回复体验、真实ComfyUI图片及真实Temporal服务完成结果，本轮没有补跑，继续保留未验收。fact_only保留现有可选行为，Writer候选预览本轮未新增。
+
+四原稿最终SHA-256与起点一致，测试叠加只读取副本。所有图片仅通过本地工具会话查看；Git提交通过禁图片钩子。临时Vite验证服务器均已停止。验证使用一次性隔离数据库与合成内容，受控Provider/RPC、SDK Activity harness在证据中明确标识。最初红测、夹具错误、编译/类型错误、超时、sandbox IPC限制及基线失败均按原结果保留，成功日志未覆盖失败样本。

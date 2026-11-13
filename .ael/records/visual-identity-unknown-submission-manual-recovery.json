@@ -16,17 +16,85 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
-  "status": "open",
-  "candidate": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "8519b542493a8d5dd667d9af03a5b7c4586370172eda905577610f216a1f5165",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-12T16:21:16.692651Z",
-  "updated": "2026-11-12T16:21:16.693002Z",
-  "completed": null,
+  "updated": "2026-11-13T17:50:29.759622Z",
+  "completed": "2026-11-13T17:50:29.759476Z",
   "feedback": [],
   "history": {
-    "attempts": null,
-    "checks": null
+    "attempts": [
+      {
+        "id": "AT-c0029a46e7e9c621861d",
+        "unit": "define",
+        "executor": "codex-postm4-visual-ready",
+        "input_version": "e6ac5460b1e672c2b55b4f2220d1a2a05747ebee6890e14afd4a725acf41bd8a",
+        "candidate_version": "e6ac5460b1e672c2b55b4f2220d1a2a05747ebee6890e14afd4a725acf41bd8a",
+        "started": "2026-11-13T17:16:51.129948Z",
+        "ended": "2026-11-13T17:19:37.565937Z",
+        "status": "pass",
+        "reason": "仅恢复当前视觉session/current attempt关联的同源本地ready候选或设定图，Owner显式确认后保留媒体/原工作流身份。原工作流已终结、无法确认当前Run、无ready/外部归属不明保持暂停。"
+      },
+      {
+        "id": "AT-4dd63762d3d0588ef1ff",
+        "unit": "analysis",
+        "executor": "codex-postm4-visual-ready",
+        "input_version": "e6ac5460b1e672c2b55b4f2220d1a2a05747ebee6890e14afd4a725acf41bd8a",
+        "candidate_version": "e6ac5460b1e672c2b55b4f2220d1a2a05747ebee6890e14afd4a725acf41bd8a",
+        "started": "2026-11-13T17:19:46.136586Z",
+        "ended": "2026-11-13T17:19:46.431641Z",
+        "status": "pass",
+        "reason": "正式领域命令校验Owner、session/attempt/visual/media/原workflow与run版本。复用media-intent执行锁及worldCommand事务，原子复用媒体完成结算Tx逻辑，避免reviewed_ready被迟到旧失败反转。事务后复用OwnerWorkflowCommand的持久原Run resume与未知RPC幂等，不新建视觉工作流、不自动重提图片，不改质量结论或历史兼容。Owner读模型只在uncertain时给当前同源结果与原paused运行的可操作快照。React复用WorkspaceCommandDialog并保留原请求。"
+      },
+      {
+        "id": "AT-7e444d93d15070f7b471",
+        "unit": "execute",
+        "executor": "codex-postm4-visual-ready",
+        "input_version": "e6ac5460b1e672c2b55b4f2220d1a2a05747ebee6890e14afd4a725acf41bd8a",
+        "candidate_version": "8519b542493a8d5dd667d9af03a5b7c4586370172eda905577610f216a1f5165",
+        "started": "2026-11-13T17:19:55.033244Z",
+        "ended": "2026-11-13T17:47:17.848504Z",
+        "status": "pass",
+        "reason": "提交f908e287，同源ready候选/设定图经Owner确认、事务原子结算并对原Run持久resume。质量与旧数据兼容保持；无ready/原workflow终态保持暂停。8项核心目标顶层受控场景及相关64项通过；整组1项既有头像快照失败和2项live gate保留，起始与当前同环境同输入已对照。前端58、browser88、client48及typecheck/build通过。原RPC未知跨remount同身份重放、source变化停止重发、IAB确认表单核对。提交后65项明确选择场景复验中。"
+      },
+      {
+        "id": "AT-36a551f58427311dc59d",
+        "unit": "check:manual-recovery-scenario",
+        "executor": "codex-postm4-visual-ready",
+        "input_version": "8519b542493a8d5dd667d9af03a5b7c4586370172eda905577610f216a1f5165",
+        "candidate_version": "8519b542493a8d5dd667d9af03a5b7c4586370172eda905577610f216a1f5165",
+        "started": "2026-11-13T17:50:23.476352Z",
+        "ended": "2026-11-13T17:50:23.568825Z",
+        "status": "pass",
+        "reason": "f908e287干净提交后明确选择65项相关Core场景141.793秒通过，无SKIP，排除仅为已证实的1项独立基线失败和2项Owner授权保留的真实模型门禁。88项browser、58项媒体/Studio前端通过，最终chat60/诊断媒体22通过；四原稿只读覆盖48.676秒兼容性通过。候选/设定图同源ready归属、Owner/CAS/原Run、未知RPC持久重放、原来源替代、并发、质量保持与历史兼容均覆盖，IAB实际确认表单已核对。原较大回归64PASS/1基线FAIL/2SKIP和前后同环境同输入的头像快照失败均保留。真实模型、真实图片及Temporal服务原运行完成仍未验收，父任务未据此完成。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "manual-recovery-scenario",
+        "result": "pass",
+        "source": "scenario:codex-postm4-visual-ready",
+        "config_hash": "207fb64ea8891ffe694a42b1a63963f394bae7ee72507318bd475e68c1bdf201",
+        "at": "2026-11-13T17:50:23.568456Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/media.go": "b8bebbae07698cb9aec7be5c4ecc5f33c9ab7fc3a250d5db78b4f218add7cec0",
+          "apps/core-go/internal/core/owner_surface_read.go": "79cb6d1d23a42cb7b27bb9056fb11d6d3f37d888dd24f77cdfc50805c4cab7a2",
+          "apps/core-go/internal/core/owner_visual_submission_recovery.go": "221b3e5848fbc0658914f7003fac933fc11b694578f76b05a89bd6f759404ebf",
+          "apps/core-go/internal/core/owner_visual_submission_recovery_test.go": "eb2466500560d5dbad6e66e44c66c3386753c6dda5e73cdde817b8ee45b6b5a8",
+          "apps/core-go/internal/core/visual_brief.go": "bab11e3fbc2b10d1301c30d83836c8174b01fb75bc7d43b3c1c98a3c25aa523a",
+          "apps/web/src/react-app/shared/VisualWorkspace.jsx": "25dd601438db57c352c8e456c21afd8cf27421a21518e97addccdc76118042e4",
+          "docs/verification/post-m4-fixes-evidence/postvisual-avatar-baseline.log": "922a6ebf8c8498b52f2966434e171807133cdd4a0719eb099b758d423cf8c1cb",
+          "docs/verification/post-m4-fixes-evidence/postvisual-avatar-current.log": "88aa2fb2299a8545d1b7160105f26b18e575064c5b6524941555d16df128e427",
+          "docs/verification/post-m4-fixes-evidence/postvisual-browser.log": "3a4297e9ed9823ad2d8ad378cdfbedc78287e92eeb926b9f47964c10aa6a3e24",
+          "docs/verification/post-m4-fixes-evidence/postvisual-concurrent.log": "15ecc2632de4ca5362c8bf98ef16913b913d2bfb263b9ee255cba2c600c61c6a",
+          "docs/verification/post-m4-fixes-evidence/postvisual-regression.log": "277139c4078558407df74ae7b49a32479f168c036f5c6e13f5babcdee31ccbf5",
+          "docs/verification/post-m4-fixes-evidence/visual-web-regression.log": "71275843a9b84ad58f51737e68149da3632138ab9b090e288aa07fc43eb902b4",
+          "docs/verification/post-m4-fixes-progress-20261113.md": "bc953b2c14195c8b42a11e65be678fdf9ac13dfd2974c663c47248351d1268d3"
+        }
+      }
+    ]
   }
 }

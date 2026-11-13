@@ -1,0 +1,283 @@
+SOURCE_HEAD f908e28737194aa3045c9170644dfc1cf4663693
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^(TestGeneratedAvatarRealMediaHTTPModelReview|TestGeneratedAvatarUsesCharacterOwnedPromptOnPhysicalRequest|TestLegacyVisualIdentityWithoutJobRemainsUncertain|TestOwnerVisualBriefPersistenceCASFrozenSessionAndNoLifeMutation|TestOwnerVisualManualRejectionCarriesFeedbackToNextAttempt|TestOwnerVisualManualReviewFencesReplayAndAtomicContinuation|TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset|TestStudioReviewedReadyRecoveryConcurrentCommands|TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished|TestStudioReviewedReadyRecoveryLegacyAndExecutionLock|TestStudioReviewedReadyRecoveryPreservesLateQualityFailure|TestStudioReviewedReadyRecoveryPreservesOriginalAttempt|TestStudioReviewedReadyRecoveryRejectsStaleActivity|TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState|TestVisualIdentityAgentCheckpointIdentityIsStableAndAdvancesWithDurableState|TestVisualIdentityAgentDoesNotReplayCommittedCandidateWhenModelRepeats|TestVisualIdentityAgentMessagesCarryRealImageContentBlock|TestVisualIdentityAgentPhysicalReviewIncludesTextRejection|TestVisualIdentityAgentPreservesAcceptedGenerationWhenFinalModelFails|TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration|TestVisualIdentityAggregateRepairSQLUsesNullSafeBusinessFieldGuard|TestVisualIdentityAvatarUsesDedicatedCreativePrompt|TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio|TestVisualIdentityCommitReviewNormalizesBoundedObservations|TestVisualIdentityCommitReviewToolPreservesRejectedAssetAndCreatesNextAttempt|TestVisualIdentityCompletedCheckpointStopsRepeatedTool|TestVisualIdentityFailedMediaSettlesParentWithoutRequeueOrProvider|TestVisualIdentityFinalizeToolCommitsCanonicalCharacterSheetAndCompletion|TestVisualIdentityGenerateCandidateToolCommitsDurableIntentAndReplays|TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes|TestVisualIdentityInitializationManifestIsWakeUpCapability|TestVisualIdentityInitializationUsesCurrentBodyAfterHaircut|TestVisualIdentityJSONEmptyTreatsDatabaseDefaultAsEmpty|TestVisualIdentityManualAndModelReviewSchemasRemainDistinct|TestVisualIdentityMediaPhysicalRequestsOmitInformationPanels|TestVisualIdentityMediaPromptInstructionRequiresThreePanelCharacterSheet|TestVisualIdentityNoopAggregateRepairsDoNotAdvanceFacts|TestVisualIdentityPhysicalRequestStagesGenerateAndStream|TestVisualIdentityProductionEntryUsesCompleteFormalAgent|TestVisualIdentityPromptUsesAppearanceWithoutNameOrAge|TestVisualIdentityPromptUsesCurrentWearBeforeHistoricalClothing|TestVisualIdentityProviderPendingRecognizesCurrentGenericBinding|TestVisualIdentityReferenceAssetPrefersCharacterSheet|TestVisualIdentityReferenceImagePlaceholderUsesUploadedFilename|TestVisualIdentityRefreshPreservesPreviousReviewForRegeneration|TestVisualIdentityRegenerationKeepsAllActualReviewEvidence|TestVisualIdentityRegenerationKeepsReviewMeaningWithoutIDs|TestVisualIdentityReviewPhysicalRequestRetainsImageAndModelEvidenceSchema|TestVisualIdentityReviewPhysicalRequestsRejectText|TestVisualIdentitySchemasExposeDecisionAndVisionStages|TestVisualIdentitySessionKeepsTextModelAcrossCheckpoints|TestVisualIdentitySessionKeepsVisionModelAndCurrentAdmission|TestVisualIdentityStageCatalogExposesOnlyExpectedCanonicalTool|TestVisualIdentityStageOrder|TestVisualIdentityTemplateDoesNotInventInformationPanelsOrAccessories|TestVisualIdentityToolProgressCountsOnlyCommittedReview|TestVisualIdentityValidationInstructionsDoNotRequireRenderedText|TestVisualSubmissionReviewedReadyConcurrentReplayHasOneResumeEffect|TestVisualSubmissionReviewedReadyDoesNotResumeSupersededAttempt|TestVisualSubmissionReviewedReadyFencesOwnerAndMediaExecution|TestVisualSubmissionReviewedReadyKeepsLegacyReviewAbsenceExplicit|TestVisualSubmissionReviewedReadyKeepsUnknownResumeIdentity|TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource|TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow|TestVisualSubmissionReviewedReadyRunChangeAfterLocalCommitStaysUnconfirmed)$ -v -timeout=600s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestVisualIdentityInitializationUsesCurrentBodyAfterHaircut
+--- PASS: TestVisualIdentityInitializationUsesCurrentBodyAfterHaircut (2.06s)
+=== RUN   TestGeneratedAvatarUsesCharacterOwnedPromptOnPhysicalRequest
+--- PASS: TestGeneratedAvatarUsesCharacterOwnedPromptOnPhysicalRequest (0.00s)
+=== RUN   TestGeneratedAvatarRealMediaHTTPModelReview
+=== RUN   TestGeneratedAvatarRealMediaHTTPModelReview/pass
+=== RUN   TestGeneratedAvatarRealMediaHTTPModelReview/reject_after_retry
+--- PASS: TestGeneratedAvatarRealMediaHTTPModelReview (3.81s)
+    --- PASS: TestGeneratedAvatarRealMediaHTTPModelReview/pass (1.86s)
+    --- PASS: TestGeneratedAvatarRealMediaHTTPModelReview/reject_after_retry (1.95s)
+=== RUN   TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset
+--- PASS: TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset (1.99s)
+=== RUN   TestLegacyVisualIdentityWithoutJobRemainsUncertain
+=== RUN   TestLegacyVisualIdentityWithoutJobRemainsUncertain/candidate
+=== RUN   TestLegacyVisualIdentityWithoutJobRemainsUncertain/character_sheet
+--- PASS: TestLegacyVisualIdentityWithoutJobRemainsUncertain (3.59s)
+    --- PASS: TestLegacyVisualIdentityWithoutJobRemainsUncertain/candidate (1.74s)
+    --- PASS: TestLegacyVisualIdentityWithoutJobRemainsUncertain/character_sheet (1.85s)
+=== RUN   TestVisualIdentityReferenceImagePlaceholderUsesUploadedFilename
+--- PASS: TestVisualIdentityReferenceImagePlaceholderUsesUploadedFilename (0.00s)
+=== RUN   TestVisualIdentityReferenceAssetPrefersCharacterSheet
+--- PASS: TestVisualIdentityReferenceAssetPrefersCharacterSheet (0.00s)
+=== RUN   TestVisualIdentityMediaPromptInstructionRequiresThreePanelCharacterSheet
+--- PASS: TestVisualIdentityMediaPromptInstructionRequiresThreePanelCharacterSheet (0.00s)
+=== RUN   TestVisualIdentityValidationInstructionsDoNotRequireRenderedText
+=== RUN   TestVisualIdentityValidationInstructionsDoNotRequireRenderedText/vision
+=== RUN   TestVisualIdentityValidationInstructionsDoNotRequireRenderedText/patch
+--- PASS: TestVisualIdentityValidationInstructionsDoNotRequireRenderedText (0.00s)
+    --- PASS: TestVisualIdentityValidationInstructionsDoNotRequireRenderedText/vision (0.00s)
+    --- PASS: TestVisualIdentityValidationInstructionsDoNotRequireRenderedText/patch (0.00s)
+=== RUN   TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow
+=== RUN   TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/candidate
+=== RUN   TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/character_sheet
+--- PASS: TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow (3.89s)
+    --- PASS: TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/candidate (1.92s)
+    --- PASS: TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/character_sheet (1.97s)
+=== RUN   TestVisualSubmissionReviewedReadyKeepsUnknownResumeIdentity
+--- PASS: TestVisualSubmissionReviewedReadyKeepsUnknownResumeIdentity (1.07s)
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/unreviewed
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/old-attempt
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/old-visual-version
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/old-media-version
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/old-workflow-version
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/old-run
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/runtime-unavailable
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/closed-original-run
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/missing-ready
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/wrong-workflow
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/wrong-request
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/quality-retry
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/quality-legacy
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/quality-rejected
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/active-media
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/paused-media
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/cancelled-session
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/inactive-session
+=== RUN   TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/unknown-legacy-prompt
+--- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource (36.51s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/unreviewed (1.40s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/old-attempt (1.55s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/old-visual-version (1.55s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/old-media-version (1.58s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/old-workflow-version (1.84s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/old-run (1.65s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/runtime-unavailable (1.60s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/closed-original-run (1.60s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/missing-ready (2.09s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/wrong-workflow (3.06s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/wrong-request (2.10s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/quality-retry (2.24s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/quality-legacy (2.11s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/quality-rejected (2.17s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/active-media (2.08s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/paused-media (2.08s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/cancelled-session (2.18s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/inactive-session (1.86s)
+    --- PASS: TestVisualSubmissionReviewedReadyRejectsMissingEvidenceAndStaleSource/unknown-legacy-prompt (1.77s)
+=== RUN   TestVisualSubmissionReviewedReadyFencesOwnerAndMediaExecution
+--- PASS: TestVisualSubmissionReviewedReadyFencesOwnerAndMediaExecution (1.92s)
+=== RUN   TestVisualSubmissionReviewedReadyDoesNotResumeSupersededAttempt
+--- PASS: TestVisualSubmissionReviewedReadyDoesNotResumeSupersededAttempt (1.35s)
+=== RUN   TestVisualSubmissionReviewedReadyKeepsLegacyReviewAbsenceExplicit
+--- PASS: TestVisualSubmissionReviewedReadyKeepsLegacyReviewAbsenceExplicit (1.91s)
+=== RUN   TestVisualSubmissionReviewedReadyRunChangeAfterLocalCommitStaysUnconfirmed
+--- PASS: TestVisualSubmissionReviewedReadyRunChangeAfterLocalCommitStaysUnconfirmed (2.31s)
+=== RUN   TestVisualSubmissionReviewedReadyConcurrentReplayHasOneResumeEffect
+--- PASS: TestVisualSubmissionReviewedReadyConcurrentReplayHasOneResumeEffect (2.19s)
+=== RUN   TestStudioReviewedReadyRecoveryPreservesOriginalAttempt
+--- PASS: TestStudioReviewedReadyRecoveryPreservesOriginalAttempt (2.85s)
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unreviewed
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-job
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-media
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/old-attempt
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/missing-ready
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-request
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-workflow
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-reject
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-retry
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-legacy
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/active
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/paused
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/cancel-requested
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/discarded
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unbound-attempt
+--- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState (31.84s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unreviewed (2.55s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-job (2.23s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-media (2.22s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/old-attempt (2.07s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/missing-ready (2.16s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-request (2.16s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-workflow (2.05s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-reject (1.85s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-retry (2.14s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-legacy (2.10s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/active (2.14s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/paused (2.11s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/cancel-requested (2.17s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/discarded (2.13s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unbound-attempt (1.75s)
+=== RUN   TestStudioReviewedReadyRecoveryLegacyAndExecutionLock
+--- PASS: TestStudioReviewedReadyRecoveryLegacyAndExecutionLock (1.67s)
+=== RUN   TestStudioReviewedReadyRecoveryConcurrentCommands
+--- PASS: TestStudioReviewedReadyRecoveryConcurrentCommands (2.28s)
+=== RUN   TestStudioReviewedReadyRecoveryPreservesLateQualityFailure
+=== RUN   TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/reject
+=== RUN   TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/retry
+=== RUN   TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/retry_accepted
+--- PASS: TestStudioReviewedReadyRecoveryPreservesLateQualityFailure (4.82s)
+    --- PASS: TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/reject (1.68s)
+    --- PASS: TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/retry (1.41s)
+    --- PASS: TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/retry_accepted (1.73s)
+=== RUN   TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished
+=== RUN   TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished/false
+=== RUN   TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished/true
+--- PASS: TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished (2.43s)
+    --- PASS: TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished/false (1.20s)
+    --- PASS: TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished/true (1.23s)
+=== RUN   TestStudioReviewedReadyRecoveryRejectsStaleActivity
+2026/11/14 01:48:50 DEBUG RecordActivityTaskHeartbeat ActivityID 0
+2026/11/14 01:48:50 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType func1 Attempt 1 Error media_execution_workflow_stale
+--- PASS: TestStudioReviewedReadyRecoveryRejectsStaleActivity (1.41s)
+=== RUN   TestVisualIdentityInitializationManifestIsWakeUpCapability
+--- PASS: TestVisualIdentityInitializationManifestIsWakeUpCapability (0.00s)
+=== RUN   TestOwnerVisualBriefPersistenceCASFrozenSessionAndNoLifeMutation
+--- PASS: TestOwnerVisualBriefPersistenceCASFrozenSessionAndNoLifeMutation (1.70s)
+=== RUN   TestOwnerVisualManualReviewFencesReplayAndAtomicContinuation
+--- PASS: TestOwnerVisualManualReviewFencesReplayAndAtomicContinuation (1.59s)
+=== RUN   TestOwnerVisualManualRejectionCarriesFeedbackToNextAttempt
+--- PASS: TestOwnerVisualManualRejectionCarriesFeedbackToNextAttempt (1.66s)
+=== RUN   TestVisualIdentityFailedMediaSettlesParentWithoutRequeueOrProvider
+--- PASS: TestVisualIdentityFailedMediaSettlesParentWithoutRequeueOrProvider (1.70s)
+=== RUN   TestVisualIdentitySessionKeepsTextModelAcrossCheckpoints
+--- PASS: TestVisualIdentitySessionKeepsTextModelAcrossCheckpoints (1.53s)
+=== RUN   TestVisualIdentitySessionKeepsVisionModelAndCurrentAdmission
+--- PASS: TestVisualIdentitySessionKeepsVisionModelAndCurrentAdmission (1.49s)
+=== RUN   TestVisualIdentityStageOrder
+--- PASS: TestVisualIdentityStageOrder (0.00s)
+=== RUN   TestVisualIdentityJSONEmptyTreatsDatabaseDefaultAsEmpty
+--- PASS: TestVisualIdentityJSONEmptyTreatsDatabaseDefaultAsEmpty (0.00s)
+=== RUN   TestVisualIdentityProviderPendingRecognizesCurrentGenericBinding
+--- PASS: TestVisualIdentityProviderPendingRecognizesCurrentGenericBinding (0.00s)
+=== RUN   TestVisualIdentityAgentCheckpointIdentityIsStableAndAdvancesWithDurableState
+--- PASS: TestVisualIdentityAgentCheckpointIdentityIsStableAndAdvancesWithDurableState (0.00s)
+=== RUN   TestVisualIdentityStageCatalogExposesOnlyExpectedCanonicalTool
+--- PASS: TestVisualIdentityStageCatalogExposesOnlyExpectedCanonicalTool (0.01s)
+=== RUN   TestVisualIdentityAggregateRepairSQLUsesNullSafeBusinessFieldGuard
+--- PASS: TestVisualIdentityAggregateRepairSQLUsesNullSafeBusinessFieldGuard (0.00s)
+=== RUN   TestVisualIdentityAvatarUsesDedicatedCreativePrompt
+--- PASS: TestVisualIdentityAvatarUsesDedicatedCreativePrompt (0.00s)
+=== RUN   TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio
+=== RUN   TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio/new/seed
+=== RUN   TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio/new/character_sheet
+=== RUN   TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio/legacy_frozen/seed
+=== RUN   TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio/legacy_frozen/character_sheet
+=== RUN   TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio/legacy_without_dimensions/seed
+=== RUN   TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio/legacy_without_dimensions/character_sheet
+--- PASS: TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio (0.00s)
+    --- PASS: TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio/new/seed (0.00s)
+    --- PASS: TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio/new/character_sheet (0.00s)
+    --- PASS: TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio/legacy_frozen/seed (0.00s)
+    --- PASS: TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio/legacy_frozen/character_sheet (0.00s)
+    --- PASS: TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio/legacy_without_dimensions/seed (0.00s)
+    --- PASS: TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio/legacy_without_dimensions/character_sheet (0.00s)
+=== RUN   TestVisualIdentityPromptUsesAppearanceWithoutNameOrAge
+--- PASS: TestVisualIdentityPromptUsesAppearanceWithoutNameOrAge (0.00s)
+=== RUN   TestVisualIdentityPromptUsesCurrentWearBeforeHistoricalClothing
+--- PASS: TestVisualIdentityPromptUsesCurrentWearBeforeHistoricalClothing (0.00s)
+=== RUN   TestVisualIdentitySchemasExposeDecisionAndVisionStages
+--- PASS: TestVisualIdentitySchemasExposeDecisionAndVisionStages (0.00s)
+=== RUN   TestVisualIdentityProductionEntryUsesCompleteFormalAgent
+--- PASS: TestVisualIdentityProductionEntryUsesCompleteFormalAgent (0.00s)
+=== RUN   TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes
+=== RUN   TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/identity_snapshot/37
+=== RUN   TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/visual_identity/37
+=== RUN   TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/direct/37
+=== RUN   TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/direct/37岁
+=== RUN   TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/identity_snapshot/37岁
+=== RUN   TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/visual_identity/37岁
+=== RUN   TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/direct/37_years_old
+=== RUN   TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/identity_snapshot/37_years_old
+=== RUN   TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/visual_identity/37_years_old
+--- PASS: TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes (0.00s)
+    --- PASS: TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/identity_snapshot/37 (0.00s)
+    --- PASS: TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/visual_identity/37 (0.00s)
+    --- PASS: TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/direct/37 (0.00s)
+    --- PASS: TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/direct/37岁 (0.00s)
+    --- PASS: TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/identity_snapshot/37岁 (0.00s)
+    --- PASS: TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/visual_identity/37岁 (0.00s)
+    --- PASS: TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/direct/37_years_old (0.00s)
+    --- PASS: TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/identity_snapshot/37_years_old (0.00s)
+    --- PASS: TestVisualIdentityImagePromptOmitsIdentityMetadataAcrossSnapshotShapes/visual_identity/37_years_old (0.00s)
+=== RUN   TestVisualIdentityTemplateDoesNotInventInformationPanelsOrAccessories
+--- PASS: TestVisualIdentityTemplateDoesNotInventInformationPanelsOrAccessories (0.00s)
+=== RUN   TestVisualIdentityMediaPhysicalRequestsOmitInformationPanels
+=== RUN   TestVisualIdentityMediaPhysicalRequestsOmitInformationPanels/seed
+=== RUN   TestVisualIdentityMediaPhysicalRequestsOmitInformationPanels/character_sheet
+--- PASS: TestVisualIdentityMediaPhysicalRequestsOmitInformationPanels (0.00s)
+    --- PASS: TestVisualIdentityMediaPhysicalRequestsOmitInformationPanels/seed (0.00s)
+    --- PASS: TestVisualIdentityMediaPhysicalRequestsOmitInformationPanels/character_sheet (0.00s)
+=== RUN   TestVisualIdentityReviewPhysicalRequestsRejectText
+--- PASS: TestVisualIdentityReviewPhysicalRequestsRejectText (1.46s)
+=== RUN   TestVisualIdentityAgentPhysicalReviewIncludesTextRejection
+--- PASS: TestVisualIdentityAgentPhysicalReviewIncludesTextRejection (0.00s)
+=== RUN   TestVisualIdentityCommitReviewNormalizesBoundedObservations
+=== RUN   TestVisualIdentityCommitReviewNormalizesBoundedObservations/object
+=== RUN   TestVisualIdentityCommitReviewNormalizesBoundedObservations/text
+--- PASS: TestVisualIdentityCommitReviewNormalizesBoundedObservations (3.94s)
+    --- PASS: TestVisualIdentityCommitReviewNormalizesBoundedObservations/object (2.13s)
+    --- PASS: TestVisualIdentityCommitReviewNormalizesBoundedObservations/text (1.81s)
+=== RUN   TestVisualIdentityToolProgressCountsOnlyCommittedReview
+--- PASS: TestVisualIdentityToolProgressCountsOnlyCommittedReview (0.00s)
+=== RUN   TestVisualIdentityGenerateCandidateToolCommitsDurableIntentAndReplays
+--- PASS: TestVisualIdentityGenerateCandidateToolCommitsDurableIntentAndReplays (6.06s)
+=== RUN   TestVisualIdentityCommitReviewToolPreservesRejectedAssetAndCreatesNextAttempt
+--- PASS: TestVisualIdentityCommitReviewToolPreservesRejectedAssetAndCreatesNextAttempt (1.53s)
+=== RUN   TestVisualIdentityFinalizeToolCommitsCanonicalCharacterSheetAndCompletion
+2026/11/14 01:49:14 WARN tool.call.handled capability=visual_identity.finalize call_id=direct_call_07da72f68bfc2f05de6e44f439e50965 warning_code=visual_identity_character_sheet_asset_load_failed disposition=unavailable effect_applied=false
+--- PASS: TestVisualIdentityFinalizeToolCommitsCanonicalCharacterSheetAndCompletion (1.43s)
+=== RUN   TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration
+--- PASS: TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration (1.51s)
+=== RUN   TestVisualIdentityAgentDoesNotReplayCommittedCandidateWhenModelRepeats
+--- PASS: TestVisualIdentityAgentDoesNotReplayCommittedCandidateWhenModelRepeats (1.37s)
+=== RUN   TestVisualIdentityPhysicalRequestStagesGenerateAndStream
+=== RUN   TestVisualIdentityPhysicalRequestStagesGenerateAndStream/stream=false
+=== RUN   TestVisualIdentityPhysicalRequestStagesGenerateAndStream/stream=true
+--- PASS: TestVisualIdentityPhysicalRequestStagesGenerateAndStream (0.01s)
+    --- PASS: TestVisualIdentityPhysicalRequestStagesGenerateAndStream/stream=false (0.01s)
+    --- PASS: TestVisualIdentityPhysicalRequestStagesGenerateAndStream/stream=true (0.00s)
+=== RUN   TestVisualIdentityCompletedCheckpointStopsRepeatedTool
+=== RUN   TestVisualIdentityCompletedCheckpointStopsRepeatedTool/state_stays_authoritative
+=== RUN   TestVisualIdentityCompletedCheckpointStopsRepeatedTool/stream=false
+=== RUN   TestVisualIdentityCompletedCheckpointStopsRepeatedTool/stream=true
+--- PASS: TestVisualIdentityCompletedCheckpointStopsRepeatedTool (0.00s)
+    --- PASS: TestVisualIdentityCompletedCheckpointStopsRepeatedTool/state_stays_authoritative (0.00s)
+    --- PASS: TestVisualIdentityCompletedCheckpointStopsRepeatedTool/stream=false (0.00s)
+    --- PASS: TestVisualIdentityCompletedCheckpointStopsRepeatedTool/stream=true (0.00s)
+=== RUN   TestVisualIdentityReviewPhysicalRequestRetainsImageAndModelEvidenceSchema
+--- PASS: TestVisualIdentityReviewPhysicalRequestRetainsImageAndModelEvidenceSchema (0.00s)
+=== RUN   TestVisualIdentityNoopAggregateRepairsDoNotAdvanceFacts
+--- PASS: TestVisualIdentityNoopAggregateRepairsDoNotAdvanceFacts (1.38s)
+=== RUN   TestVisualIdentityAgentPreservesAcceptedGenerationWhenFinalModelFails
+--- PASS: TestVisualIdentityAgentPreservesAcceptedGenerationWhenFinalModelFails (1.35s)
+=== RUN   TestVisualIdentityAgentMessagesCarryRealImageContentBlock
+--- PASS: TestVisualIdentityAgentMessagesCarryRealImageContentBlock (0.00s)
+=== RUN   TestVisualIdentityRegenerationKeepsReviewMeaningWithoutIDs
+--- PASS: TestVisualIdentityRegenerationKeepsReviewMeaningWithoutIDs (0.00s)
+=== RUN   TestVisualIdentityRegenerationKeepsAllActualReviewEvidence
+--- PASS: TestVisualIdentityRegenerationKeepsAllActualReviewEvidence (0.00s)
+=== RUN   TestVisualIdentityManualAndModelReviewSchemasRemainDistinct
+--- PASS: TestVisualIdentityManualAndModelReviewSchemasRemainDistinct (0.00s)
+=== RUN   TestVisualIdentityRefreshPreservesPreviousReviewForRegeneration
+--- PASS: TestVisualIdentityRefreshPreservesPreviousReviewForRegeneration (1.42s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	141.793s
+
+EXIT_CODE 0
