@@ -100,3 +100,8 @@ AEL `image-targets-disabled-moment-review`，暂不修改该行为。证据见
 视图。默认外貌复用 Core 来源核对，同源已选外貌去重。45 个顶层合并回归和
 工作区六项对照通过，无 SKIP。原 T03 四条验收映射见
 `meromero-m2-evidence/t03-acceptance-20261113.md`，提交后正式验收待执行。
+
+提交 `1e8dcdbd` 的干净源码正式执行同组 45 个顶层用例，通过、无 SKIP；
+原 T03 的代码审查与场景检查均已通过，AEL 原任务完成。证据见
+`meromero-m2-evidence/t03-final-postcommit.log`。M2 八项验收收口状态见
+`meromero-m2-review-20261113.md`，里程碑保持 BLOCKED。

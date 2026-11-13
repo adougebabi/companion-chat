@@ -193,7 +193,7 @@
     },
     {
       "path": "docs/verification/meromero-first-ledger-20261109.md",
-      "hash": "2780f92594e8813cc19ea5adf87783c378baffa2953856bda6f2979d584119f4",
+      "hash": "cdf3e0e36ccdb66bdc766ef3d6fbb9766cd36ee188e1e2f68d2b5ce882bf5bb1",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -207,7 +207,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/verification/meromero-first-ledger-20261109.md",
-        "hash": "2780f92594e8813cc19ea5adf87783c378baffa2953856bda6f2979d584119f4",
+        "hash": "cdf3e0e36ccdb66bdc766ef3d6fbb9766cd36ee188e1e2f68d2b5ce882bf5bb1",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -550,7 +550,7 @@
     },
     {
       "path": "docs/verification/meromero-m2-progress-20261112.md",
-      "hash": "36316c4cbfc23e07400451cd9638b4c694017000597f27360a9cb4be96a62176",
+      "hash": "2d51075f13240f1aef6f8ea9372d9082b1add02755ccb8fc98522cc607aad771",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -564,7 +564,28 @@
         "tasks": null,
         "critical": false,
         "path": "docs/verification/meromero-m2-progress-20261112.md",
-        "hash": "36316c4cbfc23e07400451cd9638b4c694017000597f27360a9cb4be96a62176",
+        "hash": "2d51075f13240f1aef6f8ea9372d9082b1add02755ccb8fc98522cc607aad771",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "docs/verification/meromero-m2-review-20261113.md",
+      "hash": "fd8966169bc7ff72d9ec4535ee76619c061c21f22649002de017513b31f8da6b",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/meromero-m2-review-20261113.md",
+        "title": "meromero-m2-review-20261113.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/meromero-m2-review-20261113.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/meromero-m2-review-20261113.md",
+        "hash": "fd8966169bc7ff72d9ec4535ee76619c061c21f22649002de017513b31f8da6b",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -677,7 +698,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 30,
+    "historical": 31,
     "retired": 1
   }
 }

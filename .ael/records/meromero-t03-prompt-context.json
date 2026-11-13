@@ -16,14 +16,14 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "execute",
-  "status": "open",
-  "candidate": "",
-  "failure": "用户要求先逐项说明尚未完成内容；当前单元停止，未修改 T03 业务代码。既有提交 17cc7fb2 仅覆盖 Moment Active Memory；外貌证据、其他证据类型、全 Agent/variant 实际输入及来源追踪仍未完成或未验收。后续须遵循用户要求，按任务逐个收敛，不把受控测试或局部实现标为整体完成。",
-  "result": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "67e1d246b3d99465c6a74b2a892d95ad0af6372c9b4b5658e8dec3e2ffd8e91c",
+  "failure": "",
+  "result": "verified",
   "created": "2026-11-10T08:34:30.58656Z",
-  "updated": "2026-11-13T03:55:43.512324Z",
-  "completed": null,
+  "updated": "2026-11-13T03:59:55.207317Z",
+  "completed": "2026-11-13T03:59:55.207117Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -109,13 +109,98 @@
         "unit": "execute",
         "executor": "codex-m2-t03-appearance",
         "input_version": "51952a8b416a37516ba206440c3e59d2d7b7c048a8d4205dab8f457004d79342",
-        "candidate_version": "",
+        "candidate_version": "67e1d246b3d99465c6a74b2a892d95ad0af6372c9b4b5658e8dec3e2ffd8e91c",
         "started": "2026-11-13T03:07:09.280601Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-13T03:56:53.252704Z",
+        "status": "pass",
+        "reason": "继续原 T03，核对全部已声明Agent/variant生产输入组装并修复既有已选外貌、其余类型和同源默认背景的业务值损伤。代码分批提交2b90d4bd、8e24ad0d、1e8dcdbd；45个顶层原T03/相关回归与含原有草稿工作区六项通过，无SKIP。原四条验收映射已记录，提交后进入正式验证，M2真实模型与媒体能力仍按原要求待验。"
+      },
+      {
+        "id": "AT-887040ff6e3218bcb3e4",
+        "unit": "check:t03-review",
+        "executor": "codex-t03-acceptance",
+        "input_version": "67e1d246b3d99465c6a74b2a892d95ad0af6372c9b4b5658e8dec3e2ffd8e91c",
+        "candidate_version": "67e1d246b3d99465c6a74b2a892d95ad0af6372c9b4b5658e8dec3e2ffd8e91c",
+        "started": "2026-11-13T03:59:35.104494Z",
+        "ended": "2026-11-13T03:59:35.152652Z",
+        "status": "pass",
+        "reason": "对原四条T03验收作分组静态代码复核，核对各Agent/variant声明和实际组装、Core/历史/候选边界、来源Slot及原生传输。历史外貌与其余已选证据缺口和同源默认背景递归问题均经源码复核及红绿回归修复，最终默认背景复核未发现确定严重问题。已知通用JSON数值/媒体重试反馈按用户授权保留非阻断工单。"
+      },
+      {
+        "id": "AT-cde5f3c777f3d803c098",
+        "unit": "check:t03-scenario",
+        "executor": "codex-t03-acceptance",
+        "input_version": "67e1d246b3d99465c6a74b2a892d95ad0af6372c9b4b5658e8dec3e2ffd8e91c",
+        "candidate_version": "67e1d246b3d99465c6a74b2a892d95ad0af6372c9b4b5658e8dec3e2ffd8e91c",
+        "started": "2026-11-13T03:59:49.693537Z",
+        "ended": "2026-11-13T03:59:49.743768Z",
+        "status": "pass",
+        "reason": "提交1e8dcdbd干净源码在一次性PostgreSQL中实际执行45个顶层原T03与直接相关验收用例，退出0、无SKIP；同一代码改动的工作区六项对照也通过。涉及Writer的Provider为受控响应。T03验证输入/组装/来源与传输合同；M2真实主模型及媒体能力仍待各自验收。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "t03-review",
+        "result": "pass",
+        "source": "model:codex-t03-acceptance",
+        "config_hash": "f12a7443802837dcee99e0eec46729ada1736fdc13e7f0d6d41f1dfeaf16c6e3",
+        "at": "2026-11-13T03:59:35.152188Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/cognition_agent.go": "3e941f87bed95225327c11e30cbac32efc82a78e3de61f4de633e6f8c3258aa1",
+          "apps/core-go/internal/core/diary_runtime.go": "eac18ad33877c03b0d3348aa246bbb83585e6e63ef183cee5e4f885e8d82f9b8",
+          "apps/core-go/internal/core/fact_only_moment_capability.go": "d14ddf429bb8de33a01dc60fed37e3424cf8649610e0deacd6071e858f9c06d5",
+          "apps/core-go/internal/core/fact_only_reply_capability.go": "8f1bc6725139ead7696276151246873af9cb54ac24c5ca161f896408aec5c0fe",
+          "apps/core-go/internal/core/fact_only_reply_facts.go": "ebd9ac145aca3b5795fc58dffa2164e7fe6d28727480685fbcc74f89e153c463",
+          "apps/core-go/internal/core/model_tasks.go": "db5955959c20199cd2c9afa7218f586cbed1a1ee1250c399494902b804812b13",
+          "apps/core-go/internal/core/moment_appearance_evidence.go": "955fb636d99335c68c4cbec2d33661de3a179596cc6b403686717b606651929d",
+          "apps/core-go/internal/core/moment_appearance_evidence_integration_test.go": "dd0cb163d5d4a7eabf65d7574312ca394f794f6fbc51da20267ff36710e079c0",
+          "apps/core-go/internal/core/moment_npc_interactions.go": "5b0ea4b00ed34dbd50c6fb3ddbc40d2b8487df389fecb8d3a8b226a8fa609807",
+          "apps/core-go/internal/core/moment_typed_evidence.go": "b75282aeca5a2563a2e6b6cf0cebac127bfc4674573399b8c2700821c11033e7",
+          "apps/core-go/internal/core/moment_typed_evidence_test.go": "050df390a5c5c3581ef3d30035b5e1ee46f181f87994896a542733d01b7aa900",
+          "apps/core-go/internal/core/provider_context.go": "6871d5b0f6eb8608f2d94a0586a7b0dcf364ebc6a6680ecc3e9d53b72e675220",
+          "apps/core-go/internal/core/reply_context.go": "f4364abb0e4e6f2f32b3d0c9c25c8d6981d4478fb9018efd1c68a88b60dd39c8",
+          "apps/core-go/internal/core/studio_runtime.go": "45712cb3f811e78e57c179d8849737a403d8885a385931863a60c5320cc85fa9",
+          "apps/core-go/internal/core/world_encounter_response.go": "9ad783ba728878689b52c03a968c46992e1bcef465e646b354f838aa9ddc529d",
+          "docs/llm-prompt-composition.md": "28dd7f221d6b19954ee3c8a006a26d53c0e8bd491a59e4193e13e19c72a4cd45",
+          "docs/llm-task-input-contracts.md": "5292c1e8f7f62e94672748e256a294b6d67b4287256a622bfc8321b9cb94568f",
+          "docs/verification/meromero-m2-evidence/t03-acceptance-20261113.md": "01466dec418fdb7ae96934c8342380d1feb9e3b0eb39e7a6ecf3376d3c02d567",
+          "docs/verification/meromero-m2-evidence/t03-appearance-review.md": "702320f38490f9b758f7e89c94c4ca3d4f0523b68348f8f35f57f0560b56b049",
+          "docs/verification/meromero-m2-evidence/t03-default-regression.log": "b75799799f318103c1a66b0bae87d2f207d0b42b88f946ae2168e6cfecd62e55",
+          "docs/verification/meromero-m2-evidence/t03-default-working.log": "814ae714ade524867ea8e288a9c9465822f856cfc56d6783926af490667261dc",
+          "docs/verification/meromero-m2-evidence/t03-typed-evidence-review.md": "b81c26aac3ec610c7ceee229aa7777dae4135134449742dad1472cbb615fe260"
+        }
+      },
+      {
+        "id": "t03-scenario",
+        "result": "pass",
+        "source": "scenario:codex-t03-acceptance",
+        "config_hash": "fd2ca82f1f7beb869468c0a4351beb26b103f0bc9cfb321d60e3f0714f3ce0c3",
+        "at": "2026-11-13T03:59:49.74326Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/cognition_agent.go": "3e941f87bed95225327c11e30cbac32efc82a78e3de61f4de633e6f8c3258aa1",
+          "apps/core-go/internal/core/diary_runtime.go": "eac18ad33877c03b0d3348aa246bbb83585e6e63ef183cee5e4f885e8d82f9b8",
+          "apps/core-go/internal/core/fact_only_moment_capability.go": "d14ddf429bb8de33a01dc60fed37e3424cf8649610e0deacd6071e858f9c06d5",
+          "apps/core-go/internal/core/fact_only_reply_capability.go": "8f1bc6725139ead7696276151246873af9cb54ac24c5ca161f896408aec5c0fe",
+          "apps/core-go/internal/core/fact_only_reply_facts.go": "ebd9ac145aca3b5795fc58dffa2164e7fe6d28727480685fbcc74f89e153c463",
+          "apps/core-go/internal/core/model_tasks.go": "db5955959c20199cd2c9afa7218f586cbed1a1ee1250c399494902b804812b13",
+          "apps/core-go/internal/core/moment_appearance_evidence.go": "955fb636d99335c68c4cbec2d33661de3a179596cc6b403686717b606651929d",
+          "apps/core-go/internal/core/moment_appearance_evidence_integration_test.go": "dd0cb163d5d4a7eabf65d7574312ca394f794f6fbc51da20267ff36710e079c0",
+          "apps/core-go/internal/core/moment_npc_interactions.go": "5b0ea4b00ed34dbd50c6fb3ddbc40d2b8487df389fecb8d3a8b226a8fa609807",
+          "apps/core-go/internal/core/moment_typed_evidence.go": "b75282aeca5a2563a2e6b6cf0cebac127bfc4674573399b8c2700821c11033e7",
+          "apps/core-go/internal/core/moment_typed_evidence_test.go": "050df390a5c5c3581ef3d30035b5e1ee46f181f87994896a542733d01b7aa900",
+          "apps/core-go/internal/core/provider_context.go": "6871d5b0f6eb8608f2d94a0586a7b0dcf364ebc6a6680ecc3e9d53b72e675220",
+          "apps/core-go/internal/core/reply_context.go": "f4364abb0e4e6f2f32b3d0c9c25c8d6981d4478fb9018efd1c68a88b60dd39c8",
+          "apps/core-go/internal/core/studio_runtime.go": "45712cb3f811e78e57c179d8849737a403d8885a385931863a60c5320cc85fa9",
+          "apps/core-go/internal/core/world_encounter_response.go": "9ad783ba728878689b52c03a968c46992e1bcef465e646b354f838aa9ddc529d",
+          "docs/llm-prompt-composition.md": "28dd7f221d6b19954ee3c8a006a26d53c0e8bd491a59e4193e13e19c72a4cd45",
+          "docs/llm-task-input-contracts.md": "5292c1e8f7f62e94672748e256a294b6d67b4287256a622bfc8321b9cb94568f",
+          "docs/verification/meromero-m2-evidence/t03-acceptance-20261113.md": "01466dec418fdb7ae96934c8342380d1feb9e3b0eb39e7a6ecf3376d3c02d567",
+          "docs/verification/meromero-m2-evidence/t03-appearance-review.md": "702320f38490f9b758f7e89c94c4ca3d4f0523b68348f8f35f57f0560b56b049",
+          "docs/verification/meromero-m2-evidence/t03-default-regression.log": "b75799799f318103c1a66b0bae87d2f207d0b42b88f946ae2168e6cfecd62e55",
+          "docs/verification/meromero-m2-evidence/t03-default-working.log": "814ae714ade524867ea8e288a9c9465822f856cfc56d6783926af490667261dc",
+          "docs/verification/meromero-m2-evidence/t03-typed-evidence-review.md": "b81c26aac3ec610c7ceee229aa7777dae4135134449742dad1472cbb615fe260"
+        }
+      }
+    ]
   }
 }
