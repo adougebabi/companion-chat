@@ -22,7 +22,7 @@
   "failure": "T10 部分完成：隔离 PostgreSQL 与受控 Provider 抽样通过 Goal 上限/空集/原成功条件、预置完成目标的旧愿望导入与规划重复保护、Owner 暂停保护、衣柜借还/穿着、失败购物、人格切换/接管、当前外貌、视觉候选、初始化、Actor/NPC 隔离、世界事件准入、Studio 和日记阶段。Goal 关系明确接受、只输出摘要、获取及染发后最终 Goal 评估四组场景失败，起始提交独立源码复现相同失败；多项为 evaluation_cadence，根因未知，已登记 goal-evaluation-cadence-domain-failures，不在当前保护性回归中改动旧逻辑。真实模型/渲染和完整领域矩阵未验收。按用户授权保留未完成并继续 T11。",
   "result": "",
   "created": "2026-11-10T08:34:31.183643Z",
-  "updated": "2026-11-11T17:26:48.589727Z",
+  "updated": "2026-11-13T05:16:07.902937Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -59,6 +59,17 @@
         "ended": "2026-11-11T17:26:43.942141Z",
         "status": "fail",
         "reason": "T10 部分完成：隔离 PostgreSQL 与受控 Provider 抽样通过 Goal 上限/空集/原成功条件、预置完成目标的旧愿望导入与规划重复保护、Owner 暂停保护、衣柜借还/穿着、失败购物、人格切换/接管、当前外貌、视觉候选、初始化、Actor/NPC 隔离、世界事件准入、Studio 和日记阶段。Goal 关系明确接受、只输出摘要、获取及染发后最终 Goal 评估四组场景失败，起始提交独立源码复现相同失败；多项为 evaluation_cadence，根因未知，已登记 goal-evaluation-cadence-domain-failures，不在当前保护性回归中改动旧逻辑。真实模型/渲染和完整领域矩阵未验收。按用户授权保留未完成并继续 T11。"
+      },
+      {
+        "id": "AT-d613603c73cf6b37fb4a",
+        "unit": "execute",
+        "executor": "codex-m3-t10-domain",
+        "input_version": "171782b411b0e541c9d92fd68b4b5956114f19b30e57e4af9e74eead58b405e8",
+        "candidate_version": "",
+        "started": "2026-11-13T05:16:07.718869Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
       }
     ],
     "checks": null

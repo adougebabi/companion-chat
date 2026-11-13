@@ -1,0 +1,29 @@
+SOURCE_HEAD 723d2cfdd694029372102c61a2c704dc9c850318
+OVERLAYS apps/core-go/internal/core/goal_agent_cadence_test.go,apps/core-go/internal/core/goal_closure_runtime_test.go,apps/core-go/internal/core/goal_evaluation_tools_integration_test.go,apps/core-go/internal/core/goal_assessment_memo_integration_test.go,apps/core-go/internal/core/goal_boundary_regression_test.go,apps/core-go/internal/core/goal_closure_recovery_test.go,apps/core-go/internal/core/goal_review_test.go
+COMMAND go test ./internal/core -count=1 -run ^Test(GoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses|GoalAssessmentFailureNeverCreatesMemoAndRetriesModel|GoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution|GoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder|GoalEvaluationBatchRemainderRetainsActualSource|GoalReviewCycleReplayAndLateEvidenceRevision)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses
+    goal_assessment_memo_integration_test.go:60: durable replay=map[string]interface {}{"fluctlight_id":"independent_fluctlight_wardrobe_1794547559184115000", "id":"goal_evaluation_d16b3735057bd589e57189e7fb32860f", "model_admission":false, "reason":"awaiting_new_activity", "status":"skipped"} calls=1 err=<nil>
+--- FAIL: TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses (2.20s)
+=== RUN   TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel
+    goal_assessment_memo_integration_test.go:151: first failure=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 502: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel] calls=1
+--- PASS: TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel (1.41s)
+=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution
+=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active
+=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed
+--- PASS: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution (2.94s)
+    --- PASS: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active (1.46s)
+    --- PASS: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed (1.48s)
+=== RUN   TestGoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder
+--- PASS: TestGoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder (1.33s)
+=== RUN   TestGoalEvaluationBatchRemainderRetainsActualSource
+--- PASS: TestGoalEvaluationBatchRemainderRetainsActualSource (1.76s)
+=== RUN   TestGoalReviewCycleReplayAndLateEvidenceRevision
+--- PASS: TestGoalReviewCycleReplayAndLateEvidenceRevision (1.54s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	11.892s
+FAIL
+
+EXIT_CODE 1

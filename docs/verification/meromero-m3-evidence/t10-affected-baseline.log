@@ -1,0 +1,32 @@
+SOURCE_HEAD 723d2cfdd694029372102c61a2c704dc9c850318
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^Test(GoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses|GoalAssessmentFailureNeverCreatesMemoAndRetriesModel|GoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution|GoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder|GoalEvaluationBatchRemainderRetainsActualSource|GoalReviewCycleReplayAndLateEvidenceRevision)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses
+    goal_assessment_memo_integration_test.go:41: first assessment calls = 0
+--- FAIL: TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses (2.78s)
+=== RUN   TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel
+    goal_assessment_memo_integration_test.go:147: provider failure unexpectedly succeeded
+--- FAIL: TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel (2.70s)
+=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution
+=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active
+    goal_boundary_regression_test.go:493: test did not establish real evidence progress
+=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed
+    goal_boundary_regression_test.go:493: test did not establish real evidence progress
+--- FAIL: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution (4.83s)
+    --- FAIL: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active (2.33s)
+    --- FAIL: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed (2.50s)
+=== RUN   TestGoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder
+    goal_closure_recovery_test.go:28: claim: goals=0 remaining=0 prior=map[string]interface {}{"not_before":"2026-11-13T05:55:11.382368Z", "reason":"evaluation_cadence", "status":"deferred"} err=<nil>
+--- FAIL: TestGoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder (2.48s)
+=== RUN   TestGoalEvaluationBatchRemainderRetainsActualSource
+    goal_closure_recovery_test.go:360: batch closure completed=0 resolutions=0 unprocessed=1 calls=0
+--- FAIL: TestGoalEvaluationBatchRemainderRetainsActualSource (2.19s)
+=== RUN   TestGoalReviewCycleReplayAndLateEvidenceRevision
+    goal_review_test.go:93: late revision 1 2 calls=0 <nil>
+--- FAIL: TestGoalReviewCycleReplayAndLateEvidenceRevision (2.71s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	18.539s
+FAIL
+
+EXIT_CODE 1

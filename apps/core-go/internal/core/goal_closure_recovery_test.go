@@ -23,6 +23,7 @@ func TestGoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder(t *testing
 	}
 	seedLegacyGoalActivityForTest(t, f)
 	id := latestPendingGoalRequest(t, f)
+	advanceGoalEvaluationCycleForTest(t, f, id)
 	snapshot, prior, err := f.app.claimGoalEvaluation(f.ctx, id)
 	if err != nil || prior != nil || len(snapshot.Goals) != 6 || len(snapshot.DeferredGoalIDs) != 2 {
 		t.Fatalf("claim: goals=%d remaining=%d prior=%#v err=%v", len(snapshot.Goals), len(snapshot.DeferredGoalIDs), prior, err)
@@ -339,9 +340,7 @@ func TestGoalEvaluationBatchRemainderRetainsActualSource(t *testing.T) {
 	})}
 	for i := 0; i < 2; i++ {
 		id := latestPendingGoalRequest(t, f)
-		if i > 0 {
-			advanceGoalEvaluationCycleForTest(t, f, id)
-		}
+		advanceGoalEvaluationCycleForTest(t, f, id)
 		if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, id); err != nil {
 			t.Fatal(err)
 		}

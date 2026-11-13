@@ -34,6 +34,7 @@ func TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses(t *test
 	f.app.Provider.HTTP = &http.Client{Transport: router}
 
 	firstRequest := latestPendingGoalRequest(t, f)
+	advanceGoalEvaluationCycleForTest(t, f, firstRequest)
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, firstRequest); err != nil {
 		t.Fatal(err)
 	}
@@ -55,8 +56,23 @@ func TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses(t *test
 	}
 	advanceGoalEvaluationCycleForTest(t, f, replayID)
 	replay, err := f.app.ProcessGoalEvaluationIntent(f.ctx, replayID)
-	if err != nil || modelCalls != 1 || !containsString(decisionServiceRefValues(replay["skipped_goals"]), goalID) {
-		t.Fatalf("durable replay=%#v calls=%d err=%v", replay, modelCalls, err)
+	if err != nil || modelCalls != 1 || replay["status"] != "skipped" || replay["reason"] != "awaiting_new_activity" {
+		t.Fatalf("duplicate source admission=%#v calls=%d err=%v", replay, modelCalls, err)
+	}
+	// An explicit internal evaluation opportunity reaches memo selection;
+	// duplicate source delivery above correctly stops before that stage.
+	var memoRequest string
+	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
+		var err error
+		memoRequest, err = queueGoalEvaluationTx(f.ctx, tx, f.fluctlightID, "", "tool_evaluation", "memo-check-"+f.suffix, []string{goalID})
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	advanceGoalEvaluationCycleForTest(t, f, memoRequest)
+	memoReplay, err := f.app.ProcessGoalEvaluationIntent(f.ctx, memoRequest)
+	if err != nil || modelCalls != 1 || !containsString(decisionServiceRefValues(memoReplay["skipped_goals"]), goalID) {
+		t.Fatalf("durable memo=%#v calls=%d err=%v", memoReplay, modelCalls, err)
 	}
 
 	var pendingID, forcedID string
@@ -143,6 +159,7 @@ func TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel(t *testing.T) {
 		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{candidate}, Plans: []GoalPlanCandidate{}})}
 	})}
 	requestID := latestPendingGoalRequest(t, f)
+	advanceGoalEvaluationCycleForTest(t, f, requestID)
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID); err == nil {
 		t.Fatal("provider failure unexpectedly succeeded")
 	} else {

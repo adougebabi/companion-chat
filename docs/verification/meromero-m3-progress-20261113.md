@@ -11,7 +11,8 @@
 | M3-03 可定位 legacy 摘要来源纠错屏障 | T09 旧来源及派生失效 | VERIFIED | 修复首次全 unknown 的摘要来源负向屏障，提交 `ae9023ce` 的干净源码复验 8 个核心顶层测试及 1 个迁移测试通过，退出码 0、无 SKIP。 |
 | M3-04 在途纠错发布保护证据 | T09 后续输入/在途请求 | VERIFIED | direct/Writer × revise/forget 四场景及正常发布/追发对照在提交 `b0d47d68` 的干净源码通过，3 个顶层测试、退出码 0、无 SKIP。沿用既有 generation fence，本节点仅增加测试。 |
 | T09 其他原验收 | 记忆治理 | PARTIAL | 完全不可解析来源、正确吸收纠错的重建、其余主链在途与锁序矩阵仍未验收。 |
-| T10 | 领域保护 | PARTIAL | 保留原基线失败，尚未开始本轮领域改动，不能宣称领域回归整套通过。 |
+| M3-05 Goal 领域验收恢复 | T10 成功条件、日程/活动、衣柜和依赖保护 | IMPLEMENTED | 修正隔离测试的 DB 时间前置，原四组失败与 handoff 实际进入评估，24 个直接受影响顶层回归通过，等待提交后汇总复验。 |
+| T10 其他原验收 | 领域保护 | PARTIAL | 继承既有其他领域证据，真实模型、真实渲染及完整领域矩阵仍未验收。 |
 
 ## M3-01 实现与证据
 
@@ -58,3 +59,15 @@ M3-03 提交后证据 `t09-postcommit.log` 与 `t09-postcommit-migration.log`，
 首次运行 `t09-inflight.log` 失败且超时。新增测试错误查询不存在的 `tool_executions.status` 列，同时受控主模型在 handled 后无限返回同一工具调用。已改用正式回执 `result.status`，并令受控模型在已观察 stale receipt 后以 HTTP 400 结束续轮。`t09-inflight-corrected.log` 四场景通过，顶层 1 项 PASS、退出码 0、无 SKIP。Writer 的最终 HTTP 400 是局部夹具的停止响应，通过依据是先于它已持久化的真实 stale 拒绝、无正式消息和无成功回执。此证据没有验证真实模型如何在拒绝后自行恢复，也没有证明所有锁序无死锁。
 
 M3-04 提交后 `b0d47d683b12127d7a3cd62702c2c3811f99ee08`，`t09-inflight-postcommit.log` 运行 3 个顶层测试含四种在途纠错，以及正常原子发布/回滚和 Writer 追发，退出码 0，无 SKIP。T09 完全无法解析来源的旧记忆兼容规则已向用户提出选择，答复前保留现有业务策略。正确吸收纠错的摘要重建和完整锁序矩阵仍未完成。继续 M3 内原 T10 已满足依赖的领域失败核对。
+
+## M3-05 Goal 领域验收恢复
+
+干净提交 `723d2cfd` 在 `t10-domain-red.log` 中复现原四组领域失败、handoff 和 cadence 准入失败。根因为隔离夹具仅推进请求合并窗口，却没有推进数据库拥有的最近活动后 30 分钟静默期及 evaluation cycle。`App.Clock` 的业务时间推进不能替代 DB cadence 就绪。
+
+仅修改测试。已有 `advanceGoalEvaluationCycleForTest` 补齐 `last_activity_at`，并实际查询 available_at、evaluation_next_at 与 quiet-until 三项均就绪。领域 fixture 和必要首次评估调用显式使用它，没有改通用 pending request 读取、请求理由或生产 admission。关系场景新增 succeeded 和两次实际模型调用断言，原接受、引用、拒绝和并发 revision fencing 成功标准完整保留。
+
+`t10-domain-green.log` 在四组领域及 handoff 通过后暴露 cadence 测试跨人格分支缺少真实新活动。补入正式记录的真实消息来源，保留一秒前不可 claim 及未来 merge time 断言，`t10-domain-corrected.log` 6 个顶层测试全部通过。
+
+`t10-affected.log` 扩展到 24 个直接使用受影响夹具的测试时发现 6 个首次准入夹具缺口，`t10-affected-baseline.log` 在同环境干净源码复现。补齐这些场景的显式时间前置后，`t10-affected-corrected.log` 保留 memo 用例的后续失败。该用例过去期待重复来源跳过 model 后仍返回 memo 选择结果，而当前生产规则先返回 `awaiting_new_activity`。测试现在分别验证原 duplicate_source_delivery 提前静默，以及另一次正式 `tool_evaluation` 内部机会实际进入 durable memo 选择且仍不重跑模型，原请求理由保留。生产行为未修改。
+
+`t10-affected-final.log` 24 个顶层测试全部通过、退出码 0、无 SKIP。真实隔离 PostgreSQL 下保持 Goal 原 criteria，实际获取与穿着/使用分离、染发不改发长、真实接受和关系 revision、依赖、已完成/撤回/批次/失败重试与 memo 都有实际断言。Provider 为受控夹具，媒体最终 workflow 是文本装配检查，无真实生图或外部购买。本节点恢复原领域保护证据，不能代表 T10 完整矩阵或真实模型通过。

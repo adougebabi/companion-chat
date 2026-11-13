@@ -1,0 +1,104 @@
+SOURCE_HEAD 723d2cfdd694029372102c61a2c704dc9c850318
+OVERLAYS apps/core-go/internal/core/goal_agent_cadence_test.go,apps/core-go/internal/core/goal_closure_runtime_test.go,apps/core-go/internal/core/goal_evaluation_tools_integration_test.go,apps/core-go/internal/core/goal_assessment_memo_integration_test.go,apps/core-go/internal/core/goal_boundary_regression_test.go,apps/core-go/internal/core/goal_closure_recovery_test.go,apps/core-go/internal/core/goal_review_test.go
+COMMAND go test ./internal/core -count=1 -run ^(TestEmptyGoalEvaluationRejectsExpiredClaim|TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles|TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel|TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses|TestGoalCandidateOmissionRetainsAndRotatesHistoricalEvidence|TestGoalEvaluationBatchRemainderRetainsActualSource|TestGoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder|TestGoalEvaluationNativePartialRetryPreservesFrozenRefsAndSuccessfulMemo|TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation|TestGoalEvaluationStaleReplacementMigratesDeferredReviews|TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete|TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires|TestGoalPlannerDependencyBlocksOldDueAndReleasesAfterRealCompletion|TestGoalPlannerE2EAllGoalsFinishThenNewGoalFinishesOriginalChain|TestGoalReviewCycleReplayAndLateEvidenceRevision|TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution|TestGoalStageCompletionReplayDoesNotRepeatNextStage|TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody|TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision|TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions|TestPendingGoalReviewLateSourceFencesOldDecision|TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome|TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow|TestSoftDeadlineQueuesVisibleReviewWithoutCancellation)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles
+--- PASS: TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles (2.85s)
+=== RUN   TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses
+--- PASS: TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses (3.09s)
+=== RUN   TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel
+    goal_assessment_memo_integration_test.go:166: first failure=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 502: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel] calls=1
+--- PASS: TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel (2.93s)
+=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution
+=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active
+=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed
+--- PASS: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution (4.03s)
+    --- PASS: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active (2.64s)
+    --- PASS: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed (1.39s)
+=== RUN   TestGoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder
+--- PASS: TestGoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder (1.40s)
+=== RUN   TestEmptyGoalEvaluationRejectsExpiredClaim
+--- PASS: TestEmptyGoalEvaluationRejectsExpiredClaim (1.30s)
+=== RUN   TestGoalEvaluationBatchRemainderRetainsActualSource
+--- PASS: TestGoalEvaluationBatchRemainderRetainsActualSource (1.75s)
+=== RUN   TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation
+=== RUN   TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/single_expression_is_not_acceptance
+=== RUN   TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/quote_is_not_actual_expression
+=== RUN   TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/user_statement_cannot_be_self_expression
+--- PASS: TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation (0.00s)
+    --- PASS: TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/single_expression_is_not_acceptance (0.00s)
+    --- PASS: TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/quote_is_not_actual_expression (0.00s)
+    --- PASS: TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/user_statement_cannot_be_self_expression (0.00s)
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance
+    goal_closure_runtime_test.go:454: GOAL_CLOSURE_EVIDENCE scenario=mutual_relationship_confirmation goal=goal-dialogue-wardrobe_1794547642881718000 criteria_version=1 revision=3 status=completed request=goal_evaluation_6bf34173ff43fcc65529d31be7469368 evaluation=goal_evaluated_6c65424ac050e260074a937033193b70 evidence_refs=["source:10", "source:7"]
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit
+2026/11/13 13:27:24 WARN tool.call.handled capability=goal.evaluation.submit call_id=goal-native-fixture-1 warning_code=conflict disposition=awaiting_evidence effect_applied=false
+--- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision (8.14s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal (1.68s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation (1.73s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal (1.48s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance (1.63s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit (1.63s)
+=== RUN   TestGoalEvaluationNativePartialRetryPreservesFrozenRefsAndSuccessfulMemo
+--- PASS: TestGoalEvaluationNativePartialRetryPreservesFrozenRefsAndSuccessfulMemo (1.54s)
+=== RUN   TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete
+--- PASS: TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete (1.48s)
+=== RUN   TestGoalEvaluationStaleReplacementMigratesDeferredReviews
+--- PASS: TestGoalEvaluationStaleReplacementMigratesDeferredReviews (1.37s)
+=== RUN   TestGoalCandidateOmissionRetainsAndRotatesHistoricalEvidence
+--- PASS: TestGoalCandidateOmissionRetainsAndRotatesHistoricalEvidence (1.68s)
+=== RUN   TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires
+--- PASS: TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires (2.25s)
+=== RUN   TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow
+=== RUN   TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/boots
+2026/11/13 13:27:34 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_229926a39b70e9fbab2827799bbafc9b type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+    goal_life_chain_test.go:118: GOAL_CLOSURE_EVIDENCE scenario=actual_acquisition_separate_from_wearing goal=goal_tool_db1030bbbf75498de633f921890dbcdc criteria_version=1 revision=2 status=completed request=goal_evaluation_efed4af6a3a023f21fa3633ab47385ad evaluation=goal_evaluated_3976da64ebb75053260fbe348da5a390 evidence_refs=["source:4"]
+    goal_life_chain_test.go:154: CHAIN_EVIDENCE={"acquisition":{"activity_id":"activity_12eebdef3a7b038341546792bbd8dc84","event_id":"life_event_208d994a1580e8bf174e01ed7553dfcc","intention_id":"intention_tool_db1030bbbf75498de633f921890dbcdc","item_id":"wardrobe_e76732a6f1f0feaafb35a5be6ee276e8","item_ids":["wardrobe_e76732a6f1f0feaafb35a5be6ee276e8"],"reason":"实际获取成功","status":"completed","wardrobe_revision":1},"activity_id":"activity_12eebdef3a7b038341546792bbd8dc84","capture_snapshot":{"body_fields":{"chest_cup":{"status":"unknown"},"hair_color":{"status":"unknown"},"hair_length":{"status":"unknown"},"hair_style":{"status":"unknown"},"injuries":{"status":"unknown"}},"body_revision":0,"captured_at":"2026-10-05T03:15:00.000+00:00","ref":"appearance:ctx_199b27fbbfea7950fd523a8a31d93f4b","used_items":[],"wardrobe_revision":2,"wearing_state":"known","worn_items":[{"availability":"available","category":"coat","description":"blue coat","id":"wardrobe_d90321be8837205b38bea943e6b1faf7","ownership":"owned","slot":"outer","source_verified":true},{"availability":"available","category":"boots","description":"黑色短靴","id":"wardrobe_e76732a6f1f0feaafb35a5be6ee276e8","ownership":"owned","slot":"shoes","source_verified":true}]},"final_workflow":{"positive":{"class_type":"CLIPTextEncode","inputs":{"text":"A photographic image. An upper-body composition. The subject is seated. A smiling expression. Soft light. A self-capture through a mirror, showing the subject's reflection. The phone's rear camera is used. The capture device is visible only where physically consistent with this camera relationship. The subject wears blue coat and 黑色短靴. The current setting is 商场."}},"sampler":{"class_type":"KSampler","inputs":{"positive":["positive",0]}}},"goal_id":"goal_tool_db1030bbbf75498de633f921890dbcdc","intention_id":"intention_tool_db1030bbbf75498de633f921890dbcdc","schedule":{"goal_id":"goal_tool_db1030bbbf75498de633f921890dbcdc","intention_id":"intention_tool_db1030bbbf75498de633f921890dbcdc","schedule_id":"schedule_7f59682a81a1aa114671929a94332a7a","schedule_item_id":"schedule_item_cf3bbdeac3e86060fa1550771e2e6d69","start_at":"2026-10-05T03:00:00.000+00:00","status":"scheduled"},"use":{"before_items":[{"availability":"available","category":"coat","description":"blue coat","id":"wardrobe_d90321be8837205b38bea943e6b1faf7","ownership":"owned","slot":"outer","source_verified":true}],"ignored_redundant_removals":0,"items":[{"availability":"available","category":"coat","description":"blue coat","id":"wardrobe_d90321be8837205b38bea943e6b1faf7","ownership":"owned","slot":"outer","source_verified":true},{"availability":"available","category":"boots","description":"黑色短靴","id":"wardrobe_e76732a6f1f0feaafb35a5be6ee276e8","ownership":"owned","slot":"shoes","source_verified":true}],"mode":"partial","revision":2}}
+=== RUN   TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/brush
+2026/11/13 13:27:35 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_8e6d014c7b64f342fac90d03ef88b934 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+    goal_life_chain_test.go:118: GOAL_CLOSURE_EVIDENCE scenario=actual_acquisition_separate_from_wearing goal=goal_tool_a9333fcb224fef89759df8a8739d6b88 criteria_version=1 revision=2 status=completed request=goal_evaluation_73b0b9cfa911b8cf89cc236fc7dbefc9 evaluation=goal_evaluated_5fb3fd7334457803d801acf9fe7d1fef evidence_refs=["source:4"]
+    goal_life_chain_test.go:154: CHAIN_EVIDENCE={"acquisition":{"activity_id":"activity_0539b86b7e674b0e638cb359d7e88235","event_id":"life_event_3f43dee5dda432b4ecd0f7ec9e2dacd4","intention_id":"intention_tool_a9333fcb224fef89759df8a8739d6b88","item_id":"wardrobe_61639f6b49cfdfee09a56ef989debbf3","item_ids":["wardrobe_61639f6b49cfdfee09a56ef989debbf3"],"reason":"实际获取成功","status":"completed","wardrobe_revision":1},"activity_id":"activity_0539b86b7e674b0e638cb359d7e88235","capture_snapshot":{"body_fields":{"chest_cup":{"status":"unknown"},"hair_color":{"status":"unknown"},"hair_length":{"status":"unknown"},"hair_style":{"status":"unknown"},"injuries":{"status":"unknown"}},"body_revision":0,"captured_at":"2026-10-05T03:15:00.000+00:00","ref":"appearance:ctx_0a27c379e99b726a17730d69dc510a3b","used_items":[{"activity":"画画","category":"art_supply","description":"细头画笔","event_id":"item_use_7103cb0ba397dba1f3ba1c2fa6c4798c","id":"wardrobe_61639f6b49cfdfee09a56ef989debbf3","source_verified":true,"started_at":"2026-10-05T03:15:00.000+00:00"}],"wardrobe_revision":2,"wearing_state":"known","worn_items":[{"availability":"available","category":"coat","description":"blue coat","id":"wardrobe_c12560f920d14c61b6af982374ac7e1a","ownership":"owned","slot":"outer","source_verified":true}]},"final_workflow":{"positive":{"class_type":"CLIPTextEncode","inputs":{"text":"A photographic image. An upper-body composition. The subject holds the object in actual use. A smiling expression. Soft light. A self-capture through a mirror, showing the subject's reflection. The phone's rear camera is used. The capture device is visible only where physically consistent with this camera relationship. The subject wears blue coat. The current setting is 商场. The subject uses 细头画笔."}},"sampler":{"class_type":"KSampler","inputs":{"positive":["positive",0]}}},"goal_id":"goal_tool_a9333fcb224fef89759df8a8739d6b88","intention_id":"intention_tool_a9333fcb224fef89759df8a8739d6b88","schedule":{"goal_id":"goal_tool_a9333fcb224fef89759df8a8739d6b88","intention_id":"intention_tool_a9333fcb224fef89759df8a8739d6b88","schedule_id":"schedule_ee4d358e6bdffa496663ef3d0f8a98df","schedule_item_id":"schedule_item_328172648e5fde589da8e3d1ea077efa","start_at":"2026-10-05T03:00:00.000+00:00","status":"scheduled"},"use":{"event_id":"item_use_7103cb0ba397dba1f3ba1c2fa6c4798c","item_id":"wardrobe_61639f6b49cfdfee09a56ef989debbf3","occurred_at":"2026-10-05T03:15:00.000+00:00","operation":"start"}}
+--- PASS: TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow (2.83s)
+    --- PASS: TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/boots (1.37s)
+    --- PASS: TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/brush (1.45s)
+=== RUN   TestGoalPlannerE2EAllGoalsFinishThenNewGoalFinishesOriginalChain
+2026/11/13 13:27:37 INFO capability lifecycle capability=goal_planner.query call_id=all-finish-1 type=query surface=goal_planner required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 13:27:37 INFO capability lifecycle capability=goal_planner.query call_id=all-finish-2 type=query surface=goal_planner required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 13:27:37 INFO capability lifecycle capability=goal_planner.query call_id=all-finish-3 type=query surface=goal_planner required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 13:27:37 INFO capability lifecycle capability=goal_planner.query call_id=all-finish-4 type=query surface=goal_planner required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 13:27:37 INFO capability lifecycle capability=goal_planner.query call_id=all-finish-5 type=query surface=goal_planner required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 13:27:37 INFO capability lifecycle capability=goal_planner.query call_id=all-finish-7 type=query surface=goal_planner required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+    goal_planner_test.go:800: PLANNER_COST_EVIDENCE physical_calls=8 estimated_input_tokens=119601 peak_estimated_input_tokens=21307 total_wire_chars=95678 real_provider_tokens=unavailable
+    goal_planner_test.go:801: E2E01_EVIDENCE instance=independent_fluctlight_wardrobe_1794547657232962000 old_goals=[goal_owner_5fbe2d642afb3cc71f2eb8affdb5b229 goal_owner_38257fde175bf8f5ca0e1a7eec725255 goal_owner_913e6a7f07ee0d03df1e641e6fc3c2a1] planner_run=goal_planner_2eaf2a60b8a88a8ccd96f4f34dd06226 new_goal=goal_plan_a6da3612aa0c13db97fdcc7164d8bb45 completed=4 planner_calls=8 merged_completion_events=true
+--- PASS: TestGoalPlannerE2EAllGoalsFinishThenNewGoalFinishesOriginalChain (1.84s)
+=== RUN   TestGoalPlannerDependencyBlocksOldDueAndReleasesAfterRealCompletion
+2026/11/13 13:27:39 WARN tool.call.handled capability=life.activity.start call_id=direct_call_f32035ce07f285a6af66294203b25362 warning_code=goal_dependency_unsatisfied disposition=awaiting_state effect_applied=false
+    goal_planner_test.go:1066: DEPENDENCY_EVIDENCE prerequisite=goal_owner_bf76f1583743750bddf6903366efff93 downstream=goal_tool_4d7950e125e59f80c74452e673ffb388 intention=intention_tool_4d7950e125e59f80c74452e673ffb388 old_due_blocked=true actual_parent_result=true new_activity=activity_ada8a2fddfba3e332c1e1a39f281c353
+--- PASS: TestGoalPlannerDependencyBlocksOldDueAndReleasesAfterRealCompletion (1.26s)
+=== RUN   TestGoalReviewCycleReplayAndLateEvidenceRevision
+--- PASS: TestGoalReviewCycleReplayAndLateEvidenceRevision (1.28s)
+=== RUN   TestPendingGoalReviewLateSourceFencesOldDecision
+--- PASS: TestPendingGoalReviewLateSourceFencesOldDecision (1.13s)
+=== RUN   TestSoftDeadlineQueuesVisibleReviewWithoutCancellation
+--- PASS: TestSoftDeadlineQueuesVisibleReviewWithoutCancellation (2.22s)
+=== RUN   TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions
+--- PASS: TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions (2.61s)
+=== RUN   TestGoalStageCompletionReplayDoesNotRepeatNextStage
+--- PASS: TestGoalStageCompletionReplayDoesNotRepeatNextStage (1.75s)
+=== RUN   TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome
+--- PASS: TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome (1.65s)
+=== RUN   TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody
+2026/11/13 13:27:51 WARN tool.call.handled capability=life.activity.start call_id=direct_call_0380d7ece288d073db1bb005941eca4c warning_code=intention_trigger_not_due disposition=awaiting_state effect_applied=false
+2026/11/13 13:27:51 WARN tool.call.handled capability=life.activity.advance call_id=direct_call_a96ec3c12e719a841d8e9cd1e2bda585 warning_code=activity_result_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 13:27:51 WARN tool.call.handled capability=life.activity.advance call_id=direct_call_a96ec3c12e719a841d8e9cd1e2bda585 warning_code=activity_result_invalid disposition=awaiting_evidence effect_applied=false
+--- PASS: TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody (1.47s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	52.538s
+
+EXIT_CODE 0

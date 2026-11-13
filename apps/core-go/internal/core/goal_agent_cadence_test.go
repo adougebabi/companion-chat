@@ -12,11 +12,15 @@ import (
 // database tests. Production admission remains enabled and is exercised again.
 func advanceGoalEvaluationCycleForTest(t *testing.T, f independentToolE2EFixture, id string) {
 	t.Helper()
-	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_agent_cadence SET evaluation_next_at=now() WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_agent_cadence SET evaluation_next_at=now(),last_activity_at=LEAST(last_activity_at,now()-interval '31 minutes') WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET available_at=now() WHERE id=$1`, id); err != nil {
 		t.Fatal(err)
+	}
+	var ready bool
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT r.available_at<=now() AND c.evaluation_next_at<=now() AND COALESCE(c.last_activity_at,'-infinity'::timestamptz)+interval '30 minutes'<=now() FROM public.goal_evaluation_requests r JOIN public.goal_agent_cadence c ON c.fluctlight_id=r.fluctlight_id WHERE r.id=$1`, id).Scan(&ready); err != nil || !ready {
+		t.Fatalf("elapsed evaluation cycle is not time-ready: ready=%t err=%v", ready, err)
 	}
 }
 
@@ -24,6 +28,7 @@ func TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles(t *testing.T) {
 	f := seedWardrobeToolFixture(t)
 	goal := plannerOwnerGoal(t, f, "cadence", false)
 	id := latestPendingGoalRequest(t, f)
+	advanceGoalEvaluationCycleForTest(t, f, id)
 	first, prior, err := f.app.claimGoalEvaluation(f.ctx, id)
 	if err != nil || prior != nil {
 		t.Fatal(first, prior, err)
@@ -32,6 +37,8 @@ func TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles(t *testing.T) {
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT evaluation_next_at BETWEEN now()+interval '29 minutes 59 seconds' AND now()+interval '30 minutes' FROM public.goal_agent_cadence WHERE fluctlight_id=$1`, f.fluctlightID).Scan(&interval); err != nil || !interval {
 		t.Fatal("not a 30 minute clock", interval, err)
 	}
+	// A second real activity remains pending across the global profile clock.
+	insertGoalBoundaryMessage(t, f)
 	frozen := first
 	frozen.Protocol = goalEvaluationToolProtocol
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET status='retry',claimed_at=NULL,available_at=now(),snapshot=$2 WHERE id=$1`, id, jsonBytes(frozen)); err != nil {
@@ -55,7 +62,7 @@ func TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles(t *testing.T) {
 		}
 	}
 	// Exactly one second before the boundary (29m59s) still cannot claim.
-	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_agent_cadence SET evaluation_next_at=now()+interval '1 second' WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_agent_cadence SET evaluation_next_at=now()+interval '1 second',last_activity_at=now()-interval '31 minutes' WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET available_at=now() WHERE id=$1`, id); err != nil {

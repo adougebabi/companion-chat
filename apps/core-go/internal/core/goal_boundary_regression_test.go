@@ -481,6 +481,7 @@ func TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution(t *test
 				return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{{GoalID: goalID, ExpectedRevision: entry.Goal.Revision, CriteriaVersion: entry.Goal.CriteriaVersion, Judgments: judgments, Impact: impact, WaitCondition: wait}}, Plans: []GoalPlanCandidate{}})}
 			})}
 			requestID := latestPendingGoalRequest(t, f)
+			advanceGoalEvaluationCycleForTest(t, f, requestID)
 			if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID); err != nil {
 				t.Fatal(err)
 			}

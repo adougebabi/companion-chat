@@ -291,6 +291,7 @@ func runGoalAssessmentFixture(t *testing.T, f independentToolE2EFixture, kind st
 		return original.RoundTrip(request)
 	})}
 	id := latestPendingGoalRequest(t, f)
+	advanceGoalEvaluationCycleForTest(t, f, id)
 	if result, err := f.app.ProcessGoalEvaluationIntent(f.ctx, id); err != nil || stringValue(result["status"]) != "succeeded" {
 		t.Fatalf("formal Goal assessment=%#v err=%v", result, err)
 	}
@@ -411,8 +412,8 @@ func TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision(t *test
 					if e := f.repository.Pool().QueryRow(f.ctx, `SELECT status,error_code FROM public.goal_evaluation_requests WHERE id=$1`, requestID).Scan(&oldState, &code); e != nil || oldState != "failed" || code != "goal_evaluation_snapshot_stale" {
 						t.Fatal("old authority was not fenced", oldState, code, e)
 					}
-				} else if err != nil {
-					t.Fatal(err)
+				} else if err != nil || result["status"] != "succeeded" {
+					t.Fatalf("relationship assessment did not execute: result=%#v err=%v", result, err)
 				}
 				var state string
 				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status FROM public.fluctlight_goals WHERE id=$1`, goalID).Scan(&state); err != nil {
@@ -425,6 +426,9 @@ func TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision(t *test
 				if state != want {
 					t.Fatalf("expression/acceptance state=%s want=%s", state, want)
 				}
+			}
+			if assessments != 2 {
+				t.Fatalf("expected two real model assessments, got %d", assessments)
 			}
 			var revision, resolutions int
 			var label string

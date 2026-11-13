@@ -320,9 +320,10 @@ func TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete(t *testing.T
 		return fakeProviderResult{Structured: map[string]any{"summary": "目标完成，等待对方主动反馈读后感"}}
 	})}
 	request := latestPendingGoalRequest(t, f)
-	_, err := f.app.ProcessGoalEvaluationIntent(f.ctx, request)
+	advanceGoalEvaluationCycleForTest(t, f, request)
+	result, err := f.app.ProcessGoalEvaluationIntent(f.ctx, request)
 	if err == nil || err.Error() != "goal_assessment_coverage_missing" || calls != 2 {
-		t.Fatal(err)
+		t.Fatalf("summary-only assessment result=%#v calls=%d err=%v", result, calls, err)
 	}
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, request); err != nil || calls != 2 {
 		t.Fatal("terminal missing submission restarted model", err, calls)

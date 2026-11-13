@@ -1,0 +1,48 @@
+SOURCE_HEAD 723d2cfdd694029372102c61a2c704dc9c850318
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^Test(MutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision|GoalEvaluationSummaryWithoutNativeSubmissionCannotComplete|ScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow|IntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody|GoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires|GoalAgentCadenceEvaluationPendingFrozenAndProfiles)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles
+    goal_agent_cadence_test.go:29: { [] [] [] [] [] [] 0 [] [] goal_evaluation_14e7e600c2a2c7dea5534b4571b7bc05 independent_fluctlight_wardrobe_1794547120446065000   goal_activated_or_revised [] [] []} map[not_before:2026-11-13T05:48:40.517639Z reason:evaluation_cadence status:deferred] <nil>
+--- FAIL: TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles (2.63s)
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance
+    goal_closure_runtime_test.go:426: expression/acceptance state=active want=completed
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit
+    goal_closure_runtime_test.go:408: stale relationship did not retain a fresh replacement: map[string]interface {}{"not_before":"2026-11-13T05:48:49.772311Z", "reason":"evaluation_cadence", "status":"deferred"} <nil>
+--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision (9.11s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal (2.05s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation (1.33s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal (1.46s)
+    --- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance (1.69s)
+    --- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit (2.58s)
+=== RUN   TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete
+    goal_evaluation_tools_integration_test.go:325: <nil>
+--- FAIL: TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete (2.88s)
+=== RUN   TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires
+    goal_execution_handoff_integration_test.go:147: formal Goal assessment=map[string]interface {}{"not_before":"2026-11-13T05:48:55.597981Z", "reason":"evaluation_cadence", "status":"deferred"} err=<nil>
+--- FAIL: TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires (3.07s)
+=== RUN   TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow
+=== RUN   TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/boots
+2026/11/13 13:18:58 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_be00340168903a72687205aeb3b2cd2f type=query surface=native_cognition required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+    goal_life_chain_test.go:117: formal Goal assessment=map[string]interface {}{"not_before":"2026-11-13T05:48:58.37885Z", "reason":"evaluation_cadence", "status":"deferred"} err=<nil>
+=== RUN   TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/brush
+2026/11/13 13:19:00 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_6ad2801aa91b2de864302a079f1c6cdf type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+    goal_life_chain_test.go:117: formal Goal assessment=map[string]interface {}{"not_before":"2026-11-13T05:49:00.627916Z", "reason":"evaluation_cadence", "status":"deferred"} err=<nil>
+--- FAIL: TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow (5.04s)
+    --- FAIL: TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/boots (2.79s)
+    --- FAIL: TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/brush (2.25s)
+=== RUN   TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody
+2026/11/13 13:19:01 WARN tool.call.handled capability=life.activity.start call_id=direct_call_6c9dc9b6a505b3252064e306ecd63bf4 warning_code=intention_trigger_not_due disposition=awaiting_state effect_applied=false
+2026/11/13 13:19:01 WARN tool.call.handled capability=life.activity.advance call_id=direct_call_8b3d2eca8f43f5f9959021a23f66c808 warning_code=activity_result_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 13:19:01 WARN tool.call.handled capability=life.activity.advance call_id=direct_call_8b3d2eca8f43f5f9959021a23f66c808 warning_code=activity_result_invalid disposition=awaiting_evidence effect_applied=false
+    scheduled_activity_closure_test.go:199: formal Goal assessment=map[string]interface {}{"not_before":"2026-11-13T05:49:01.999966Z", "reason":"evaluation_cadence", "status":"deferred"} err=<nil>
+--- FAIL: TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody (1.37s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	24.971s
+FAIL
+
+EXIT_CODE 1
