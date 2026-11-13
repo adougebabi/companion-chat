@@ -4,7 +4,7 @@
 
 | 单元 | 原始条目 | 唯一目标 | 状态 | 证据 |
 |---|---|---|---|---|
-| M4-01 | T11 14.3 开发调试权限 | 原始诊断读取和全文搜索需要 Operator 显式开启及 Owner 身份 | IMPLEMENTED，等待提交后复验 | 本目录 meromero-m4-evidence/debug-* |
+| M4-01 | T11 14.3 开发调试权限 | 原始诊断读取和全文搜索需要 Operator 显式开启及 Owner 身份 | VERIFIED | 本目录 meromero-m4-evidence/debug-* |
 
 ## M4-01
 
@@ -21,9 +21,11 @@ Core 检查覆盖原始 records 列表/详情、旧 events/model/media/lifecycle
 - HTTP 首次测试发现旧适配丢失领域权限错误，返回 502/通用 403。首次修正又将已转换的错误二次包装为 502。两次样本分别保存在 `debug-http.log` 和 `debug-http-fix1.log`，退出 1。第二次局部修正后 HTTP 矩阵通过，`debug-http-fix2.log`，退出 0。
 - 完整受影响 Core 测试集合首次有三个既有诊断读取断言未显式授权，`debug-core-regression.log`，退出 1。补齐三个测试的独立 App 授权后，相同集合 74 个顶层测试通过，`debug-core-regression-fix1.log`，退出 0，无 SKIP。
 - HTTP/Browser 全包首轮由于干净导出缺少两份既有跨目录测试输入而失败，`debug-http-regression.log`。补充 creation-controller.mjs 与 browser-client/openapi.json 导出后相同包测试全部通过，`debug-http-regression-fixture1.log`，退出 0，无 SKIP。
-- 配置包全部通过，`debug-config.log`，退出 0。React 诊断页面 6 项通过，无 SKIP。Web typecheck 退出 0。正式提交后统一留存最终命令与结果。
+- 配置包全部通过，`debug-config.log`，退出 0。React 诊断页面 6 项通过，无 SKIP。Web typecheck 退出 0。提交 `8ca56aa5` 后 74 项 Core、HTTP/Browser/配置全包与 API 编译通过，无 SKIP；React 6 项提交后复验通过，无 SKIP。命令及版本分别见 `debug-core-postcommit.log`、`debug-http-postcommit.log`、`debug-web-postcommit.log`。
 - 只读独立代码复核未发现当前单元阻断问题。复核者本机命令未配置测试库而 SKIP，未计入本单元数据库验收。上述隔离库日志由主执行者真实执行。
 
 ### 边界
 
 本单元只收口原始诊断的读取授权。诊断写入/留存、完整 Trace 关联、通用隔离重放及全部真实页面到运行消费仍属于 T11 待办。既有正文凭据脱敏只覆盖已定义格式，保留原限制。M4 与父 T11/T12 保持未完成。普通聊天模型、Prompt、采样和工具合同未修改。
+
+M4-01 收口提交 `8ca56aa56abc9c7bd48ed7b71ab01f892e9df017`。下一单元按 T11 补齐调试数据写入/留存边界或只读重放，以当前正式路径核实后选定。

@@ -1,0 +1,14 @@
+✔ primary list stays compact and call dialog owns raw values, Close and source focus (1649.393917ms)
+✔ main pagination retries the exact opaque cursor and correlation while retaining confirmed data (244.67675ms)
+✔ initial call read failure never looks empty or missing wire fields; retry can reveal actual empty data (201.585083ms)
+✔ correlation switch clears selection and rejects late original pagination (356.870041ms)
+✔ Owner switch retires unresolved main records and selected sources (235.222208ms)
+✔ disabled debug reading explains operator authorization and cannot look like an empty call list (172.996834ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3483.692542
