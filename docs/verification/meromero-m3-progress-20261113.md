@@ -11,7 +11,8 @@
 | M3-03 可定位 legacy 摘要来源纠错屏障 | T09 旧来源及派生失效 | VERIFIED | 修复首次全 unknown 的摘要来源负向屏障，提交 `ae9023ce` 的干净源码复验 8 个核心顶层测试及 1 个迁移测试通过，退出码 0、无 SKIP。 |
 | M3-04 在途纠错发布保护证据 | T09 后续输入/在途请求 | VERIFIED | direct/Writer × revise/forget 四场景及正常发布/追发对照在提交 `b0d47d68` 的干净源码通过，3 个顶层测试、退出码 0、无 SKIP。沿用既有 generation fence，本节点仅增加测试。 |
 | M3-06 无可解析来源的旧记忆暂停自动注入 | T09 用户确认的历史兼容策略 | VERIFIED | 长期/ActiveMemory/resident 旧快照、正式 recall、direct/Writer 及 Owner 恢复场景通过，提交 `a4b1bc8e` 的干净源码 121 项核心汇总及 1 项迁移测试通过，退出码 0，无 SKIP。 |
-| T09 其他原验收 | 记忆治理 | PARTIAL | 完全不可解析来源、正确吸收纠错的重建、其余主链在途与锁序矩阵仍未验收。 |
+| M3-07 记忆纠错与摘要/发布锁序 | T09 并发锁序及真实纠错后检索 | IMPLEMENTED | 两个正式双事务红测复现 40P01，最小两处行锁修正后通过，39 个相关回归及 6 个来源/购票反例测试通过，等待提交后复验。 |
+| T09 原条目收口 | 记忆治理 | IN_PROGRESS | 对原 T09 允许的安全失效路径做最后逐项核验，不将自动重建或穷尽并发交错追加为验收前置。 |
 | M3-05 Goal 领域验收恢复 | T10 成功条件、日程/活动、衣柜和依赖保护 | VERIFIED | 修正隔离测试的 DB 时间前置，原四组失败与 handoff 实际进入评估，24 个直接受影响顶层回归通过，提交后 112 项 M3 汇总回归和独立迁移测试通过。跨人格时钟加强后单独复验通过。 |
 | T10 其他原验收 | 领域保护 | PARTIAL | 继承既有其他领域证据，真实模型、真实渲染及完整领域矩阵仍未验收。 |
 
@@ -96,3 +97,15 @@ M3 汇总受检提交 `4f9d6abaff7017621b665b21207646c7602f16cb`，干净源码�
 M3-06 提交后 `a4b1bc8e25fc7ea89d56805f7994d3de85bc5df6`，无 overlay，`policy-aggregate-postcommit.log` 121 个顶层测试通过，无 SKIP；`policy-aggregate-migration.log` 迁移 1 项通过。
 
 原 T09 锁序缺口已收窄。Daily 当前先锁 Owner，旧“Daily memory→Owner”判断失效。实际需双事务核实的静态环为 Owner generation→summary 与 segment summary→generation，以及 Owner FOR UPDATE→generation 和发布 generation→journal FK KEY SHARE→Owner。只检查这两个有限场景，不要求穷尽所有并发组合。
+
+## M3-07 具体锁序修复与原始购票反例
+
+首次 `t09-lock-red.log` 的 Segment 夹具将参数化 DDL 与 UPDATE 放在同一 prepared statement 而失败，Publication 场景已复现 Owner `40P01`。分开 DDL 后 `t09-lock-red-corrected.log` 的 Segment 等待超时，原因是修订替换了来源 refs，没有与 prior summary 相交。保留真实相交 message 来源后，`t09-lock-red-overlap.log` 两个正式场景均复现 `40P01`。没有以 sleep 猜时序，使用局部 advisory gate 和 `pg_blocking_pids` 确认实际等待。
+
+生产修改仅两处。`applyMemoryCommandTx` 对 Owner 行使用 `FOR NO KEY UPDATE`，继续在同事务校验 Owner/status，保留目标 Memory 行锁、revision 和幂等检查，同时允许 generation journal FK 的 `KEY SHARE`。`settleConversationSegment` 在 conversation/intent/prior summary 前取得同一 Owner 行锁，与 Owner 纠错和既有 Daily 的顺序一致。summary、intent、后续任务仍在原事务共同提交。
+
+`t09-lock-green.log` 两场景通过。`t09-lock-regression.log` 39 个顶层测试通过、退出码 0、无 SKIP，覆盖 Segment/Daily 的模型快照、generation、跨日、原始纠错、Memory 生命周期、反射原子回滚及正常发布。独立代码/日志复核未发现确定阻断问题。此结果覆盖这两个实际等待环，未声称全仓锁序或任意压力交错均已验证。
+
+新增正式仓库测试 `TestTicketCorrectionKeepsBothUtterancesAndDoesNotConfirmPurchase`，真实 AcceptTurn 受理“我买了票”和“刚才是开玩笑”两条消息，经 Owner 改正原购买结论后调用正式 memory.recall。两条消息仍按实际 speaker/kind/historical 返回，长期记忆只保留购票未知的更正，第一条原话未被改写。`t09-final-source-cases.log` 的 6 个顶层测试通过，无 SKIP，另包括 actor/会话隔离、递归派生失效、晚到 outcome 与 embedding 来源生命周期。
+
+原 T09 要求相关摘要/画像/缓存/派生记忆能够“失效、更新或标记过时”。本轮沿用安全失效及原始历史回退。自动重新生成并启用已失效摘要不再被追加为完成前置，先前报告中的未验证重建历史记录保留。原条目最终状态仍以提交后验证及逐项核对为准。

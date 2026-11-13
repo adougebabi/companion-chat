@@ -1,0 +1,15 @@
+SOURCE_HEAD c2417513baed80b3db1ff12a0ba120bfe1d5f550
+OVERLAYS apps/core-go/internal/core/memory_correction_lock_order_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestOwnerMemoryCorrectionAnd(SegmentReplacement|PublicationGeneration)DoNotDeadlock$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestOwnerMemoryCorrectionAndSegmentReplacementDoNotDeadlock
+    memory_correction_lock_order_integration_test.go:53: ERROR: cannot insert multiple commands into a prepared statement (SQLSTATE 42601)
+--- FAIL: TestOwnerMemoryCorrectionAndSegmentReplacementDoNotDeadlock (2.74s)
+=== RUN   TestOwnerMemoryCorrectionAndPublicationGenerationDoNotDeadlock
+    memory_correction_lock_order_integration_test.go:122: formal publication/Owner generation cycle: owner_pid=43640 publication=<nil> owner=ERROR: deadlock detected (SQLSTATE 40P01) resource=core.publishedResource{DuplicateSuppressed:false, ID:"message_71c71fa9f11942f6e895fe24c289e8dc", Replayed:false, Text:"正常交流仍然可用。"}
+--- FAIL: TestOwnerMemoryCorrectionAndPublicationGenerationDoNotDeadlock (2.59s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.059s
+FAIL
+
+EXIT_CODE 1

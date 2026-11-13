@@ -1,0 +1,12 @@
+SOURCE_HEAD c2417513baed80b3db1ff12a0ba120bfe1d5f550
+OVERLAYS apps/core-go/internal/core/memory_correction_lock_order_integration_test.go,apps/core-go/internal/core/memory_lifecycle.go,apps/core-go/internal/core/conversation_segment.go
+COMMAND go test ./internal/core -count=1 -run ^TestOwnerMemoryCorrectionAnd(SegmentReplacement|PublicationGeneration)DoNotDeadlock$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestOwnerMemoryCorrectionAndSegmentReplacementDoNotDeadlock
+--- PASS: TestOwnerMemoryCorrectionAndSegmentReplacementDoNotDeadlock (2.77s)
+=== RUN   TestOwnerMemoryCorrectionAndPublicationGenerationDoNotDeadlock
+--- PASS: TestOwnerMemoryCorrectionAndPublicationGenerationDoNotDeadlock (1.36s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	4.872s
+
+EXIT_CODE 0

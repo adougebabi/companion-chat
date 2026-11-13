@@ -1,0 +1,25 @@
+SOURCE_HEAD c2417513baed80b3db1ff12a0ba120bfe1d5f550
+OVERLAYS apps/core-go/internal/core/memory_ticket_correction_integration_test.go,apps/core-go/internal/core/memory_correction_lock_order_integration_test.go,apps/core-go/internal/core/memory_lifecycle.go,apps/core-go/internal/core/conversation_segment.go
+COMMAND go test ./internal/core -count=1 -run ^Test(TicketCorrectionKeepsBothUtterancesAndDoesNotConfirmPurchase|MemoryRecallDistinguishesActualMessageSpeakers|OpaqueMemoryLineageRejectsSelfAndInvalidatesTransitiveDescendants|OpaqueOutcomeEvidenceRejectsLateRevision|ProcessMemoryEmbeddingRevisionZeroIsExactAndRequiresActiveMemory|ProcessMemoryEmbeddingFailureThenSuccessUsesOneFrozenTuple)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestProcessMemoryEmbeddingRevisionZeroIsExactAndRequiresActiveMemory
+--- PASS: TestProcessMemoryEmbeddingRevisionZeroIsExactAndRequiresActiveMemory (1.47s)
+=== RUN   TestProcessMemoryEmbeddingFailureThenSuccessUsesOneFrozenTuple
+--- PASS: TestProcessMemoryEmbeddingFailureThenSuccessUsesOneFrozenTuple (1.36s)
+=== RUN   TestOpaqueMemoryLineageRejectsSelfAndInvalidatesTransitiveDescendants
+--- PASS: TestOpaqueMemoryLineageRejectsSelfAndInvalidatesTransitiveDescendants (1.26s)
+=== RUN   TestOpaqueOutcomeEvidenceRejectsLateRevision
+--- PASS: TestOpaqueOutcomeEvidenceRejectsLateRevision (1.14s)
+=== RUN   TestMemoryRecallDistinguishesActualMessageSpeakers
+2026/11/13 14:20:17 INFO capability lifecycle capability=memory.recall call_id=direct_call_24ed073f44d2e6f2bc9935afa87ce87b type=query surface=conversation required_context=[memory_scope] duration_ms=2 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 14:20:17 INFO capability lifecycle capability=memory.recall call_id=direct_call_ec4ad0a43b4583e9416989efd4d71a23 type=query surface=conversation required_context=[memory_scope] duration_ms=2 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 14:20:17 INFO capability lifecycle capability=memory.recall call_id=recall-speaker-call type=query surface=conversation required_context=[memory_scope] duration_ms=2 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 14:20:17 INFO capability lifecycle capability=memory.recall call_id=recall-speaker-call type=query surface=conversation required_context=[memory_scope] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestMemoryRecallDistinguishesActualMessageSpeakers (1.32s)
+=== RUN   TestTicketCorrectionKeepsBothUtterancesAndDoesNotConfirmPurchase
+2026/11/13 14:20:19 INFO capability lifecycle capability=memory.recall call_id=direct_call_a9cda32c6f929a96b18239f4c1e7a738 type=query surface=conversation required_context=[memory_scope] duration_ms=4 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestTicketCorrectionKeepsBothUtterancesAndDoesNotConfirmPurchase (1.30s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	8.688s
+
+EXIT_CODE 0

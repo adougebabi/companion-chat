@@ -1,0 +1,160 @@
+SOURCE_HEAD c2417513baed80b3db1ff12a0ba120bfe1d5f550
+OVERLAYS apps/core-go/internal/core/memory_correction_lock_order_integration_test.go,apps/core-go/internal/core/memory_lifecycle.go,apps/core-go/internal/core/conversation_segment.go
+COMMAND go test ./internal/core -count=1 -run ^Test(OwnerMemoryCorrection|ConversationSegment|LegacyConversationSegment|ConversationDaily|DailyMemory|LegacyCrossDay|LongIdleConversation|OwnerMemoryReviseRollbackAndForgetUseLifecycleAuthority|OwnerMemoryRollbackCompensatesMergeAndSupersedeLineage|MemoryLifecycleCreateConfirmReviseMergeSupersedeDeprecate|ProcessReflectionAppliesAllMemoryCandidateV2OperationsAtomically|ReflectionMemoryApplyRollsBackWithProposalAndWatermark|MemoryEvent|DirectMainReplyPublishesAndSettlesAtomically|FactOnlyFollowupRejectsStaleWriterDraft|LegacyMemoryQuarantine|LegacyActiveMemoryQuarantine) -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestDailyMemoryBlocksCorrectedSummarySources
+=== RUN   TestDailyMemoryBlocksCorrectedSummarySources/before_model
+=== RUN   TestDailyMemoryBlocksCorrectedSummarySources/during_model
+--- PASS: TestDailyMemoryBlocksCorrectedSummarySources (8.40s)
+    --- PASS: TestDailyMemoryBlocksCorrectedSummarySources/before_model (4.21s)
+    --- PASS: TestDailyMemoryBlocksCorrectedSummarySources/during_model (4.19s)
+=== RUN   TestDailyMemoryQuietResultSettlesPendingIntent
+=== RUN   TestDailyMemoryQuietResultSettlesPendingIntent/no_source
+=== RUN   TestDailyMemoryQuietResultSettlesPendingIntent/inactive
+--- PASS: TestDailyMemoryQuietResultSettlesPendingIntent (8.21s)
+    --- PASS: TestDailyMemoryQuietResultSettlesPendingIntent/no_source (4.23s)
+    --- PASS: TestDailyMemoryQuietResultSettlesPendingIntent/inactive (3.99s)
+=== RUN   TestDailyMemoryOlderGenerationCannotSettleReopenedIntent
+--- PASS: TestDailyMemoryOlderGenerationCannotSettleReopenedIntent (5.31s)
+=== RUN   TestDailyMemoryLegacyGenerationCannotFollowReopen
+--- PASS: TestDailyMemoryLegacyGenerationCannotFollowReopen (6.14s)
+=== RUN   TestDailyMemoryRetryRestoresFrozenModel
+--- PASS: TestDailyMemoryRetryRestoresFrozenModel (4.86s)
+=== RUN   TestDailyMemoryConcurrentSelectionUsesStoredWinner
+--- PASS: TestDailyMemoryConcurrentSelectionUsesStoredWinner (4.26s)
+=== RUN   TestDailyMemoryMissingSnapshotIsNotRecreated
+--- PASS: TestDailyMemoryMissingSnapshotIsNotRecreated (5.16s)
+=== RUN   TestFactOnlyFollowupRejectsStaleWriterDraft
+2026/11/13 14:12:52 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:writer-first metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 14:12:52 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:writer-followup metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestFactOnlyFollowupRejectsStaleWriterDraft (6.10s)
+=== RUN   TestConversationSegmentOlderGenerationCannotSettleReopenedIntent
+--- PASS: TestConversationSegmentOlderGenerationCannotSettleReopenedIntent (3.99s)
+=== RUN   TestConversationSegmentRetryRestoresFrozenModelAndNewGeneration
+--- PASS: TestConversationSegmentRetryRestoresFrozenModelAndNewGeneration (6.34s)
+=== RUN   TestConversationSegmentConcurrentSelectionUsesStoredWinner
+--- PASS: TestConversationSegmentConcurrentSelectionUsesStoredWinner (2.82s)
+=== RUN   TestConversationSegmentMissingSnapshotIsNotRecreated
+--- PASS: TestConversationSegmentMissingSnapshotIsNotRecreated (2.04s)
+=== RUN   TestLegacyConversationSegmentStillRejectsChangedModel
+--- PASS: TestLegacyConversationSegmentStillRejectsChangedModel (1.53s)
+=== RUN   TestConversationSegmentToDailyMemoryAndRawCorrection
+--- PASS: TestConversationSegmentToDailyMemoryAndRawCorrection (1.56s)
+=== RUN   TestConversationSegmentDebouncesToLatestUserAndSupersedesOlderSource
+--- PASS: TestConversationSegmentDebouncesToLatestUserAndSupersedesOlderSource (1.52s)
+=== RUN   TestConversationSegmentCutsLongMessagesAtCompletedTurn
+--- PASS: TestConversationSegmentCutsLongMessagesAtCompletedTurn (1.29s)
+=== RUN   TestConversationSegmentKeepsCrossMidnightReplyWithUserStartDate
+--- PASS: TestConversationSegmentKeepsCrossMidnightReplyWithUserStartDate (1.30s)
+=== RUN   TestConversationSegmentCrossMidnightConsecutiveUsersRemainCoverable
+--- PASS: TestConversationSegmentCrossMidnightConsecutiveUsersRemainCoverable (1.56s)
+=== RUN   TestConversationSegmentSealsPreviousDayDuringContinuousChat
+--- PASS: TestConversationSegmentSealsPreviousDayDuringContinuousChat (1.55s)
+=== RUN   TestConversationDailyMemoryDayWindowHandlesDST
+=== RUN   TestConversationDailyMemoryDayWindowHandlesDST/spring
+=== RUN   TestConversationDailyMemoryDayWindowHandlesDST/autumn
+--- PASS: TestConversationDailyMemoryDayWindowHandlesDST (0.00s)
+    --- PASS: TestConversationDailyMemoryDayWindowHandlesDST/spring (0.00s)
+    --- PASS: TestConversationDailyMemoryDayWindowHandlesDST/autumn (0.00s)
+=== RUN   TestConversationDailyIntentsFreezeSeparateTimezoneDayWindows
+--- PASS: TestConversationDailyIntentsFreezeSeparateTimezoneDayWindows (1.25s)
+=== RUN   TestLegacyCrossDayChunkRebuildsFromRawAndSameDayKeepsSourceTimes
+--- PASS: TestLegacyCrossDayChunkRebuildsFromRawAndSameDayKeepsSourceTimes (1.39s)
+=== RUN   TestLongIdleConversationDrainsAllSegmentsIntoOneDayMemory
+--- PASS: TestLongIdleConversationDrainsAllSegmentsIntoOneDayMemory (1.72s)
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/commit
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/rollback
+--- PASS: TestDirectMainReplyPublishesAndSettlesAtomically (3.08s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/commit (1.58s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/rollback (1.50s)
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/direct/revise
+    memory_correction_inflight_reply_test.go:104: old reply fenced after committed revise: main=1 writer=0 inbox=failed error=adk_run: [NodeRunError] failed to invoke tool[name:conversation.reply id:inflight-memory-1]: tool execution tool_execution_dependency_failed: current_facts_stale
+        ------------------------
+        node path: [node_1, ToolNode]
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/direct/forget
+    memory_correction_inflight_reply_test.go:104: old reply fenced after committed forget: main=1 writer=0 inbox=failed error=adk_run: [NodeRunError] failed to invoke tool[name:conversation.reply id:inflight-memory-1]: tool execution tool_execution_dependency_failed: current_facts_stale
+        ------------------------
+        node path: [node_1, ToolNode]
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/revise
+2026/11/13 14:13:29 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:memory-inflight-fact_only-revise metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 14:13:29 WARN tool.call.handled capability=conversation.reply call_id=inflight-memory-1 warning_code=reply_context_stale disposition=awaiting_state effect_applied=false
+    memory_correction_inflight_reply_test.go:104: old reply fenced after committed revise: main=2 writer=1 inbox=failed error=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 400: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel]
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/forget
+2026/11/13 14:13:31 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:memory-inflight-fact_only-forget metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 14:13:31 WARN tool.call.handled capability=conversation.reply call_id=inflight-memory-1 warning_code=reply_context_stale disposition=awaiting_state effect_applied=false
+    memory_correction_inflight_reply_test.go:104: old reply fenced after committed forget: main=2 writer=1 inbox=failed error=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 400: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel]
+--- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies (5.92s)
+    --- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/direct/revise (1.53s)
+    --- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/direct/forget (1.47s)
+    --- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/revise (1.57s)
+    --- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/forget (1.36s)
+=== RUN   TestOwnerMemoryCorrectionAndSegmentReplacementDoNotDeadlock
+--- PASS: TestOwnerMemoryCorrectionAndSegmentReplacementDoNotDeadlock (1.48s)
+=== RUN   TestOwnerMemoryCorrectionAndPublicationGenerationDoNotDeadlock
+--- PASS: TestOwnerMemoryCorrectionAndPublicationGenerationDoNotDeadlock (2.02s)
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/message:summary-message-1
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/fact:summary-source-fact
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/summary-source-fact
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/sequence:1
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/confirmed-first
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/confirmed-first
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/legacy-confirm
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/legacy-confirm
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/legacy-parent
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/legacy-first
+--- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources (21.43s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/message:summary-message-1 (1.65s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/fact:summary-source-fact (1.47s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/summary-source-fact (1.37s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/sequence:1 (1.45s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old (1.41s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base (1.53s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/confirmed-first (1.54s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/confirmed-first (1.47s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/legacy-confirm (1.82s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/legacy-confirm (2.87s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/legacy-parent (2.54s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/legacy-first (2.32s)
+=== RUN   TestLegacyMemoryQuarantinePreservesHistoryAndOwnerReconfirmsSource
+--- PASS: TestLegacyMemoryQuarantinePreservesHistoryAndOwnerReconfirmsSource (1.37s)
+=== RUN   TestLegacyActiveMemoryQuarantineRejectsPersistedSnapshotAndCanReconfirm
+--- PASS: TestLegacyActiveMemoryQuarantineRejectsPersistedSnapshotAndCanReconfirm (1.24s)
+=== RUN   TestLegacyMemoryQuarantineKeepsMixedLiveSupport
+--- PASS: TestLegacyMemoryQuarantineKeepsMixedLiveSupport (2.05s)
+=== RUN   TestLegacyMemoryQuarantineCoversRecallAndPhysicalReplyRequests
+=== RUN   TestLegacyMemoryQuarantineCoversRecallAndPhysicalReplyRequests/direct
+2026/11/13 14:14:02 INFO capability lifecycle capability=memory.recall call_id=direct_call_e68087a19909f57d36233540b838b942 type=query surface=conversation required_context=[memory_scope] duration_ms=3 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestLegacyMemoryQuarantineCoversRecallAndPhysicalReplyRequests/fact_only
+2026/11/13 14:14:04 INFO capability lifecycle capability=memory.recall call_id=direct_call_1278088beb4b52ea3ad82a7023c58fb7 type=query surface=conversation required_context=[memory_scope] duration_ms=4 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 14:14:04 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:legacy-policy-fact_only metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 14:14:04 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:legacy-policy-fact_only-restored metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestLegacyMemoryQuarantineCoversRecallAndPhysicalReplyRequests (3.90s)
+    --- PASS: TestLegacyMemoryQuarantineCoversRecallAndPhysicalReplyRequests/direct (1.65s)
+    --- PASS: TestLegacyMemoryQuarantineCoversRecallAndPhysicalReplyRequests/fact_only (2.25s)
+=== RUN   TestOwnerMemoryReviseRollbackAndForgetUseLifecycleAuthority
+--- PASS: TestOwnerMemoryReviseRollbackAndForgetUseLifecycleAuthority (2.83s)
+=== RUN   TestOwnerMemoryRollbackCompensatesMergeAndSupersedeLineage
+--- PASS: TestOwnerMemoryRollbackCompensatesMergeAndSupersedeLineage (2.52s)
+=== RUN   TestProcessReflectionAppliesAllMemoryCandidateV2OperationsAtomically
+--- PASS: TestProcessReflectionAppliesAllMemoryCandidateV2OperationsAtomically (1.69s)
+=== RUN   TestReflectionMemoryApplyRollsBackWithProposalAndWatermark
+--- PASS: TestReflectionMemoryApplyRollsBackWithProposalAndWatermark (1.45s)
+=== RUN   TestMemoryLifecycleCreateConfirmReviseMergeSupersedeDeprecate
+--- PASS: TestMemoryLifecycleCreateConfirmReviseMergeSupersedeDeprecate (1.40s)
+=== RUN   TestMemoryEventFreezesRuntimePlanAndSharesCallerTransaction
+--- PASS: TestMemoryEventFreezesRuntimePlanAndSharesCallerTransaction (1.27s)
+=== RUN   TestMemoryEventResolvesActorFactContextAlias
+--- PASS: TestMemoryEventResolvesActorFactContextAlias (1.53s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	134.249s
+
+EXIT_CODE 0

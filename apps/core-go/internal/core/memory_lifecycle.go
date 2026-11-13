@@ -279,8 +279,10 @@ func (a *App) applyMemoryCommandTx(ctx context.Context, tx pgx.Tx, command Prepa
 	if err := validatePreparedMemoryMutation(command); err != nil {
 		return MemoryApplyResult{}, err
 	}
+	// Protect ownership/status while allowing generation-journal foreign keys
+	// to take KEY SHARE during concurrent semantic publication.
 	var liveOwner, fluctlightStatus string
-	if err := tx.QueryRow(ctx, `SELECT created_by_actor_id,status FROM public.fluctlights WHERE id=$1 FOR UPDATE`, command.OwnerFluctlightID).Scan(&liveOwner, &fluctlightStatus); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT created_by_actor_id,status FROM public.fluctlights WHERE id=$1 FOR NO KEY UPDATE`, command.OwnerFluctlightID).Scan(&liveOwner, &fluctlightStatus); err != nil {
 		return MemoryApplyResult{}, err
 	}
 	if liveOwner != command.OwnerActorID || fluctlightStatus != "active" {

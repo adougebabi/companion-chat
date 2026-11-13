@@ -384,6 +384,11 @@ func (a *App) settleConversationSegment(ctx context.Context, work conversationSu
 	result := map[string]any{"status": "superseded"}
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var locked string
+		// Owner Memory mutations and daily consolidation acquire this row first.
+		// Keep prior-summary and generation locks behind the same owner lock.
+		if err := tx.QueryRow(ctx, `SELECT id FROM public.fluctlights WHERE id=$1 FOR NO KEY UPDATE`, work.FluctlightID).Scan(&locked); err != nil {
+			return err
+		}
 		if err := tx.QueryRow(ctx, `SELECT id FROM public.conversations WHERE id=$1 FOR UPDATE`, work.ConversationID).Scan(&locked); err != nil {
 			return err
 		}
