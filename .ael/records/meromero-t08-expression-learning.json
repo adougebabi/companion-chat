@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "T08 部分完成：隔离 PostgreSQL 与受控 Provider 经实际消息受理、Owner 服务、候选提取/审核、direct 新轮请求和停用后新轮请求验证同一候选闭环；学习关闭与使用开启独立，核心人格和关系语义字段保持不变，普通对话互动计数照常增加。相关来源、在途停用及撤销回归通过。尚未完成：带关系含义称呼与真实关系/角色选择的可靠兼容性约束，用户消息内任意注入与日志内容的完整排除；真实 MeroMero 实际采用候选和真实浏览器至服务端整链未验收。任务外非阻断页面空态问题已登记 expression-panel-error-shows-empty，未调整。按用户授权先跳过未解决项继续后续任务。",
+  "failure": "M3-02 权威称呼输入/自主选择约束局部 VERIFIED，实现 99dcd67f 干净源码 46 个顶层回归通过，无 SKIP。受控请求保留当前真实关系称呼和自主参考规则，候选启停与人格/关系不被改写通过。父 T08 真实模型关系语义、一般注入/日志排除及 UI 闭环仍未验收，不提交父 pass。按用户授权保留模型阻塞继续原 M3 独立 T09 节点。",
   "result": "",
   "created": "2026-11-10T08:34:31.014541Z",
-  "updated": "2026-11-13T04:49:21.131503Z",
+  "updated": "2026-11-13T04:56:06.721162Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -65,11 +65,11 @@
         "unit": "execute",
         "executor": "codex-m3-t08-compatibility",
         "input_version": "040d64644bd63f298d09686a85bf68aa68d2ed90876c2711d09d063aa5befe1f",
-        "candidate_version": "",
+        "candidate_version": "5917b2e9f844e0abea9678216d7ce7ded528a65e6c17f135d9d81126a04b800d",
         "started": "2026-11-13T04:49:20.94035Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-13T04:55:54.607551Z",
+        "status": "fail",
+        "reason": "M3-02 权威称呼输入/自主选择约束局部 VERIFIED，实现 99dcd67f 干净源码 46 个顶层回归通过，无 SKIP。受控请求保留当前真实关系称呼和自主参考规则，候选启停与人格/关系不被改写通过。父 T08 真实模型关系语义、一般注入/日志排除及 UI 闭环仍未验收，不提交父 pass。按用户授权保留模型阻塞继续原 M3 独立 T09 节点。"
       }
     ],
     "checks": null

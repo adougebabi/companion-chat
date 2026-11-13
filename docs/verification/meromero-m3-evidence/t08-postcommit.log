@@ -1,0 +1,207 @@
+SOURCE_HEAD 99dcd67f836478ebeb3be5e90cf678db9f3aa86d
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^Test(Expression|DirectConversationUsesAndRechecksApprovedExpression|FactOnly|NormalizeRelationshipRole) -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestFactOnlyRegistryViewIsFixedWithoutMutatingLegacy
+--- PASS: TestFactOnlyRegistryViewIsFixedWithoutMutatingLegacy (0.00s)
+=== RUN   TestFactOnlyFollowupRejectsStaleWriterDraft
+2026/11/13 12:54:38 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:writer-first metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 12:54:38 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:writer-followup metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestFactOnlyFollowupRejectsStaleWriterDraft (1.63s)
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/unchanged
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/disabled
+2026/11/13 12:54:41 WARN tool.call.handled capability=conversation.reply call_id=direct-expression-1 warning_code=reply_expression_suggestion_stale disposition=awaiting_state effect_applied=false
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/revoked
+2026/11/13 12:54:42 WARN tool.call.handled capability=conversation.reply call_id=direct-expression-1 warning_code=reply_expression_suggestion_stale disposition=awaiting_state effect_applied=false
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/candidate_aba
+2026/11/13 12:54:43 WARN tool.call.handled capability=conversation.reply call_id=direct-expression-1 warning_code=reply_expression_suggestion_stale disposition=awaiting_state effect_applied=false
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/use_switch_aba
+2026/11/13 12:54:44 WARN tool.call.handled capability=conversation.reply call_id=direct-expression-1 warning_code=reply_expression_suggestion_stale disposition=awaiting_state effect_applied=false
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/source_aba
+2026/11/13 12:54:46 WARN tool.call.handled capability=conversation.reply call_id=direct-expression-1 warning_code=reply_expression_suggestion_stale disposition=awaiting_state effect_applied=false
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/unmatched
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/prior_action
+2026/11/13 12:54:48 INFO capability lifecycle capability=capability.catalog call_id=direct-expression-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/prior_action_then_disable
+2026/11/13 12:54:50 INFO capability lifecycle capability=capability.catalog call_id=direct-expression-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 12:54:50 WARN tool.call.handled capability=conversation.reply call_id=direct-expression-3 warning_code=reply_expression_suggestion_stale disposition=awaiting_state effect_applied=false
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/replay_after_disable
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/cancel
+--- PASS: TestDirectConversationUsesAndRechecksApprovedExpression (14.70s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/unchanged (1.34s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/disabled (1.27s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/revoked (1.28s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/candidate_aba (1.22s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/use_switch_aba (1.26s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/source_aba (1.28s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/unmatched (1.34s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/prior_action (1.41s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/prior_action_then_disable (1.46s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/replay_after_disable (1.38s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/cancel (1.45s)
+=== RUN   TestExpressionCandidateEnableUseAndDisableAcrossNewTurns
+--- PASS: TestExpressionCandidateEnableUseAndDisableAcrossNewTurns (2.58s)
+=== RUN   TestExpressionLearningOwnerSourceReviewAndRevocation
+--- PASS: TestExpressionLearningOwnerSourceReviewAndRevocation (1.28s)
+=== RUN   TestExpressionLearningOwnerSurfaceRoutes
+--- PASS: TestExpressionLearningOwnerSurfaceRoutes (1.34s)
+=== RUN   TestExpressionExtractionHonorsLearningSwitchGeneration
+=== RUN   TestExpressionExtractionHonorsLearningSwitchGeneration/use_switch_only
+=== RUN   TestExpressionExtractionHonorsLearningSwitchGeneration/learning_disabled_then_enabled
+--- PASS: TestExpressionExtractionHonorsLearningSwitchGeneration (2.50s)
+    --- PASS: TestExpressionExtractionHonorsLearningSwitchGeneration/use_switch_only (1.24s)
+    --- PASS: TestExpressionExtractionHonorsLearningSwitchGeneration/learning_disabled_then_enabled (1.26s)
+=== RUN   TestExpressionExtractionLeaseRenewsAndCancelsAfterTakeover
+--- PASS: TestExpressionExtractionLeaseRenewsAndCancelsAfterTakeover (1.57s)
+=== RUN   TestExpressionExtractionRejectsSourceChangedDuringModelCall
+--- PASS: TestExpressionExtractionRejectsSourceChangedDuringModelCall (1.25s)
+=== RUN   TestExpressionLearningPhysicalRequestAndSourceBinding
+--- PASS: TestExpressionLearningPhysicalRequestAndSourceBinding (0.00s)
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/empty_situation
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/duplicate
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/english_instruction_override
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/instruction_in_situation
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/empty_excerpt
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/chinese_instruction_override
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/foreign_ref
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/wrong_source
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/invented_excerpt
+--- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/empty_situation (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/duplicate (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/english_instruction_override (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/instruction_in_situation (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/empty_excerpt (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/chinese_instruction_override (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/foreign_ref (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/wrong_source (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/invented_excerpt (0.00s)
+=== RUN   TestExpressionLearningRejectsInvalidSourcesBeforeProvider
+--- PASS: TestExpressionLearningRejectsInvalidSourcesBeforeProvider (0.00s)
+=== RUN   TestExpressionSuggestionPublicationRechecksOwnerControls
+=== RUN   TestExpressionSuggestionPublicationRechecksOwnerControls/unchanged
+2026/11/13 12:55:05 INFO reply.evidence.reconciled correlation_id=turn:expression-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestExpressionSuggestionPublicationRechecksOwnerControls/disabled
+2026/11/13 12:55:06 INFO reply.evidence.reconciled correlation_id=turn:expression-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestExpressionSuggestionPublicationRechecksOwnerControls/use_switch_aba
+2026/11/13 12:55:07 INFO reply.evidence.reconciled correlation_id=turn:expression-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestExpressionSuggestionPublicationRechecksOwnerControls/source_changed
+2026/11/13 12:55:09 INFO reply.evidence.reconciled correlation_id=turn:expression-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestExpressionSuggestionPublicationRechecksOwnerControls/source_aba
+2026/11/13 12:55:10 INFO reply.evidence.reconciled correlation_id=turn:expression-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestExpressionSuggestionPublicationRechecksOwnerControls (6.89s)
+    --- PASS: TestExpressionSuggestionPublicationRechecksOwnerControls/unchanged (1.37s)
+    --- PASS: TestExpressionSuggestionPublicationRechecksOwnerControls/disabled (1.35s)
+    --- PASS: TestExpressionSuggestionPublicationRechecksOwnerControls/use_switch_aba (1.44s)
+    --- PASS: TestExpressionSuggestionPublicationRechecksOwnerControls/source_changed (1.38s)
+    --- PASS: TestExpressionSuggestionPublicationRechecksOwnerControls/source_aba (1.35s)
+=== RUN   TestExpressionSuggestionLegacyDraftWithoutBindingsIsAllowed
+--- PASS: TestExpressionSuggestionLegacyDraftWithoutBindingsIsAllowed (0.00s)
+=== RUN   TestExpressionContextKeepsCurrentProfileRelationshipAddressing
+--- PASS: TestExpressionContextKeepsCurrentProfileRelationshipAddressing (0.00s)
+=== RUN   TestFactOnlyActorWirePreservesEveryFieldAndOrder
+    fact_only_actor_wire_test.go:61: same-data Actor context estimate 5554 -> 4032
+--- PASS: TestFactOnlyActorWirePreservesEveryFieldAndOrder (0.00s)
+=== RUN   TestFactOnlyActualActorWireReplay
+    fact_only_actor_wire_test.go:166: private wire capture is not configured
+--- SKIP: TestFactOnlyActualActorWireReplay (0.00s)
+=== RUN   TestFactOnlyAssemblyBudgetsNativeWireButRetainsFinalContract
+--- PASS: TestFactOnlyAssemblyBudgetsNativeWireButRetainsFinalContract (0.00s)
+=== RUN   TestFactOnlyViewsPreserveSourceSemanticsAndScope
+--- PASS: TestFactOnlyViewsPreserveSourceSemanticsAndScope (0.00s)
+=== RUN   TestFactOnlyStateExpiryIsFieldLocal
+--- PASS: TestFactOnlyStateExpiryIsFieldLocal (0.00s)
+=== RUN   TestFactOnlyGoalsKeepOriginalConditionsAndRealDependencies
+--- PASS: TestFactOnlyGoalsKeepOriginalConditionsAndRealDependencies (0.00s)
+=== RUN   TestFactOnlyHistoryMetadataMatchesSelectedRoles
+--- PASS: TestFactOnlyHistoryMetadataMatchesSelectedRoles (0.00s)
+=== RUN   TestFactOnlyScheduleUsesSnapshotClockAndMinimalWindow
+--- PASS: TestFactOnlyScheduleUsesSnapshotClockAndMinimalWindow (0.00s)
+=== RUN   TestFactOnlyNativeArgumentsAndServerPurpose
+--- PASS: TestFactOnlyNativeArgumentsAndServerPurpose (0.00s)
+=== RUN   TestFactOnlyPhaseProtocolsDoNotMutateMessages
+--- PASS: TestFactOnlyPhaseProtocolsDoNotMutateMessages (0.00s)
+=== RUN   TestFactOnlyFixtureReplayEstimates
+    fact_only_context_view_test.go:301: synthetic Writer context-only comparison: estimated tokens 4229 -> 6549; wire chars 3413 -> 5268; provider actual usage and latency NOT_RUN
+    fact_only_context_view_test.go:301: synthetic Cognition context-only comparison: estimated tokens 12646 -> 6261; wire chars 10144 -> 5038; provider actual usage and latency NOT_RUN
+--- PASS: TestFactOnlyFixtureReplayEstimates (0.00s)
+=== RUN   TestFactOnlyCognitionViewIsIndependentFromLegacy
+--- PASS: TestFactOnlyCognitionViewIsIndependentFromLegacy (0.00s)
+=== RUN   TestFactOnlyRequiredHistoryOverflowIsExplicit
+--- PASS: TestFactOnlyRequiredHistoryOverflowIsExplicit (0.01s)
+=== RUN   TestFactOnlyEvidenceSnapshotsCannotReintroduceStrategy
+--- PASS: TestFactOnlyEvidenceSnapshotsCannotReintroduceStrategy (0.00s)
+=== RUN   TestFactOnlyValidityDoesNotPromoteFutureOrInactiveMemory
+--- PASS: TestFactOnlyValidityDoesNotPromoteFutureOrInactiveMemory (0.00s)
+=== RUN   TestFactOnlySenderTimestampKeepsItsOriginalZone
+--- PASS: TestFactOnlySenderTimestampKeepsItsOriginalZone (0.00s)
+=== RUN   TestFactOnlyMorningContextRegression
+--- PASS: TestFactOnlyMorningContextRegression (0.00s)
+=== RUN   TestFactOnlyProductionActorShapeKeepsRecipientRelationship
+--- PASS: TestFactOnlyProductionActorShapeKeepsRecipientRelationship (0.00s)
+=== RUN   TestFactOnlyConsecutiveRepliesKeepTheirTrigger
+--- PASS: TestFactOnlyConsecutiveRepliesKeepTheirTrigger (0.00s)
+=== RUN   TestFactOnlyMomentUsesSameFrozenWriterWithFeedScene
+2026/11/13 12:55:10 WARN Go Core diagnostic persistence failed component=event stage=create correlation_id=controlled-moment error_type=*errors.errorString safe_cause=diagnostics_unavailable event_type=reply.draft.prepared
+--- PASS: TestFactOnlyMomentUsesSameFrozenWriterWithFeedScene (0.01s)
+=== RUN   TestFactOnlyMomentPublicationPreparedCacheRejectsChangedSourceOrSpeaker
+2026/11/13 12:55:11 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+--- PASS: TestFactOnlyMomentPublicationPreparedCacheRejectsChangedSourceOrSpeaker (1.22s)
+=== RUN   TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays
+2026/11/13 12:55:13 INFO reply.evidence.reconciled correlation_id=tool-operation:writer-moment-operation metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays (1.21s)
+=== RUN   TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife
+=== RUN   TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/writer_failed
+2026/11/13 12:55:14 INFO reply.evidence.reconciled correlation_id=tool-operation:blocked-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/life_changed
+2026/11/13 12:55:16 INFO reply.evidence.reconciled correlation_id=tool-operation:blocked-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/13 12:55:16 WARN tool.call.handled capability=moment.publish call_id=direct_call_2bc862a0c556159e2f90e5288c3b7afc warning_code=moment_context_stale disposition=awaiting_state effect_applied=false
+--- PASS: TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife (3.14s)
+    --- PASS: TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/writer_failed (1.81s)
+    --- PASS: TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/life_changed (1.33s)
+=== RUN   TestFactOnlyCommittedReplyMalformedFinalSettlement
+=== RUN   TestFactOnlyCommittedReplyMalformedFinalSettlement/true
+2026/11/13 12:55:17 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:settlement-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestFactOnlyCommittedReplyMalformedFinalSettlement/false
+2026/11/13 12:55:19 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:settlement-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestFactOnlyCommittedReplyMalformedFinalSettlement (2.78s)
+    --- PASS: TestFactOnlyCommittedReplyMalformedFinalSettlement/true (1.42s)
+    --- PASS: TestFactOnlyCommittedReplyMalformedFinalSettlement/false (1.35s)
+=== RUN   TestFactOnlyHistoryBackfillUsesExactStoredSource
+--- PASS: TestFactOnlyHistoryBackfillUsesExactStoredSource (1.15s)
+=== RUN   TestFactOnlyProactiveSuppressionAcrossPurposeVersions
+=== RUN   TestFactOnlyProactiveSuppressionAcrossPurposeVersions/old_to_new
+=== RUN   TestFactOnlyProactiveSuppressionAcrossPurposeVersions/new_to_old_draft
+=== RUN   TestFactOnlyProactiveSuppressionAcrossPurposeVersions/fallback_to_new
+=== RUN   TestFactOnlyProactiveSuppressionAcrossPurposeVersions/legacy_caller_unchanged
+=== RUN   TestFactOnlyProactiveSuppressionAcrossPurposeVersions/unrelated_legacy_delivery
+--- PASS: TestFactOnlyProactiveSuppressionAcrossPurposeVersions (8.26s)
+    --- PASS: TestFactOnlyProactiveSuppressionAcrossPurposeVersions/old_to_new (1.22s)
+    --- PASS: TestFactOnlyProactiveSuppressionAcrossPurposeVersions/new_to_old_draft (1.37s)
+    --- PASS: TestFactOnlyProactiveSuppressionAcrossPurposeVersions/fallback_to_new (1.27s)
+    --- PASS: TestFactOnlyProactiveSuppressionAcrossPurposeVersions/legacy_caller_unchanged (1.62s)
+    --- PASS: TestFactOnlyProactiveSuppressionAcrossPurposeVersions/unrelated_legacy_delivery (2.79s)
+=== RUN   TestNormalizeRelationshipRole
+--- PASS: TestNormalizeRelationshipRole (0.00s)
+=== RUN   TestNormalizeRelationshipRoleAcceptsUnclassifiedLabel
+--- PASS: TestNormalizeRelationshipRoleAcceptsUnclassifiedLabel (0.00s)
+=== RUN   TestFactOnlyReplyHistoryRetainsAllUnsummarizedTurnsWithoutTokenCap
+=== RUN   TestFactOnlyReplyHistoryRetainsAllUnsummarizedTurnsWithoutTokenCap/旧轮
+    reply_context_test.go:59: history chars 31708 -> 31393; final wire chars=107599 estimated tokens=134463
+=== RUN   TestFactOnlyReplyHistoryRetainsAllUnsummarizedTurnsWithoutTokenCap/Older_
+    reply_context_test.go:59: history chars 105108 -> 104059; final wire chars=180463 estimated tokens=225543
+--- PASS: TestFactOnlyReplyHistoryRetainsAllUnsummarizedTurnsWithoutTokenCap (0.03s)
+    --- PASS: TestFactOnlyReplyHistoryRetainsAllUnsummarizedTurnsWithoutTokenCap/旧轮 (0.02s)
+    --- PASS: TestFactOnlyReplyHistoryRetainsAllUnsummarizedTurnsWithoutTokenCap/Older_ (0.01s)
+=== RUN   TestFactOnlyReplySummaryReplacesCoveredWholeTurn
+--- PASS: TestFactOnlyReplySummaryReplacesCoveredWholeTurn (0.00s)
+=== RUN   TestFactOnlyReplyContextUsesAuthorityAndOriginalHistory
+--- PASS: TestFactOnlyReplyContextUsesAuthorityAndOriginalHistory (0.00s)
+=== RUN   TestFactOnlyRequiredGoalOverflowIsExplicit
+--- PASS: TestFactOnlyRequiredGoalOverflowIsExplicit (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	52.266s
+
+EXIT_CODE 0
