@@ -1,0 +1,48 @@
+SOURCE_HEAD f62a11ee5b55d926c8fb7e037eb38f16103b2054
+OVERLAYS 
+COMMAND go test ./internal/httpapi -count=2 -run TestModelManagementReactHTTPPersistenceAndRuntime|TestDiagnosticDebugReadBrowserAndInternalHTTP -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestDiagnosticDebugReadBrowserAndInternalHTTP
+=== RUN   TestDiagnosticDebugReadBrowserAndInternalHTTP/readonly_replay_source_reads_preserve_attempts_and_business_state
+--- PASS: TestDiagnosticDebugReadBrowserAndInternalHTTP (2.23s)
+    --- PASS: TestDiagnosticDebugReadBrowserAndInternalHTTP/readonly_replay_source_reads_preserve_attempts_and_business_state (0.01s)
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:127: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+    model_management_react_integration_test.go:133: M4_UI_PHASE set RELOADED_EFFECTIVE_SOURCE 生效来源：任务变体覆盖；模型：m4-override；能力兼容性尚未验证。
+        
+    model_management_react_integration_test.go:141: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-override contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:1 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+    model_management_react_integration_test.go:133: M4_UI_PHASE clear RELOADED_EFFECTIVE_SOURCE 生效来源：默认用途；模型：m4-primary；能力兼容性尚未验证。
+        
+    model_management_react_integration_test.go:141: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:2 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+--- PASS: TestModelManagementReactHTTPPersistenceAndRuntime (8.74s)
+=== RUN   TestDiagnosticDebugReadBrowserAndInternalHTTP
+=== RUN   TestDiagnosticDebugReadBrowserAndInternalHTTP/readonly_replay_source_reads_preserve_attempts_and_business_state
+--- PASS: TestDiagnosticDebugReadBrowserAndInternalHTTP (1.68s)
+    --- PASS: TestDiagnosticDebugReadBrowserAndInternalHTTP/readonly_replay_source_reads_preserve_attempts_and_business_state (0.01s)
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:127: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+2026/11/13 17:50:24 ERROR browserBackend error err="context canceled" error_type=*errors.errorString fallback=surface_failed
+    model_management_react_integration_test.go:133: node:internal/modules/run_main:107
+            triggerUncaughtException(
+            ^
+        
+        AssertionError [ERR_ASSERTION]: registered reflection variant is missing
+            at openVariant (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/management-http-scenario.mjs:51:16)
+            at async file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/management-http-scenario.mjs:76:5 {
+          generatedMessage: false,
+          code: 'ERR_ASSERTION',
+          actual: undefined,
+          expected: true,
+          operator: '==',
+          diff: 'simple'
+        }
+        
+        Node.js v24.12.0
+        
+    model_management_react_integration_test.go:135: React/real HTTP scenario set exit status 1
+--- FAIL: TestModelManagementReactHTTPPersistenceAndRuntime (5.29s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi	18.856s
+FAIL
+
+EXIT_CODE 1

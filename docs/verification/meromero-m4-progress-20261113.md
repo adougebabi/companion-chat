@@ -66,3 +66,5 @@ M4-04 IMPLEMENTED，待提交后复验，对应 T11 页面配置→回读→下�
 初始夹具提取时 context 被提前取消；之后手工投影缺少身份和 reference index，改为正式上下文构建后发现 affect/profile habits/compiled persona 等初始化前置缺失。按现有生产前置补齐合成记录并用正式 BackfillWorkingPersonas 准备人格。最后一次失败已完成页面保存/重载，但正式 configuration facade 的通知计时器使子进程未退出，90秒被测试 context 结束。测试跟踪并清理该计时器后完整场景通过。所有失败分别保存在 `management-react-http*.log`，未使用跳过或放宽原合同。
 
 首次完整通过 `management-react-http-timer.log`，退出 0、无 SKIP。后续在两个新隔离数据库、全新页面进程中按相同输入重复两次，全部通过，退出 0，无 SKIP。`management-react-http-twice.log` 记录各阶段正式请求模型、页面来源回读与配置版本。Provider 模型标识为 m4-primary/m4-override 的合成服务，session 解析器与 CSRF 传输为测试夹具。该结果属于 React+真实HTTP/数据库+受控Provider 跨层集成，不是本机真实模型或原生浏览器 E2E。
+
+提交 f62a11ee 后，全 HTTP/Browser/配置包与 API 编译通过、无 SKIP。两轮提交后专项首轮通过、第二轮测试在异步 catalog 返回前查找 variant 选项而失败，management-postcommit.log 保留。补测试等待真实选项出现，生产页面与路由未修改，待新提交复验。
