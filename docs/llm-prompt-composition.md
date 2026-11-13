@@ -651,3 +651,8 @@ is_current_character，防止把与甲的经历当作与乙的关系。scene_eve
 Reflection 派生 DevelopingSelf 的运行输入读取复用既有 proposal `context_snapshot`
 中的 Memory 绑定，按实体、修订、request digest 及递归来源 liveness 复查。Owner
 查看保留记录及来源失效状态，恢复旧快照同样复查原绑定。来源元数据留在 Core。
+
+人格 overlay 的有效值和历史跨窗口证据复用原 Reflection proposal/context_snapshot
+及 accepted candidate disposition。Memory 来源失效时，相关字段和依赖其绝对值
+基线的后继 overlay 退出有效人格；独立字段及新有效基线保留。缓存继续根据
+有效 persona 内容与 overlay revision 校验。

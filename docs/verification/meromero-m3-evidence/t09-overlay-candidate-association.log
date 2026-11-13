@@ -1,0 +1,12 @@
+SOURCE_HEAD 2517a5db4425841accddd82719f0bacc31961e7e
+OVERLAYS apps/core-go/internal/core/memory_overlay_source_integration_test.go,apps/core-go/internal/core/reflection_memory_dependencies.go,apps/core-go/internal/core/evolution_persistence.go,apps/core-go/internal/core/reflection_runtime_v2.go
+COMMAND go test ./internal/core -count=1 -run ^Test(MemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows|DeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows
+--- PASS: TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows (1.60s)
+=== RUN   TestDeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay
+--- PASS: TestDeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay (1.67s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	4.069s
+
+EXIT_CODE 0

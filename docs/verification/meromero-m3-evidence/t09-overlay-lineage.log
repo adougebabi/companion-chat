@@ -1,0 +1,13 @@
+SOURCE_HEAD 2517a5db4425841accddd82719f0bacc31961e7e
+OVERLAYS apps/core-go/internal/core/memory_overlay_source_integration_test.go,apps/core-go/internal/core/reflection_memory_dependencies.go,apps/core-go/internal/core/evolution_persistence.go,apps/core-go/internal/core/reflection_runtime_v2.go
+COMMAND go test ./internal/core -count=1 -run ^TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows
+    memory_overlay_source_integration_test.go:135: Memory correction left its persona overlay effective: core.EffectivePersonaSnapshot{ProfileRef:"personality:ctx_294a8dd0aab0b6c481a9c28a0d1c00c8", AuthorityRevision:3, Personality:map[string]interface {}{"expression":map[string]interface {}{"warmth":0.40900000000000003}, "traits":map[string]interface {}{"openness":0.591}}, BehaviorPolicy:map[string]interface {}{"communication":map[string]interface {}{"tone":"克制"}}} revision=3 err=<nil>
+    memory_overlay_source_integration_test.go:139: effective persona digest retained stale source values: core.FrozenEffectivePersona{Digest:"8132b35c6216cd427b1893e072f0c5bb", Snapshot:core.EffectivePersonaSnapshot{ProfileRef:"personality:ctx_294a8dd0aab0b6c481a9c28a0d1c00c8", AuthorityRevision:3, Personality:map[string]interface {}{"expression":map[string]interface {}{"warmth":0.40900000000000003}, "traits":map[string]interface {}{"openness":0.591}}, BehaviorPolicy:map[string]interface {}{"communication":map[string]interface {}{"tone":"克制"}}}} err=<nil>
+--- FAIL: TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows (1.73s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.468s
+FAIL
+
+EXIT_CODE 1

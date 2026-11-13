@@ -1,0 +1,13 @@
+SOURCE_HEAD 2517a5db4425841accddd82719f0bacc31961e7e
+OVERLAYS apps/core-go/internal/core/memory_overlay_source_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows
+    memory_overlay_source_integration_test.go:104: Memory correction left its persona overlay effective: core.EffectivePersonaSnapshot{ProfileRef:"personality:ctx_c1f69ef0d4a1c2fdc81e05b5dee3efd7", AuthorityRevision:1, Personality:map[string]interface {}{"traits":map[string]interface {}{"openness":0.6}}, BehaviorPolicy:map[string]interface {}{"communication":map[string]interface {}{"tone":"克制"}}} revision=1 err=<nil>
+    memory_overlay_source_integration_test.go:108: stale Memory reused through historical windows: []string{"sequence:1-2", "sequence:3-4", "sequence:5-6"} err=<nil>
+--- FAIL: TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows (2.11s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.819s
+FAIL
+
+EXIT_CODE 1

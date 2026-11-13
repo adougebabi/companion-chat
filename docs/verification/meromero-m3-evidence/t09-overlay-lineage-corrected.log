@@ -1,0 +1,24 @@
+SOURCE_HEAD 2517a5db4425841accddd82719f0bacc31961e7e
+OVERLAYS apps/core-go/internal/core/memory_overlay_source_integration_test.go,apps/core-go/internal/core/reflection_memory_dependencies.go,apps/core-go/internal/core/evolution_persistence.go,apps/core-go/internal/core/reflection_runtime_v2.go
+COMMAND go test ./internal/core -count=1 -run ^Test(MemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows|ActorCorrectionFiltersEvolutionOverlayAfterReload|EvolutionOverlayStageS09|PostgresEvolution) -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestActorCorrectionFiltersEvolutionOverlayAfterReload
+--- PASS: TestActorCorrectionFiltersEvolutionOverlayAfterReload (2.18s)
+=== RUN   TestEvolutionOverlayStageS09
+=== RUN   TestEvolutionOverlayStageS09/forbidden_and_non-allowlisted_paths_are_rejected
+=== RUN   TestEvolutionOverlayStageS09/numeric_overlay_requires_windows_confidence_max-delta_and_cooldown
+=== RUN   TestEvolutionOverlayStageS09/categorical_overlay_needs_stronger_multi-window_agreement
+=== RUN   TestEvolutionOverlayStageS09/effective_view_is_profile-scoped_provider-safe_and_frozen
+=== RUN   TestEvolutionOverlayStageS09/rollback_appends_a_compensating_revision_without_changing_baseline
+--- PASS: TestEvolutionOverlayStageS09 (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/forbidden_and_non-allowlisted_paths_are_rejected (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/numeric_overlay_requires_windows_confidence_max-delta_and_cooldown (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/categorical_overlay_needs_stronger_multi-window_agreement (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/effective_view_is_profile-scoped_provider-safe_and_frozen (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/rollback_appends_a_compensating_revision_without_changing_baseline (0.00s)
+=== RUN   TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows
+--- PASS: TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows (1.81s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	4.850s
+
+EXIT_CODE 0

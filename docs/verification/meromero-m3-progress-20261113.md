@@ -123,3 +123,13 @@ M3-06 提交后 `a4b1bc8e25fc7ea89d56805f7994d3de85bc5df6`，无 overlay，`poli
 `t09-self-jsonb-snapshot.log` 14 个顶层测试通过、退出码 0、无 SKIP。包含直接 Memory、summary→Memory 祖先、进程重建读取、Owner 来源标记/旧源回滚、晚到快照拒绝、独立 Owner 声明保留，以及 ActorFacts 时效/冲突/来源归属/画像和 Owner 管理历史回归。SelfClaim 业务代码完成，提交后复验待记录。人格 overlay 及历史跨窗口证据的相同 Memory 依赖仍属下一独立节点，父 T09 未标完成。
 
 M3-08 SelfClaim 来源传播在提交 `75f03c394606d308f8a407a5a51b6416de6e80c6` 干净源码复验 14 个顶层测试通过、退出码 0、无 SKIP，证据 `t09-self-postcommit.log`，该独立行为标 VERIFIED。下一独立行为为人格 overlay 当前及历史跨窗口 Memory 证据失效，父 T09 仍未标完成。
+
+## M3-09 Memory 派生人格 overlay 及历史窗口
+
+`t09-overlay-red-bound.log` 在正式 Compile/Apply/Persist 及跨窗口策略下复现 Memory 纠错后 overlay 继续生效，旧历史窗口继续计数。初次 red 是夹具在签发 changed_ref 前调用 Apply 的错误。修复复用现有 proposal/disposition 的 accepted candidate index、changed_ref 与 context_snapshot，当前及历史 Memory 引用均经原 liveness 检查；写事务复验历史来源，失败在 overlay/compiled persona 持久化之前退出。
+
+`t09-overlay-lineage.log` 又复现后继反向 overlay 的绝对 after 值带回旧贡献。读取按字段追踪历史有效基线，来源失效时同时退出依赖坏 before 值的后继，保留独立字段、显式 Owner rollback 和新有效基线。使用有效 persona digest 校验结果，旧值不靠仅比较最大 revision 复用。所有历史行继续保存。
+
+独立复核指出本轮初版读取会把同窗口的未采用同字段候选误作来源。已按实际 accepted candidate index 定位当前候选，历史窗口与原 collector 使用同一个 first-match/semantic-value 选择规则，允许同窗口独立有效 proposal 提供支持。新增 `TestDeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay` 证明低置信度未采用候选的 Memory 纠错不会撤销实际有效 overlay。初版 lineage JSON helper 参数错误保留于 `t09-overlay-green.log`。
+
+`t09-overlay-final-regression.log` 39 个顶层回归通过，退出码 0、无 SKIP，覆盖 Memory 画像/overlay、ActorFacts、原 overlay 阈值/冷却/回滚、Reflection 完整链、Owner 管理和 persona/cache。独立节点已实现，提交后复验待记录。

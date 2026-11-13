@@ -267,6 +267,15 @@ func (a *App) processReflectionV2(
 		} else {
 			candidate = proposal.BehaviorPolicyEvolutionCandidates[candidatePlan.Index]
 		}
+		live, sourceErr := reflectionMemoryEvidenceLive(ctx, a.DB.Pool(), fluctlightID, candidate.EvidenceRefs, evolution.ReferenceIndex)
+		if sourceErr != nil {
+			_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+			return nil, sourceErr
+		}
+		if !live {
+			candidatePlan.Disposition, candidatePlan.ReasonCode = EvolutionRejected, "reflection_memory_source_stale"
+			continue
+		}
 		evidenceWindows, windowErr := a.reflectionOverlayEvidenceWindows(ctx, fluctlightID, sourceWindow, candidatePlan.Domain, candidate)
 		if windowErr != nil {
 			_ = a.setReflectionWindowIdle(ctx, fluctlightID)
@@ -430,6 +439,26 @@ func (a *App) processReflectionV2(
 			if !ok {
 				continue
 			}
+			live, sourceErr := reflectionMemoryEvidenceLive(ctx, tx, fluctlightID, decision.Overlay.EvidenceRefs, evolution.ReferenceIndex)
+			if sourceErr != nil {
+				return sourceErr
+			}
+			if !live {
+				return errors.New("reflection_memory_source_stale")
+			}
+			var candidate ReflectionOverlayCandidateV2
+			if candidatePlan.Domain == EvolutionBehaviorPolicy {
+				candidate = proposal.BehaviorPolicyEvolutionCandidates[candidatePlan.Index]
+			} else {
+				candidate = proposal.PersonalityEvolutionCandidates[candidatePlan.Index]
+			}
+			historyLive, historyErr := reflectionOverlayHistoryMemoryEvidenceLive(ctx, tx, fluctlightID, decision.Overlay.EvidenceWindows, evolution.SourceWindow, candidate, candidatePlan.Domain)
+			if historyErr != nil {
+				return historyErr
+			}
+			if !historyLive {
+				return errors.New("reflection_memory_source_stale")
+			}
 			nextState, applyErr := ApplyEvolutionOverlay(liveOverlayState, decision)
 			if applyErr != nil {
 				return applyErr
@@ -561,20 +590,34 @@ func reconcileReflectionMemoryDispositions(plan *ReflectionEvolutionPlan, result
 }
 
 func (a *App) reflectionOverlayEvidenceWindows(ctx context.Context, fluctlightID, currentWindow string, domain EvolutionDomain, candidate ReflectionOverlayCandidateV2) ([]string, error) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT from_sequence,to_sequence,payload FROM public.cognition_reflection_proposals WHERE fluctlight_id=$1 AND schema_version=$2 ORDER BY to_sequence DESC LIMIT 64`, fluctlightID, reflectionProposalV2SchemaVersion)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT from_sequence,to_sequence,payload,context_snapshot FROM public.cognition_reflection_proposals WHERE fluctlight_id=$1 AND schema_version=$2 ORDER BY to_sequence DESC LIMIT 64`, fluctlightID, reflectionProposalV2SchemaVersion)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	windows := []string{currentWindow}
+	type historySource struct {
+		from, to int
+		payload  []byte
+		context  []byte
+	}
+	var history []historySource
 	for rows.Next() {
-		var fromSequence, toSequence int
-		var raw []byte
-		if err := rows.Scan(&fromSequence, &toSequence, &raw); err != nil {
+		var item historySource
+		if err := rows.Scan(&item.from, &item.to, &item.payload, &item.context); err != nil {
+			rows.Close()
 			return nil, err
 		}
+		history = append(history, item)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return nil, err
+	}
+	rows.Close()
+	windows := []string{currentWindow}
+	for _, source := range history {
 		var prior ReflectionProposalV2
-		if err := json.Unmarshal(raw, &prior); err != nil {
+		var evolution EvolutionContext
+		if json.Unmarshal(source.payload, &prior) != nil || json.Unmarshal(source.context, &evolution) != nil {
 			return nil, errors.New("reflection_overlay_history_invalid")
 		}
 		items := prior.PersonalityEvolutionCandidates
@@ -583,12 +626,18 @@ func (a *App) reflectionOverlayEvidenceWindows(ctx context.Context, fluctlightID
 		}
 		for _, item := range items {
 			if item.FieldPath == candidate.FieldPath && item.Direction == candidate.Direction && item.SemanticValue == candidate.SemanticValue {
-				windows = append(windows, fmt.Sprintf("sequence:%d-%d", fromSequence, toSequence))
+				live, err := reflectionMemoryEvidenceLive(ctx, a.DB.Pool(), fluctlightID, item.EvidenceRefs, evolution.ReferenceIndex)
+				if err != nil {
+					return nil, err
+				}
+				if live {
+					windows = append(windows, fmt.Sprintf("sequence:%d-%d", source.from, source.to))
+				}
 				break
 			}
 		}
 	}
-	return mergeStableRefs(windows), rows.Err()
+	return mergeStableRefs(windows), nil
 }
 
 func hydrateReflectionChangedRefs(plan *ReflectionEvolutionPlan, proposal ReflectionProposalV2, evolution EvolutionContext, overlays map[string]EvolutionOverlayDecision) {

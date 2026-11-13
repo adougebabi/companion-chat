@@ -1,0 +1,10 @@
+SOURCE_HEAD 2517a5db4425841accddd82719f0bacc31961e7e
+OVERLAYS apps/core-go/internal/core/memory_overlay_source_integration_test.go,apps/core-go/internal/core/reflection_memory_dependencies.go,apps/core-go/internal/core/evolution_persistence.go,apps/core-go/internal/core/reflection_runtime_v2.go
+COMMAND go test ./internal/core -count=1 -run ^TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core [build failed]
+FAIL
+# github.com/fluctlight/local-ai-companion/apps/core-go/internal/core [github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.test]
+internal/core/evolution_persistence.go:478:56: cannot use valueAtEvolutionPath(root, overlay.FieldPath) (value of interface type any) as []byte value in argument to jsonEqual: need type assertion
+
+EXIT_CODE 1

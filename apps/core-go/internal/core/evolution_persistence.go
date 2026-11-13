@@ -426,17 +426,19 @@ func loadPersonaEvolutionState(ctx context.Context, query scheduleQuerier, basel
 		}
 		return PersonaEvolutionState{}, err
 	}
-	rows, err := query.Query(ctx, `SELECT id,ref,kind,field_path,value_kind,semantic_direction,requested_delta,applied_delta,before_value,after_value,confidence,evidence_refs,evidence_windows,policy_version,base_revision,revision,CASE WHEN status='active' AND EXISTS(SELECT 1 FROM public.actor_fact_artifacts d JOIN public.actor_facts f ON f.id=d.fact_id WHERE d.artifact_kind='evolution_overlay' AND d.artifact_id=fluctlight_evolution_overlays.id AND d.artifact_revision=fluctlight_evolution_overlays.revision AND (f.status<>'active' OR f.revision<>d.fact_revision)) THEN 'superseded' ELSE status END,COALESCE(supersedes,''),COALESCE(rollback_of,''),cooldown_until,created_at FROM public.fluctlight_evolution_overlays WHERE fluctlight_id=$1 AND profile_id=$2 ORDER BY revision`, baseline.FluctlightID, baseline.ProfileID)
+	rows, err := query.Query(ctx, `SELECT id,ref,kind,field_path,value_kind,semantic_direction,requested_delta,applied_delta,before_value,after_value,confidence,evidence_refs,evidence_windows,policy_version,base_revision,revision,status,COALESCE(supersedes,''),COALESCE(rollback_of,''),cooldown_until,created_at,EXISTS(SELECT 1 FROM public.actor_fact_artifacts d JOIN public.actor_facts f ON f.id=d.fact_id WHERE d.artifact_kind='evolution_overlay' AND d.artifact_id=fluctlight_evolution_overlays.id AND d.artifact_revision=fluctlight_evolution_overlays.revision AND (f.status<>'active' OR f.revision<>d.fact_revision)) FROM public.fluctlight_evolution_overlays WHERE fluctlight_id=$1 AND profile_id=$2 ORDER BY revision`, baseline.FluctlightID, baseline.ProfileID)
 	if err != nil {
 		return PersonaEvolutionState{}, err
 	}
 	defer rows.Close()
 	result.Overlays = nil
+	actorInvalidated := map[string]bool{}
 	for rows.Next() {
 		var overlay EvolutionOverlay
+		var actorSourceStale bool
 		var requested, applied *float64
 		var beforeRaw, afterRaw, evidenceRaw, windowsRaw []byte
-		if err := rows.Scan(&overlay.ID, &overlay.Ref, &overlay.Kind, &overlay.FieldPath, &overlay.ValueKind, &overlay.SemanticDirection, &requested, &applied, &beforeRaw, &afterRaw, &overlay.Confidence, &evidenceRaw, &windowsRaw, &overlay.PolicyVersion, &overlay.BaseRevision, &overlay.Revision, &overlay.Status, &overlay.Supersedes, &overlay.RollbackOf, &overlay.CooldownUntil, &overlay.CreatedAt); err != nil {
+		if err := rows.Scan(&overlay.ID, &overlay.Ref, &overlay.Kind, &overlay.FieldPath, &overlay.ValueKind, &overlay.SemanticDirection, &requested, &applied, &beforeRaw, &afterRaw, &overlay.Confidence, &evidenceRaw, &windowsRaw, &overlay.PolicyVersion, &overlay.BaseRevision, &overlay.Revision, &overlay.Status, &overlay.Supersedes, &overlay.RollbackOf, &overlay.CooldownUntil, &overlay.CreatedAt, &actorSourceStale); err != nil {
 			return PersonaEvolutionState{}, err
 		}
 		overlay.FluctlightID, overlay.ProfileID = baseline.FluctlightID, baseline.ProfileID
@@ -448,9 +450,45 @@ func loadPersonaEvolutionState(ctx context.Context, query scheduleQuerier, basel
 		}
 		overlay.BeforeValue, overlay.AfterValue = decodeJSONValue(beforeRaw), decodeJSONValue(afterRaw)
 		overlay.EvidenceRefs, overlay.EvidenceWindows = decisionServiceRefValues(decodeArray(evidenceRaw)), decisionServiceRefValues(decodeArray(windowsRaw))
+		actorInvalidated[overlay.ID] = actorSourceStale
 		result.Overlays = append(result.Overlays, overlay)
 	}
-	return result, rows.Err()
+	if err := rows.Err(); err != nil {
+		return PersonaEvolutionState{}, err
+	}
+	rows.Close()
+	personality := deepCloneEvolutionMap(baseline.Personality)
+	behavior := deepCloneEvolutionMap(baseline.BehaviorPolicy)
+	invalidatedPaths := map[string]bool{}
+	for index := range result.Overlays {
+		overlay := &result.Overlays[index]
+		// Historical after-values can be the basis of a later active overlay.
+		// Trace that basis through superseded rows as well as the current row.
+		if overlay.Status != OverlayActive && overlay.Status != OverlaySuperseded {
+			continue
+		}
+		live, err := reflectionOverlayMemoryEvidenceLive(ctx, query, baseline.FluctlightID, *overlay)
+		if err != nil {
+			return PersonaEvolutionState{}, err
+		}
+		if !live || actorInvalidated[overlay.ID] {
+			overlay.Status = OverlaySuperseded
+			invalidatedPaths[string(overlay.Kind)+":"+overlay.FieldPath] = true
+			continue
+		}
+		root := personality
+		if overlay.Kind == OverlayBehaviorPolicy {
+			root = behavior
+		}
+		path := string(overlay.Kind) + ":" + overlay.FieldPath
+		if invalidatedPaths[path] && overlay.RollbackOf == "" && !jsonEqual(jsonBytes(valueAtEvolutionPath(root, overlay.FieldPath)), overlay.BeforeValue) {
+			overlay.Status = OverlaySuperseded
+			continue
+		}
+		setEvolutionPath(root, overlay.FieldPath, overlay.AfterValue)
+		invalidatedPaths[path] = false
+	}
+	return result, nil
 }
 
 func reflectionEvolutionEvidenceRefs(context EvolutionContext) []string {
