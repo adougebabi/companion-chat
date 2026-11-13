@@ -1,0 +1,11 @@
+{
+  "id": "meromero-m2-19-temporal-image-recovery",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "cancelled",
+  "result": "用户要求聚焦 M2 原主链；该新增替身验证尚未开始，暂停独立推进，原 T05/T06 和 M2 验收要求完整保留。",
+  "candidate": "",
+  "completed": "2026-11-13T02:41:29.525523Z",
+  "historical": false,
+  "checks": []
+}

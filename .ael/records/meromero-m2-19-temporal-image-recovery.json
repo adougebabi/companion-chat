@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-19-temporal-image-recovery",
+  "definition_hash": "b1d4a55c3288974aafe55460f96091922c78c221ae92a703e872baf73cafe54d",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "cancelled",
+  "candidate": "",
+  "failure": "",
+  "result": "用户要求聚焦 M2 原主链；该新增替身验证尚未开始，暂停独立推进，原 T05/T06 和 M2 验收要求完整保留。",
+  "created": "2026-11-13T02:38:20.994256Z",
+  "updated": "2026-11-13T02:41:29.525836Z",
+  "completed": "2026-11-13T02:41:29.525523Z",
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}
