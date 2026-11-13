@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "T09 部分完成：memory.recall 原始会话结果保留消息类型、时间及实际发言主体，使用本轮已授权的当前说话者/Owner/自身与会话内稳定匿名标签，不暴露数据库 ID；隔离 PostgreSQL 验证多主体、其他 Fluctlight、原生工具续轮、跨会话隔离和纠错检索。另以真实消息受理与 Owner 纠错验证买票玩笑：保留两次原话、旧购票判断不再作为记忆事实返回、购买状态未知。仍未完成：ReplaceEvidence 纠错后旧摘要不能可靠进入可证明吸收纠正的重建；完全未知来源的传播、在途请求及摘要与代次锁顺序未完整解决；真实 Temporal 和真实模型仍未验收。按用户授权卡壳先跳过，保留 execute 待修复并继续 T10。",
+  "failure": "M3-03可定位legacy summary refs纠错屏障与M3-04 direct/Writer在途纠错发布保护局部VERIFIED，分别在干净提交ae9023ce/b0d47d68通过真实隔离PG回归，无SKIP。完全无法解析来源的旧记忆兼容规则待用户选择，不能自行改变历史自动注入策略。父T09仍缺正确吸收纠错的摘要重建、完整未知来源处理和锁序矩阵，不标完成。继续M3原T10独立领域验收。",
   "result": "",
   "created": "2026-11-10T08:34:31.100173Z",
-  "updated": "2026-11-13T05:00:12.791908Z",
+  "updated": "2026-11-13T05:15:43.947501Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -65,11 +65,11 @@
         "unit": "execute",
         "executor": "codex-m3-t09-provenance",
         "input_version": "721772336aaed658563cf4ea7ba769c7068e8ccb5eead24c91e1ccbcf767a1d7",
-        "candidate_version": "",
+        "candidate_version": "ecb190a2f7d113599641a89c627b2d40167e8ef66621e4cc9c1831e10a7243e3",
         "started": "2026-11-13T05:00:12.612516Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-13T05:15:31.621147Z",
+        "status": "blocked",
+        "reason": "M3-03可定位legacy summary refs纠错屏障与M3-04 direct/Writer在途纠错发布保护局部VERIFIED，分别在干净提交ae9023ce/b0d47d68通过真实隔离PG回归，无SKIP。完全无法解析来源的旧记忆兼容规则待用户选择，不能自行改变历史自动注入策略。父T09仍缺正确吸收纠错的摘要重建、完整未知来源处理和锁序矩阵，不标完成。继续M3原T10独立领域验收。"
       }
     ],
     "checks": null
