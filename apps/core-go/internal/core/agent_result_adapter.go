@@ -533,6 +533,9 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
 			return err
 		}
+		if err := requireConversationBudgetTx(ctx, tx, inboxID, a.now().UTC(), false, true); err != nil {
+			return err
+		}
 		var payload []byte
 		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,COALESCE(correlation_id,''),payload FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&fluctlightID, &correlationID, &payload); err != nil {
 			return err

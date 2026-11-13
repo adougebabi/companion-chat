@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type privateReplyRunKey struct{}
@@ -71,17 +73,27 @@ func (a *App) withPrivateConversationReplyRun(ctx context.Context, scope ToolExe
 	if err != nil {
 		return ctx, err
 	}
+	main, _ := ctx.Value(directMainConversationKey{}).(bool)
+	priorDraft := ""
+	if main && scope.Surface == CapabilitySurfaceConversation {
+		var status string
+		priorDraft, status, err = a.priorPrivateReplyDraft(ctx, scope)
+		if err != nil {
+			return ctx, err
+		}
+		switch status {
+		case "generating", "prepared", "needs_action", "waiting_media", "ready":
+			// A resumed run must bind subsequent media to the existing draft
+			// before the model has had a chance to call conversation.reply.
+			run.DraftRef = priorDraft
+		}
+	}
 	ctx = context.WithValue(ctx, privateReplyRunKey{}, run)
 	if config.Mode == "direct" {
 		// Only the durable main turn can use the atomic decision contract.
 		// Independent Tool calls and WakeUp keep their existing Writer route.
-		main, _ := ctx.Value(directMainConversationKey{}).(bool)
 		if main && scope.Surface == CapabilitySurfaceConversation {
-			oldDraft, err := a.hasPriorPrivateReplyDraft(ctx, scope)
-			if err != nil {
-				return ctx, err
-			}
-			if !oldDraft {
+			if priorDraft == "" {
 				view, err := capabilityRegistryView(a.capabilityRegistryForContext(ctx), directMainReplyCapability{app: a, publication: NewToolPublicationService(a)})
 				if err != nil {
 					return ctx, err
@@ -109,17 +121,20 @@ func (a *App) withPrivateConversationReplyRun(ctx context.Context, scope ToolExe
 // Old durable drafts keep their original Writer contract even when a later
 // configuration requests direct main replies. The Core-derived logical key,
 // not a model-supplied draft hint, identifies the same source and scope.
-func (a *App) hasPriorPrivateReplyDraft(ctx context.Context, scope ToolExecutionRequest) (bool, error) {
+func (a *App) priorPrivateReplyDraft(ctx context.Context, scope ToolExecutionRequest) (string, string, error) {
 	invocation := CapabilityInvocation{SourceFactID: scope.EvidenceID, Metadata: InvocationMetadata{
 		FluctlightID: scope.FluctlightID, ConversationID: scope.ConversationID, AuthorizationActorID: scope.AuthorizationActorID,
 	}}
 	key := privateReplyLogicalKey(ctx, invocation)
-	var exists bool
-	err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_reply_drafts
+	var ref, status string
+	err := a.DB.Pool().QueryRow(ctx, `SELECT id,status FROM public.conversation_reply_drafts
 		WHERE logical_key=$1 AND fluctlight_id=$2 AND conversation_id=$3 AND authorization_actor_id=$4
-		AND status IN ('generating','prepared','needs_action','waiting_media','ready','published','failed','cancelled','legacy_fallback_required'))`,
-		key, scope.FluctlightID, scope.ConversationID, scope.AuthorizationActorID).Scan(&exists)
-	return exists, err
+		AND status IN ('generating','prepared','needs_action','waiting_media','ready','published','failed','cancelled','legacy_fallback_required')`,
+		key, scope.FluctlightID, scope.ConversationID, scope.AuthorizationActorID).Scan(&ref, &status)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", "", nil
+	}
+	return ref, status, err
 }
 
 func privateReplyLogicalKey(ctx context.Context, inv CapabilityInvocation) string {

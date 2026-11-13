@@ -224,6 +224,16 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner strin
 		if status == "claimed" && claimedBy != "" && claimedAt != nil && time.Since(*claimedAt) < 10*time.Minute {
 			return ErrConflict
 		}
+		if eventType == "conversation.turn" && (status == "pending" || status == "claimed") {
+			stopped, err := a.stopAbandonedConversationPartialTx(ctx, tx, inboxID, fluctlightID, decodeObject(payload))
+			if err != nil {
+				return err
+			}
+			if stopped {
+				status = "failed"
+				return nil
+			}
+		}
 		// Automatically reconcile stale claims or exhausted attempts for this Fluctlight
 		// before evaluating earlierPending so an abandoned turn or dead background fact
 		// does not block all future turns indefinitely.
@@ -268,6 +278,107 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner strin
 		return err
 	})
 	return payload, status, err
+}
+
+// An abandoned turn cannot safely start a new model run after a Tool has
+// already committed: a new attempt has different Tool operation identities.
+// Existing reply drafts and already published replies have their own recovery
+// contracts and must continue to use them.
+func (a *App) stopAbandonedConversationPartialTx(ctx context.Context, tx pgx.Tx, inboxID, fluctlightID string, payload map[string]any) (bool, error) {
+	var leaseOwner string
+	err := tx.QueryRow(ctx, `SELECT owner_token FROM public.logical_agent_leases WHERE fluctlight_id=$1 AND expires_at>now()`, fluctlightID).Scan(&leaseOwner)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return false, err
+	}
+	if err == nil {
+		lease, owned := ctx.Value(logicalAgentLeaseKey{}).(logicalAgentLease)
+		if !owned || lease.owner != fluctlightID || lease.token != leaseOwner {
+			return false, ErrConflict
+		}
+	}
+	committed, err := a.turnLedgerHasCommittedEffectsTx(ctx, tx, inboxID)
+	if err != nil || (!committed && !turnHasCommittedEffects(payload, a.capabilityRegistry())) {
+		return false, err
+	}
+	conversationID, turnID := stringValue(payload["conversation_id"]), stringValue(payload["turn_id"])
+	var assistantExists bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE conversation_id=$1 AND (idempotency_key=$2 OR (turn_id=$3 AND kind='assistant')))`, conversationID, "assistant:"+turnID, turnID).Scan(&assistantExists); err != nil {
+		return false, err
+	}
+	if assistantExists {
+		return false, nil
+	}
+	var draftRef string
+	if err := tx.QueryRow(ctx, `SELECT CASE WHEN count(*)=1 THEN min(id) ELSE '' END FROM public.conversation_reply_drafts WHERE source_fact_id=$1 AND fluctlight_id=$2 AND conversation_id=$3 AND status IN ('generating','prepared','needs_action','waiting_media','ready')`, inboxID, fluctlightID, conversationID).Scan(&draftRef); err != nil {
+		return false, err
+	}
+	if draftRef != "" {
+		other, err := a.turnHasEffectsOutsideReplyDraftTx(ctx, tx, inboxID, fluctlightID, draftRef, payload)
+		if err != nil || !other {
+			return false, err
+		}
+	}
+	if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='failed',error_code='agent_partial_committed',processed_at=now(),claimed_by=NULL,claimed_at=NULL WHERE id=$1 AND status IN ('pending','claimed')`, inboxID); err != nil {
+		return false, err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET last_error='agent_partial_committed' WHERE intent_id=$1`, "cognition_intent:"+inboxID); err != nil {
+		return false, err
+	}
+	if draftRef == "" {
+		if _, err := tx.Exec(ctx, `UPDATE public.conversation_reply_drafts SET status='failed',last_error='agent_partial_committed',updated_at=now() WHERE source_fact_id=$1 AND status IN ('prepared','needs_action','waiting_media','ready')`, inboxID); err != nil {
+			return false, err
+		}
+	}
+	return true, nil
+}
+
+// A draft makes only its own accepted reply and explicitly bound media
+// recoverable. An unrelated Tool committed in the same turn is still a
+// partial effect and must not be replayed by a fresh model run.
+func (a *App) turnHasEffectsOutsideReplyDraftTx(ctx context.Context, tx pgx.Tx, inboxID, fluctlightID, draftRef string, payload map[string]any) (bool, error) {
+	rows, err := tx.Query(ctx, `SELECT result FROM public.tool_executions WHERE fluctlight_id=$1 AND invocation->>'source_fact_id'=$2`, fluctlightID, inboxID)
+	if err != nil {
+		return false, err
+	}
+	results := []any{}
+	for rows.Next() {
+		var raw []byte
+		if err := rows.Scan(&raw); err != nil {
+			rows.Close()
+			return false, err
+		}
+		results = append(results, decodeObject(raw))
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return false, err
+	}
+	rows.Close()
+	if len(mapValue(payload["agent_result"])) > 0 {
+		return true, nil
+	}
+	results = append(results, arrayValue(mapValue(payload["agent_partial"])["capability_results"])...)
+	for _, raw := range results {
+		result := mapValue(raw)
+		if !partialHasCommittedMutation(map[string]any{"capability_results": []any{result}}, a.capabilityRegistry()) {
+			continue
+		}
+		output := mapValue(result["output"])
+		if stringValue(result["capability_name"]) == conversationReplyCapabilityName && result["status"] == "accepted" && stringValue(output["draft_ref"]) == draftRef {
+			continue
+		}
+		if stringValue(result["capability_name"]) == "media.image.generate" && stringValue(output["media_intent_id"]) != "" {
+			var bound bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_reply_actions WHERE draft_id=$1 AND media_intent_id=$2 AND status='bound')`, draftRef, stringValue(output["media_intent_id"])).Scan(&bound); err != nil {
+				return false, err
+			}
+			if bound {
+				continue
+			}
+		}
+		return true, nil
+	}
+	return false, nil
 }
 
 // releaseCognitionClaim makes a failed claim available to the durable retry
@@ -448,8 +559,23 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 				} else {
 					return "", nil, ErrConflict
 				}
-			} else if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='claimed',claimed_by=$2,claimed_at=now(),attempt_count=attempt_count+1,error_code=NULL WHERE id=$1`, existing, claimOwner); err != nil {
-				return "", nil, err
+			} else {
+				// A killed stream can leave a committed Tool result before any
+				// reply. A new attempt has a different operation identity, so it
+				// must not silently execute that action again. Preserve the same
+				// partial-commit boundary used by failed and expired turns.
+				if (existingStatus == "claimed" || existingStatus == "pending") && !assistantExists {
+					stopped, err := a.stopAbandonedConversationPartialTx(ctx, tx, existing, fluctlightID, existingData)
+					if err != nil {
+						return "", nil, err
+					}
+					if stopped {
+						return existing, supersededIDs, nil
+					}
+				}
+				if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='claimed',claimed_by=$2,claimed_at=now(),attempt_count=attempt_count+1,error_code=NULL WHERE id=$1`, existing, claimOwner); err != nil {
+					return "", nil, err
+				}
 			}
 		}
 		return existing, supersededIDs, nil

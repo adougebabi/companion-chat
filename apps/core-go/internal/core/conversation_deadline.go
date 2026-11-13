@@ -143,16 +143,18 @@ func conversationBudgetMatches(ctx context.Context, inboxID string, payload map[
 }
 func requireConversationBudgetTx(ctx context.Context, tx pgx.Tx, inboxID string, now time.Time, deadline bool, force ...bool) error {
 	expected, _ := ctx.Value(conversationBudgetKey{}).(conversationBudgetScope)
-	if (expected.InboxID == "" || expected.InboxID != inboxID) && (len(force) == 0 || !force[0]) {
+	claim, _ := ctx.Value(directTurnClaimKey{}).(directTurnClaim)
+	hasClaim := claim.InboxID == inboxID && claim.Owner != ""
+	if (expected.InboxID == "" || expected.InboxID != inboxID) && !hasClaim && (len(force) == 0 || !force[0]) {
 		return nil
 	}
 	if inboxID == "" {
 		return nil
 	}
 	var raw []byte
-	var status string
+	var status, claimedBy string
 	var occurred time.Time
-	err := tx.QueryRow(ctx, `SELECT payload,status,occurred_at FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&raw, &status, &occurred)
+	err := tx.QueryRow(ctx, `SELECT payload,status,COALESCE(claimed_by,''),occurred_at FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&raw, &status, &claimedBy, &occurred)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil
 	}
@@ -162,6 +164,9 @@ func requireConversationBudgetTx(ctx context.Context, tx pgx.Tx, inboxID string,
 	payload := decodeObject(raw)
 	if !conversationBudgetMatches(ctx, inboxID, payload) {
 		return ErrConflict
+	}
+	if hasClaim && (status != "claimed" || claimedBy != claim.Owner) {
+		return errDirectTurnSnapshotStale
 	}
 	if !deadline {
 		return nil
@@ -197,7 +202,7 @@ func turnHasCommittedEffects(payload map[string]any, registry *CapabilityRegistr
 	return len(mapValue(payload["agent_result"])) > 0 || partialHasCommittedMutation(payload["agent_partial"], registry)
 }
 func (a *App) turnLedgerHasCommittedEffectsTx(ctx context.Context, tx pgx.Tx, inboxID string) (bool, error) {
-	rows, err := tx.Query(ctx, `SELECT result FROM public.tool_executions WHERE invocation->>'source_fact_id'=$1`, inboxID)
+	rows, err := tx.Query(ctx, `SELECT result FROM public.tool_executions WHERE fluctlight_id=(SELECT fluctlight_id FROM public.cognition_inbox WHERE id=$1) AND invocation->>'source_fact_id'=$1`, inboxID)
 	if err != nil {
 		return false, err
 	}

@@ -1,0 +1,267 @@
+M2-18 preserved failed attempts; see review for classification.
+
+===== fixture-failure =====
+SOURCE clean HEAD plus M2-18 test only
+COMMAND go test ./internal/core -count=1 -run ^TestM2DirectExpiredClaimDoesNotRepeatCommittedTool$ -v -timeout=120s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool
+    m2_direct_claim_recovery_test.go:64: child exited before committed action: exit status 1; === RUN   TestM2DirectExpiredClaimChild
+            m2_direct_claim_recovery_test.go:153: child exited before the controlled process interruption: adk_run: [NodeRunError] kev_persona_proposal_empty
+                ------------------------
+                node path: [node_1, ChatModel]
+        --- FAIL: TestM2DirectExpiredClaimChild (0.36s)
+        FAIL
+--- FAIL: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool (7.87s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	8.543s
+FAIL
+
+EXIT_CODE 1
+
+===== red2 =====
+SOURCE_HEAD 576d2e318579cb18c6236b82a4db3c007cac47a6
+OVERLAYS apps/core-go/internal/core/m2_direct_claim_recovery_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestM2DirectExpiredClaimDoesNotRepeatCommittedTool$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool
+    m2_direct_claim_recovery_test.go:107: context deadline exceeded
+--- FAIL: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool (90.17s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	90.850s
+FAIL
+
+EXIT_CODE 1
+
+===== red3 =====
+SOURCE_HEAD 576d2e318579cb18c6236b82a4db3c007cac47a6
+OVERLAYS apps/core-go/internal/core/m2_direct_claim_recovery_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestM2DirectExpiredClaimDoesNotRepeatCommittedTool$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool
+2026/11/13 09:26:41 INFO capability lifecycle capability=capability.catalog call_id=m2-resume-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 09:26:41 WARN tool.call.handled capability=affect_event call_id=m2-resume-2 warning_code=affect_state_revision_conflict disposition=awaiting_state effect_applied=false
+    m2_direct_claim_recovery_test.go:130: recovery events=1 receipts=2 messages=1 status=processed code= model_calls=3 err=<nil>
+    m2_direct_claim_recovery_test.go:132: same turn repeated a committed native action: events=1 receipts=2
+--- FAIL: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool (2.61s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.448s
+FAIL
+
+EXIT_CODE 1
+
+===== red4 =====
+SOURCE_HEAD 576d2e318579cb18c6236b82a4db3c007cac47a6
+OVERLAYS apps/core-go/internal/core/m2_direct_claim_recovery_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestM2DirectExpiredClaimDoesNotRepeatCommittedTool$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool
+    m2_direct_claim_recovery_test.go:76: pre-crash state intents=0 receipts=1 messages=0 status=claimed err=<nil>
+--- FAIL: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool (2.75s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.423s
+FAIL
+
+EXIT_CODE 1
+
+===== red5 =====
+SOURCE_HEAD 576d2e318579cb18c6236b82a4db3c007cac47a6
+OVERLAYS apps/core-go/internal/core/m2_direct_claim_recovery_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestM2DirectExpiredClaimDoesNotRepeatCommittedTool$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool
+    m2_direct_claim_recovery_test.go:78: controlled Image receipt: {"output": {"handled": true, "disposition": "unavailable", "warning_code": "capability_prepare_failed", "refresh_reply": false, "effect_applied": false, "refresh_context": false, "mutation_committed": false, "retry_same_arguments": false}, "status": "handled", "call_id": "m2-first-2", "retryable": false, "correlation_id": "conversation-cognition-agent:turn:m2-claim-recovery", "capability_name": "media.image.generate", "acting_profile_id": "default", "provider_request_id": "provider:2da5ff76b4dd434c125d9a66d40544c6"}
+    m2_direct_claim_recovery_test.go:80: pre-crash state intents=0 receipts=1 messages=0 status=claimed err=<nil>
+--- FAIL: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool (2.39s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.061s
+FAIL
+
+EXIT_CODE 1
+
+===== red6 =====
+SOURCE_HEAD 576d2e318579cb18c6236b82a4db3c007cac47a6
+OVERLAYS apps/core-go/internal/core/m2_direct_claim_recovery_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestM2DirectExpiredClaimDoesNotRepeatCommittedTool$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool
+2026/11/13 09:31:04 INFO capability lifecycle capability=capability.catalog call_id=m2-resume-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+    m2_direct_claim_recovery_test.go:137: recovery intents=2 receipts=2 messages=0 status=failed code=adk_run_failed model_calls=4 err=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": unexpected extra recovery model call
+        ------------------------
+        node path: [node_1, ToolNode, node_1]
+    m2_direct_claim_recovery_test.go:139: same turn repeated an accepted Image operation: intents=2 receipts=2
+--- FAIL: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool (2.12s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.824s
+FAIL
+
+EXIT_CODE 1
+
+===== fact-red =====
+SOURCE_HEAD 576d2e318579cb18c6236b82a4db3c007cac47a6
+OVERLAYS apps/core-go/internal/core/m2_direct_claim_recovery_test.go,apps/core-go/internal/core/cognition.go
+COMMAND go test ./internal/core -count=1 -run ^TestM2ExpiredClaimPreservesFactOnlyMediaDraft$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft
+2026/11/13 09:43:10 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+    m2_direct_claim_recovery_test.go:240: fact-only draft was blocked on recovery: inbox=failed draft=failed err=<nil>
+--- FAIL: TestM2ExpiredClaimPreservesFactOnlyMediaDraft (1.58s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.307s
+FAIL
+
+EXIT_CODE 1
+
+===== worker-red =====
+SOURCE_HEAD 576d2e318579cb18c6236b82a4db3c007cac47a6
+OVERLAYS apps/core-go/internal/core/m2_direct_claim_recovery_test.go,apps/core-go/internal/core/cognition.go
+COMMAND go test ./internal/core -count=1 -run ^TestM2DirectExpiredClaimDoesNotRepeatCommittedTool$/worker$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker
+2026/11/13 09:44:24 INFO capability lifecycle capability=capability.catalog call_id=m2-resume-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+    m2_direct_claim_recovery_test.go:27: recovery intents=2 receipts=2 messages=0 status=failed code=adk_run_failed model_calls=4 err=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": unexpected extra recovery model call
+        ------------------------
+        node path: [node_1, ToolNode, node_1]
+    m2_direct_claim_recovery_test.go:27: same turn repeated an accepted Image operation: intents=2 receipts=2
+--- FAIL: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool (2.52s)
+    --- FAIL: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker (2.52s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.227s
+FAIL
+
+EXIT_CODE 1
+
+===== review-red =====
+SOURCE_HEAD 576d2e318579cb18c6236b82a4db3c007cac47a6
+OVERLAYS apps/core-go/internal/core/m2_direct_claim_recovery_test.go,apps/core-go/internal/core/cognition.go,apps/core-go/internal/core/conversation_deadline.go
+COMMAND go test ./internal/core -count=1 -run ^Test(M2DirectExpiredClaim(DoesNotRepeatCommittedTool|WithoutCommittedToolCanRecover)|M2ExpiredClaimPreservesFactOnlyMediaDraft)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=agent_partial_committed
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream-pending
+2026/11/13 09:56:03 INFO capability lifecycle capability=capability.catalog call_id=m2-resume-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+    m2_direct_claim_recovery_test.go:27: recovery intents=2 receipts=2 messages=0 status=failed code=adk_run_failed model_calls=4 err=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": unexpected extra recovery model call
+        ------------------------
+        node path: [node_1, ToolNode, node_1]
+    m2_direct_claim_recovery_test.go:27: same turn repeated an accepted Image operation: intents=2 receipts=2
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=<nil>
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker-pending
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=<nil>
+--- FAIL: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool (9.67s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream (2.27s)
+    --- FAIL: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream-pending (2.85s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker (2.52s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker-pending (2.02s)
+=== RUN   TestM2DirectExpiredClaimWithoutCommittedToolCanRecover
+    m2_direct_claim_recovery_test.go:229: live no-write claim was stolen: owner=go-stream:claim_9c780e4295a288b41f4e6584cacf34bb retry_err=<nil> query_err=<nil>
+--- FAIL: TestM2DirectExpiredClaimWithoutCommittedToolCanRecover (2.23s)
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/independent_image_false
+2026/11/13 09:56:12 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/independent_image_true
+2026/11/13 09:56:14 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+    m2_direct_claim_recovery_test.go:244: commit independent Image operation: result=capability.CapabilityResult{ActingProfileID:"", CallID:"", CapabilityName:"", Status:"", Output:interface {}(nil), ErrorCode:"", Retryable:false, ProviderRequestID:"", CorrelationID:"", Duration:0, RequiredContext:[]capability.ContextSlot(nil)} err=invalid capability arguments: native ToolCall requires its real provider request id
+--- FAIL: TestM2ExpiredClaimPreservesFactOnlyMediaDraft (4.58s)
+    --- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/independent_image_false (2.30s)
+    --- FAIL: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/independent_image_true (2.28s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	17.287s
+FAIL
+
+EXIT_CODE 1
+
+===== mixed-red =====
+SOURCE_HEAD 576d2e318579cb18c6236b82a4db3c007cac47a6
+OVERLAYS apps/core-go/internal/core/m2_direct_claim_recovery_test.go,apps/core-go/internal/core/cognition.go,apps/core-go/internal/core/conversation_deadline.go
+COMMAND go test ./internal/core -count=1 -run ^TestM2ExpiredClaimPreservesFactOnlyMediaDraft$/independent_image_true$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/independent_image_true
+2026/11/13 09:57:07 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+    m2_direct_claim_recovery_test.go:244: draft hid an independent committed image: inbox=claimed code= draft=needs_action
+--- FAIL: TestM2ExpiredClaimPreservesFactOnlyMediaDraft (2.39s)
+    --- FAIL: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/independent_image_true (2.39s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.218s
+FAIL
+
+EXIT_CODE 1
+
+===== green3 =====
+SOURCE_HEAD 576d2e318579cb18c6236b82a4db3c007cac47a6
+OVERLAYS apps/core-go/internal/core/m2_direct_claim_recovery_test.go,apps/core-go/internal/core/cognition.go,apps/core-go/internal/core/conversation_deadline.go,apps/core-go/internal/core/private_reply_run.go
+COMMAND go test ./internal/core -count=1 -run ^Test(M2DirectExpiredClaim(DoesNotRepeatCommittedTool|WithoutCommittedToolCanRecover)|M2ExpiredClaimPreservesFactOnlyMediaDraft)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=agent_partial_committed
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream-pending
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=agent_partial_committed
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=<nil>
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker-pending
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=<nil>
+--- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool (10.07s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream (2.46s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream-pending (2.35s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker (2.62s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker-pending (2.65s)
+=== RUN   TestM2DirectExpiredClaimWithoutCommittedToolCanRecover
+--- PASS: TestM2DirectExpiredClaimWithoutCommittedToolCanRecover (1.42s)
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/draft-only
+2026/11/13 10:00:23 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/independent-image
+2026/11/13 10:00:24 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/bound-image
+2026/11/13 10:00:25 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+    m2_direct_claim_recovery_test.go:244: commit bound draft Image: result=capability.CapabilityResult{ActingProfileID:"", CallID:"", CapabilityName:"", Status:"", Output:interface {}(nil), ErrorCode:"", Retryable:false, ProviderRequestID:"", CorrelationID:"", Duration:0, RequiredContext:[]capability.ContextSlot(nil)} err=resource is not authorized
+--- FAIL: TestM2ExpiredClaimPreservesFactOnlyMediaDraft (4.22s)
+    --- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/draft-only (1.41s)
+    --- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/independent-image (1.23s)
+    --- FAIL: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/bound-image (1.58s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	16.526s
+FAIL
+
+EXIT_CODE 1
+
+===== claim-fence-red =====
+SOURCE_HEAD 576d2e318579cb18c6236b82a4db3c007cac47a6
+OVERLAYS apps/core-go/internal/core/m2_direct_claim_recovery_test.go,apps/core-go/internal/core/cognition.go,apps/core-go/internal/core/private_reply_run.go
+COMMAND go test ./internal/core -count=1 -run ^TestM2LostClaimCannotCommitToolOrFailNewOwner$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner/fact_only
+    m2_direct_claim_recovery_test.go:288: stale run crossed claim fence: tool_err=<nil> failure_err=<nil> intents=1 receipts=1 status=failed owner=
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner/legacy_direct
+    m2_direct_claim_recovery_test.go:288: stale run crossed claim fence: tool_err=<nil> failure_err=<nil> intents=1 receipts=1 status=failed owner=
+--- FAIL: TestM2LostClaimCannotCommitToolOrFailNewOwner (5.26s)
+    --- FAIL: TestM2LostClaimCannotCommitToolOrFailNewOwner/fact_only (2.57s)
+    --- FAIL: TestM2LostClaimCannotCommitToolOrFailNewOwner/legacy_direct (2.69s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	5.934s
+FAIL
+
+EXIT_CODE 1
+
+===== claim-fence-green =====
+SOURCE_HEAD 576d2e318579cb18c6236b82a4db3c007cac47a6
+OVERLAYS apps/core-go/internal/core/m2_direct_claim_recovery_test.go,apps/core-go/internal/core/cognition.go,apps/core-go/internal/core/private_reply_run.go,apps/core-go/internal/core/conversation_deadline.go,apps/core-go/internal/core/agent_result_adapter.go
+COMMAND go test ./internal/core -count=1 -run ^TestM2LostClaimCannotCommitToolOrFailNewOwner$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner/fact_only
+    m2_direct_claim_recovery_test.go:288: stale run crossed claim fence: tool_err=<nil> failure_err=direct_turn_snapshot_stale intents=1 receipts=1 status=claimed owner=new-stream
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner/legacy_direct
+    m2_direct_claim_recovery_test.go:288: stale run crossed claim fence: tool_err=<nil> failure_err=direct_turn_snapshot_stale intents=1 receipts=1 status=claimed owner=new-stream
+--- FAIL: TestM2LostClaimCannotCommitToolOrFailNewOwner (4.39s)
+    --- FAIL: TestM2LostClaimCannotCommitToolOrFailNewOwner/fact_only (2.15s)
+    --- FAIL: TestM2LostClaimCannotCommitToolOrFailNewOwner/legacy_direct (2.24s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	5.047s
+FAIL
+
+EXIT_CODE 1

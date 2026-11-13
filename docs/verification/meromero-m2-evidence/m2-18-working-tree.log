@@ -1,0 +1,40 @@
+SOURCE current working tree including four original drafts
+COMMAND go test ./internal/core -count=1 -run ^Test(M2DirectExpiredClaim(DoesNotRepeatCommittedTool|WithoutCommittedToolCanRecover)|M2ExpiredClaimPreservesFactOnlyMediaDraft|M2LostClaimCannotCommitToolOrFailNewOwner)$ -v -timeout=120s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=agent_partial_committed
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream-pending
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=agent_partial_committed
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=<nil>
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker-pending
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=<nil>
+--- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool (5.96s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream (2.10s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream-pending (1.31s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker (1.24s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker-pending (1.32s)
+=== RUN   TestM2DirectExpiredClaimWithoutCommittedToolCanRecover
+--- PASS: TestM2DirectExpiredClaimWithoutCommittedToolCanRecover (1.25s)
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner/fact_only
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner/legacy_direct
+--- PASS: TestM2LostClaimCannotCommitToolOrFailNewOwner (2.33s)
+    --- PASS: TestM2LostClaimCannotCommitToolOrFailNewOwner/fact_only (1.23s)
+    --- PASS: TestM2LostClaimCannotCommitToolOrFailNewOwner/legacy_direct (1.10s)
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/draft-only
+2026/11/13 10:10:43 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/independent-image
+2026/11/13 10:10:45 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/bound-image
+2026/11/13 10:10:46 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft (3.49s)
+    --- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/draft-only (1.07s)
+    --- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/independent-image (1.24s)
+    --- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/bound-image (1.18s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	13.945s
+
+EXIT_CODE 0

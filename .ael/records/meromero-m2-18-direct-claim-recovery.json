@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-18-direct-claim-recovery",
+  "definition_hash": "5ef72b1aca754948555d4fdf612e76fddb3c45045ee1da5c8ed22b73db619f47",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-13T01:16:13.613729Z",
+  "updated": "2026-11-13T02:14:11.521879Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-b3bca0e797e78b1cd673",
+        "unit": "define",
+        "executor": "codex-m2-18",
+        "input_version": "d97f765a9201e1b6c744fa0676844bf47aa3965eba7175d13e4461c935caf357",
+        "candidate_version": "d97f765a9201e1b6c744fa0676844bf47aa3965eba7175d13e4461c935caf357",
+        "started": "2026-11-13T01:16:41.495587Z",
+        "ended": "2026-11-13T01:17:34.179316Z",
+        "status": "pass",
+        "reason": "限定原 T04/M2 默认流式主链在已提交工具动作后中断、领取过期及同轮恢复的防重；隔离库红测先证明，正常恢复及已有模式回归单独覆盖，不涉及多 LoRA 或其他旁支。"
+      },
+      {
+        "id": "AT-0e7daa0e1f7b02a72ece",
+        "unit": "analysis",
+        "executor": "codex-m2-18",
+        "input_version": "d97f765a9201e1b6c744fa0676844bf47aa3965eba7175d13e4461c935caf357",
+        "candidate_version": "d97f765a9201e1b6c744fa0676844bf47aa3965eba7175d13e4461c935caf357",
+        "started": "2026-11-13T01:18:17.734965Z",
+        "ended": "2026-11-13T01:18:18.10655Z",
+        "status": "pass",
+        "reason": "静态路径显示流式领取 2 分钟过期后 attempt 递增，工具操作标识跟随 attempt，而领取时只有 failed 状态检查提交账本；该潜在窗口须先由真实事务与进程中断红测确认。拟复用既有 agent_partial_committed 契约，保留无动作恢复及已完成重放对照。"
+      },
+      {
+        "id": "AT-16cdc9bc9b3d62f6e3e6",
+        "unit": "execute",
+        "executor": "codex-m2-18",
+        "input_version": "d97f765a9201e1b6c744fa0676844bf47aa3965eba7175d13e4461c935caf357",
+        "candidate_version": "",
+        "started": "2026-11-13T01:18:46.607689Z",
+        "ended": "2026-11-13T02:13:58.387624Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-4a2e911e894718aa5f38",
+        "unit": "execute",
+        "executor": "codex-m2-18-resume",
+        "input_version": "4234522c39553ac2a3a05b7d99aa5865e933e4e94344e336210bd0ae46aa7fc3",
+        "candidate_version": "",
+        "started": "2026-11-13T02:14:11.233844Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}

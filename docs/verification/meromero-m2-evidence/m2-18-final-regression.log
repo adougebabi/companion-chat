@@ -1,0 +1,111 @@
+SOURCE_HEAD 576d2e318579cb18c6236b82a4db3c007cac47a6
+OVERLAYS apps/core-go/internal/core/m2_direct_claim_recovery_test.go,apps/core-go/internal/core/cognition.go,apps/core-go/internal/core/conversation_deadline.go,apps/core-go/internal/core/private_reply_run.go,apps/core-go/internal/core/agent_result_adapter.go
+COMMAND go test ./internal/core -count=1 -run ^Test(M2DirectExpiredClaim(DoesNotRepeatCommittedTool|WithoutCommittedToolCanRecover)|M2ExpiredClaimPreservesFactOnlyMediaDraft|M2LostClaimCannotCommitToolOrFailNewOwner|ReleaseCognitionClaimRequeuesOwnedClaim|EnqueueTurnFactClaimedReplaysCommittedAssistant|ConversationCommittedEffectsIncludeSettledCognitionAndPartialTools|ConversationBudgetFencesOldExecutionWithoutChangingStandaloneTools|ConversationDeadline(PreservesSettledWaitingReply|QueueSweepAndPublicationFence)|DirectTurn(RetryKeepsOriginalModelBinding|StaleSnapshotClaimDoesNotFailNewOwner)|DirectMainReply(RetainsPriorNativeAction|PublishesAndSettlesAtomically|RetainsExistingDraftContract)|DirectConversationStreamsCommittedUserBeforeProviderAndAssistantAfterCommit|DefaultPrivateReplyUsesConfiguredModelWithoutWriter|PrivateReplyModeSwitchKeepsExplicitFactOnly|DefaultDirectWearsBeforeSelfieAndDeliversOnce|MomentDisabledKeepsDefaultDirectChatAndImageAvailable|ReplyDraftRecovery(PreparePublishReplay|CanonicalMediaOnly)|ReplyMediaPublicationPreservesOriginalSourceAndRejectsCancellation)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestReleaseCognitionClaimRequeuesOwnedClaim
+--- PASS: TestReleaseCognitionClaimRequeuesOwnedClaim (1.82s)
+=== RUN   TestEnqueueTurnFactClaimedReplaysCommittedAssistant
+--- PASS: TestEnqueueTurnFactClaimedReplaysCommittedAssistant (1.22s)
+=== RUN   TestConversationBudgetFencesOldExecutionWithoutChangingStandaloneTools
+--- PASS: TestConversationBudgetFencesOldExecutionWithoutChangingStandaloneTools (0.00s)
+=== RUN   TestConversationCommittedEffectsIncludeSettledCognitionAndPartialTools
+--- PASS: TestConversationCommittedEffectsIncludeSettledCognitionAndPartialTools (0.00s)
+=== RUN   TestConversationDeadlineQueueSweepAndPublicationFence
+--- PASS: TestConversationDeadlineQueueSweepAndPublicationFence (1.05s)
+=== RUN   TestConversationDeadlinePreservesSettledWaitingReply
+--- PASS: TestConversationDeadlinePreservesSettledWaitingReply (1.66s)
+=== RUN   TestDirectConversationStreamsCommittedUserBeforeProviderAndAssistantAfterCommit
+--- PASS: TestDirectConversationStreamsCommittedUserBeforeProviderAndAssistantAfterCommit (1.52s)
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/commit
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/rollback
+--- PASS: TestDirectMainReplyPublishesAndSettlesAtomically (2.20s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/commit (1.12s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/rollback (1.08s)
+=== RUN   TestDirectMainReplyRetainsExistingDraftContract
+--- PASS: TestDirectMainReplyRetainsExistingDraftContract (1.21s)
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction/success
+2026/11/13 10:09:24 INFO capability lifecycle capability=capability.catalog call_id=direct-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction/settlement_failure
+2026/11/13 10:09:25 INFO capability lifecycle capability=capability.catalog call_id=direct-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMainReplyRetainsPriorNativeAction (2.94s)
+    --- PASS: TestDirectMainReplyRetainsPriorNativeAction/success (1.55s)
+    --- PASS: TestDirectMainReplyRetainsPriorNativeAction/settlement_failure (1.39s)
+=== RUN   TestDirectTurnRetryKeepsOriginalModelBinding
+    direct_turn_model_snapshot_integration_test.go:108: M1_04B first=model-a retry=model-a new_turn=model-b fingerprint_preserved=true snapshot_has_secret=false
+--- PASS: TestDirectTurnRetryKeepsOriginalModelBinding (1.23s)
+=== RUN   TestDirectTurnStaleSnapshotClaimDoesNotFailNewOwner
+--- PASS: TestDirectTurnStaleSnapshotClaimDoesNotFailNewOwner (1.14s)
+=== RUN   TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter
+--- PASS: TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter (1.40s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/13 10:09:31 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (1.56s)
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=agent_partial_committed
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream-pending
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=agent_partial_committed
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=<nil>
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker-pending
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=<nil>
+--- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool (7.47s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream (1.45s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream-pending (1.55s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker (1.87s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker-pending (2.59s)
+=== RUN   TestM2DirectExpiredClaimWithoutCommittedToolCanRecover
+--- PASS: TestM2DirectExpiredClaimWithoutCommittedToolCanRecover (2.51s)
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner/fact_only
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner/legacy_direct
+--- PASS: TestM2LostClaimCannotCommitToolOrFailNewOwner (4.22s)
+    --- PASS: TestM2LostClaimCannotCommitToolOrFailNewOwner/fact_only (1.81s)
+    --- PASS: TestM2LostClaimCannotCommitToolOrFailNewOwner/legacy_direct (2.41s)
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/draft-only
+2026/11/13 10:09:47 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/independent-image
+2026/11/13 10:09:49 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/bound-image
+2026/11/13 10:09:51 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft (6.26s)
+    --- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/draft-only (2.34s)
+    --- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/independent-image (2.40s)
+    --- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/bound-image (1.52s)
+=== RUN   TestDefaultDirectWearsBeforeSelfieAndDeliversOnce
+2026/11/13 10:09:52 INFO capability lifecycle capability=capability.catalog call_id=m2-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 10:09:52 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDefaultDirectWearsBeforeSelfieAndDeliversOnce (1.41s)
+=== RUN   TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable
+2026/11/13 10:09:54 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-existing-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/13 10:09:54 INFO capability lifecycle capability=capability.catalog call_id=m2-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable (1.17s)
+=== RUN   TestReplyDraftRecoveryPreparePublishReplay
+2026/11/13 10:09:55 WARN reply.draft.reconciled correlation_id=turn:draft-source metadata="map[capability_name:conversation.reply disposition:continue_canonical_draft ignored_count:1 reason:not_current_draft requested_count:1 surface:conversation warning_code:reply_draft_hint_ignored]"
+2026/11/13 10:09:55 INFO reply.evidence.reconciled correlation_id=turn:draft-source metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 10:09:55 WARN reply.draft.reconciled correlation_id=turn:draft-source metadata="map[capability_name:conversation.reply disposition:continue_canonical_draft ignored_count:1 reason:not_current_draft requested_count:1 surface:conversation warning_code:reply_draft_hint_ignored]"
+2026/11/13 10:09:55 WARN reply.draft.reconciled correlation_id=turn:draft-source metadata="map[capability_name:conversation.reply disposition:continue_canonical_draft ignored_count:1 reason:not_current_draft requested_count:1 surface:conversation warning_code:reply_draft_hint_ignored]"
+--- PASS: TestReplyDraftRecoveryPreparePublishReplay (0.92s)
+=== RUN   TestReplyDraftRecoveryCanonicalMediaOnly
+2026/11/13 10:09:56 INFO reply.evidence.reconciled correlation_id=turn:draft-media-source metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 10:09:56 WARN reply.draft.reconciled correlation_id=turn:draft-media-source metadata="map[capability_name:conversation.reply disposition:continue_canonical_draft ignored_count:1 reason:not_current_draft requested_count:1 surface:conversation warning_code:reply_draft_hint_ignored]"
+2026/11/13 10:09:56 WARN reply.draft.reconciled correlation_id=turn:draft-media-source metadata="map[capability_name:conversation.reply disposition:continue_canonical_draft ignored_count:1 reason:not_current_draft requested_count:1 surface:conversation warning_code:reply_draft_hint_ignored]"
+2026/11/13 10:09:56 WARN reply.draft.reconciled correlation_id=turn:draft-media-source metadata="map[capability_name:conversation.reply disposition:continue_canonical_draft ignored_count:1 reason:not_current_draft requested_count:1 surface:conversation warning_code:reply_draft_hint_ignored]"
+2026/11/13 10:09:56 WARN reply.draft.reconciled correlation_id=turn:draft-media-source metadata="map[capability_name:conversation.reply disposition:continue_canonical_draft ignored_count:1 reason:not_current_draft requested_count:1 surface:conversation warning_code:reply_draft_hint_ignored]"
+2026/11/13 10:09:56 WARN reply.draft.reconciled correlation_id=turn:draft-media-source metadata="map[capability_name:conversation.reply disposition:continue_canonical_draft ignored_count:1 reason:not_current_draft requested_count:1 surface:conversation warning_code:reply_draft_hint_ignored]"
+2026/11/13 10:09:56 INFO reply.evidence.reconciled correlation_id=turn:draft-media-source metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 10:09:56 WARN reply.draft.reconciled correlation_id=turn:draft-media-source metadata="map[capability_name:conversation.reply disposition:continue_canonical_draft ignored_count:1 reason:not_current_draft requested_count:1 surface:conversation warning_code:reply_draft_hint_ignored]"
+--- PASS: TestReplyDraftRecoveryCanonicalMediaOnly (1.08s)
+=== RUN   TestReplyMediaPublicationPreservesOriginalSourceAndRejectsCancellation
+=== RUN   TestReplyMediaPublicationPreservesOriginalSourceAndRejectsCancellation/waiting
+=== RUN   TestReplyMediaPublicationPreservesOriginalSourceAndRejectsCancellation/cancelled
+--- PASS: TestReplyMediaPublicationPreservesOriginalSourceAndRejectsCancellation (2.21s)
+    --- PASS: TestReplyMediaPublicationPreservesOriginalSourceAndRejectsCancellation/waiting (1.03s)
+    --- PASS: TestReplyMediaPublicationPreservesOriginalSourceAndRejectsCancellation/cancelled (1.17s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	46.869s
+
+EXIT_CODE 0

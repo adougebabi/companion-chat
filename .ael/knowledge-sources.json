@@ -423,6 +423,27 @@
       }
     },
     {
+      "path": "docs/verification/meromero-m2-evidence/m2-18-review.md",
+      "hash": "80251caddca7a110f008c7f0d02262d0858d2122e9756899963bdee47169c2bb",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/meromero-m2-evidence/m2-18-review.md",
+        "title": "m2-18-review.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/meromero-m2-evidence/m2-18-review.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/meromero-m2-evidence/m2-18-review.md",
+        "hash": "80251caddca7a110f008c7f0d02262d0858d2122e9756899963bdee47169c2bb",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
       "path": "docs/verification/meromero-m2-evidence/m2-comfy-direct-smoke-20261113.md",
       "hash": "e06764051176bb45053c1af4944ef50b3352c64f88f0bddd84f2be330cb759b1",
       "action": "historical",
@@ -466,7 +487,7 @@
     },
     {
       "path": "docs/verification/meromero-m2-progress-20261112.md",
-      "hash": "2e2f4c26a76207d48e4f3296e9e3314906adc0eaaff31f095db072676a889ded",
+      "hash": "d5debaa2678a85295151c1ff73f40203d6056767200ac6c952b3262c0eb65956",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -480,7 +501,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/verification/meromero-m2-progress-20261112.md",
-        "hash": "2e2f4c26a76207d48e4f3296e9e3314906adc0eaaff31f095db072676a889ded",
+        "hash": "d5debaa2678a85295151c1ff73f40203d6056767200ac6c952b3262c0eb65956",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -593,7 +614,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 26,
+    "historical": 27,
     "retired": 1
   }
 }
