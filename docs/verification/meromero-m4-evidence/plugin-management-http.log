@@ -1,0 +1,51 @@
+SOURCE_HEAD 76dbc6e14d7331d50e3bcd5ace59cbdbb92d482f
+OVERLAYS apps/core-go/internal/httpapi/model_management_react_integration_test.go
+COMMAND go test ./internal/httpapi -count=1 -run ^TestModelManagementReactHTTPPersistenceAndRuntime$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:132: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+    model_management_react_integration_test.go:138: M4_UI_PHASE set RELOADED_EFFECTIVE_SOURCE 生效来源：任务变体覆盖；模型：m4-override；能力兼容性尚未验证。
+        
+    model_management_react_integration_test.go:146: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-override contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:1 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+    model_management_react_integration_test.go:138: M4_UI_PHASE clear RELOADED_EFFECTIVE_SOURCE 生效来源：默认用途；模型：m4-primary；能力兼容性尚未验证。
+        
+    model_management_react_integration_test.go:146: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:2 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption
+    model_management_react_integration_test.go:157: An update to ManagementPage inside a test was not wrapped in act(...).
+        
+        When testing, code that causes React state updates should be wrapped into act(...):
+        
+        act(() => {
+          /* fire events that update state */
+        });
+        /* assert on the output */
+        
+        This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+        M4_UI_PLUGINS plugins-off RELOADED { image: false, moment: false } VERSION 1
+        
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:177: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:2 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 plugins.domains:1 working_persona_budget:1]
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption
+    model_management_react_integration_test.go:178: M4_PLUGIN_RUNTIME phase=plugins-off Moment=failed Image=domain_plugin_disabled other_reflection_contract=pass
+    model_management_react_integration_test.go:157: An update to ManagementPage inside a test was not wrapped in act(...).
+        
+        When testing, code that causes React state updates should be wrapped into act(...):
+        
+        act(() => {
+          /* fire events that update state */
+        });
+        /* assert on the output */
+        
+        This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+        M4_UI_PLUGINS moment-only RELOADED { image: false, moment: true } VERSION 2
+        
+2026/11/13 18:06:10 WARN tool.call.handled capability=moment.publish call_id=direct_call_01956b1b008d9d355554d470b8856e12 warning_code=invalid_arguments disposition=needs_input effect_applied=false
+2026/11/13 18:06:10 WARN tool.call.handled capability=moment.publish call_id=direct_call_01956b1b008d9d355554d470b8856e12 warning_code=invalid_arguments disposition=needs_input effect_applied=false
+    model_management_react_integration_test.go:169: enabled text Moment runtime {m4-moment-only  direct_call_01956b1b008d9d355554d470b8856e12 { direct_call_01956b1b008d9d355554d470b8856e12 moment.publish handled map[detail:unexpected argument field; use the published tool schema disposition:needs_input effect_applied:false handled:true mutation_committed:false refresh_context:false refresh_reply:false retry_same_arguments:false warning_code:invalid_arguments]  false  tool-operation:m4-moment-only 0s []} {0x45b04df0e5c0 0 0 facts_gen_4 life_ctx_5c40befa036c12d56f8cc3e975a70c39} false} <nil>
+--- FAIL: TestModelManagementReactHTTPPersistenceAndRuntime (11.90s)
+    --- FAIL: TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption (4.16s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi	12.471s
+FAIL
+
+EXIT_CODE 1

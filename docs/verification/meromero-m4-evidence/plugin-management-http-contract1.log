@@ -1,0 +1,32 @@
+SOURCE_HEAD 76dbc6e14d7331d50e3bcd5ace59cbdbb92d482f
+OVERLAYS apps/core-go/internal/httpapi/model_management_react_integration_test.go
+COMMAND go test ./internal/httpapi -count=1 -run ^TestModelManagementReactHTTPPersistenceAndRuntime$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:135: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+    model_management_react_integration_test.go:141: M4_UI_PHASE set RELOADED_EFFECTIVE_SOURCE 生效来源：任务变体覆盖；模型：m4-override；能力兼容性尚未验证。
+        
+    model_management_react_integration_test.go:149: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-override contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:1 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+    model_management_react_integration_test.go:141: M4_UI_PHASE clear RELOADED_EFFECTIVE_SOURCE 生效来源：默认用途；模型：m4-primary；能力兼容性尚未验证。
+        
+    model_management_react_integration_test.go:149: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:2 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption
+    model_management_react_integration_test.go:160: M4_UI_PLUGINS plugins-off RELOADED { image: false, moment: false } VERSION 1
+        
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:180: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:2 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 plugins.domains:1 working_persona_budget:1]
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption
+    model_management_react_integration_test.go:181: M4_PLUGIN_RUNTIME phase=plugins-off Moment=failed Image=domain_plugin_disabled other_reflection_contract=pass
+    model_management_react_integration_test.go:160: M4_UI_PLUGINS moment-only RELOADED { image: false, moment: true } VERSION 2
+        
+2026/11/13 18:08:22 INFO reply.evidence.reconciled correlation_id=tool-operation:m4-moment-only metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:180: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:2 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 plugins.domains:2 working_persona_budget:1]
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption
+    model_management_react_integration_test.go:181: M4_PLUGIN_RUNTIME phase=moment-only Moment=completed Image=domain_plugin_disabled other_reflection_contract=pass
+--- PASS: TestModelManagementReactHTTPPersistenceAndRuntime (12.30s)
+    --- PASS: TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption (4.64s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi	13.027s
+
+EXIT_CODE 0

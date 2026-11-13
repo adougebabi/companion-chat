@@ -1,0 +1,7 @@
+Observed native fixture source equals committed 76dbc6e1 test source.
+apps/core-go/internal/httpapi/diagnostic_debug_access_integration_test.go SHA256 da8cb6b67fa9ea536213c0e4b8f5b6ac004429c8ed46378fafd813e968df3851 MATCH
+apps/core-go/internal/httpapi/model_management_react_integration_test.go SHA256 5b273121758a28adb42745410a1c3d89e8996bcfe4e88b3436682c69e7dd9a2c MATCH
+apps/core-go/internal/httpapi/model_management_native_fixture_test.go SHA256 2ca942f17e5b4b1322073fc952c08840e8c09293cfe149163b3b1aa365bd81f1 MATCH
+Production changes aeb21237..76dbc6e1 are empty; diff includes test/verification files only.
+/private/tmp/fluctlight-m4-native-override.jpg: JPEG image data, JFIF standard 1.01, aspect ratio, density 1x1, segment length 16, baseline, precision 8, 1280x720, components 3 SHA256 15c95fafbd9e162dd0d170a8e75613c135e64570d190f9ba3df04e5557a52e4d repository-external
+/private/tmp/fluctlight-m4-native-restored.jpg: JPEG image data, JFIF standard 1.01, aspect ratio, density 1x1, segment length 16, baseline, precision 8, 1280x720, components 3 SHA256 0a6cc6704c8456672b7a0cd14bbcf6c5fcee854c0c890ae65a674ce6e47f1997 repository-external

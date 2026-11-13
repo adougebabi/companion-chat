@@ -73,10 +73,20 @@ M4-04 在提交 aeb21237 的干净源码上两轮独立场景复验通过，退�
 
 ## M4-05 原生浏览器模型管理
 
-状态 IMPLEMENTED，待提交后复验。正式生产 Web 构建由一次性回环服务提供。控制的 session 及 CSRF 属于测试夹具，Provider 请求使用同一受控模型服务。
+状态 VERIFIED。正式生产 Web 构建由一次性回环服务提供。控制的 session 及 CSRF 属于测试夹具，Provider 请求使用同一受控模型服务。
 
 实际浏览器进入管理中心的模型用途，选择正式 reflection_proposal_v2，确认默认来源后执行正式任务。页面保存 m4-override，真实浏览器 reload 后重新打开该变体，读回任务变体来源，正式任务请求 m4-override 并通过合同。恢复继承并保存、再次 reload 后读回默认来源，正式任务请求 m4-primary 并通过合同。三个阶段及配置版本见 `management-native.log`，退出 0，无 SKIP。API 原回执见 `native-initial.json` / `native-override.json` / `native-restored.json` / `native-finished.json`。
 
-浏览器首个临时标签在读取选项时失效，现有浏览器清单确认标签已消失；新建同一 IAB 标签并保持后完成操作，未重建数据库或覆盖任何失败样本。截图仅在仓库外 `/private/tmp/fluctlight-m4-native-override.png` 和 `/private/tmp/fluctlight-m4-native-restored.png`，不提交图片。
+浏览器首个临时标签在读取选项时失效，现有浏览器清单确认标签已消失；新建同一 IAB 标签并保持后完成操作，未重建数据库或覆盖任何失败样本。截图仅在仓库外 `/private/tmp/fluctlight-m4-native-override.jpg` 和 `/private/tmp/fluctlight-m4-native-restored.jpg`，不提交图片。
 
 该原生浏览器证据对应受检生产提交 aeb21237 和本单元测试夹具覆盖文件，生产 Web 源相对构建未变。完整应用页面、真实 BrowserClient、正式 Handler、PostgreSQL 和 typed reflection 任务真实执行；Provider 响应与身份是受控夹具。未作为真实模型推理证据。
+
+M4-05 的三个实际覆盖文件与提交 76dbc6e1 按 SHA-256 完全一致，生产实现相对浏览器受检版本未变。提交后 HTTP/Browser/配置全包及 API 编译通过，无 SKIP。详见 native-source-and-screenshots.txt 与 native-postcommit-regression.log。
+
+M4-06 IMPLEMENTED，待提交后复验，补插件开关从真实 React 页面经 HTTP 保存、重新挂载回读，再由正式独立 Tool 消费同一配置。仅使用一次性库的合成文字动态，图片保持停用以验证拒绝，不调用外部生图。
+
+### M4-06 实际结果
+
+真实 React 配置页分别保存 plugins.domains 的 false/false（version 1）和 false/true（version 2），真实 HTTP 回读后重新挂载页面，开关状态与保存值一致。正式 ExecuteTool 在前一阶段拒绝 Image 与 Moment，后一阶段只允许 Moment。后者通过现有独立 Writer 生成纯文本并在隔离库持久化一条动态；图片 intent 为 0，其他正式 reflection 任务继续使用默认模型并通过合同。受控 Provider 不代表真实推理或渲染。日志 `plugin-management-http-contract1.log` 退出 0，无 SKIP。
+
+首轮测试沿用了 legacy 的 text 参数，当前默认模式的独立 Moment 正式合同只接收 evidence_refs，故返回 handled/needs_input。测试已改用现行无正文参数，并给受控 Writer 返回纯文本，未切换默认模式或修改业务合同。失败保存在 `plugin-management-http.log`。另外测试断言的 moments 归属列名在静态核对时修正为 owner_fluctlight_id，首轮未执行到该计数断言。React 异步轮询已包入测试 act，原警告保留在首轮日志。

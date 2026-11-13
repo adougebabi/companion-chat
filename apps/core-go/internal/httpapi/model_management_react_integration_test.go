@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -61,6 +62,9 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 			response = map[string]any{"portrait_text": "Synthetic fixture preserves the selected personality and its established habits."}
 		}
 		content, _ := json.Marshal(response)
+		if len(format) == 0 {
+			content = []byte("Synthetic isolated management publication.")
+		}
 		_ = json.NewEncoder(w).Encode(map[string]any{"id": "m4-controlled", "model": model, "choices": []any{map[string]any{"index": 0, "finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": string(content)}}}})
 	}))
 	defer provider.Close()
@@ -144,4 +148,42 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 		}
 		run(expected)
 	}
+	t.Run("plugin settings page persistence and Tool consumption", func(t *testing.T) {
+		if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.conversations(id,created_by_actor_id,title) VALUES('m4-conversation','human-1','Synthetic plugin fixture'); INSERT INTO public.conversation_heads(conversation_id,next_sequence) VALUES('m4-conversation',1); INSERT INTO public.conversation_participants(conversation_id,actor_id,role,status) VALUES('m4-conversation','human-1','owner','active'),('m4-conversation','m4-reflection','member','active')`); err != nil {
+			t.Fatal(err)
+		}
+		for _, phase := range []string{"plugins-off", "moment-only"} {
+			command := exec.CommandContext(ctx, "node", filepath.Join(webRoot, "test", "management-http-scenario.mjs"), phase)
+			command.Dir = webRoot
+			command.Env = append(os.Environ(), "FLUCTLIGHT_M4_HTTP_BASE="+browser.URL)
+			output, err := command.CombinedOutput()
+			t.Log(string(output))
+			if err != nil {
+				t.Fatal("plugin page", phase, err)
+			}
+			request := core.ToolExecutionRequest{CapabilityName: "moment.publish", OperationID: "m4-" + phase, AuthorizationActorID: "human-1", FluctlightID: "m4-reflection", Arguments: json.RawMessage(`{}`)}
+			receipt, err := app.ExecuteTool(ctx, request)
+			if phase == "plugins-off" {
+				var denied *core.CapabilityError
+				if !errors.As(err, &denied) || denied.Code != "domain_plugin_disabled" || receipt.Result.ErrorCode != "domain_plugin_disabled" {
+					t.Fatal("disabled Moment runtime admission", receipt, err)
+				}
+			} else if err != nil || receipt.Result.Status != "completed" {
+				t.Fatal("enabled text Moment runtime", receipt, err)
+			}
+			image := core.ToolExecutionRequest{CapabilityName: "media.image.generate", OperationID: "m4-image-" + phase, AuthorizationActorID: "human-1", FluctlightID: "m4-reflection", ConversationID: "m4-conversation", TargetKind: "conversation", TargetRef: "m4-conversation", Arguments: json.RawMessage(`{"intent":"Synthetic landscape","media_plan":{"primary_subject":"landscape","human_presence":"none","self_in_frame":"no","visible_scope":"unknown","capture_method":"unspecified","viewpoint":"unspecified","framing":"unspecified","camera_angle":"unspecified"}}`)}
+			deniedReceipt, err := app.ExecuteTool(ctx, image)
+			var denied *core.CapabilityError
+			if !errors.As(err, &denied) || denied.Code != "domain_plugin_disabled" || deniedReceipt.Result.ErrorCode != "domain_plugin_disabled" {
+				t.Fatal("disabled Image runtime admission", deniedReceipt, err)
+			}
+			run("m4-primary")
+			t.Logf("M4_PLUGIN_RUNTIME phase=%s Moment=%s Image=domain_plugin_disabled other_reflection_contract=pass", phase, receipt.Result.Status)
+		}
+		var moments, images int
+		if err := repo.Pool().QueryRow(ctx, `SELECT (SELECT count(*) FROM public.moments WHERE owner_fluctlight_id='m4-reflection'),(SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id='m4-reflection')`).Scan(&moments, &images); err != nil || moments != 1 || images != 0 {
+			t.Fatal("plugin persistence", moments, images, err)
+		}
+	})
+
 }
