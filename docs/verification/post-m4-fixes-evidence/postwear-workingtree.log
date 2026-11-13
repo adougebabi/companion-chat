@@ -1,0 +1,24 @@
+SOURCE_HEAD eb7b48db611cba323247a0f20388bd49321ce2a3
+OVERLAYS apps/core-go/internal/core/agent_model_routing_test.go,apps/core-go/internal/core/media_capture_plan.go,apps/core-go/internal/core/media_prompt_branches.go,apps/core-go/internal/core/task_prompt_sources_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestR6PrivateChatDiscoveryWearReceiptAndWriter$/wear_unavailable_fallback_repair -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=false
+2026/11/13 23:55:07 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:55:07 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:55:07 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:55:08 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/13 23:55:08 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=true
+2026/11/13 23:55:10 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:55:10 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:55:10 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:55:10 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/13 23:55:10 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter (6.02s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=false (2.68s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=true (3.34s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.750s
+
+EXIT_CODE 0

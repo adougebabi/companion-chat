@@ -16,17 +16,51 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
+  "current_step": "verify",
   "status": "open",
-  "candidate": "",
+  "candidate": "7c18eae023573af152a509396251dfdbef8df3ca3687f199a088a93cc950b9f6",
   "failure": "",
   "result": "",
   "created": "2026-11-11T18:58:03.22456Z",
-  "updated": "2026-11-11T18:58:03.224572Z",
+  "updated": "2026-11-13T15:54:21.510786Z",
   "completed": null,
   "feedback": [],
   "history": {
-    "attempts": null,
+    "attempts": [
+      {
+        "id": "AT-a3dd1a94ce2da28c2429",
+        "unit": "define",
+        "executor": "codex-postm4-wear",
+        "input_version": "a88632e0956ffd8fc26198e688e4c11a211beae684823a7c5a8d56f52e0ed4c7",
+        "candidate_version": "a88632e0956ffd8fc26198e688e4c11a211beae684823a7c5a8d56f52e0ed4c7",
+        "started": "2026-11-13T15:35:07.450749Z",
+        "ended": "2026-11-13T15:36:02.784889Z",
+        "status": "pass",
+        "reason": "用户现已授权修复可独立验证的旧缺口。复用本工单，核对换衣未生效、仅明确技术故障且显式策略允许备用模型，保留流式/非流式和原发布断言。原登记阶段限制按新授权执行，不修改回退政策。"
+      },
+      {
+        "id": "AT-3bbf0866474bca53afb0",
+        "unit": "analysis",
+        "executor": "codex-postm4-wear",
+        "input_version": "a88632e0956ffd8fc26198e688e4c11a211beae684823a7c5a8d56f52e0ed4c7",
+        "candidate_version": "a88632e0956ffd8fc26198e688e4c11a211beae684823a7c5a8d56f52e0ed4c7",
+        "started": "2026-11-13T15:36:17.336971Z",
+        "ended": "2026-11-13T15:36:17.953057Z",
+        "status": "pass",
+        "reason": "定位旧用例两个前置冲突：400按现行政策终止；fallback场景用defaultConversationReplySettings重建配置会把r5夹具显式fact_only重置为新默认direct，而后续原生reply参数仍是fact_only。先运行原红测，再只调整故障类型和保留当前模式，依据原断言判定剩余生产问题。"
+      },
+      {
+        "id": "AT-1c9644a5b54d628403a3",
+        "unit": "execute",
+        "executor": "codex-postm4-wear",
+        "input_version": "a88632e0956ffd8fc26198e688e4c11a211beae684823a7c5a8d56f52e0ed4c7",
+        "candidate_version": "7c18eae023573af152a509396251dfdbef8df3ca3687f199a088a93cc950b9f6",
+        "started": "2026-11-13T15:36:26.834146Z",
+        "ended": "2026-11-13T15:54:16.273686Z",
+        "status": "pass",
+        "reason": "F01修复完成，三项过期前置已校正且原断言保留：读取已保存fact_only模式、503显式技术故障、独立generic_llm配置保留Writer冻结绑定。生产回退策略无改动。流式/非流式原两个失败通过，整组22场景及400/拒绝/媒体失败禁止fallback等7个顶层回归通过。提交eb7b48db，提交后同组复验通过。"
+      }
+    ],
     "checks": null
   }
 }

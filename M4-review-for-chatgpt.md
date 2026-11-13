@@ -1,3 +1,5 @@
+> 后续修复进展见 [可独立修复项](docs/verification/post-m4-fixes-progress-20261113.md)。原R6组数量勘误为20 PASS/2 FAIL，后续有效前置修正后22个子场景全部通过。以下保留M4交付时点的历史验收状态。
+
 # M4 管理闭环与原始总验收回执
 
 2026-11-13。**M4 状态为 PARTIAL。** 本轮九个限定单元完成实现或验收并达到各自 VERIFIED 范围。原 T01～T12 总验收继续保留真实模型、真实媒体和已登记换衣回退失败，父 T02、T04、T05、T06、T07、T08、T09、T10、T11、T12 保持原验收要求。
@@ -94,7 +96,7 @@ Core 路径以 `apps/core-go/` 为根。新增模型任务、生产模型路由�
 6. 表达首轮复合字面量编译错误、表单定位及 wire 名错误均属于测试。实际公布的 `conversation_reply` wire 名已作为响应名，正式 direct 合同通过。
 7. 记忆首轮附加要求某次检索必选原发言，该次“听雨”没有选出原始发言。原文逐字及旧版来源页承担历史保留核验，当前记忆和新请求继续严格核对纠错。日志保留 `historical_statement_selected_for_this_query=false`。
 8. 最终原插件回归的旧夹具缺少发布核验文本模型，在 M4 起点同环境复现。仅补该测试前置，原正文和全部原断言保留；起点与当前同样通过。详见 baseline-plugin-text / plugin-fixture-* / final-core-postfixture。
-9. **换衣回退仍有两个真实执行的失败子场景**，当前与 M4 起点相同。`wear_unavailable_fallback_repair/stream=false` 和 `/stream=true` 均 FAIL，其他同组 24 个子场景 PASS。既有工单 `reply-wear-fallback-correction-regression` 继续保留，根因与原策略兼容仍待该工单处理。本轮回退策略生产 diff 为 0。早期实施曾将它记录为相对原始实施基线的回归，M4 起点已存在的事实同时保留。[当前与起点对照](docs/verification/meromero-m4-evidence/known-failure-comparison.txt)
+9. **换衣回退仍有两个真实执行的失败子场景**，当前与 M4 起点相同。`wear_unavailable_fallback_repair/stream=false` 和 `/stream=true` 均 FAIL，其他同组 20 个子场景 PASS。既有工单 `reply-wear-fallback-correction-regression` 继续保留，根因与原策略兼容仍待该工单处理。本轮回退策略生产 diff 为 0。早期实施曾将它记录为相对原始实施基线的回归，M4 起点已存在的事实同时保留。[当前与起点对照](docs/verification/meromero-m4-evidence/known-failure-comparison.txt)
 10. 两次 AEL 长执行租约过期均在代码提交、相关写入停止后恢复同一任务。状态记录与技术证据独立，父任务保持原要求。
 
 ## 6. 原 T01～T12 验收条目逐项映射
