@@ -1,0 +1,40 @@
+SOURCE_HEAD 2d202e8f475358159527f9dba7b8c836448e423e
+COMMAND go test ./internal/core -count=1 -run ^TestMediaNormalizationProbe$ -v -timeout=5m
+ENV FLUCTLIGHT_MEDIA_PROBE=1 FLUCTLIGHT_MEDIA_MODEL_MODE=stub FLUCTLIGHT_MEDIA_CASE=M01; real rendering disabled
+INPUT isolated copy of supplied workflow; Krea2TurboImage.prompt replaced with {{prompt}}; no production config or database
+
+CASE unclassified / initial (default cache)
+# ./internal/core
+open [default Go cache]/1c/1c4affb5d3729395c1643ea2b918249b33ba883dcffb2900187ce7f1eadec0ae-d: operation not permitted
+FAIL	./internal/core [setup failed]
+FAIL
+
+EXIT_CODE 1
+
+CASE unclassified / retry (temporary cache)
+=== RUN   TestMediaNormalizationProbe
+    media_probe_test.go:115: media_workflow_unclassified_lora_forbidden
+--- FAIL: TestMediaNormalizationProbe (0.00s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.846s
+FAIL
+
+EXIT_CODE 1
+
+CASE synthetic-style-classification / initial (default cache)
+# ./internal/core
+open [default Go cache]/1c/1c4affb5d3729395c1643ea2b918249b33ba883dcffb2900187ce7f1eadec0ae-d: operation not permitted
+FAIL	./internal/core [setup failed]
+FAIL
+
+EXIT_CODE 1
+
+CASE synthetic-style-classification / retry (temporary cache)
+=== RUN   TestMediaNormalizationProbe
+    media_probe_test.go:115: media_workflow_unclassified_lora_forbidden
+--- FAIL: TestMediaNormalizationProbe (0.00s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.448s
+FAIL
+
+EXIT_CODE 1

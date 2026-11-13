@@ -444,8 +444,29 @@
       }
     },
     {
+      "path": "docs/verification/meromero-m2-evidence/m2-comfy-policy-preflight-20261113.md",
+      "hash": "a35bc1a508d989b22883af6d316390e94a2863d94ea91be95ef85835325b4535",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/meromero-m2-evidence/m2-comfy-policy-preflight-20261113.md",
+        "title": "m2-comfy-policy-preflight-20261113.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/meromero-m2-evidence/m2-comfy-policy-preflight-20261113.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/meromero-m2-evidence/m2-comfy-policy-preflight-20261113.md",
+        "hash": "a35bc1a508d989b22883af6d316390e94a2863d94ea91be95ef85835325b4535",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
       "path": "docs/verification/meromero-m2-progress-20261112.md",
-      "hash": "b187f1d61f0c2d48c12e9f47bd26a782651653c716b8599b1788e5d43f0fc0dc",
+      "hash": "2e2f4c26a76207d48e4f3296e9e3314906adc0eaaff31f095db072676a889ded",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -459,7 +480,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/verification/meromero-m2-progress-20261112.md",
-        "hash": "b187f1d61f0c2d48c12e9f47bd26a782651653c716b8599b1788e5d43f0fc0dc",
+        "hash": "2e2f4c26a76207d48e4f3296e9e3314906adc0eaaff31f095db072676a889ded",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -572,7 +593,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 25,
+    "historical": 26,
     "retired": 1
   }
 }

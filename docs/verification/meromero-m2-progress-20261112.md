@@ -67,6 +67,12 @@ Provider 和渲染服务均为受控替身；M2-02 的真实模型失败、真�
 `meromero-m2-evidence/m2-comfy-direct-smoke-20261113.md`。这只验证 ComfyUI
 工作流本身，尚未验证摇光的动态提示词替换、正式 Image 调用或附件交付。
 
+针对该工作流的无生图预检发现：复制模板并接入动态提示词后，隔离的无人物
+场景被自定义多输入 LoRA 节点的现有分类检查拒绝；人工假设其输入均为风格
+并声明后仍被拒绝。此检查未访问生产配置，不能据此判断 LoRA 的真实用途。
+证据见 `meromero-m2-evidence/m2-comfy-policy-preflight-20261113.md`；兼容
+问题登记 AEL `image-krea2-multi-lora-policy-compatibility`，未在本轮修改。
+
 范围复核：M2-15～M2-17 对应原 T03 的业务值保真和同一事实去重，不是对模型
 输出字段的额外收紧；但连续处理这些 Moment 细分项，使执行重心偏离了 M2 的
 默认主链与插件完整链路优先级。后续先处理依赖已满足的主链/插件原验收，
