@@ -1,0 +1,15 @@
+SOURCE_HEAD 0a53dd91a03eedc48e18b7ba227832edd0e5f3b1
+OVERLAYS apps/core-go/internal/core/wakeup_idle_backoff_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestWakeUp(ConsecutiveIdleCyclesBackOffAndReplayKeepsDue|BackoffLostRedisHintKeepsDurableFutureDue)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestWakeUpConsecutiveIdleCyclesBackOffAndReplayKeepsDue
+    wakeup_idle_backoff_integration_test.go:45: idle cycle 1 delay=9m59.999209s want=20m0s err=<nil>
+--- FAIL: TestWakeUpConsecutiveIdleCyclesBackOffAndReplayKeepsDue (1.69s)
+=== RUN   TestWakeUpBackoffLostRedisHintKeepsDurableFutureDue
+    wakeup_idle_backoff_integration_test.go:72: lost Redis key released future WakeUp: status=retry cycle=1 due=2026-11-13 12:37:47.483875 +0800 CST want=2026-11-13 05:17:47.478988 +0000 UTC err=<nil>
+--- FAIL: TestWakeUpBackoffLostRedisHintKeepsDurableFutureDue (1.25s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.751s
+FAIL
+
+EXIT_CODE 1

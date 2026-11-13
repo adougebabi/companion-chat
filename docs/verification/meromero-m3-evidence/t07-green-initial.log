@@ -1,0 +1,42 @@
+SOURCE_HEAD 0a53dd91a03eedc48e18b7ba227832edd0e5f3b1
+OVERLAYS apps/core-go/internal/core/wakeup_idle_backoff_integration_test.go,apps/core-go/internal/core/wakeup_backoff.go,apps/core-go/internal/core/wakeup.go,apps/core-go/internal/core/redis_triggers.go,apps/core-go/internal/core/agent_result_adapter.go,apps/core-go/internal/core/lifecycle_preemption.go,apps/core-go/internal/core/background_trigger_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^Test(WakeUp(ConsecutiveIdleCyclesBackOffAndReplayKeepsDue|BackoffLostRedisHintKeepsDurableFutureDue|DueReleaseUsesLockedStatusAndDueCAS|OutcomePersistsNextDueInsideOwningTransaction|SuccessResetsConsecutiveRetryBudget|SupervisorRepairsStrandedSupersededClock|IdleClockKeepsAbsoluteTenMinutePhases|SuppressedReplyCannotResetIdleEpoch|FinalAgentFailurePersistsCycleAndReplaySkipsProvider)|BackgroundStartup|AcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases|NewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions|NextWakeUpDuePreservesFixedCadence|TwentySleepingChecks) -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestBackgroundStartupExistingKeyAndMissingKeyReleaseOnce
+--- PASS: TestBackgroundStartupExistingKeyAndMissingKeyReleaseOnce (2.46s)
+=== RUN   TestBackgroundStartupCannotResurrectWakeWhileCognitionIsPending
+    background_trigger_integration_test.go:162: idle startup did not release one new cycle: 0 <nil>
+--- FAIL: TestBackgroundStartupCannotResurrectWakeWhileCognitionIsPending (2.63s)
+=== RUN   TestWakeUpSupervisorRepairsStrandedSupersededClock
+--- PASS: TestWakeUpSupervisorRepairsStrandedSupersededClock (2.43s)
+=== RUN   TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases
+--- PASS: TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases (1.70s)
+=== RUN   TestNewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions
+--- PASS: TestNewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions (1.23s)
+=== RUN   TestWakeUpIdleClockKeepsAbsoluteTenMinutePhases
+--- PASS: TestWakeUpIdleClockKeepsAbsoluteTenMinutePhases (0.00s)
+=== RUN   TestNextWakeUpDuePreservesFixedCadence
+--- PASS: TestNextWakeUpDuePreservesFixedCadence (0.00s)
+=== RUN   TestTwentySleepingChecksDoNotWakePublishShopOrCreateReflectionEvidence
+2026/11/13 12:39:21 WARN tool.call.handled capability=life.activity.start call_id=direct_call_1d9aac9a1f538d3869d9a8681ef19629 warning_code=life_state_sleeping disposition=awaiting_state effect_applied=false
+--- PASS: TestTwentySleepingChecksDoNotWakePublishShopOrCreateReflectionEvidence (1.50s)
+=== RUN   TestWakeUpConsecutiveIdleCyclesBackOffAndReplayKeepsDue
+    wakeup_idle_backoff_integration_test.go:49: replay moved due or called Provider again: calls=1 result=map[string]interface {}{"correlation_id":"wake_up:idle-backoff-self:cycle:1", "cycle":1, "fluctlight_id":"idle-backoff-self", "reason":"superseded_by_cognition", "status":"cancelled"} err=<nil>
+--- FAIL: TestWakeUpConsecutiveIdleCyclesBackOffAndReplayKeepsDue (1.07s)
+=== RUN   TestWakeUpBackoffLostRedisHintKeepsDurableFutureDue
+--- PASS: TestWakeUpBackoffLostRedisHintKeepsDurableFutureDue (1.15s)
+=== RUN   TestWakeUpDueReleaseUsesLockedStatusAndDueCAS
+--- PASS: TestWakeUpDueReleaseUsesLockedStatusAndDueCAS (0.00s)
+=== RUN   TestWakeUpOutcomePersistsNextDueInsideOwningTransaction
+--- PASS: TestWakeUpOutcomePersistsNextDueInsideOwningTransaction (0.00s)
+=== RUN   TestWakeUpSuccessResetsConsecutiveRetryBudget
+--- PASS: TestWakeUpSuccessResetsConsecutiveRetryBudget (0.00s)
+=== RUN   TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider
+--- PASS: TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider (1.36s)
+=== RUN   TestWakeUpSuppressedReplyCannotResetIdleEpoch
+--- PASS: TestWakeUpSuppressedReplyCannotResetIdleEpoch (0.00s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	16.381s
+FAIL
+
+EXIT_CODE 1

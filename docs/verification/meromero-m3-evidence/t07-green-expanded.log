@@ -1,0 +1,81 @@
+SOURCE_HEAD 0a53dd91a03eedc48e18b7ba227832edd0e5f3b1
+OVERLAYS apps/core-go/internal/core/wakeup_idle_backoff_integration_test.go,apps/core-go/internal/core/wakeup_backoff.go,apps/core-go/internal/core/wakeup.go,apps/core-go/internal/core/redis_triggers.go,apps/core-go/internal/core/agent_result_adapter.go,apps/core-go/internal/core/lifecycle_preemption.go,apps/core-go/internal/core/background_trigger_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^Test(WakeUp(Backoff|ConsecutiveIdle|DueRelease|OutcomePersists|SuccessResets|SupervisorRepairs|IdleClock|SuppressedReply|FinalAgentFailure|RequestReceives|CommittedActionType)|BackgroundStartup|AcceptedUserMessageOwns|NewUserIdleEpoch|NextWakeUpDue|TwentySleepingChecks|GoalExecutionHandoff|CognitionDispatchPreemptsWakeUpAndReflection) -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestBackgroundStartupExistingKeyAndMissingKeyReleaseOnce
+--- PASS: TestBackgroundStartupExistingKeyAndMissingKeyReleaseOnce (2.95s)
+=== RUN   TestBackgroundStartupCannotResurrectWakeWhileCognitionIsPending
+--- PASS: TestBackgroundStartupCannotResurrectWakeWhileCognitionIsPending (2.73s)
+=== RUN   TestWakeUpSupervisorRepairsStrandedSupersededClock
+--- PASS: TestWakeUpSupervisorRepairsStrandedSupersededClock (2.74s)
+=== RUN   TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases
+--- PASS: TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases (2.65s)
+=== RUN   TestNewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions
+--- PASS: TestNewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions (2.84s)
+=== RUN   TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires
+    goal_execution_handoff_integration_test.go:147: formal Goal assessment=map[string]interface {}{"not_before":"2026-11-13T05:11:26.04197Z", "reason":"evaluation_cadence", "status":"deferred"} err=<nil>
+--- FAIL: TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires (2.08s)
+=== RUN   TestGoalExecutionHandoffSettlementRequiresSuccessfulWake
+--- PASS: TestGoalExecutionHandoffSettlementRequiresSuccessfulWake (0.00s)
+=== RUN   TestGoalExecutionHandoffUsesCurrentProjectionRefsOnly
+--- PASS: TestGoalExecutionHandoffUsesCurrentProjectionRefsOnly (0.00s)
+=== RUN   TestGoalExecutionHandoffKeepsSamePlanBudgetAndTypedWait
+--- PASS: TestGoalExecutionHandoffKeepsSamePlanBudgetAndTypedWait (0.00s)
+=== RUN   TestGoalExecutionHandoffQualifiesCandidateWithoutDuplicatingDispatch
+--- PASS: TestGoalExecutionHandoffQualifiesCandidateWithoutDuplicatingDispatch (0.00s)
+=== RUN   TestWakeUpIdleClockKeepsAbsoluteTenMinutePhases
+--- PASS: TestWakeUpIdleClockKeepsAbsoluteTenMinutePhases (0.00s)
+=== RUN   TestNextWakeUpDuePreservesFixedCadence
+--- PASS: TestNextWakeUpDuePreservesFixedCadence (0.00s)
+=== RUN   TestTwentySleepingChecksDoNotWakePublishShopOrCreateReflectionEvidence
+2026/11/13 12:41:27 WARN tool.call.handled capability=life.activity.start call_id=direct_call_c9e8d50f2f36ef4ce661db8a57f8de81 warning_code=life_state_sleeping disposition=awaiting_state effect_applied=false
+--- PASS: TestTwentySleepingChecksDoNotWakePublishShopOrCreateReflectionEvidence (1.54s)
+=== RUN   TestWakeUpRequestReceivesNewEventAndUnansweredDelivery
+--- PASS: TestWakeUpRequestReceivesNewEventAndUnansweredDelivery (2.79s)
+=== RUN   TestWakeUpConsecutiveIdleCyclesBackOffAndReplayKeepsDue
+--- PASS: TestWakeUpConsecutiveIdleCyclesBackOffAndReplayKeepsDue (2.36s)
+=== RUN   TestWakeUpBackoffLostRedisHintKeepsDurableFutureDue
+--- PASS: TestWakeUpBackoffLostRedisHintKeepsDurableFutureDue (2.38s)
+=== RUN   TestWakeUpBackoffNewMessageAndManualTriggerReset
+--- PASS: TestWakeUpBackoffNewMessageAndManualTriggerReset (1.17s)
+=== RUN   TestWakeUpBackoffNewNativeFactResetsButReplayPreserves
+--- PASS: TestWakeUpBackoffNewNativeFactResetsButReplayPreserves (1.19s)
+=== RUN   TestWakeUpBackoffOutcomeAndScheduleBoundaries
+--- PASS: TestWakeUpBackoffOutcomeAndScheduleBoundaries (0.00s)
+=== RUN   TestWakeUpBackoffPendingGoalCapsDurableDue
+--- PASS: TestWakeUpBackoffPendingGoalCapsDurableDue (1.13s)
+=== RUN   TestWakeUpDueReleaseUsesLockedStatusAndDueCAS
+--- PASS: TestWakeUpDueReleaseUsesLockedStatusAndDueCAS (0.00s)
+=== RUN   TestWakeUpOutcomePersistsNextDueInsideOwningTransaction
+--- PASS: TestWakeUpOutcomePersistsNextDueInsideOwningTransaction (0.00s)
+=== RUN   TestWakeUpSuccessResetsConsecutiveRetryBudget
+--- PASS: TestWakeUpSuccessResetsConsecutiveRetryBudget (0.00s)
+=== RUN   TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider
+--- PASS: TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider (1.27s)
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/declared_proactive_without_receipt
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/failed_reply
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_reply_missing_target
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_reply
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/suppressed_duplicate_is_not_a_publication
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/accepted_moment_is_not_published
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_moment
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/query_only_is_capability_not_message
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/accepted_durable_capability
+--- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/declared_proactive_without_receipt (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/failed_reply (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_reply_missing_target (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_reply (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/suppressed_duplicate_is_not_a_publication (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/accepted_moment_is_not_published (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_moment (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/query_only_is_capability_not_message (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/accepted_durable_capability (0.00s)
+=== RUN   TestWakeUpSuppressedReplyCannotResetIdleEpoch
+--- PASS: TestWakeUpSuppressedReplyCannotResetIdleEpoch (0.00s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	30.467s
+FAIL
+
+EXIT_CODE 1

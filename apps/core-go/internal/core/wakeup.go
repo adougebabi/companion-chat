@@ -22,9 +22,10 @@ const (
 )
 
 type wakeUpIdleClock struct {
-	Epoch string
-	Since time.Time
-	Slot  int
+	Epoch        string
+	Since        time.Time
+	Slot         int
+	BackoffUntil time.Time
 }
 
 type wakeUpIdleEpochContextKey struct{}
@@ -101,15 +102,20 @@ func wakeUpIdleClockFromPayload(payload map[string]any) (wakeUpIdleClock, bool) 
 	if err != nil || intValue(payload["idle_slot"]) < 0 {
 		return wakeUpIdleClock{}, false
 	}
-	return wakeUpIdleClock{Epoch: stringValue(payload["idle_epoch"]), Since: since.UTC(), Slot: intValue(payload["idle_slot"])}, true
+	until, _ := wakeUpBackoffUntil(payload)
+	return wakeUpIdleClock{BackoffUntil: until, Epoch: stringValue(payload["idle_epoch"]), Since: since.UTC(), Slot: intValue(payload["idle_slot"])}, true
 }
 
 func wakeUpIdleDue(clock wakeUpIdleClock, _ int) time.Time {
+	if !clock.BackoffUntil.IsZero() {
+		return clock.BackoffUntil
+	}
 	return clock.Since.Add(time.Duration(clock.Slot+1) * wakeUpFirstIdleDelay)
 }
 
 func nextWakeUpIdleClock(clock wakeUpIdleClock, now time.Time, _ int) wakeUpIdleClock {
 	next := clock
+	next.BackoffUntil = time.Time{}
 	next.Slot++
 	elapsed := now.UTC().Sub(clock.Since)
 	if elapsed >= 0 {
@@ -144,6 +150,7 @@ func setWakeUpIdleEpochTx(ctx context.Context, tx pgx.Tx, fluctlightID, messageI
 		return err
 	}
 	payload := decodeObject(raw)
+	resetWakeUpBackoff(payload)
 	payload["idle_version"] = 1
 	payload["idle_epoch"] = messageID
 	payload["idle_since"] = acceptedAt.UTC().Format(time.RFC3339Nano)
@@ -156,7 +163,8 @@ func setWakeUpIdleEpochTx(ctx context.Context, tx pgx.Tx, fluctlightID, messageI
 
 // WakeUpSettings controls the durable internal-life timer. The interval is a
 // product invariant: both the durable clock and the settings projection expose
-// the same ten-minute cadence. Enabled remains owner-editable.
+// the same ten-minute base cadence. Consecutive idle checks can back off.
+// Enabled remains owner-editable.
 type WakeUpSettings struct {
 	Enabled         bool `json:"enabled"`
 	IntervalSeconds int  `json:"interval_seconds"`
@@ -323,6 +331,7 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 		repaired, err := tx.Exec(ctx, `
 			UPDATE public.platform_workflow_intents AS i
 			SET status='completed',next_attempt_at=CASE
+				WHEN i.payload ? 'idle_backoff_until' THEN GREATEST(now(), (i.payload->>'idle_backoff_until')::timestamptz)
 				WHEN i.payload->>'idle_version'='1' AND i.payload ? 'idle_since' THEN
 					GREATEST(now(), (i.payload->>'idle_since')::timestamptz +
 					((COALESCE((i.payload->>'idle_slot')::integer,0)+1) * interval '10 minutes'))
@@ -483,6 +492,7 @@ func (a *App) TriggerWakeUp(ctx context.Context, actorID, fluctlightID string) (
 		if err := json.Unmarshal(payloadRaw, &payload); err != nil {
 			return fmt.Errorf("wake_up_intent_payload_invalid: %w", err)
 		}
+		resetWakeUpBackoff(payload)
 		cycle := intValue(payload["cycle"])
 		release = wakeUpRelease{IntentID: intentID, WorkflowID: workflowID, FluctlightID: fluctlightID, Cycle: cycle, DueAt: nextDue}
 		result = map[string]any{"id": fluctlightID, "intent_id": intentID, "workflow_id": workflowID}
@@ -627,7 +637,7 @@ func wakeUpScheduleStatus(schedule map[string]any) string {
 // External effects are frozen only after their capability contract and hard
 // execution invariants pass; delivery itself remains owned by a Temporal
 // action workflow.
-func updateWakeUpNextDueTx(ctx context.Context, tx pgx.Tx, fluctlightID string, cycle, intervalSeconds int, now time.Time) (time.Time, error) {
+func updateWakeUpNextDueTx(ctx context.Context, tx pgx.Tx, fluctlightID string, cycle, intervalSeconds int, now time.Time, decisions ...wakeUpBackoffDecision) (time.Time, error) {
 	// Keep each user-idle phase anchored to the accepted message. Legacy
 	// activation clocks without an idle epoch retain completion cadence.
 	var payloadRaw []byte
@@ -669,6 +679,25 @@ func updateWakeUpNextDueTx(ctx context.Context, tx pgx.Tx, fluctlightID string, 
 		for !nextDue.After(now.UTC()) {
 			nextDue = nextDue.Add(wakeUpFirstIdleDelay)
 		}
+	}
+	streak := intValue(payload["idle_noop_streak"])
+	resetWakeUpBackoff(payload)
+	if len(decisions) > 0 && decisions[0].Idle {
+		streak++
+		if streak > 3 {
+			streak = 3
+		}
+		nextDue = now.UTC().Add(wakeUpIdleBackoffDelay(streak))
+		if deadline := decisions[0].Deadline; !deadline.IsZero() && deadline.Before(nextDue) {
+			nextDue = deadline
+		}
+		var err error
+		nextDue, err = capWakeUpBackoffForGoalsTx(ctx, tx, fluctlightID, now, nextDue)
+		if err != nil {
+			return time.Time{}, err
+		}
+		payload["idle_noop_streak"] = streak
+		payload["idle_backoff_until"] = nextDue.Format(time.RFC3339Nano)
 	}
 	command, err := tx.Exec(ctx, `
 		UPDATE public.platform_workflow_intents

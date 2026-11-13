@@ -1,0 +1,14 @@
+SOURCE_HEAD 0a53dd91a03eedc48e18b7ba227832edd0e5f3b1
+OVERLAYS apps/core-go/internal/core/wakeup_idle_backoff_integration_test.go,apps/core-go/internal/core/wakeup_backoff.go,apps/core-go/internal/core/wakeup.go,apps/core-go/internal/core/redis_triggers.go,apps/core-go/internal/core/agent_result_adapter.go,apps/core-go/internal/core/lifecycle_preemption.go,apps/core-go/internal/core/background_trigger_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestWakeUpBackoffSupersededRecoveryKeepsFutureDue$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestWakeUpBackoffSupersededRecoveryKeepsFutureDue
+=== RUN   TestWakeUpBackoffSupersededRecoveryKeepsFutureDue/ensure
+=== RUN   TestWakeUpBackoffSupersededRecoveryKeepsFutureDue/audit
+--- PASS: TestWakeUpBackoffSupersededRecoveryKeepsFutureDue (6.61s)
+    --- PASS: TestWakeUpBackoffSupersededRecoveryKeepsFutureDue/ensure (0.01s)
+    --- PASS: TestWakeUpBackoffSupersededRecoveryKeepsFutureDue/audit (0.01s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	7.279s
+
+EXIT_CODE 0

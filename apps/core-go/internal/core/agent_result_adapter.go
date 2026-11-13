@@ -1134,7 +1134,8 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 				return err
 			}
 		}
-		nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, cycle, intervalSeconds, a.now().UTC())
+		decision := wakeUpBackoffForOutcome(ctx, a.capabilityRegistry(), projection, outcome, status, reason, a.now().UTC())
+		nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, cycle, intervalSeconds, a.now().UTC(), decision)
 		if err != nil {
 			return err
 		}

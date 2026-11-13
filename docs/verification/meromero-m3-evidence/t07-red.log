@@ -1,0 +1,11 @@
+SOURCE_HEAD 0a53dd91a03eedc48e18b7ba227832edd0e5f3b1
+OVERLAYS apps/core-go/internal/core/wakeup_idle_backoff_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestWakeUp(ConsecutiveIdleCyclesBackOffAndReplayKeepsDue|BackoffLostRedisHintKeepsDurableFutureDue)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core [build failed]
+FAIL
+# github.com/fluctlight/local-ai-companion/apps/core-go/internal/core [github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.test]
+internal/core/wakeup_idle_backoff_integration_test.go:21:6: app.Now undefined (type *App has no field or method Now, but does have method now)
+internal/core/wakeup_idle_backoff_integration_test.go:34:7: app.Now undefined (type *App has no field or method Now, but does have method now)
+
+EXIT_CODE 1

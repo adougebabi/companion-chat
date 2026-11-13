@@ -1,0 +1,12 @@
+SOURCE_HEAD 0a53dd91a03eedc48e18b7ba227832edd0e5f3b1
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires
+    goal_execution_handoff_integration_test.go:147: formal Goal assessment=map[string]interface {}{"not_before":"2026-11-13T05:12:50.547446Z", "reason":"evaluation_cadence", "status":"deferred"} err=<nil>
+--- FAIL: TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires (2.86s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.625s
+FAIL
+
+EXIT_CODE 1

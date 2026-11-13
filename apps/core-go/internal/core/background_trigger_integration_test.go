@@ -55,6 +55,15 @@ func TestBackgroundStartupExistingKeyAndMissingKeyReleaseOnce(t *testing.T) {
 	if err := f.app.Redis.Del(f.ctx, key).Err(); err != nil {
 		t.Fatal(err)
 	}
+	if n, err := f.app.ScheduleWakeUpTriggers(f.ctx); err != nil || n != 0 {
+		t.Fatalf("missing key released future due: %d %v", n, err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.platform_workflow_intents SET next_attempt_at=now()-interval '1 second' WHERE intent_id=$1`, "wake_up_intent:"+f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.app.Redis.Del(f.ctx, key).Err(); err != nil {
+		t.Fatal(err)
+	}
 	if n, err := f.app.ScheduleWakeUpTriggers(f.ctx); err != nil || n != 1 {
 		t.Fatalf("missing key not released once: %d %v", n, err)
 	}
@@ -147,6 +156,9 @@ func TestBackgroundStartupCannotResurrectWakeWhileCognitionIsPending(t *testing.
 		t.Fatal(err)
 	}
 	if err := f.app.Redis.Del(f.ctx, wakeUpTriggerPrefix+f.fluctlightID).Err(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.platform_workflow_intents SET next_attempt_at=now()-interval '1 second' WHERE intent_id=$1`, "wake_up_intent:"+f.fluctlightID); err != nil {
 		t.Fatal(err)
 	}
 	if n, err := f.app.ScheduleWakeUpTriggers(f.ctx); err != nil || n != 1 {

@@ -77,6 +77,15 @@ func supersedeLifecycleForCognitionTx(ctx context.Context, tx pgx.Tx, fluctlight
 	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
 		return err
 	}
+	// Only new inbox facts call this helper. Replayed cognition completion
+	// must not erase a more recent idle decision.
+	if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents
+		SET payload=payload-'idle_noop_streak'-'idle_backoff_until',
+		    next_attempt_at=LEAST(COALESCE(next_attempt_at,now()+interval '10 minutes'),now()+interval '10 minutes')
+		WHERE intent_type='wake_up.current' AND payload->>'fluctlight_id'=$1
+		  AND (payload ? 'idle_noop_streak' OR payload ? 'idle_backoff_until')`, fluctlightID); err != nil {
+		return err
+	}
 	_, err := tx.Exec(ctx, `
 		UPDATE public.platform_workflow_intents
 		SET status='superseded',completed_at=now(),last_error='superseded_by_cognition'
