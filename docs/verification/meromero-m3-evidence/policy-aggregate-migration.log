@@ -1,0 +1,10 @@
+SOURCE_HEAD a4b1bc8e25fc7ea89d56805f7994d3de85bc5df6
+OVERLAYS 
+COMMAND go test ./internal/migrations -count=1 -run ^TestSummaryCorrectionGuardMigrationFromPreviousHeadAndRerun$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestSummaryCorrectionGuardMigrationFromPreviousHeadAndRerun
+--- PASS: TestSummaryCorrectionGuardMigrationFromPreviousHeadAndRerun (2.28s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	2.764s
+
+EXIT_CODE 0

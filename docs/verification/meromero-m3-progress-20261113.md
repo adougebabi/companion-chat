@@ -10,7 +10,7 @@
 | T08 其他原验收 | 表达学习闭环 | PARTIAL | 继承候选启停闭环证据。任意注入/日志排除、真实模型关系称呼语义和 UI 到运行闭环尚未完成或未验收。 |
 | M3-03 可定位 legacy 摘要来源纠错屏障 | T09 旧来源及派生失效 | VERIFIED | 修复首次全 unknown 的摘要来源负向屏障，提交 `ae9023ce` 的干净源码复验 8 个核心顶层测试及 1 个迁移测试通过，退出码 0、无 SKIP。 |
 | M3-04 在途纠错发布保护证据 | T09 后续输入/在途请求 | VERIFIED | direct/Writer × revise/forget 四场景及正常发布/追发对照在提交 `b0d47d68` 的干净源码通过，3 个顶层测试、退出码 0、无 SKIP。沿用既有 generation fence，本节点仅增加测试。 |
-| M3-06 无可解析来源的旧记忆暂停自动注入 | T09 用户确认的历史兼容策略 | IMPLEMENTED | 长期/ActiveMemory/resident 旧快照、正式 recall、direct/Writer 及 Owner 恢复场景通过，等待提交后复验。 |
+| M3-06 无可解析来源的旧记忆暂停自动注入 | T09 用户确认的历史兼容策略 | VERIFIED | 长期/ActiveMemory/resident 旧快照、正式 recall、direct/Writer 及 Owner 恢复场景通过，提交 `a4b1bc8e` 的干净源码 121 项核心汇总及 1 项迁移测试通过，退出码 0，无 SKIP。 |
 | T09 其他原验收 | 记忆治理 | PARTIAL | 完全不可解析来源、正确吸收纠错的重建、其余主链在途与锁序矩阵仍未验收。 |
 | M3-05 Goal 领域验收恢复 | T10 成功条件、日程/活动、衣柜和依赖保护 | VERIFIED | 修正隔离测试的 DB 时间前置，原四组失败与 handoff 实际进入评估，24 个直接受影响顶层回归通过，提交后 112 项 M3 汇总回归和独立迁移测试通过。跨人格时钟加强后单独复验通过。 |
 | T10 其他原验收 | 领域保护 | PARTIAL | 继承既有其他领域证据，真实模型、真实渲染及完整领域矩阵仍未验收。 |
@@ -92,3 +92,7 @@ M3 汇总受检提交 `4f9d6abaff7017621b665b21207646c7602f16cb`，干净源码�
 正式 Owner ReviseMemory 重新提供确认来源后，新 revision 可重新检索，旧 revision/source links 保留；现有 ActiveMemory lifecycle Confirm 以 authenticated command 恢复 Active/Resident。后者证明 Core 生命周期入口，未声称已有 Owner UI/API 一键恢复验收。direct 与 fact-only 新轮真实物理请求均验证隔离 marker 缺席、Owner 确认后的新 marker 出现、正常聊天仍能发布。Provider 为受控夹具。
 
 `t09-policy-regression-final.log` 18 个核心顶层测试通过、退出码 0、无 SKIP，独立 migration 1 项通过。Source/quarantine 是本节点验收对象，完整自然语言事实准确性与所有旧 ready draft 重放未由此证明。
+
+M3-06 提交后 `a4b1bc8e25fc7ea89d56805f7994d3de85bc5df6`，无 overlay，`policy-aggregate-postcommit.log` 121 个顶层测试通过，无 SKIP；`policy-aggregate-migration.log` 迁移 1 项通过。
+
+原 T09 锁序缺口已收窄。Daily 当前先锁 Owner，旧“Daily memory→Owner”判断失效。实际需双事务核实的静态环为 Owner generation→summary 与 segment summary→generation，以及 Owner FOR UPDATE→generation 和发布 generation→journal FK KEY SHARE→Owner。只检查这两个有限场景，不要求穷尽所有并发组合。
