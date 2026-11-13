@@ -1,0 +1,86 @@
+✔ a new submit sends its own identity without implicitly retrying a confirmed failure (165.226958ms)
+✔ a stale post-stream history read cannot erase committed streamed messages (66.653209ms)
+✔ a new turn after a confirmed failure never replays the old request (55.526292ms)
+✔ a terminal cognition error keeps the authoritative user message visible and retry-bound (53.096083ms)
+✔ a non-2xx turn response keeps the API error code instead of collapsing to turn_failed (51.020792ms)
+✔ a retry from a discarded conversation is pruned when the server returns a new conversation (61.324833ms)
+✔ a completed retry from another conversation no longer blocks the selected conversation (49.070417ms)
+✔ reconcilePersistedRetry matches durable turn identity and clears completed turns without duplicates (49.11375ms)
+✔ refresh restores a pending server turn and later shows its committed reply (50.595375ms)
+✔ explicit cancel calls the server and restores a retryable cancelled state (47.436791ms)
+✔ transport loss after server acceptance keeps background cognition pending (48.599541ms)
+✔ sending a new message after restoring a pending turn does not explicitly cancel it (47.29625ms)
+✔ a restored, confirmed pending message accepts a new follow-up without cancelling (45.864084ms)
+✔ a restored pending message with a mismatched prior identity cannot be bypassed (46.357417ms)
+✔ an uncertain follow-up keeps its identity when the prior turn becomes completed (46.604834ms)
+✔ an uncertain follow-up keeps its identity when the prior turn becomes failed (50.892792ms)
+✔ an uncertain follow-up keeps its identity when the prior turn becomes cancelled (48.518084ms)
+✔ a newer pending message from another client cannot erase an uncertain follow-up (47.277375ms)
+✔ a newer running message from another client cannot erase an uncertain follow-up (53.403542ms)
+✔ a newer completed message from another client cannot erase an uncertain follow-up (46.967708ms)
+✔ a newer failed message from another client cannot erase an uncertain follow-up (48.574ms)
+✔ a newer cancelled message from another client cannot erase an uncertain follow-up (45.35275ms)
+✔ an uncertain follow-up can safely retry with its original identity while its confirmed predecessor runs (46.365667ms)
+✔ an unconfirmed cancel never invents a cancelled server turn (43.318209ms)
+✔ one follow-up stays visible and sends once after the running reply completes (48.538833ms)
+✔ follow-up waits for durable first admission, then starts before the old reply and isolates late frames (49.56625ms)
+✔ a late cancel response for the old turn cannot abort the promoted follow-up (49.261083ms)
+✔ a late cancel response cannot clear a normally started newer turn identity (46.865958ms)
+✔ a partial queue-to-retry storage failure retains predecessor ordering for recovery (49.449625ms)
+✔ stored follow-up resumes after selection confirms the prior user turn (46.417625ms)
+✔ stored follow-up resumes after refresh confirms the prior user turn (45.734459ms)
+✔ stored follow-up stays queued when the server message does not match the original identity and payload (43.571625ms)
+✔ stored follow-up does not overtake a newer user turn from another client (44.134541ms)
+✔ a failed original reply cannot replace an existing follow-up with a third submit (43.733708ms)
+✔ targeted status inspection never sends an already queued follow-up (47.125291ms)
+✔ explicit refresh confirming completion sends the exact queued follow-up before the old observer closes (48.823625ms)
+✔ server-restored retry preserves frozen sender clock and the original durable identity (47.586375ms)
+✔ server-restored retry preserves zero UTC offset and the original durable identity (46.832125ms)
+✔ server-restored retry preserves unknown legacy clock and the original durable identity (46.782292ms)
+✔ server-restored retry preserves null legacy clock and the original durable identity (46.250459ms)
+✔ retry stays visibly disabled in flight and a 409 keeps identity, draft and useful failure (959.708375ms)
+✔ restored local retry and queue bubbles preserve attachments, actor, clock and turn identity (51.84325ms)
+✔ a partial committed failure stays non-retryable and does not claim it will settle into retry (123.923959ms)
+✔ candidate snapshots stay separate from messages and clear on completed (51.277792ms)
+✔ candidate snapshots stay separate from messages and clear on error (49.561791ms)
+✖ candidate snapshots stay separate from messages and clear on disconnect (182.556916ms)
+✔ candidate snapshots stay separate from messages and clear on invalidate (52.814458ms)
+✔ leaving a source page while its conversation read is pending cannot replace the selected role (163.054209ms)
+✔ explicit progress read closes a stuck observer only for its confirmed terminal turn (64.837584ms)
+✔ a failed initial conversation read releases loading and allows reopening the same role (55.019833ms)
+✔ React chat opens the selected conversation and retains drafts while rendering original attachments (1559.210708ms)
+✔ React chat accepts one follow-up during an observed reply without clearing a newer draft (528.501084ms)
+✔ React ignores repeated submission of the same draft revision while preserving later edits (539.3185ms)
+✔ React stop button follows cancellation authority and delegates to the original controller (424.053959ms)
+✔ React failed-message retry and status reading preserve the original record identity (447.303958ms)
+✔ a failed turn waiting for safe retry has one feedback and never appears to be typing (350.778167ms)
+✔ a historical non-retryable failure does not make a later completed turn busy (341.52775ms)
+✔ an unconfirmed cancellation stays visible while the original turn is still running (461.710625ms)
+✔ React chat renders streaming deltas and replaces them with the committed reply without disturbing the draft (632.614542ms)
+✔ React candidate preview is explicitly unverified plain text without fabricated attachments (472.701334ms)
+ℹ tests 60
+ℹ suites 0
+ℹ pass 59
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6104.012292
+
+✖ failing tests:
+
+test at apps/web/test/conversation-delivery.test.mjs:990:71
+✖ candidate snapshots stay separate from messages and clear on disconnect (182.556916ms)
+  AssertionError [ERR_ASSERTION]: compensating history read did not start
+      at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/conversation-delivery.test.mjs:1021:11
+      at async withRetryFixture (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/conversation-delivery.test.mjs:632:3)
+      at async TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/conversation-delivery.test.mjs:991:2)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

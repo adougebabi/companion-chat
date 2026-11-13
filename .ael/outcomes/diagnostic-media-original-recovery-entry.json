@@ -1,0 +1,27 @@
+{
+  "id": "diagnostic-media-original-recovery-entry",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "44d8aa2b5dcb6bea0065b363469f67c80c561577d5b1405bbd36d4535f2a5e3f",
+  "completed": "2026-11-13T16:29:22.031975Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "original-recovery-entry",
+      "result": "pass",
+      "source": "scenario:codex-postm4-entry",
+      "config_hash": "4d15f62e562176567d8403e8c66d09decb5849f1d2e9a34cb54d2fed7bb5a399",
+      "at": "2026-11-13T16:29:17.79255Z",
+      "artifact_hashes": {
+        "apps/web/src/react-app/shared/MediaTaskRecovery.tsx": "a2c2ae8911114b7f3b6ad8a997b57810c87d971139c5b61c804660eacf8c64e1",
+        "apps/web/src/v3-domain/diagnostics.js": "5b141bae8acba093a7dd3b87306b3c6ed89acd689a83f1f59a0d9ab795f5158e",
+        "apps/web/test/diagnostic-task-detail.test.mjs": "1c222a7266b0423f6aeaa7f92365b7df4972ff50310ac1b539d263add22d0bb9",
+        "docs/verification/post-m4-fixes-evidence/entry-baseline.log": "f162c601f582ae785dcd37418c4640a8ca4cca438b3240cb831d42a083153c73",
+        "docs/verification/post-m4-fixes-evidence/entry-media-final.log": "68c4ba791d91769cbb247898996bca1ba443c4bafb65ddd088fabc168366766c",
+        "docs/verification/post-m4-fixes-progress-20261113.md": "76c5cab8bf12b52b90e0438c9f05bbcc24047ae7ac824313e5fbbdd63a04b22d"
+      }
+    }
+  ]
+}

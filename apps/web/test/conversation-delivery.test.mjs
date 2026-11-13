@@ -768,12 +768,16 @@ test('follow-up waits for durable first admission, then starts before the old re
   assert.equal(store.queuedTurn,null);assert.equal(store.activeTurnId,queued.turnId);
   const secondUser=accepted(requests[1],'second-accepted');Object.assign(user,secondUser);
   secondStream.enqueue(encoder.encode(JSON.stringify({type:'message',turnId:requests[1].turnId,sequence:0,payload:{message:secondUser}})+'\n'));
+  secondStream.enqueue(encoder.encode(JSON.stringify({type:'candidate_preview',turnId:requests[1].turnId,sequence:1,payload:{candidateId:'new-epoch',text:'新回合候选',status:'unverified'}})+'\n'));
+  for(let i=0;i<100&&!store.candidatePreview;i++)await new Promise(resolve=>setTimeout(resolve,1));
   firstStream.enqueue(encoder.encode(JSON.stringify({type:'token',turnId:requests[0].turnId,sequence:1,payload:{text:'过期旧候选'}})+'\n'));
+  firstStream.enqueue(encoder.encode(JSON.stringify({type:'candidate_preview',turnId:requests[0].turnId,sequence:2,payload:{candidateId:'old-epoch',text:'过期旧候选',status:'unverified'}})+'\n'));
   await first;
+  assert.equal(store.candidatePreview?.candidateId,'new-epoch');
   assert.equal(store.sending,true,'old observer must not clear the new turn');
   assert.ok(!store.messages.some(message=>message.text==='过期旧候选'));
   user.turnStatus='completed';
-  secondStream.enqueue(encoder.encode(JSON.stringify({type:'completed',turnId:requests[1].turnId,sequence:1,payload:{}})+'\n'));
+  secondStream.enqueue(encoder.encode(JSON.stringify({type:'completed',turnId:requests[1].turnId,sequence:2,payload:{}})+'\n'));
   secondStream.close();
   for(let i=0;i<100&&store.sending;i++)await new Promise(resolve=>setTimeout(resolve,1));
   assert.equal(store.sending,false);assert.equal(store.retryTurn,null);assert.equal(requests.length,2);
@@ -792,10 +796,13 @@ test('a late cancel response for the old turn cannot abort the promoted follow-u
   await store.send('取消时的新消息');
   for(let i=0;i<100&&!secondSignal;i++)await new Promise(resolve=>setTimeout(resolve,1));
   assert.ok(secondSignal);assert.equal(requests.length,1);assert.equal(secondSignal.aborted,false);
+  secondStream.enqueue(new TextEncoder().encode(JSON.stringify({type:'candidate_preview',turnId:requests[0].turnId,sequence:0,payload:{candidateId:'after-cancel-new',text:'新回合候选',status:'unverified'}})+'\n'));
+  for(let i=0;i<100&&!store.candidatePreview;i++)await new Promise(resolve=>setTimeout(resolve,1));
   releaseCancel();await cancelling;
+  assert.equal(store.candidatePreview?.candidateId,'after-cancel-new');
   assert.equal(secondSignal.aborted,false);assert.equal(store.activeTurnId,requests[0].turnId);assert.equal(store.sending,true);
   Object.assign(user,{id:'new-user',turnId:requests[0].turnId,idempotencyKey:requests[0].idempotencyKey,text:requests[0].text,turnStatus:'completed'});
-  secondStream.enqueue(new TextEncoder().encode(JSON.stringify({type:'completed',turnId:requests[0].turnId,sequence:0,payload:{}})+'\n'));secondStream.close();
+  secondStream.enqueue(new TextEncoder().encode(JSON.stringify({type:'completed',turnId:requests[0].turnId,sequence:1,payload:{}})+'\n'));secondStream.close();
   for(let i=0;i<100&&store.sending;i++)await new Promise(resolve=>setTimeout(resolve,1));
   assert.equal(store.sending,false);
  });
@@ -985,4 +992,47 @@ test("a partial committed failure stays non-retryable and does not claim it will
         assert.doesNotMatch(html, /重试原回应/);
 		assert.doesNotMatch(html, /本次生成正在结束|重试回复/);
 	});
+});
+
+for(const terminal of ['completed','error','disconnect','invalidate'])test(`candidate snapshots stay separate from messages and clear on ${terminal}`,async()=>{
+ await withRetryFixture({},async({store,user,page,requests,setTurnResponse})=>{
+  store.dismissRetry();user.turnStatus='completed';store.messages=[{...user}];
+  let stream;
+  setTurnResponse(async()=>new Response(new ReadableStream({start(controller){stream=controller;}}),{headers:{'content-type':'application/x-ndjson'}}));
+  const sending=store.send('候选预览');
+  for(let i=0;i<100&&!stream;i++)await new Promise(resolve=>setTimeout(resolve,1));
+  assert.ok(stream);
+  let sequence=0;
+  const frame=(type,payload)=>stream.enqueue(new TextEncoder().encode(JSON.stringify({type,turnId:requests[0].turnId,sequence:sequence++,payload})+'\n'));
+  const waitText=async text=>{for(let i=0;i<100&&store.candidatePreview?.text!==text;i++)await new Promise(resolve=>setTimeout(resolve,1));assert.equal(store.candidatePreview?.text,text);};
+  frame('candidate_preview',{candidateId:'one',text:'第一段',status:'unverified',reasoning:'hidden reasoning',attachmentRefs:['forged']});
+  await waitText('第一段');
+  assert.deepEqual(Object.keys(store.candidatePreview).sort(),['candidateId','conversationId','fluctlightId','text','turnId']);
+  assert.equal(store.messages.filter(m=>m.kind==='assistant').length,0);
+  frame('candidate_preview',{candidateId:'one',text:'替换后的完整快照',status:'unverified'});
+  await waitText('替换后的完整快照');
+  frame('candidate_preview',{candidateId:'two',text:'新的物理候选',status:'unverified'});
+  await waitText('新的物理候选');assert.equal(store.candidatePreview.candidateId,'two');
+  if(terminal==='completed'){
+   frame('message',{message:{id:'formal',kind:'assistant',text:'正式回复',attachmentRefs:[],conversationId:user.conversationId,sequence:2}});
+   for(let i=0;i<100&&store.candidatePreview;i++)await new Promise(resolve=>setTimeout(resolve,1));
+   assert.equal(store.candidatePreview,null);
+   frame('candidate_preview',{candidateId:'late',text:'提交后的旧候选',status:'unverified'});
+   frame('completed',{});stream.close();
+  }else if(terminal==='error') {frame('error',{code:'provider_http_error'});stream.close();}
+  else if(terminal==='disconnect'){
+   const jsonBefore=Response.json;let finishRead;
+   Response.json=value=>value===page?new Promise(resolve=>{finishRead=()=>resolve(jsonBefore(value));}):jsonBefore(value);
+   stream.error(Error('controlled disconnect'));
+   for(let i=0;i<100&&!finishRead;i++)await new Promise(resolve=>setTimeout(resolve,1));
+   Response.json=jsonBefore;
+   assert.ok(finishRead,'compensating history read did not start');
+   const duringRead=store.candidatePreview;finishRead();
+   assert.equal(duringRead,null,'disconnected candidate must clear before history read finishes');
+  }
+  else {store.invalidateRequest();stream.close();}
+  await sending;
+  assert.equal(store.candidatePreview,null);
+  assert.ok(!store.messages.some(m=>/第一段|替换后的|新的物理候选|提交后的旧候选/.test(m.text)));
+ });
 });

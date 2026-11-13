@@ -1,0 +1,40 @@
+✖ candidate snapshots stay separate from messages and clear on disconnect (179.89825ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 320.24525
+
+✖ failing tests:
+
+test at apps/web/test/conversation-delivery.test.mjs:990:71
+✖ candidate snapshots stay separate from messages and clear on disconnect (179.89825ms)
+  AssertionError [ERR_ASSERTION]: disconnected candidate must clear before history read finishes
+  + actual - expected
+  
+  + {
+  +   candidateId: 'two',
+  +   conversationId: 'conversation-retry-clock',
+  +   fluctlightId: 'fluctlight-retry-clock',
+  +   text: '新的物理候选',
+  +   turnId: 'turn_45f9ee80-e806-419b-8f9e-ba23640e42ba'
+  + }
+  - null
+  
+      at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/conversation-delivery.test.mjs:1024:11
+      at async withRetryFixture (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/conversation-delivery.test.mjs:632:3)
+      at async TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/conversation-delivery.test.mjs:991:2)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [Object],
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+EXIT_CODE 1

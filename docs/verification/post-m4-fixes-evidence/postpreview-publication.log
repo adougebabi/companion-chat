@@ -1,0 +1,16 @@
+SOURCE_HEAD 3be7c69dab83f744654a0cce06d9111a59158ad7
+OVERLAYS apps/core-go/internal/core/conversation_candidate_preview.go,apps/core-go/internal/core/conversation_candidate_preview_test.go,apps/core-go/internal/core/cognition_agent.go,apps/core-go/internal/core/durable_turn.go,apps/core-go/internal/core/eino_model_runtime.go
+COMMAND go test ./internal/core -count=1 -run ^TestCandidatePreviewCannotBypassDeliveryPublicationCheck$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestCandidatePreviewCannotBypassDeliveryPublicationCheck
+2026/11/14 00:42:10 WARN tool.call.handled capability=conversation.reply call_id=preview-unsupported-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:42:10 WARN tool.call.handled capability=conversation.reply call_id=preview-unsupported-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:42:10 WARN tool.call.handled capability=conversation.reply call_id=preview-unsupported-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:42:10 WARN tool.call.handled capability=conversation.reply call_id=preview-unsupported-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:42:11 WARN tool.call.handled capability=conversation.reply call_id=preview-unsupported-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:42:11 WARN tool.call.handled capability=conversation.reply call_id=preview-unsupported-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestCandidatePreviewCannotBypassDeliveryPublicationCheck (1.43s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.274s
+
+EXIT_CODE 0

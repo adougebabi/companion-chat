@@ -184,6 +184,10 @@ export default function ChatPage({
             message.kind !== "system",
         )
       : [];
+  const candidatePreview = snapshot.candidatePreview;
+  const visibleCandidate = candidatePreview && candidatePreview.fluctlightId === character.id &&
+    candidatePreview.conversationId === snapshot.conversation?.id &&
+    candidatePreview.turnId === snapshot.activeTurnId ? candidatePreview : null;
   async function send() {
     const submitted = latestDraft.current,
       text = submitted.trim(), revision = draftRevision.current;
@@ -333,6 +337,12 @@ export default function ChatPage({
               </Message></MessageScrollerItem>
             );
           })}
+          {visibleCandidate && <MessageScrollerItem messageId={visibleCandidate.candidateId}>
+            <section className="companion-message-body" aria-label="生成预览" data-candidate-preview>
+              <p className="companion-message-meta">生成预览 · 尚未核验</p>
+              <p className="whitespace-pre-wrap break-words">{visibleCandidate.text}</p>
+            </section>
+          </MessageScrollerItem>}
           {(snapshot.sending || store.hasPendingTurn) && (
             <MessageScrollerItem messageId="waiting"><Message><MessageContent role="status" className="companion-typing"><div className="replica-typing-dots" aria-hidden="true"><i/><i/><i/></div><div>
               {waiting.label}</div>

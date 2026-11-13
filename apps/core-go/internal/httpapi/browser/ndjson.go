@@ -72,11 +72,12 @@ func (err *NdjsonTranslationError) Unwrap() error { return err.Cause }
 var errTranslationCanceled = errors.New("ndjson translation canceled")
 
 var coreStreamTypes = map[string]struct{}{
-	"token":         {},
-	"action_result": {},
-	"completed":     {},
-	"error":         {},
-	"heartbeat":     {},
+	"candidate_preview": {},
+	"token":             {},
+	"action_result":     {},
+	"completed":         {},
+	"error":             {},
+	"heartbeat":         {},
 }
 
 var hiddenPayloadKeys = map[string]struct{}{
@@ -559,6 +560,14 @@ func browserEvent(core CoreStreamEvent) (BrowserStreamEvent, string) {
 	}
 
 	eventType := core.Type
+	if core.Type == "candidate_preview" {
+		id, idOK := core.Payload["candidate_id"].(string)
+		text, textOK := core.Payload["text"].(string)
+		if !idOK || !textOK || core.Payload["status"] != "unverified" {
+			return BrowserStreamEvent{}, InvalidCoreEvent
+		}
+		return BrowserStreamEvent{Type: core.Type, TurnID: core.TurnID, Sequence: core.Sequence, Payload: map[string]any{"candidateId": id, "text": text, "status": "unverified"}}, ""
+	}
 	if core.Type == "action_result" {
 		eventType = "message"
 		if message, ok := core.Payload["message"].(map[string]any); ok {

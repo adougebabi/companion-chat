@@ -24,7 +24,8 @@ func (a *App) AcceptTurn(ctx context.Context, actorID, conversationID string, pa
 	return a.handleTurn(ctx, turnActorID, conversationID, turnPayload, turnCallbacks{acceptOnly: true}, false)
 }
 
-// StreamDurableTurn observes committed state only. Closing this HTTP request
+// StreamDurableTurn observes committed messages and separate unverified previews.
+// Closing this HTTP request
 // closes its observer; it never cancels the Worker or Provider.
 func (a *App) StreamDurableTurn(ctx context.Context, writer http.ResponseWriter, actorID, conversationID string, payload map[string]any) error {
 	acceptCtx, cancelAccept := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
@@ -51,6 +52,7 @@ func (a *App) StreamDurableTurn(ctx context.Context, writer http.ResponseWriter,
 	defer ticker.Stop()
 	lastSequence := 0
 	messageIDs := make([]string, 0)
+	lastPreview := conversationCandidatePreview{}
 	for {
 		status, errorCode, err := a.readCognitionTurnStatus(ctx, accepted.InboxID)
 		if err != nil {
@@ -59,6 +61,16 @@ func (a *App) StreamDurableTurn(ctx context.Context, writer http.ResponseWriter,
 		messages, err := a.committedTurnMessages(ctx, conversationID, accepted.InboxID, lastSequence)
 		if err != nil {
 			return err
+		}
+		preview := conversationCandidatePreview{}
+		if status == "claimed" && len(messages) == 0 && len(messageIDs) == 0 {
+			preview = a.readConversationCandidatePreview(ctx, accepted.InboxID)
+		}
+		if preview != lastPreview {
+			if err := writeFrame("candidate_preview", map[string]any{"candidate_id": preview.ID, "text": preview.Text, "status": "unverified"}); err != nil {
+				return err
+			}
+			lastPreview = preview
 		}
 		for _, message := range messages {
 			if err := writeFrame("action_result", map[string]any{"message": message, "correlation_id": accepted.CorrelationID}); err != nil {

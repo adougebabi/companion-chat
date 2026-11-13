@@ -93,3 +93,16 @@ test('an unconfirmed cancellation stays visible while the original turn is still
 test('React chat renders streaming deltas and replaces them with the committed reply without disturbing the draft',async()=>{
  const f=await fixture();try{const field=f.view.host.querySelector('textarea');await f.view.input(field,'下一句话的草稿');field.focus();field.setSelectionRange(2,4);await f.update(()=>{f.store.messages=[{id:'stream-current',kind:'assistant',text:'正在回应的第一段',createdAt:new Date().toISOString(),attachmentRefs:[]}];});assert.match(f.view.host.textContent,/正在回应的第一段/);await f.update(()=>{f.store.messages=[{...f.store.messages[0],text:'正在回应的第一段，继续增长。'}];});assert.match(f.view.host.textContent,/继续增长/);await f.update(()=>{f.store.messages=[{id:'committed-answer',kind:'assistant',text:'最终保存的回应',createdAt:new Date().toISOString(),attachmentRefs:[]}];});assert.doesNotMatch(f.view.host.textContent,/继续增长/);assert.match(f.view.host.textContent,/最终保存的回应/);assert.equal(f.view.host.querySelector('textarea'),field);assert.equal(field.value,'下一句话的草稿');assert.equal(field.selectionStart,2);assert.equal(field.selectionEnd,4);}finally{await f.dispose();}
 });
+
+test('React candidate preview is explicitly unverified plain text without fabricated attachments',async()=>{
+ const f=await fixture();try{
+  await f.update(()=>{f.store.activeTurnId='preview-turn';f.store.candidatePreview={candidateId:'candidate',text:'<img src="forged">候选正文',turnId:'preview-turn',conversationId:'conversation',fluctlightId:'role',reasoning:'hidden reasoning',attachmentRefs:['forged']};});
+  const preview=f.view.host.querySelector('[data-candidate-preview]');
+  assert.ok(preview);assert.match(preview.textContent,/生成预览 · 尚未核验/);assert.match(preview.textContent,/<img src="forged">候选正文/);
+  assert.equal(preview.querySelector('img'),null);assert.doesNotMatch(preview.textContent,/hidden reasoning/);assert.equal(f.store.messages.length,0);
+  await f.update(()=>{f.store.candidatePreview=null;f.store.messages=[{id:'committed',kind:'assistant',text:'正式结果',attachmentRefs:[]}];});
+  assert.equal(f.view.host.querySelector('[data-candidate-preview]'),null);assert.match(f.view.host.textContent,/正式结果/);
+  await f.update(()=>{f.store.candidatePreview={candidateId:'old',text:'别的回合',turnId:'old-turn',conversationId:'conversation',fluctlightId:'role'};});
+  assert.equal(f.view.host.querySelector('[data-candidate-preview]'),null);
+ }finally{await f.dispose();}
+});

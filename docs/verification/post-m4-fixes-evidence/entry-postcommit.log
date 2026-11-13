@@ -1,0 +1,30 @@
+✔ failed media task recovers the original attempt and follows the accepted new task (1528.86975ms)
+✔ media retry uses explicit regenerate mode and keeps its original revision (212.644667ms)
+✔ media quality failure presents only supported recovery actions (true) (87.500959ms)
+✔ media quality failure presents only supported recovery actions (false) (85.346959ms)
+✔ media quality failure presents only supported recovery actions (null) (83.736625ms)
+✔ media quality recovery preserves a ready legacy asset (77.981167ms)
+✔ media quality recovery checks already delivered legacy results (unsettled) (108.087833ms)
+✔ media quality recovery checks already delivered legacy results (failed) (88.636ms)
+✔ media recovery respects visual domain and attempt boundaries (114.704042ms)
+✔ media recovery respects studio domain and attempt boundaries (120.651375ms)
+✔ media recovery respects superseded domain and attempt boundaries (87.252958ms)
+✔ media recovery respects active domain and attempt boundaries (84.495542ms)
+✔ media stage display uses only persisted checkpoints and never turns provider admission into a finished image (0.323042ms)
+✔ media recovery survives remount after an unknown transport result without changing the submission (309.582084ms)
+✔ media revision conflict requires a fresh read and explicit release before a new submission (392.452125ms)
+✔ incomplete media recovery receipt retains the original command for safe replay (270.310166ms)
+✔ media recovery warns about an unknown provider submission only when job id is missing (149.854083ms)
+✔ media recovery warns about an unknown provider submission only when job id is saved (154.404375ms)
+✔ uncertain media submission_unknown requires explicit review before regeneration (220.229292ms)
+✔ uncertain media failed requires explicit review before regeneration (228.161584ms)
+✔ uncertain media with a ready asset offers reviewed recovery without regeneration (123.207916ms)
+✔ diagnostic media recovery follows the current original task and never submits from its stale snapshot (42.175584ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4984.213833

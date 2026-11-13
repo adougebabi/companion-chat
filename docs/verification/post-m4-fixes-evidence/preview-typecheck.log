@@ -1,0 +1,6 @@
+$ tsc --noEmit
+src/react-app/pages/ChatPage.tsx(189,5): error TS18047: 'candidatePreview' is possibly 'null'.
+src/react-app/pages/ChatPage.tsx(190,5): error TS18047: 'candidatePreview' is possibly 'null'.
+/Users/vinson/Documents/project/个人/local-ai-companion/apps/web:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @fluctlight/web@0.1.0 typecheck: `tsc --noEmit`
+Exit status 2

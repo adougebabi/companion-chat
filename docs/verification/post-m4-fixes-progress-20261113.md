@@ -6,9 +6,9 @@
 | --- | --- | --- | --- |
 | F01 | 确认并修复换衣失败后的显式技术回退及纠错场景 | VERIFIED | post-m4-fixes-evidence/postwear-* |
 | F02 | 同ID无权限/关闭窗口回执跨轮重放有界 | VERIFIED | postdenial-* |
-| F03a | 诊断详情接入现有原媒体任务人工核对 | 实现及范围内验证通过 | entry-* |
+| F03a | 诊断详情接入现有原媒体任务人工核对 | VERIFIED | entry-* |
 | F03b | Studio/视觉身份原结果领域恢复 | 待后续独立处理，外部结果归属规则需Owner | 既有领域工作项 |
-| F04 | 生成中的候选正文增量预览 | 待前序收口 | 原工单允许临时预览，正式发布继续原核验 |
+| F04 | direct生成中的候选正文增量预览 | 实现及范围内回归通过，待提交后验收 | postpreview-*及preview-* |
 
 F01修正当前用例配置，保留r5夹具fact_only模式；使用允许显式回退的503；在数据库独立配置generic_llm备用模型，保留原Writer冻结值。原输出、穿着、次数、未授权重执行及最终模型元数据断言保留。只改此用例，生产回退策略diff 0。红测与第一轮只修两前置仍失败的日志全部保留。
 
@@ -25,3 +25,13 @@ F02提交9a11ec65后干净源码67项顶层回归237.111秒通过，无SKIP；�
 F03a只调整诊断详情导航。failed/submission_unknown指向当前execution.intent_id对应的正式原任务页，复用既有React人工勾选、ready资产恢复、版本与幂等流程。缺当前执行身份时提示重新读取，不使用历史关联任务替代。既有恢复drawer不再由该正式入口调用。新回归修复前失败，修复后相关22项媒体测试通过，typecheck退出0。整文件修改前28项23通过5失败，修改后29项24通过同样5失败，属于既有独立UI合同偏差，已登记diagnostic-task-detail-baseline-regressions，本项未调整。基线测试临时副本已删除。
 
 F03a真实IAB浏览器在loopback受控Vite页面加载正式诊断renderer，观察到“接单状态待人工核对”及“查看原任务并核对恢复”，目标为#/diag/task/isolated-original-task。截图在工具会话中查看，未提交图片。页面使用合成诊断数据和无业务写入的服务夹具，未覆盖产品全套样式或真实图片服务。初次启动受sandbox监听权限拒绝，获得工具审批后仅绑定127.0.0.1；夹具中间件位置首次被SPA路由接管，调整测试夹具后核验通过，生产导航实现未因此变更。临时服务已停止。
+
+F03a提交3be7c69d后22项媒体回归通过，AEL原入口工作项已验收completed。父任务状态不据此改为完成。
+
+F04实现现有Redis跨进程临时快照，key含inbox与claim owner，每次物理模型响应有独立candidate ID。仅direct且存在当前claim与已配置Redis时开启同一正式Agent的Stream。未引入第二套模型、工作流、配置项、Prompt或token限制。观察者只聚合原生conversation.reply顶层text，忽略Content/ReasoningContent及其他工具参数，完整秘密和分片尾部秘密前缀均不透出。JSON转义、UTF-8与代理对只显示完整字符。候选独立于正式messages和附件，浏览器只接受unverified快照并以纯文本区域显示。新物理请求替换、正式commit/终态/失效/断流清除；断流在历史补偿读取之前立即清除。旧claim迟到写无法覆盖新claim。缓存3分钟TTL只作用临时预览，不进入正式业务数据。
+
+F04隔离DB、测试专用miniredis与受控原生SSE实测：Worker未结束、正式助手消息0条时收到增量；观察器断开后Worker继续，重连得到同一candidate的当前完整快照；正式消息到达前清空候选并正常结束。开启此路径时零交付依据的照片完成声明仍3次检查后拒绝，媒体任务0、正式助手消息0。Core/边界相关35项顶层回归通过，浏览器边界全包86项通过，前端聊天/恢复/React60项通过，无SKIP。新增旧epoch候选及迟到cancel隔离断言通过。Web与browser-client typecheck及产品build通过。
+
+F04失败记录均保留。首次前端typecheck发现nullable narrowing，已修正；首次Core测试的工具wire名误写为双下划线，按源码单下划线修正测试后5项通过。独立静态审查发现断流清理晚于补偿读取，用延迟history回归复现后修正。延迟夹具首次通过替换global fetch未生效，因为client已捕获fetch引用；改为测试局部控制Response.json后准确复现并通过，未改共享夹具。真实IAB在仅loopback受控页面加载正式ChatPage和产品CSS，截图核对独立“生成预览·尚未核验”及字面<img>文本，未产生附件。截图只在工具会话查看，未提交图片，临时服务已停止。
+
+F04当前预览适用direct。fact_only继续可选且保持原行为，本轮未为Writer新增预览。真实模型速度、自然回复体验与真实媒体生成仍按Owner授权保留未验收。以上受控Provider结果不计为真实模型验收，亦不代表T04/T06或全链完成。

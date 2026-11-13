@@ -15,14 +15,14 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "execute",
-  "status": "open",
-  "candidate": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "44d8aa2b5dcb6bea0065b363469f67c80c561577d5b1405bbd36d4535f2a5e3f",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-13T16:23:43.076911Z",
-  "updated": "2026-11-13T16:24:23.564235Z",
-  "completed": null,
+  "updated": "2026-11-13T16:29:22.032156Z",
+  "completed": "2026-11-13T16:29:22.031975Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -42,13 +42,40 @@
         "unit": "execute",
         "executor": "codex-postm4-entry",
         "input_version": "1fc2ef3ed111d3e2a19ec3edb057421024789a521a416a9ea410a6f5ed39d765",
-        "candidate_version": "",
+        "candidate_version": "44d8aa2b5dcb6bea0065b363469f67c80c561577d5b1405bbd36d4535f2a5e3f",
         "started": "2026-11-13T16:24:23.413682Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-13T16:28:50.954321Z",
+        "status": "pass",
+        "reason": "提交3be7c69d，诊断failed及submission_unknown使用当前execution.intent_id进入正式原任务人工核对。缺身份只读。新增红测修复后通过，22项媒体合同测试及typecheck通过，提交后22项复验通过。IAB受控页面已查看实际renderer与正确链接。5项独立既有失败已登记。"
+      },
+      {
+        "id": "AT-be9af3497155ab3d38a1",
+        "unit": "check:original-recovery-entry",
+        "executor": "codex-postm4-entry",
+        "input_version": "44d8aa2b5dcb6bea0065b363469f67c80c561577d5b1405bbd36d4535f2a5e3f",
+        "candidate_version": "44d8aa2b5dcb6bea0065b363469f67c80c561577d5b1405bbd36d4535f2a5e3f",
+        "started": "2026-11-13T16:29:17.752914Z",
+        "ended": "2026-11-13T16:29:17.792814Z",
+        "status": "pass",
+        "reason": "3be7c69d提交后22项媒体场景通过。新增原入口红测修复前失败，修复后正确定位当前原任务，缺身份不提交。既有React人工核对及ready资产用例通过，typecheck通过。IAB真实浏览器受控合成数据加载正式renderer并截图确认链接#/diag/task/isolated-original-task。全文件5项基线失败单独登记，前后同环境保持。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "original-recovery-entry",
+        "result": "pass",
+        "source": "scenario:codex-postm4-entry",
+        "config_hash": "4d15f62e562176567d8403e8c66d09decb5849f1d2e9a34cb54d2fed7bb5a399",
+        "at": "2026-11-13T16:29:17.79255Z",
+        "artifact_hashes": {
+          "apps/web/src/react-app/shared/MediaTaskRecovery.tsx": "a2c2ae8911114b7f3b6ad8a997b57810c87d971139c5b61c804660eacf8c64e1",
+          "apps/web/src/v3-domain/diagnostics.js": "5b141bae8acba093a7dd3b87306b3c6ed89acd689a83f1f59a0d9ab795f5158e",
+          "apps/web/test/diagnostic-task-detail.test.mjs": "1c222a7266b0423f6aeaa7f92365b7df4972ff50310ac1b539d263add22d0bb9",
+          "docs/verification/post-m4-fixes-evidence/entry-baseline.log": "f162c601f582ae785dcd37418c4640a8ca4cca438b3240cb831d42a083153c73",
+          "docs/verification/post-m4-fixes-evidence/entry-media-final.log": "68c4ba791d91769cbb247898996bca1ba443c4bafb65ddd088fabc168366766c",
+          "docs/verification/post-m4-fixes-progress-20261113.md": "76c5cab8bf12b52b90e0438c9f05bbcc24047ae7ac824313e5fbbdd63a04b22d"
+        }
+      }
+    ]
   }
 }

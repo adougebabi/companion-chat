@@ -660,3 +660,15 @@ Reflection 派生 DevelopingSelf 的运行输入读取复用既有 proposal `con
 同一画像证据检查覆盖既有 ActiveMemory 和 Outcome：核对原实体修订、来源命令/
 fingerprint，并按业务时钟处理 ActiveMemory 及其 ActorFact 依赖的适用时间。
 人格编译与发布复核使用同一业务时间，过期来源退出有效画像/overlay。
+
+## 持久私聊的未核验候选预览
+
+`direct` 私聊在已有共享 Redis 可用且持有当前 inbox claim 时启用同一正式
+Conversation Cognition 的原生 Stream。输入组装、Tools、模型绑定、采样和输出
+合同继续沿用现有入口。队列内的观察者只提取原生 `conversation.reply` 参数的
+顶层 `text`，不发送 Content、ReasoningContent、decision 或其他工具参数。
+候选快照按 inbox 和 claim 身份隔离，TTL 仅用于临时显示缓存。浏览器以独立纯文本
+区域显示“生成预览 · 尚未核验”，正式消息继续经过原发布核验。新物理候选、取消、
+失败、提交和观察请求失效会替换或清除临时显示。`fact_only` 保留现有可选行为，
+本次尚未为 Writer 增加候选预览。受控原生 SSE 与隔离数据库回归证明候选到达时
+尚无正式助手消息，并核对无交付依据的完成声明仍被正式发布检查拒绝。

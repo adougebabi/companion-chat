@@ -149,6 +149,8 @@ const turnErrorCodes = new Set([
 
 type StreamPayload = {
   text?: string;
+  candidateId?: string;
+  status?: string;
   message?: BrowserMessage;
   messages?: BrowserMessage[];
   message_id?: string;
@@ -475,6 +477,7 @@ export const conversationDefinition = defineDomain({
     fluctlightId: null as string | null,
     fluctlights: [] as FluctlightListItem[],
     messages: [] as BrowserMessage[],
+    candidatePreview: null as {candidateId: string; text: string; turnId: string; conversationId: string; fluctlightId: string} | null,
     nextBeforeSequence: null as number | null,
     authenticated: null as boolean | null,
     authenticatedActorId: null as string | null,
@@ -1122,6 +1125,7 @@ export const conversationDefinition = defineDomain({
         const decoder = new TextDecoder();
         let buffer = "";
         let assistantText = "";
+        let formalAssistantReceived = false;
         let expectedSequence = 0;
         let terminalType: "completed" | "error" | null = null;
         const applyEvent = (event: BrowserTurnEvent) => {
@@ -1132,6 +1136,18 @@ export const conversationDefinition = defineDomain({
             throw new Error("turn_sequence_invalid");
           expectedSequence += 1;
           const payload = event.payload as StreamPayload;
+          if (event.type === "candidate_preview") {
+            if (typeof payload.candidateId !== "string" || typeof payload.text !== "string" || payload.status !== "unverified")
+              throw new Error("candidate_preview_invalid");
+            if (formalAssistantReceived || terminalType !== null) return true;
+            this.candidatePreview = payload.candidateId && payload.text ? {
+              candidateId: payload.candidateId,
+              text: payload.text,
+              turnId: request.turnId,
+              conversationId: request.conversationId,
+              fluctlightId: request.fluctlightId,
+            } : null;
+          }
           if (event.type === "token") {
             assistantText += payload.text ?? "";
             if (!assistantDraft) {
@@ -1172,6 +1188,10 @@ export const conversationDefinition = defineDomain({
                 ? [payload.message]
                 : [];
             for (const message of incoming) {
+              if (message.kind === "assistant") {
+                formalAssistantReceived = true;
+                this.candidatePreview = null;
+              }
               const optimisticIndex =
                 message.kind === "user" && optimisticMessageId
                   ? this.messages.findIndex(
@@ -1212,6 +1232,7 @@ export const conversationDefinition = defineDomain({
             }
           }
           if (event.type === "error") {
+            this.candidatePreview = null;
             const code = turnErrorCode(payload);
             const detail =
               typeof payload.detail === "string" &&
@@ -1221,7 +1242,10 @@ export const conversationDefinition = defineDomain({
             terminalType = "error";
             throw new Error(detail ? `${code}: ${detail}` : code);
           }
-          if (event.type === "completed") terminalType = "completed";
+          if (event.type === "completed") {
+            this.candidatePreview = null;
+            terminalType = "completed";
+          }
         };
         while (true) {
           const next = await reader.read();
@@ -1269,6 +1293,7 @@ export const conversationDefinition = defineDomain({
         this.dismissedTurnId = null;
       } catch (error) {
         if (this.requestEpoch !== requestEpoch) return false;
+        this.candidatePreview = null;
         if (assistantDraft)
           this.messages = this.messages.filter(
             (message) => message.id !== assistantDraft?.id,
@@ -1330,6 +1355,7 @@ export const conversationDefinition = defineDomain({
         this.error = "发送状态未确认；重新发送会沿用同一消息身份。";
       } finally {
         if (this.requestEpoch === requestEpoch) {
+          this.candidatePreview = null;
           this.abortController = null;
           this.sending = false;
           this.activeTurnId = null;
@@ -1348,6 +1374,7 @@ export const conversationDefinition = defineDomain({
       return true;
     },
     invalidateRequest() {
+      this.candidatePreview = null;
       // A cancelled selection no longer owns loading. Its obsolete finally
       // must neither leave it stuck nor clear a newer selection's progress.
       if (this.selectionLoadingEpoch !== null) {

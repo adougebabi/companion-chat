@@ -97,6 +97,11 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 		return ConversationCognitionAgentResult{}, err
 	}
 	if run := replyRunFromContext(ctx); run != nil {
+		if run.Settings.Mode == "direct" {
+			var previewEnabled bool
+			ctx, previewEnabled = a.withConversationCandidatePreview(ctx, input.SourceFactID)
+			input.EnableStreaming = input.EnableStreaming || previewEnabled
+		}
 		if main, _ := ctx.Value(directMainConversationKey{}).(bool); main {
 			ctx, err = a.withDirectTurnCognitionSnapshot(ctx, input, run.Settings.Mode == "direct")
 			if err != nil {

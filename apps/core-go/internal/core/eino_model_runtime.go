@@ -339,7 +339,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 			return open()
 		}
 		return retryUpstreamModelCall(runCtx, m.scenario, open)
-	}, observer.observe)
+	}, observer.observe, newConversationCandidateObserver(callCtx))
 	if err != nil || stream == nil {
 		return stream, err
 	}

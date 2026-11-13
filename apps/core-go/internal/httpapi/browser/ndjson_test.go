@@ -450,3 +450,16 @@ func (body *blockingBody) wasClosed() bool {
 	defer body.mu.Unlock()
 	return body.isDone
 }
+
+func TestCandidatePreviewBoundaryIsUnverifiedTextOnly(t *testing.T) {
+	event, code := browserEvent(CoreStreamEvent{Type: "candidate_preview", TurnID: "turn", Sequence: 1, Payload: map[string]any{"candidate_id": "candidate", "text": "<img src=x>未核验候选", "status": "unverified", "attachment_refs": []any{"forged"}, "decision": map[string]any{"private": "never forwarded"}}})
+	if code != "" || event.Type != "candidate_preview" || event.Payload["candidateId"] != "candidate" || len(event.Payload) != 3 {
+		t.Fatalf("event=%#v code=%s", event, code)
+	}
+	for _, status := range []string{"committed", "completed", ""} {
+		_, code := browserEvent(CoreStreamEvent{Type: "candidate_preview", TurnID: "turn", Sequence: 1, Payload: map[string]any{"candidate_id": "candidate", "text": "candidate", "status": status}})
+		if code != InvalidCoreEvent {
+			t.Fatal(status, code)
+		}
+	}
+}
