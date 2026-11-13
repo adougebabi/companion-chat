@@ -91,6 +91,8 @@ func momentReplyEvidenceFact(entry ContextReference, projection ContextProjectio
 	switch entry.Kind {
 	case ContextReferenceGoal:
 		return nil
+	case ContextReferenceOutcome:
+		return factOnlyReplyEvidenceFact(entry, projection)
 	case ContextReferenceActorFact:
 		return factOnlyReplyEvidenceFact(entry, projection)
 	case ContextReferenceRelationship:
@@ -119,7 +121,11 @@ func momentReplyEvidenceFact(entry ContextReference, projection ContextProjectio
 	case ContextReferenceMemory, ContextReferenceIntention, ContextReferenceDevelopingSelf:
 		return nil
 	}
-	return map[string]any{"kind": string(entry.Kind), "value": replySemanticValue(row), "certainty": "仅按对应类型的权威状态/真实消息解释，引用本身不证明事件发生"}
+	value := momentReplyAuthorityEvidence(entry.Kind, row, projection)
+	if value == nil {
+		return nil
+	}
+	return map[string]any{"kind": string(entry.Kind), "value": value, "certainty": "仅按对应类型的权威状态/真实消息解释，引用本身不证明事件发生"}
 }
 
 // The relationship envelope is Core-owned; its declared domain values remain
@@ -183,6 +189,14 @@ func momentReplyToolFacts(facts []map[string]any) []map[string]any {
 			item := copyPromptFields(fact, "kind", "certainty")
 			item["value"] = copyPromptFields(mapValue(fact["value"]), "wearing_state", "body_fields", "worn_items", "used_items")
 			result = append(result, item)
+		case string(ContextReferenceOutcome):
+			item := copyPromptFields(fact, "kind", "certainty")
+			item["value"] = copyPromptFields(mapValue(fact["value"]), "capability_name", "status", "error_code", "occurred_at", "observed")
+			result = append(result, item)
+		case string(ContextReferenceScene), string(ContextReferenceLifeContext), string(ContextReferenceSchedule), string(ContextReferenceScheduleItem), string(ContextReferencePresence), string(ContextReferenceState), string(ContextReferenceEvolutionOverlay):
+			result = append(result, copyPromptFields(fact, "kind", "certainty", "value"))
+		case string(ContextReferenceAffectProfile):
+			continue
 		case string(ContextReferenceDrive), string(ContextReferencePreference), string(ContextReferenceTrigger):
 			item := copyPromptFields(fact, "kind", "certainty")
 			item["value"] = copyPromptFields(mapValue(fact["value"]), "key", "label", "description", "value_schema", "trigger_schema", "value", "confidence", "status", "updated_at", "pressure", "salience", "direction")

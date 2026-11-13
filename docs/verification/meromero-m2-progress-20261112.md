@@ -90,3 +90,8 @@ AEL `image-targets-disabled-moment-review`，暂不修改该行为。证据见
 外貌证据递归删键缺口经正式 Moment 准备入口红测复现，现按同角色已确认身体
 事件来源区分 Core 标识与业务值。专项及含原有草稿的工作区验证通过，证据见
 `meromero-m2-evidence/t03-appearance-review.md`。原 T03 的其他证据类型继续处理。
+
+其余已选场景、日程、状态及结果证据随后经红测确认业务值损伤和 Core 外壳
+泄漏，现改为按实际生产类型构造视图；44 个顶层原 T03/相关回归及工作区五项
+场景通过，无 SKIP，见 `meromero-m2-evidence/t03-typed-evidence-review.md`。
+本项覆盖已选证据，默认运行背景和 M2 真实主链的完整验收继续保留。

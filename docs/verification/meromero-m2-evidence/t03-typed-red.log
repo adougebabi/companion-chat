@@ -1,0 +1,25 @@
+SOURCE_HEAD fc70c31b477396f32bf434b50149a73ea5b05dd1
+OVERLAYS apps/core-go/internal/core/moment_typed_evidence_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestMomentTypedEvidencePreservesBusinessDataThroughPhysicalWriter$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestMomentTypedEvidencePreservesBusinessDataThroughPhysicalWriter
+    moment_typed_evidence_test.go:31: Core numeric affect policy became additional Writer evidence
+2026/11/13 11:31:30 WARN Go Core diagnostic persistence failed component=event stage=create correlation_id="" error_type=*errors.errorString safe_cause=diagnostics_unavailable event_type=reply.draft.prepared
+    moment_typed_evidence_test.go:60: scene source or world business data changed: {"authority_status":"confirmed","scene":"客厅","world_environment":{"background":{"count":0,"unknown":null,"valid":false},"flavor":{"count":0,"unknown":null,"valid":false},"name":"测试世界","rules":{"count":0,"unknown":null,"valid":false}}}
+    moment_typed_evidence_test.go:60: life_context source or world business data changed: {"activity":"阅读","authority_status":"planned","world_environment":{"background":{"count":0,"unknown":null,"valid":false},"flavor":{"count":0,"unknown":null,"valid":false},"name":"测试世界","rules":{"count":0,"unknown":null,"valid":false}}}
+    moment_typed_evidence_test.go:64: schedule policy business JSON changed
+    moment_typed_evidence_test.go:67: mood lost its semantic source
+    moment_typed_evidence_test.go:77: typed evidence exposed Core data "private-intention"
+    moment_typed_evidence_test.go:77: typed evidence exposed Core data "private-digest"
+    moment_typed_evidence_test.go:77: typed evidence exposed Core data "private-goal"
+    moment_typed_evidence_test.go:77: typed evidence exposed Core data "private_plan"
+    moment_typed_evidence_test.go:77: typed evidence exposed Core data "private_expected"
+    moment_typed_evidence_test.go:77: typed evidence exposed Core data "private_observed"
+    moment_typed_evidence_test.go:77: typed evidence exposed Core data "private-policy"
+    moment_typed_evidence_test.go:77: typed evidence exposed Core data "private_reducer"
+--- FAIL: TestMomentTypedEvidencePreservesBusinessDataThroughPhysicalWriter (0.01s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.725s
+FAIL
+
+EXIT_CODE 1
