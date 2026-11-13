@@ -9,6 +9,17 @@ import (
 )
 
 func TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs(t *testing.T) {
+	for _, selected := range []bool{true, false} {
+		name := "selected"
+		if !selected {
+			name = "default"
+		}
+		t.Run(name, func(t *testing.T) { exerciseMomentAppearanceEvidence(t, selected) })
+	}
+}
+
+func exerciseMomentAppearanceEvidence(t *testing.T, selected bool) {
+	t.Helper()
 	ctx, repo, app, owner, self, conversation := setupDirectPublicationToolTest(t, "appearance-evidence")
 	business := map[string]any{
 		"id": "owner-injury-label", "source_ref": "owner-source", "revision": 7,
@@ -67,7 +78,11 @@ func TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs(t *
 		t.Fatal(err)
 	}
 	service := ctx.Value(momentWriterRunKey{}).(*factOnlyMomentService)
-	invocation := CapabilityInvocation{CallID: "appearance-evidence", CapabilityName: "moment.publish", Arguments: jsonBytes(map[string]any{"evidence_refs": []any{ref}}), Metadata: InvocationMetadata{Source: "model_tool", AuthorizationActorID: owner, SubjectActorID: owner, FluctlightID: self, ConversationID: conversation, OperationID: "appearance-evidence"}, ContextSnapshot: map[string]any{"context_reference_index": projection.ReferenceIndex}}
+	refs := []any{}
+	if selected {
+		refs = append(refs, ref)
+	}
+	invocation := CapabilityInvocation{CallID: "appearance-evidence", CapabilityName: "moment.publish", Arguments: jsonBytes(map[string]any{"evidence_refs": refs}), Metadata: InvocationMetadata{Source: "model_tool", AuthorizationActorID: owner, SubjectActorID: owner, FluctlightID: self, ConversationID: conversation, OperationID: "appearance-evidence"}, ContextSnapshot: map[string]any{"context_reference_index": projection.ReferenceIndex}}
 	if _, err := service.prepare(ctx, invocation); err != nil {
 		t.Fatal(err)
 	}
@@ -82,10 +97,17 @@ func TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs(t *
 		}
 	}
 	facts := arrayValue(runtime["tool_facts"])
-	if len(facts) != 1 || mapValue(facts[0])["kind"] != string(ContextReferenceAppearance) {
-		t.Fatalf("selected appearance did not reach the physical Writer request: %#v", facts)
+	state := mapValue(mapValue(runtime["current_state"])["data"])
+	value := mapValue(state["appearance"])
+	if selected {
+		if len(facts) != 1 || mapValue(facts[0])["kind"] != string(ContextReferenceAppearance) {
+			t.Fatalf("selected appearance did not reach the physical Writer request: %#v", facts)
+		}
+		if _, exists := state["appearance"]; exists {
+			t.Fatal("same selected appearance remained duplicated in default runtime")
+		}
+		value = mapValue(mapValue(facts[0])["value"])
 	}
-	value := mapValue(mapValue(facts[0])["value"])
 	body := mapValue(value["body_fields"])
 	injuries := arrayValue(mapValue(body["injuries"])["value"])
 	if len(injuries) != 3 || jsonString(injuries[0]) != jsonString(business) || injuries[1] != "Owner 提供的旧伤描述" {
@@ -95,7 +117,7 @@ func TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs(t *
 		t.Fatalf("appearance states were lost: %s", jsonString(body))
 	}
 	for _, forbidden := range []string{injuryID, stringValue(recovered["id"]), self, "body_revision", "wardrobe_revision"} {
-		if strings.Contains(jsonString(facts), forbidden) {
+		if strings.Contains(jsonString(value), forbidden) {
 			t.Errorf("selected appearance exposed Core metadata %q", forbidden)
 		}
 	}

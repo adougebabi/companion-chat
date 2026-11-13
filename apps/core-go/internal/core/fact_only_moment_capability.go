@@ -241,6 +241,24 @@ func (s *factOnlyMomentService) prepare(ctx context.Context, inv CapabilityInvoc
 	if err != nil {
 		return ReplyDraft{}, err
 	}
+	appearanceRef := stringValue(projection.EffectiveAppearance["ref"])
+	if entry, exists := projection.ReferenceIndex.ByRef[appearanceRef]; exists && entry.Kind == ContextReferenceAppearance {
+		var appearanceFact map[string]any
+		for _, fact := range facts {
+			if fact["kind"] == string(ContextReferenceAppearance) {
+				appearanceFact = fact
+				input.Context.momentAppearanceSelected = true
+				break
+			}
+		}
+		if appearanceFact == nil {
+			appearanceFact, err = reader.appearanceEvidenceFact(ctx, entry, projection)
+			if err != nil {
+				return ReplyDraft{}, err
+			}
+		}
+		input.Context.momentAppearanceView = mapValue(appearanceFact["value"])
+	}
 	input.Context.momentSelectedRelationshipRefs = make(map[string]struct{})
 	for _, entry := range includedEntries {
 		if entry.Kind == ContextReferenceRelationship && entry.Ref != "" {

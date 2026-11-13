@@ -95,3 +95,8 @@ AEL `image-targets-disabled-moment-review`，暂不修改该行为。证据见
 泄漏，现改为按实际生产类型构造视图；44 个顶层原 T03/相关回归及工作区五项
 场景通过，无 SKIP，见 `meromero-m2-evidence/t03-typed-evidence-review.md`。
 本项覆盖已选证据，默认运行背景和 M2 真实主链的完整验收继续保留。
+
+默认 Moment 背景同源递归损伤随后经实际 Writer 请求红测确认，并接入类型
+视图。默认外貌复用 Core 来源核对，同源已选外貌去重。45 个顶层合并回归和
+工作区六项对照通过，无 SKIP。原 T03 四条验收映射见
+`meromero-m2-evidence/t03-acceptance-20261113.md`，提交后正式验收待执行。

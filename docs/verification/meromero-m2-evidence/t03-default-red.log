@@ -1,0 +1,16 @@
+SOURCE_HEAD 8e24ad0d44b760ab5449876e2ab2ce958fda1bdf
+OVERLAYS apps/core-go/internal/core/moment_typed_evidence_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestMomentDefaultContextKeepsTypedBusinessValues$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestMomentDefaultContextKeepsTypedBusinessValues
+2026/11/13 11:45:37 WARN Go Core diagnostic persistence failed component=event stage=create correlation_id="" error_type=*errors.errorString safe_cause=diagnostics_unavailable event_type=reply.draft.prepared
+    moment_typed_evidence_test.go:84: default life source or world rules changed: {"scene":"客厅","world_environment":{"rules":{"valid":false}}}
+    moment_typed_evidence_test.go:87: default mood source was lost
+    moment_typed_evidence_test.go:90: default schedule policy business value changed
+    moment_typed_evidence_test.go:94: default developing-self business value changed
+--- FAIL: TestMomentDefaultContextKeepsTypedBusinessValues (0.01s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.740s
+FAIL
+
+EXIT_CODE 1

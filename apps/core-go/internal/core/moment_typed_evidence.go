@@ -14,7 +14,7 @@ func momentReplyAuthorityEvidence(kind ContextReferenceKind, row map[string]any,
 	case ContextReferenceSchedule:
 		return copyPromptFields(row, "local_date", "timezone", "status", "completed_before", "reschedule_policy")
 	case ContextReferenceScheduleItem:
-		return copyPromptFields(row, "start_at", "end_at", "activity", "scene", "location", "item_type", "status", "action_status", "priority", "flexibility", "interruption_cost", "promise_schedule_valid", "promise_state")
+		return copyPromptFields(row, "start_at", "end_at", "activity", "scene", "location", "item_type", "status", "action_status", "priority", "flexibility", "interruption_cost", "promise_schedule_valid", "promise_state", "local_start_time", "local_end_time", "local_time_range", "local_start_at", "local_end_at")
 	case ContextReferencePresence:
 		return copyPromptFields(row, "current_task", "user_presence", "effective_at", "expires_at")
 	case ContextReferenceState:
@@ -24,6 +24,71 @@ func momentReplyAuthorityEvidence(kind ContextReferenceKind, row map[string]any,
 	default:
 		return nil
 	}
+}
+
+func momentReplyCurrentState(input ReplyContextInput) map[string]any {
+	projection := input.Projection
+	raw := mapValue(projection.CurrentState["data"])
+	result := map[string]any{}
+	inner := mapValue(raw["inner_state"])
+	if len(inner) == 0 {
+		inner = projection.InnerState
+	}
+	if len(inner) > 0 {
+		result["inner_state"] = compactInnerStateForSurface(inner)
+	}
+	life := mapValue(raw["life_context"])
+	if len(life) == 0 {
+		life = projection.LifeContext
+	}
+	if len(life) > 0 {
+		result["life_context"] = momentReplyAuthorityEvidence(ContextReferenceLifeContext, life, projection)
+	}
+	if !input.momentAppearanceSelected {
+		appearance := input.momentAppearanceView
+		if appearance == nil {
+			appearance = mapValue(raw["appearance"])
+			if len(appearance) == 0 {
+				appearance = projection.EffectiveAppearance
+			}
+			appearance = replyAppearanceView(appearance)
+		}
+		if len(appearance) > 0 {
+			result["appearance"] = appearance
+		}
+	}
+	activities := raw["active_activities"]
+	if len(arrayValue(activities)) == 0 {
+		activities = projection.ActiveActivities
+	}
+	if values := compactActiveActivitiesForSurface(activities); len(values) > 0 {
+		for _, value := range values {
+			delete(value, "id")
+		}
+		result["active_activities"] = values
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return map[string]any{"subject": "actor_self", "data": result}
+}
+
+func momentReplySchedule(schedule map[string]any) map[string]any {
+	view := momentReplyAuthorityEvidence(ContextReferenceSchedule, schedule, ContextProjection{})
+	base := compactScheduleForProvider(schedule)
+	for _, key := range []string{"items", "upcoming_items"} {
+		if raw, exists := base[key]; exists {
+			items := []map[string]any{}
+			for _, item := range arrayValue(raw) {
+				items = append(items, momentReplyAuthorityEvidence(ContextReferenceScheduleItem, mapValue(item), ContextProjection{}))
+			}
+			view[key] = items
+		}
+	}
+	if current := mapValue(base["current_item"]); len(current) > 0 {
+		view["current_item"] = momentReplyAuthorityEvidence(ContextReferenceScheduleItem, current, ContextProjection{})
+	}
+	return view
 }
 
 func momentWorldEvidence(world map[string]any, projection ContextProjection) map[string]any {

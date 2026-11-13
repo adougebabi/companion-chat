@@ -202,7 +202,7 @@ func momentReplyToolFacts(facts []map[string]any) []map[string]any {
 			item["value"] = copyPromptFields(mapValue(fact["value"]), "key", "label", "description", "value_schema", "trigger_schema", "value", "confidence", "status", "updated_at", "pressure", "salience", "direction")
 			result = append(result, item)
 		default:
-			result = append(result, mapValue(replySemanticValue(fact)))
+			continue
 		}
 	}
 	return result

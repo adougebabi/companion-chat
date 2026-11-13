@@ -1,0 +1,28 @@
+SOURCE_HEAD 8e24ad0d44b760ab5449876e2ab2ce958fda1bdf
+OVERLAYS apps/core-go/internal/core/moment_typed_evidence_test.go,apps/core-go/internal/core/moment_typed_evidence.go,apps/core-go/internal/core/reply_context.go,apps/core-go/internal/core/fact_only_reply_facts.go,apps/core-go/internal/core/fact_only_moment_capability.go,apps/core-go/internal/core/moment_appearance_evidence_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^Test(MomentDefaultContextKeepsTypedBusinessValues|MomentTypedEvidencePreservesBusinessDataThroughPhysicalWriter|MomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs|MomentWriterPreservesGoalConditionsWithoutPreviousStrategy|FactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestMomentWriterPreservesGoalConditionsWithoutPreviousStrategy
+2026/11/13 11:48:41 WARN Go Core diagnostic persistence failed component=event stage=create correlation_id="" error_type=*errors.errorString safe_cause=diagnostics_unavailable event_type=reply.draft.prepared
+--- PASS: TestMomentWriterPreservesGoalConditionsWithoutPreviousStrategy (0.01s)
+=== RUN   TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays
+2026/11/13 11:48:44 INFO reply.evidence.reconciled correlation_id=tool-operation:writer-moment-operation metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays (2.32s)
+=== RUN   TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs
+=== RUN   TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs/selected
+2026/11/13 11:48:46 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:1 retained_count:1 surface:]"
+    moment_appearance_evidence_integration_test.go:17: same selected appearance remained duplicated in default runtime
+=== RUN   TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs/default
+2026/11/13 11:48:47 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+--- FAIL: TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs (3.56s)
+    --- FAIL: TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs/selected (2.20s)
+    --- PASS: TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs/default (1.36s)
+=== RUN   TestMomentTypedEvidencePreservesBusinessDataThroughPhysicalWriter
+--- PASS: TestMomentTypedEvidencePreservesBusinessDataThroughPhysicalWriter (0.01s)
+=== RUN   TestMomentDefaultContextKeepsTypedBusinessValues
+--- PASS: TestMomentDefaultContextKeepsTypedBusinessValues (0.00s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.881s
+FAIL
+
+EXIT_CODE 1

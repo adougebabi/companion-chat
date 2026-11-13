@@ -1,0 +1,27 @@
+SOURCE current working tree including original four drafts
+COMMAND go test ./internal/core -count=1 -run ^Test(MomentDefaultContextKeepsTypedBusinessValues|MomentTypedEvidencePreservesBusinessDataThroughPhysicalWriter|MomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs|MomentInjuryEvidenceRequiresMatchingProvenance|MomentAppearanceEvidenceDoesNotUseOtherCharactersBodyEvents|PrivateReplyModeSwitchKeepsExplicitFactOnly)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/13 11:53:25 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (2.52s)
+=== RUN   TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs
+=== RUN   TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs/selected
+2026/11/13 11:53:27 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:1 retained_count:1 surface:]"
+=== RUN   TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs/default
+2026/11/13 11:53:30 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+--- PASS: TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs (4.77s)
+    --- PASS: TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs/selected (2.41s)
+    --- PASS: TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs/default (2.37s)
+=== RUN   TestMomentInjuryEvidenceRequiresMatchingProvenance
+--- PASS: TestMomentInjuryEvidenceRequiresMatchingProvenance (0.00s)
+=== RUN   TestMomentAppearanceEvidenceDoesNotUseOtherCharactersBodyEvents
+--- PASS: TestMomentAppearanceEvidenceDoesNotUseOtherCharactersBodyEvents (2.26s)
+=== RUN   TestMomentTypedEvidencePreservesBusinessDataThroughPhysicalWriter
+2026/11/13 11:53:32 WARN Go Core diagnostic persistence failed component=event stage=create correlation_id="" error_type=*errors.errorString safe_cause=diagnostics_unavailable event_type=reply.draft.prepared
+--- PASS: TestMomentTypedEvidencePreservesBusinessDataThroughPhysicalWriter (0.01s)
+=== RUN   TestMomentDefaultContextKeepsTypedBusinessValues
+--- PASS: TestMomentDefaultContextKeepsTypedBusinessValues (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	10.436s
+
+EXIT_CODE 0

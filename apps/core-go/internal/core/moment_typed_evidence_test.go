@@ -34,25 +34,7 @@ func TestMomentTypedEvidencePreservesBusinessDataThroughPhysicalWriter(t *testin
 		t.Error("Core numeric affect policy became additional Writer evidence")
 		input.ToolFacts = append(input.ToolFacts, fact)
 	}
-	var request map[string]any
-	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
-		request = payload
-		return fakeProviderResult{Text: "今天留一点时间读书。"}
-	})
-	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
-	if _, err := app.RunConversationReplyTask(context.Background(), ConversationReplyTaskInput{Context: input, Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "fixture", Timeout: time.Second}, Concurrency: 1}); err != nil {
-		t.Fatal(err)
-	}
-	var runtime map[string]any
-	for _, raw := range arrayValue(request["messages"]) {
-		content := stringValue(mapValue(raw)["content"])
-		if strings.HasPrefix(content, "[RUNTIME CONTEXT]\n") {
-			text := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
-			if err := json.Unmarshal([]byte(text), &runtime); err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
+	runtime := momentControlledWriterRuntime(t, input)
 	facts := map[ContextReferenceKind]map[string]any{}
 	for _, raw := range arrayValue(runtime["tool_facts"]) {
 		fact := mapValue(raw)
@@ -83,4 +65,63 @@ func TestMomentTypedEvidencePreservesBusinessDataThroughPhysicalWriter(t *testin
 			t.Errorf("typed evidence exposed Core data %q", forbidden)
 		}
 	}
+}
+
+func TestMomentDefaultContextKeepsTypedBusinessValues(t *testing.T) {
+	business := map[string]any{"id": "business-id", "source_ref": "business-ref", "revision": 7, "valid": false, "unknown": nil}
+	input := replyContextFixture()
+	input.Scene = replySceneMoment
+	input.Projection.CurrentState = map[string]any{"data": map[string]any{
+		"life_context": map[string]any{"source": "event", "scene": "客厅", "event_id": "private-event", "world_environment": map[string]any{"source": "owner_world_setting", "rules": business, "revision": 4}},
+		"inner_state":  map[string]any{"mood": map[string]any{"label": "calm", "source": "affect_event", "intensity": 0.2}},
+	}}
+	input.Projection.Schedule = map[string]any{"id": "private-schedule", "local_date": "2026-11-13", "timezone": "Asia/Shanghai", "reschedule_policy": business}
+	input.Projection.DevelopingSelf = []map[string]any{{"id": "private-claim", "category": "habit", "claim": "阅读", "value": business, "confidence": 0.8}}
+	runtime := momentControlledWriterRuntime(t, input)
+	state := mapValue(mapValue(runtime["current_state"])["data"])
+	life := mapValue(state["life_context"])
+	if life["source"] != "event" || jsonString(mapValue(life["world_environment"])["rules"]) != jsonString(business) {
+		t.Errorf("default life source or world rules changed: %s", jsonString(life))
+	}
+	if mapValue(state["inner_state"])["mood"] == nil || mapValue(mapValue(state["inner_state"])["mood"])["source"] != "affect_event" {
+		t.Error("default mood source was lost")
+	}
+	if jsonString(mapValue(runtime["schedule"])["reschedule_policy"]) != jsonString(business) {
+		t.Error("default schedule policy business value changed")
+	}
+	claims := arrayValue(runtime["developing_self"])
+	if len(claims) != 1 || jsonString(mapValue(claims[0])["value"]) != jsonString(business) {
+		t.Error("default developing-self business value changed")
+	}
+	for _, forbidden := range []string{"private-event", "private-schedule", "private-claim"} {
+		if strings.Contains(jsonString(runtime), forbidden) {
+			t.Errorf("default runtime exposed Core identity %q", forbidden)
+		}
+	}
+}
+
+func momentControlledWriterRuntime(t *testing.T, input ReplyContextInput) map[string]any {
+	t.Helper()
+	var request map[string]any
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		request = payload
+		return fakeProviderResult{Text: "今天留一点时间读书。"}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	if _, err := app.RunConversationReplyTask(context.Background(), ConversationReplyTaskInput{Context: input, Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "fixture", Timeout: time.Second}, Concurrency: 1}); err != nil {
+		t.Fatal(err)
+	}
+	for _, raw := range arrayValue(request["messages"]) {
+		content := stringValue(mapValue(raw)["content"])
+		if strings.HasPrefix(content, "[RUNTIME CONTEXT]\n") {
+			var runtime map[string]any
+			text := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
+			if err := json.Unmarshal([]byte(text), &runtime); err != nil {
+				t.Fatal(err)
+			}
+			return runtime
+		}
+	}
+	t.Fatal("controlled Writer request has no runtime context")
+	return nil
 }

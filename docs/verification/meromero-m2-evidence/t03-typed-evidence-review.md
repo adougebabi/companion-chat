@@ -15,5 +15,8 @@ Outcome 复用既有真实状态视图；动作计划和 Core 数值情绪策略
 见 `t03-typed-regression.log`。含四处原有草稿的工作区五个顶层场景也通过，
 见 `t03-typed-working.log`。真实模型验证沿现有环境阻塞记录保留。
 
+提交 `8e24ad0d` 的干净源码复验十个关键顶层用例通过，退出 0、无 SKIP，见
+`t03-typed-postcommit.log`。
+
 本项覆盖已选证据处理。Moment 默认运行背景仍使用原有组装路径，原 T03 和
 M2 的完整验收继续保持未完成。
