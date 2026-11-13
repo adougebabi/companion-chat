@@ -1,0 +1,34 @@
+SOURCE_HEAD de0baef53ade49753bdeab2e8f5714a51f52a278
+OVERLAYS apps/core-go/internal/core/memory_correction_inflight_reply_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/direct/revise
+    memory_correction_inflight_reply_test.go:104: old reply fenced after committed revise: main=1 writer=0 inbox=failed error=adk_run: [NodeRunError] failed to invoke tool[name:conversation.reply id:inflight-memory-1]: tool execution tool_execution_dependency_failed: current_facts_stale
+        ------------------------
+        node path: [node_1, ToolNode]
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/direct/forget
+    memory_correction_inflight_reply_test.go:104: old reply fenced after committed forget: main=1 writer=0 inbox=failed error=adk_run: [NodeRunError] failed to invoke tool[name:conversation.reply id:inflight-memory-1]: tool execution tool_execution_dependency_failed: current_facts_stale
+        ------------------------
+        node path: [node_1, ToolNode]
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/revise
+2026/11/13 13:13:50 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:memory-inflight-fact_only-revise metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 13:13:50 WARN tool.call.handled capability=conversation.reply call_id=inflight-memory-1 warning_code=reply_context_stale disposition=awaiting_state effect_applied=false
+    memory_correction_inflight_reply_test.go:104: old reply fenced after committed revise: main=2 writer=1 inbox=failed error=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 400: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel]
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/forget
+2026/11/13 13:13:51 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:memory-inflight-fact_only-forget metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 13:13:51 WARN tool.call.handled capability=conversation.reply call_id=inflight-memory-1 warning_code=reply_context_stale disposition=awaiting_state effect_applied=false
+    memory_correction_inflight_reply_test.go:104: old reply fenced after committed forget: main=2 writer=1 inbox=failed error=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 400: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel]
+--- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies (8.25s)
+    --- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/direct/revise (3.55s)
+    --- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/direct/forget (2.01s)
+    --- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/revise (1.28s)
+    --- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/forget (1.41s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	9.079s
+
+EXIT_CODE 0

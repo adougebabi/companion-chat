@@ -1,0 +1,1013 @@
+SOURCE_HEAD de0baef53ade49753bdeab2e8f5714a51f52a278
+OVERLAYS apps/core-go/internal/core/memory_correction_inflight_reply_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/direct/revise
+    memory_correction_inflight_reply_test.go:84: ERROR: column "status" does not exist (SQLSTATE 42703)
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/direct/forget
+    memory_correction_inflight_reply_test.go:84: ERROR: column "status" does not exist (SQLSTATE 42703)
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/revise
+2026/11/13 13:09:28 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:memory-inflight-fact_only-revise metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 13:09:28 WARN tool.call.handled capability=conversation.reply call_id=inflight-memory-1 warning_code=reply_context_stale disposition=awaiting_state effect_applied=false
+2026/11/13 13:09:28 WARN tool.call.handled capability=conversation.reply call_id=inflight-memory-2 warning_code=reply_context_stale disposition=awaiting_state effect_applied=false
+2026/11/13 13:09:29 WARN tool.call.handled capability=conversation.reply call_id=inflight-memory-2 warning_code=reply_context_stale disposition=awaiting_state effect_applied=false
+2026/11/13 13:09:29 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:memory-inflight-fact_only-revise metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 13:10:56 WARN Go Core diagnostic persistence failed component=model_run stage=queue correlation_id=turn:memory-inflight-fact_only-revise error_type=context.deadlineExceededError safe_cause="context deadline exceeded"
+    memory_correction_inflight_reply_test.go:84: context deadline exceeded
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/forget
+2026/11/13 13:10:58 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:memory-inflight-fact_only-forget metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 13:10:58 WARN tool.call.handled capability=conversation.reply call_id=inflight-memory-1 warning_code=reply_context_stale disposition=awaiting_state effect_applied=false
+2026/11/13 13:10:58 WARN tool.call.handled capability=conversation.reply call_id=inflight-memory-2 warning_code=reply_context_stale disposition=awaiting_state effect_applied=false
+2026/11/13 13:10:58 WARN tool.call.handled capability=conversation.reply call_id=inflight-memory-2 warning_code=reply_context_stale disposition=awaiting_state effect_applied=false
+2026/11/13 13:10:58 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:memory-inflight-fact_only-forget metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+panic: test timed out after 3m0s
+	running tests:
+		TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies (3m0s)
+		TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/forget (1m24s)
+
+goroutine 1837 [running]:
+testing.(*M).startAlarm.func1()
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/testing/testing.go:2802 +0x2cc
+created by time.goFunc
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/time/sleep.go:215 +0x38
+
+goroutine 1 [chan receive, 3 minutes]:
+testing.(*T).Run(0xb157e112b48, {0x1060db10d?, 0x1198edb804359ba0?}, 0x107f1c540)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/testing/testing.go:2109 +0x3bc
+testing.runTests.func1(0xb157e112b48)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/testing/testing.go:2585 +0x40
+testing.tRunner(0xb157e112b48, 0xb157e063c48)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/testing/testing.go:2036 +0xc4
+testing.runTests({0x1060b8d03, 0x35}, {0x1060ef6a9, 0x43}, 0xb157dd7e090, {0x1080f1600, 0x861, 0x861}, {0x8080808080756c53?, 0x105fed898?, ...})
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/testing/testing.go:2583 +0x3f0
+testing.(*M).Run(0xb157e120640)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/testing/testing.go:2443 +0x578
+main.main()
+	_testmain.go:4334 +0x80
+
+goroutine 49 [chan receive, 1 minutes]:
+testing.(*T).Run(0xb157e112d88, {0xb15ccd90080?, 0xb157e54aed8?}, 0xb159c66f780)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/testing/testing.go:2109 +0x3bc
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies(0xb157e112d88)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/memory_correction_inflight_reply_test.go:17 +0x11c
+testing.tRunner(0xb157e112d88, 0x107f1c540)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/testing/testing.go:2036 +0xc4
+created by testing.(*T).Run in goroutine 1
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/testing/testing.go:2101 +0x3a8
+
+goroutine 890 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15a701f550, 0x606)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15a701f540)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/cloudwego/eino/internal.(*UnboundedChan[...]).Receive(0xb15d5117f58)
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/internal/channel.go:55 +0xb0
+github.com/cloudwego/eino/adk.(*AsyncIterator[...]).Next(...)
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/adk/utils.go:36
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent.RunADKLoop({0x107f6d180, 0xb15c997caf0}, {{0x106055e4d, 0x21}, {0x106124c26, 0x66}, {0x0, 0x0}, {0x107f66e88, 0xb1582130b60}, ...}, ...)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/agent/loop.go:356 +0x678
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.RunADKLoop(...)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/adk_conversation_runtime.go:617
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.(*ProviderClient).generateWithADK(_, {_, _}, {{{0x105ffcffe, 0x12}, {0xb15cc539470, 0x12}, 0x1, 0x1, 0x0, ...}, ...}, ...)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/eino_model_runtime.go:1289 +0xddc
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.(*ProviderClient).generateWithEino(_, {_, _}, {{{0x105ffcffe, 0x12}, {0xb15cc539470, 0x12}, 0x1, 0x1, 0x0, ...}, ...})
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/eino_model_runtime.go:1151 +0xb48
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.(*ProviderClient).completeWithToolsSchemaMode.func1({0x107f6d148, 0xb15a4431320})
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/provider.go:446 +0x32c
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.runProviderQueued[...](0xb157e6e1680, {0x107f6d148, 0xb15a4431320}, {0x105ffcffe, 0x12}, {0x10600878f, 0x14}, 0x64, {0x0, 0x0}, ...)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/provider_queue.go:195 +0x10c
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.(*ProviderClient).completeWithToolsSchemaMode(0xb157e6e1680, {0x107f6d148, 0xb159c14a5a0}, {0x10600878f, 0x14}, {0xb15c997e528, 0x3, 0x3}, 0x1, {0xb1582160008, ...}, ...)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/provider.go:436 +0x153c
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.(*ProviderClient).AgentAssembledCompletion(...)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/provider.go:313
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.(*App).RunADKStructuredTask(_, {_, _}, {{0x1060143c1, 0x16}, {0x10600878f, 0x14}, {0x10600878f, 0x14}, {{0xb15c997e528, ...}, ...}, ...})
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/adk_conversation_runtime.go:752 +0x14b0
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.(*App).RunFormalAgent(_, {_, _}, {_, _}, {{{0xb15c997e528, 0x3, 0x3}, {0xb15cb7ea528, 0x3, ...}, ...}, ...})
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/formal_agents.go:259 +0x5a0
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.(*App).RunConversationCognitionAgent(_, {_, _}, {{0xb15d2880600, 0x2c}, {0xb15d2880840, 0x26}, {0xb15d2880630, 0x2c}, {0xb15b5e81d40, ...}, ...})
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/cognition_agent.go:191 +0x1914
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.(*App).handleTurn(0xb15d17a4d20, {0x107f6d148, 0xb15c275f2f0}, {0xb15d2880600, 0x2c}, {0xb15b5e81d80, 0x33}, 0xb15c275eea0, {0x0?, 0x0?, ...}, ...)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/agent_result_adapter.go:307 +0x1288
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.(*App).HandleTurn(...)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/mutations.go:617
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.(*App).processCognitionInbox(0xb15d17a4d20, {0x107f6d148, 0xb15c275ee70}, {0xb15c7531bf0, 0x26})
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/cognition.go:164 +0x1620
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.(*App).ProcessCognitionInbox(0xb15d17a4d20, {0x107f6d1b8, 0xb157de96b60}, {0xb15c7531bf0, 0x26})
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/conversation_deadline.go:77 +0x13c
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies.func1(0xb15a978a248)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/memory_correction_inflight_reply_test.go:80 +0xb4c
+testing.tRunner(0xb15a978a248, 0xb159c66f780)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/testing/testing.go:2036 +0xc4
+created by testing.(*T).Run in goroutine 49
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/testing/testing.go:2101 +0x3a8
+
+goroutine 30 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7c90, 0x11)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b090)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 894 [select]:
+github.com/jackc/pgx/v5/pgxpool.(*Pool).backgroundHealthCheck(0xb157e36e2a0)
+	/Users/vinson/go/pkg/mod/github.com/jackc/pgx/v5@v5.9.2/pgxpool/pool.go:495 +0xa0
+github.com/jackc/pgx/v5/pgxpool.NewWithConfig.func5()
+	/Users/vinson/go/pkg/mod/github.com/jackc/pgx/v5@v5.9.2/pgxpool/pool.go:338 +0x3c
+created by github.com/jackc/pgx/v5/pgxpool.NewWithConfig in goroutine 890
+	/Users/vinson/go/pkg/mod/github.com/jackc/pgx/v5@v5.9.2/pgxpool/pool.go:335 +0x3dc
+
+goroutine 891 [select]:
+github.com/jackc/pgx/v5/pgxpool.(*Pool).backgroundHealthCheck(0xb157e36e1c0)
+	/Users/vinson/go/pkg/mod/github.com/jackc/pgx/v5@v5.9.2/pgxpool/pool.go:495 +0xa0
+github.com/jackc/pgx/v5/pgxpool.NewWithConfig.func5()
+	/Users/vinson/go/pkg/mod/github.com/jackc/pgx/v5@v5.9.2/pgxpool/pool.go:338 +0x3c
+created by github.com/jackc/pgx/v5/pgxpool.NewWithConfig in goroutine 890
+	/Users/vinson/go/pkg/mod/github.com/jackc/pgx/v5@v5.9.2/pgxpool/pool.go:335 +0x3dc
+
+goroutine 1069 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb1584db5b90, 0x1c)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb1584db5b80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb158b5ac960)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1066
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1137 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb1584db5b90, 0x1b)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb1584db5b80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb158b5ac960)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1066
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 82 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f1d0, 0x10)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f1c0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dbd0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 83 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f1d0, 0x9)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f1c0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dbd0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 84 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f1d0, 0xd)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f1c0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dbd0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 85 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f1d0, 0xb)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f1c0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dbd0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 86 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f1d0, 0xc)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f1c0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dbd0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 87 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f1d0, 0xe)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f1c0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dbd0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 88 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f1d0, 0xf)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f1c0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dbd0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 89 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f1d0, 0xa)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f1c0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dbd0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 90 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f210, 0x0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f200)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dc20)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 91 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f210, 0x1)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f200)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dc20)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 92 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f210, 0x2)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f200)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dc20)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 93 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f210, 0x3)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f200)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dc20)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 94 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f210, 0x4)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f200)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dc20)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 95 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f210, 0x5)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f200)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dc20)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 96 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f210, 0x6)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f200)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dc20)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 97 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157e66f210, 0x7)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e66f200)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e91dc20)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 38
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 29 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7c90, 0x13)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b090)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1068 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb1584db5b90, 0x1d)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb1584db5b80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb158b5ac960)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1066
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 144 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3150, 0x3125)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3140)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923d60)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 31 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7c90, 0x12)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b090)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 32 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7c90, 0x14)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b090)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 129 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7c90, 0xf)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b090)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 130 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7c90, 0x15)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b090)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 131 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7c90, 0x16)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b090)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 132 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7c90, 0x10)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b090)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 133 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7cd0, 0x6)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7cc0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b0e0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 134 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7cd0, 0x8)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7cc0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b0e0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 135 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7cd0, 0x1)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7cc0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b0e0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 136 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7cd0, 0x7)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7cc0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b0e0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 137 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7cd0, 0x3)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7cc0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b0e0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 138 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7cd0, 0x2)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7cc0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b0e0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 139 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7cd0, 0x5)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7cc0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b0e0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 140 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7cd0, 0x4)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7cc0)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157df1b0e0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 52
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 161 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3150, 0x3122)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3140)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923d60)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 162 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3150, 0x3128)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3140)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923d60)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 163 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3150, 0x3124)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3140)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923d60)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 164 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3150, 0x3121)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3140)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923d60)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 165 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3150, 0x3127)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3140)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923d60)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 166 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3150, 0x3123)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3140)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923d60)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 167 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3150, 0x3126)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3140)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923d60)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 168 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3190, 0x196e)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3180)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923db0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 169 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3190, 0x1969)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3180)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923db0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 170 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3190, 0x1968)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3180)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923db0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 171 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3190, 0x196c)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3180)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923db0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 172 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3190, 0x196d)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3180)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923db0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 173 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3190, 0x196b)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3180)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923db0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 174 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3190, 0x196f)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3180)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923db0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 175 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb157e4a3190, 0x196a)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157e4a3180)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e923db0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 45
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 126 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7650, 0x1b)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7640)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e5a0910)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 124
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 127 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7650, 0x17)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7640)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e5a0910)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 124
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 128 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7650, 0x16)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7640)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e5a0910)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 124
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 177 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7650, 0x1a)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7640)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e5a0910)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 124
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 178 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7650, 0x19)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7640)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e5a0910)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 124
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 179 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7650, 0x1d)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7640)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e5a0910)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 124
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 180 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7650, 0x1c)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7640)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e5a0910)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 124
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 181 [sync.Cond.Wait, 2 minutes]:
+sync.runtime_notifyListWait(0xb157dec7650, 0x18)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb157dec7640)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb157e5a0910)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 124
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1138 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb1584db5b90, 0x18)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb1584db5b80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb158b5ac960)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1066
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1139 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb1584db5b90, 0x1a)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb1584db5b80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb158b5ac960)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1066
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1070 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb1584db5b90, 0x17)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb1584db5b80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb158b5ac960)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1066
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1072 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb1584db5b90, 0x16)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb1584db5b80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb158b5ac960)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1066
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1071 [sync.Cond.Wait, 1 minutes]:
+sync.runtime_notifyListWait(0xb1584db5b90, 0x19)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb1584db5b80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb158b5ac960)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1066
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1107 [select]:
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.enterLogicalAgentRunWithWait.func2()
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/logical_agent_run.go:103 +0x108
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.enterLogicalAgentRunWithWait in goroutine 890
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/logical_agent_run.go:98 +0x3d8
+
+goroutine 1109 [runnable]:
+regexp.(*inputString).step(0xb157e63a760?, 0x94?)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/regexp/regexp.go:385 +0x90
+regexp.(*Regexp).tryBacktrack(0xb157e2175e0, 0xb157e63a6e0, {0x107f71c00, 0xb157e63a760}, 0x5fcc500?, 0x10429d354?)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/regexp/backtrack.go:207 +0x63c
+regexp.(*Regexp).backtrack(0xb157e2175e0, {0x0, 0x0, 0x0}, {0xb15b845c000, 0xc2}, 0x0, 0x2, {0xb15a2da2da0, 0x0, ...})
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/regexp/backtrack.go:351 +0x280
+regexp.(*Regexp).doExecute(0xb1585324ff8?, {0x0, 0x0}, {0x0, 0x0, 0x0}, {0xb15b845c000, 0xc2}, 0x0, 0x2, ...)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/regexp/exec.go:535 +0x1d8
+regexp.(*Regexp).replaceAll(0xb157e2175e0, {0x0, 0x0, 0x0}, {0xb15b845c000, 0xc2}, 0x2, 0xb15853250a8)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/regexp/regexp.go:599 +0x10c
+regexp.(*Regexp).ReplaceAllString(0xb157e2175e0, {0xb15b845c000, 0xc2}, {0x10600e2c0, 0x15})
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/regexp/regexp.go:557 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.redactDiagnostic({0x107adff40?, 0xb15a2329010})
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/diagnostics.go:338 +0x388
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.redactDiagnostic({0x107bfe100?, 0xb15a2319dd0})
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/diagnostics.go:310 +0xe9c
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.redactDiagnostic({0x107aa3660?, 0xb15aea5daa0})
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/diagnostics.go:322 +0x4ac
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.redactProviderDiagnostic({0x107f6d148?, 0xb15a1dffb60?}, {0x107aa3660, 0xb15aea5daa0})
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/provider_diagnostic_privacy.go:23 +0x84
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.providerRuntimeSupport.PersistModelRunLifecycle({{0x107f50540?, 0xb15a65b20e8?}}, {0x107f6d148, 0xb15a1dffb60}, {0x10600878f, 0x14}, {0xb15cf7e39e0, 0x2f}, {0xb15bfec2910, 0xa}, ...)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/diagnostics.go:604 +0x19c
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.providerRuntimeSupport.RecordQueuedModelRun({{0x107f50540?, 0xb15a65b20e8?}}, {0x107f6d148, 0xb15a1dffb60}, {0x10600878f, 0x14}, {0xb15cf7e39e0?, 0x107b0c400?}, {0xb15bfec2910?, 0x1052721e4?}, ...)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/diagnostics.go:434 +0x80
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.(*queuedToolCallingChatModel).Generate(0xb1582130d00, {0x107f6d148, 0xb15af29ba40}, {0xb157e09f808, 0x609, 0x6ff}, {0x0, 0x0, 0x0})
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/core/eino_model_runtime.go:166 +0x540
+github.com/cloudwego/eino/compose.newRunnablePacker[...].func21({0xb157e09f808?, 0x1081367c0?, 0x107b81020?}, {0x0?, 0x0?, 0x0})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/utils.go:106 +0x70
+github.com/cloudwego/eino/compose.(*runnablePacker[...]).Invoke(...)
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/runnable.go:160
+github.com/cloudwego/eino/compose.(*runnablePacker[...]).toComposableRunnable.func1({0x107aa3de0, 0xb15a2e717b8}, {0x0?, 0xb15af29b980?, 0xb1585326a38?})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/runnable.go:129 +0x1b4
+github.com/cloudwego/eino/compose.runnableInvoke({0x107f6d148?, 0xb15af29b9e0?}, 0x105fd8ba5?, {0x107aa3de0?, 0xb15a2e717b8?}, {0x0?, 0x0?, 0x0?})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/graph_run.go:102 +0x4c
+github.com/cloudwego/eino/compose.(*taskManager).execute(0xb1582634180, 0xb1580345710)
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/graph_manager.go:297 +0x98
+github.com/cloudwego/eino/compose.(*taskManager).submit(0xb1582634180, {0xb15a744a698?, 0xb15bc72f200?, 0xb15a744a688?})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/graph_manager.go:348 +0x328
+github.com/cloudwego/eino/compose.(*runner).run(0xb15aaa41860, {0x107f6d148, 0xb15bc72f200}, 0x0, {0x107aa3de0, 0xb15ae53a4e0}, {0x0, 0x0, 0x0})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/graph_run.go:257 +0x11e4
+github.com/cloudwego/eino/compose.(*runner).invoke(0xb15ba9852d8?, {0x107f6d148?, 0xb15bc72ede0?}, {0x107aa3de0?, 0xb15ae53a4e0?}, {0x0?, 0xb15be26e410?, 0xb15be26e410?})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/graph_run.go:87 +0x48
+github.com/cloudwego/eino/compose.(*graph).compile.(*runner).toComposableRunnable.func3({0x107f6d148, 0xb15bc72ede0}, {0x107aa3de0, 0xb15ae53a4e0}, {0x0?, 0xb15ba9852d8?, 0xb15826326c0?})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/graph_run.go:999 +0x90
+github.com/cloudwego/eino/compose.runnableInvoke({0x107f6d148?, 0xb15bc72ede0?}, 0xb158d9d8110?, {0x107aa3de0?, 0xb15ae53a4e0?}, {0x0?, 0xb15cad06fc0?, 0x2?})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/graph_run.go:102 +0x4c
+github.com/cloudwego/eino/compose.(*taskManager).execute(0xb1582634120, 0xb15826326c0)
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/graph_manager.go:297 +0x98
+github.com/cloudwego/eino/compose.(*taskManager).submit(0xb1582634120, {0xb15a6c45748?, 0xb15bc72e960?, 0xb15a6c45740?})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/graph_manager.go:348 +0x328
+github.com/cloudwego/eino/compose.(*runner).run(0xb15aaa41a40, {0x107f6d148, 0xb15bc72e960}, 0x0, {0x107b7dc60, 0xb159e318e60}, {0xb15cad06fc0, 0x2, 0x2})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/graph_run.go:257 +0x11e4
+github.com/cloudwego/eino/compose.(*runner).invoke(0x107f69a20?, {0x107f6d148?, 0xb15bc72e630?}, {0x107b7dc60?, 0xb159e318e60?}, {0xb15cad06fc0?, 0x70?, 0x107e72d80?})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/graph_run.go:87 +0x48
+github.com/cloudwego/eino/compose.(*graph).compile.(*runner).toComposableRunnable.func3({0x107f6d148, 0xb15bc72e630}, {0x107b7dc60, 0xb159e318e60}, {0xb15878cb680?, 0x104912dac?, 0x107f6d148?})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/graph_run.go:999 +0x90
+github.com/cloudwego/eino/compose.toGenericRunnable[...].func1(0xb159e318e60, {0xb15cad06d20, 0x2, 0x107db7640})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/runnable.go:405 +0xf8
+github.com/cloudwego/eino/compose.(*runnablePacker[...]).wrapRunnableCtx.func1(0xb159e318e60?, {0xb15cad06d20?, 0x2, 0x2})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/runnable.go:83 +0x6c
+github.com/cloudwego/eino/compose.(*runnablePacker[...]).Invoke(...)
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/compose/runnable.go:160
+github.com/cloudwego/eino/adk.(*ChatModelAgent).buildRunFunc.func1.2({0x107f6d148, 0xb159d942090}, 0xb159e318e60, 0xb15a6c45680, 0xb159e319e00, {0xb1580f62fc0, 0x1, 0x106026a9b?})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/adk/chatmodel.go:930 +0xa30
+github.com/cloudwego/eino/adk.(*ChatModelAgent).Run.func1()
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/adk/chatmodel.go:971 +0xac
+created by github.com/cloudwego/eino/adk.(*ChatModelAgent).Run in goroutine 890
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/adk/chatmodel.go:960 +0x280
+
+goroutine 1110 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15a701f510, 0x606)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15a701f500)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/cloudwego/eino/internal.(*UnboundedChan[...]).Receive(0xb15ab03afa0)
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/internal/channel.go:55 +0xb0
+github.com/cloudwego/eino/adk.(*AsyncIterator[...]).Next(...)
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/adk/utils.go:36
+github.com/cloudwego/eino/adk.(*flowAgent).run(0xb15c8b17770, {0x107f6d148, 0xb159d942090}, 0xb159d942000, 0xb15a6c45678, 0xb15a6c45690, {0x0, 0x0, 0x0})
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/adk/flow.go:380 +0xa8
+created by github.com/cloudwego/eino/adk.(*flowAgent).Run in goroutine 890
+	/Users/vinson/go/pkg/mod/github.com/cloudwego/eino@v0.7.37/adk/flow.go:310 +0x2ec
+
+goroutine 1111 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c50, 0x2f7f)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c40)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bcc0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1112 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c50, 0x2f79)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c40)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bcc0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1113 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c50, 0x2f7d)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c40)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bcc0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1114 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c50, 0x2f7a)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c40)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bcc0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1115 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c50, 0x2f7e)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c40)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bcc0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1116 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c50, 0x2f7b)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c40)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bcc0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1117 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c50, 0x2f80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c40)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bcc0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1118 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c50, 0x2f7c)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c40)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bcc0)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1119 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c90, 0x1821)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bd10)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1120 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c90, 0x1823)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bd10)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1121 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c90, 0x1825)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bd10)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1122 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c90, 0x1820)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bd10)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1123 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c90, 0x1822)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bd10)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1124 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c90, 0x1824)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bd10)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1125 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c90, 0x1826)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bd10)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+
+goroutine 1126 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xb15d11c6c90, 0x1827)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/runtime/sema.go:617 +0x194
+sync.(*Cond).Wait(0xb15d11c6c80)
+	/opt/homebrew/Cellar/go/1.26.3/libexec/src/sync/cond.go:71 +0xa4
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.(*Queue).worker(0xb15bff5bd10)
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:214 +0x7c
+created by github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model.NewProviderQueue in goroutine 1109
+	/private/tmp/fluctlight-m3-t07-t09-inflight-yknodx8l/apps/core-go/internal/ai/model/queue.go:124 +0xb8
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	180.757s
+FAIL
+
+EXIT_CODE 1

@@ -9,7 +9,8 @@
 | M3-02 权威称呼输入与自主选择约束 | T08 称呼受真实关系和角色选择约束 | VERIFIED | 修复 fact-only 关系投影遗漏正式 addressing，表达参考协议明确结合真实关系与当前人格选择。提交 `99dcd67f` 的干净源码 46 个顶层回归通过，另有 1 项私有录制回放 SKIP；真实模型语义效果仍待验收。 |
 | T08 其他原验收 | 表达学习闭环 | PARTIAL | 继承候选启停闭环证据。任意注入/日志排除、真实模型关系称呼语义和 UI 到运行闭环尚未完成或未验收。 |
 | M3-03 可定位 legacy 摘要来源纠错屏障 | T09 旧来源及派生失效 | VERIFIED | 修复首次全 unknown 的摘要来源负向屏障，提交 `ae9023ce` 的干净源码复验 8 个核心顶层测试及 1 个迁移测试通过，退出码 0、无 SKIP。 |
-| T09 其他原验收 | 记忆治理 | PARTIAL | 完全不可解析来源、正确吸收纠错的重建、主链在途/锁序矩阵仍未验收。 |
+| M3-04 在途纠错发布保护证据 | T09 后续输入/在途请求 | IMPLEMENTED | direct/Writer × revise/forget 四场景实际通过，等待提交后复验。沿用既有 generation fence，本节点仅增加测试。 |
+| T09 其他原验收 | 记忆治理 | PARTIAL | 完全不可解析来源、正确吸收纠错的重建、其余主链在途与锁序矩阵仍未验收。 |
 | T10 | 领域保护 | PARTIAL | 保留原基线失败，尚未开始本轮领域改动，不能宣称领域回归整套通过。 |
 
 ## M3-01 实现与证据
@@ -49,3 +50,9 @@ M3-02 提交后受检 `99dcd67f836478ebeb3be5e90cf678db9f3aa86d`，无源码覆�
 本节点保留未知属性，不将解析出 ID 的旧来源提升为真实支持证据。无法解析的 opaque 来源和首次全 unknown 的 `memory:<id>` 链仍未解决，正确吸收纠错后的摘要重建及主链 in-flight/锁序尚未验收。父 T09 不能因此标完成。
 
 M3-03 提交后证据 `t09-postcommit.log` 与 `t09-postcommit-migration.log`，受检 `ae9023ce81eb9e08d28e14539a228d4d18c1778a`，无源码覆盖。8 个核心与 1 个迁移顶层测试通过、退出码 0，无 SKIP。下一节点补核真实纠错发生在 direct/Writer 模型请求在途时的发布保护，不扩大生产实现。
+
+## M3-04 在途记忆纠错的正式发布保护
+
+新增 `memory_correction_inflight_reply_test.go`，真实受理会话并创建可追溯旧记忆，在正式 Provider 请求已经消费旧记忆后、响应返回前，经正式 Owner revise/forget 事务提交更正或撤回。direct 两场景命中 `current_facts_stale`，Writer 两场景保留 `reply_context_stale` handled 回执；四场景均无 assistant 消息、无 completed 回复回执、inbox 未被视为 processed。没有更改生产实现。
+
+首次运行 `t09-inflight.log` 失败且超时。新增测试错误查询不存在的 `tool_executions.status` 列，同时受控主模型在 handled 后无限返回同一工具调用。已改用正式回执 `result.status`，并令受控模型在已观察 stale receipt 后以 HTTP 400 结束续轮。`t09-inflight-corrected.log` 四场景通过，顶层 1 项 PASS、退出码 0、无 SKIP。Writer 的最终 HTTP 400 是局部夹具的停止响应，通过依据是先于它已持久化的真实 stale 拒绝、无正式消息和无成功回执。此证据没有验证真实模型如何在拒绝后自行恢复，也没有证明所有锁序无死锁。
