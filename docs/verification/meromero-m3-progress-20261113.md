@@ -4,7 +4,7 @@
 
 | 当前节点 | 原需求 | 状态 | 结果和剩余事项 |
 |---|---|---|---|
-| M3-01 连续无事 WakeUp 退避 | T07 无事退避、新事件、Goal/日程义务、既有调度 | IMPLEMENTED | 正式 ProcessWakeUp 结算按 20、40、60、60 分钟退避，首次触发保持十分钟。消息、新 native fact、手工触发重置，同 cycle 回放不累加。Redis 丢键和 supervisor 恢复遵循持久 due。已通过 27 个顶层定向回归，等待最终提交后复验。 |
+| M3-01 连续无事 WakeUp 退避 | T07 无事退避、新事件、Goal/日程义务、既有调度 | VERIFIED | 正式 ProcessWakeUp 结算按 20、40、60、60 分钟退避，首次触发保持十分钟。消息、新 native fact、手工触发重置，同 cycle 回放不累加。Redis 丢键和 supervisor 恢复遵循持久 due。实现提交 `6a96cef6` 的干净源码复验 33 个顶层测试通过，退出码 0、无 SKIP。 |
 | T07 其他原验收 | 主动/静默、并发和消息节奏 | PARTIAL | 继承已有消息及受控主动/静默证据。真实模型自主正反场景和其余多端流式矩阵仍未验收。 |
 | T08 | 表达学习闭环 | READY | 下一节点核对关系含义称呼的真实关系与角色选择约束，继承既有候选启停闭环证据。 |
 | T09、T10 | 记忆治理及领域保护 | PARTIAL | 保留原台账缺口，尚未开始本轮修改。Goal cadence 基线失败仍未修复，不能宣称领域回归整套通过。 |
@@ -18,6 +18,8 @@
 - `t07-green-expanded.log` 在新实现上复现 Goal handoff 最终评估 `deferred/evaluation_cadence`。`t07-baseline-goal.log` 在同 HEAD 干净生产源码、同隔离环境及同测试输入复现。关联 AEL `goal-handoff-assessment-cadence-baseline`，本节点未更改 Goal 规则，该失败仍属 M3/T10 待处理事项。
 - `t07-green-focused.log` 运行 26 个顶层测试，退出码 0，无 SKIP；`t07-recovery.log` 另验 supervisor 的 ensure/audit 恢复入口，1 个顶层测试通过。命令、overlay 与受检 HEAD 在日志头。环境为 task-owned 隔离 PostgreSQL 和 Redis，模型为受控 Provider，未调用真实模型、媒体、购买或外部发布。
 - 四处用户未暂存修改保持原 SHA-256，未加入本节点提交。所有测试使用干净 HEAD 导出加明确本节点源码覆盖，未消费这些草稿。
+
+提交后证据为 `meromero-m3-evidence/t07-postcommit.log`，受检完整提交 `6a96cef6fb0c0f5f2a9aa54189ac2349d1e3bfeb`，无源码覆盖，33 个顶层测试通过，退出码 0，无 SKIP。包含真实消息发布和 direct/fact-only 追发回归。独立只读审阅未发现确定阻断问题。此节点只证明原持久调度的退避及所列边界，Provider 为受控夹具。
 
 ## 停止与恢复边界
 

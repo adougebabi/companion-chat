@@ -1,0 +1,101 @@
+SOURCE_HEAD 6a96cef6fb0c0f5f2a9aa54189ac2349d1e3bfeb
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^Test(WakeUp(Backoff|ConsecutiveIdle|DueRelease|OutcomePersists|SuccessResets|SupervisorRepairs|IdleClock|SuppressedReply|FinalAgentFailure|RequestReceives|CommittedActionType|ConversationReply|NoOpSidecar|ControlReply)|BackgroundStartup|AcceptedUserMessageOwns|NewUserIdleEpoch|NextWakeUpDue|TwentySleepingChecks|GoalExecutionHandoff(Settlement|Uses|Keeps|Qualifies)|DirectFollowup|FactOnlyFollowup) -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestBackgroundStartupExistingKeyAndMissingKeyReleaseOnce
+--- PASS: TestBackgroundStartupExistingKeyAndMissingKeyReleaseOnce (2.75s)
+=== RUN   TestBackgroundStartupCannotResurrectWakeWhileCognitionIsPending
+--- PASS: TestBackgroundStartupCannotResurrectWakeWhileCognitionIsPending (1.97s)
+=== RUN   TestDirectFollowupsSupersedeLateReplyAndKeepWholeInput
+--- PASS: TestDirectFollowupsSupersedeLateReplyAndKeepWholeInput (1.86s)
+=== RUN   TestDirectFollowupKeepsPriorCommittedAction
+2026/11/13 12:46:55 INFO capability lifecycle capability=capability.catalog call_id=followup-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectFollowupKeepsPriorCommittedAction (2.71s)
+=== RUN   TestFactOnlyFollowupRejectsStaleWriterDraft
+2026/11/13 12:46:57 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:writer-first metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 12:46:57 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:writer-followup metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestFactOnlyFollowupRejectsStaleWriterDraft (1.99s)
+=== RUN   TestWakeUpSupervisorRepairsStrandedSupersededClock
+--- PASS: TestWakeUpSupervisorRepairsStrandedSupersededClock (1.30s)
+=== RUN   TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases
+--- PASS: TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases (1.78s)
+=== RUN   TestNewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions
+--- PASS: TestNewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions (1.38s)
+=== RUN   TestGoalExecutionHandoffSettlementRequiresSuccessfulWake
+--- PASS: TestGoalExecutionHandoffSettlementRequiresSuccessfulWake (0.00s)
+=== RUN   TestGoalExecutionHandoffUsesCurrentProjectionRefsOnly
+--- PASS: TestGoalExecutionHandoffUsesCurrentProjectionRefsOnly (0.00s)
+=== RUN   TestGoalExecutionHandoffKeepsSamePlanBudgetAndTypedWait
+--- PASS: TestGoalExecutionHandoffKeepsSamePlanBudgetAndTypedWait (0.00s)
+=== RUN   TestGoalExecutionHandoffQualifiesCandidateWithoutDuplicatingDispatch
+--- PASS: TestGoalExecutionHandoffQualifiesCandidateWithoutDuplicatingDispatch (0.00s)
+=== RUN   TestWakeUpIdleClockKeepsAbsoluteTenMinutePhases
+--- PASS: TestWakeUpIdleClockKeepsAbsoluteTenMinutePhases (0.00s)
+=== RUN   TestNextWakeUpDuePreservesFixedCadence
+--- PASS: TestNextWakeUpDuePreservesFixedCadence (0.00s)
+=== RUN   TestTwentySleepingChecksDoNotWakePublishShopOrCreateReflectionEvidence
+2026/11/13 12:47:03 WARN tool.call.handled capability=life.activity.start call_id=direct_call_6978ebbd627702f592df0db84fe66ab2 warning_code=life_state_sleeping disposition=awaiting_state effect_applied=false
+--- PASS: TestTwentySleepingChecksDoNotWakePublishShopOrCreateReflectionEvidence (1.71s)
+=== RUN   TestWakeUpRequestReceivesNewEventAndUnansweredDelivery
+--- PASS: TestWakeUpRequestReceivesNewEventAndUnansweredDelivery (2.14s)
+=== RUN   TestWakeUpConsecutiveIdleCyclesBackOffAndReplayKeepsDue
+--- PASS: TestWakeUpConsecutiveIdleCyclesBackOffAndReplayKeepsDue (1.87s)
+=== RUN   TestWakeUpBackoffLostRedisHintKeepsDurableFutureDue
+--- PASS: TestWakeUpBackoffLostRedisHintKeepsDurableFutureDue (1.46s)
+=== RUN   TestWakeUpBackoffNewMessageAndManualTriggerReset
+--- PASS: TestWakeUpBackoffNewMessageAndManualTriggerReset (1.38s)
+=== RUN   TestWakeUpBackoffNewNativeFactResetsButReplayPreserves
+--- PASS: TestWakeUpBackoffNewNativeFactResetsButReplayPreserves (1.38s)
+=== RUN   TestWakeUpBackoffOutcomeAndScheduleBoundaries
+--- PASS: TestWakeUpBackoffOutcomeAndScheduleBoundaries (0.00s)
+=== RUN   TestWakeUpBackoffPendingGoalCapsDurableDue
+--- PASS: TestWakeUpBackoffPendingGoalCapsDurableDue (2.02s)
+=== RUN   TestWakeUpBackoffScheduleDeadlineAndActiveCycleReset
+--- PASS: TestWakeUpBackoffScheduleDeadlineAndActiveCycleReset (2.47s)
+=== RUN   TestWakeUpBackoffSupersededRecoveryKeepsFutureDue
+=== RUN   TestWakeUpBackoffSupersededRecoveryKeepsFutureDue/ensure
+=== RUN   TestWakeUpBackoffSupersededRecoveryKeepsFutureDue/audit
+--- PASS: TestWakeUpBackoffSupersededRecoveryKeepsFutureDue (1.51s)
+    --- PASS: TestWakeUpBackoffSupersededRecoveryKeepsFutureDue/ensure (0.01s)
+    --- PASS: TestWakeUpBackoffSupersededRecoveryKeepsFutureDue/audit (0.00s)
+=== RUN   TestWakeUpDueReleaseUsesLockedStatusAndDueCAS
+--- PASS: TestWakeUpDueReleaseUsesLockedStatusAndDueCAS (0.00s)
+=== RUN   TestWakeUpOutcomePersistsNextDueInsideOwningTransaction
+--- PASS: TestWakeUpOutcomePersistsNextDueInsideOwningTransaction (0.00s)
+=== RUN   TestWakeUpSuccessResetsConsecutiveRetryBudget
+--- PASS: TestWakeUpSuccessResetsConsecutiveRetryBudget (0.00s)
+=== RUN   TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage
+--- PASS: TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage (2.77s)
+=== RUN   TestWakeUpNoOpSidecarWithAffectAndReplyStillDeliversPrivateMessage
+--- PASS: TestWakeUpNoOpSidecarWithAffectAndReplyStillDeliversPrivateMessage (3.49s)
+=== RUN   TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider
+--- PASS: TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider (2.31s)
+=== RUN   TestWakeUpControlReplyRecoversToSilentDiagnosticWithoutPrivateMessage
+2026/11/13 12:47:28 WARN tool.call.handled capability=conversation.reply call_id=wake-control-call warning_code=reply_control_value_invalid disposition=no_change effect_applied=false
+--- PASS: TestWakeUpControlReplyRecoversToSilentDiagnosticWithoutPrivateMessage (2.14s)
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/declared_proactive_without_receipt
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/failed_reply
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_reply_missing_target
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_reply
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/suppressed_duplicate_is_not_a_publication
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/accepted_moment_is_not_published
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_moment
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/query_only_is_capability_not_message
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/accepted_durable_capability
+--- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/declared_proactive_without_receipt (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/failed_reply (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_reply_missing_target (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_reply (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/suppressed_duplicate_is_not_a_publication (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/accepted_moment_is_not_published (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_moment (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/query_only_is_capability_not_message (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/accepted_durable_capability (0.00s)
+=== RUN   TestWakeUpSuppressedReplyCannotResetIdleEpoch
+--- PASS: TestWakeUpSuppressedReplyCannotResetIdleEpoch (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	43.060s
+
+EXIT_CODE 0
