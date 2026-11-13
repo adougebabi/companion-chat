@@ -1,0 +1,16 @@
+SOURCE_HEAD c3207925bddfc279f606dd6cba8689f88b3795dd (clean archive)
+CANDIDATE /private/tmp/fluctlight-m2-temporal-postcommit-09cx4h_4
+MANIFEST /private/tmp/fluctlight-m2-temporal-postcommit-09cx4h_4/docs/verification/meromero-m2-evidence/m2-05-temporal-final-manifest.json
+COMMAND go test ./internal/workflow -count=1 -run ^TestM2RealTemporalMediaUnknownSubmissionPauses$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestM2RealTemporalMediaUnknownSubmissionPauses
+2026/11/13 08:10:04 DEBUG Worker heartbeating configured, but server version does not support it.
+2026/11/13 08:10:04 INFO  Started Worker Namespace default TaskQueue m2-temporal-queue-1794528604030281000 WorkerID [test-worker]
+2026/11/13 08:10:04 DEBUG ExecuteActivity Namespace default TaskQueue m2-temporal-queue-1794528604030281000 WorkerID [test-worker] WorkflowType MediaWorkflow WorkflowID m2-temporal-workflow-1794528604030281000 RunID 01a1d23d-6ff6-7278-add3-350445497114 Attempt 1 ActivityID 9 ActivityType ProcessMediaActivity
+2026/11/13 08:10:04 ERROR Activity error. Namespace default TaskQueue m2-temporal-queue-1794528604030281000 WorkerID [test-worker] WorkflowID m2-temporal-workflow-1794528604030281000 RunID 01a1d23d-6ff6-7278-add3-350445497114 ActivityType ProcessMediaActivity Attempt 1 Error media_submission_ambiguous (type: media_submission_ambiguous, retryable: false): media_submission_ambiguous
+    m2_real_temporal_media_pause_integration_test.go:125: REAL_TEMPORAL_MEDIA_PAUSE status=submission_unknown scheduled=1 started=1 attempt=1 renderer_requests=0 recovery_attempts=0 workflow=m2-temporal-workflow-1794528604030281000
+2026/11/13 08:10:04 INFO  Stopped Worker Namespace default TaskQueue m2-temporal-queue-1794528604030281000 WorkerID [test-worker]
+--- PASS: TestM2RealTemporalMediaUnknownSubmissionPauses (2.66s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow	3.278s
+
+EXIT_CODE 0

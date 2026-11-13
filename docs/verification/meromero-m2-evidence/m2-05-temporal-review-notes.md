@@ -15,6 +15,9 @@ Job ID 的状态后，媒体记录为 `submission_unknown`；工作流历史中�
 记录。干净候选及含四处原有草稿的工作区均实际执行并通过、无 SKIP，见
 `m2-05-temporal-final.log` 和 `m2-05-temporal-working-tree.log`。另有 4 项
 相关受控工作流回归通过，见 `m2-05-temporal-regression.log`。
+提交 `c3207925` 的干净源码再次执行同一真实 Temporal 场景，通过且无 SKIP，
+见 `m2-05-temporal-postcommit.log`；本次临时容器和网络已清理，见
+`m2-05-temporal-cleanup.log`。
 
 首次测试自身因未使用的导入而编译失败，见 `m2-05-temporal-compile-failure.log`；
 移除该导入后通过，再补充活动 attempt 和未核对恢复断言。此测试从已持久的

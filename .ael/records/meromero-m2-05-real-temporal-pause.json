@@ -16,14 +16,14 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "execute",
-  "status": "open",
-  "candidate": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "222eaca5c5be75fd0c3779b13cabf80cafeb3fff3dcf9f57be5d1f20c270ea50",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-12T23:51:24.235072Z",
-  "updated": "2026-11-13T00:08:23.491999Z",
-  "completed": null,
+  "updated": "2026-11-13T00:13:30.954486Z",
+  "completed": "2026-11-13T00:13:30.954325Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -54,13 +54,45 @@
         "unit": "execute",
         "executor": "codex-m2-05-temporal",
         "input_version": "b1a68fba026e9d7e7da55a49fccd7ae022bd4dc9136336217a643a861555a099",
-        "candidate_version": "",
+        "candidate_version": "222eaca5c5be75fd0c3779b13cabf80cafeb3fff3dcf9f57be5d1f20c270ea50",
         "started": "2026-11-12T23:53:20.554054Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-13T00:12:27.914721Z",
+        "status": "pass",
+        "reason": "提交 c3207925：一次性真实 Temporal 和 PostgreSQL 中正式 MediaWorkflow/ProcessMediaActivity 对已持久提交围栏执行后保持 submission_unknown，活动 attempt=1、渲染请求=0；未核对恢复与重新生成均被拒绝。干净候选、含四处草稿工作区及提交后均实际通过无 SKIP，4 项受控工作流回归通过；未声称真实 ComfyUI 丢响应端到端或上下文超时特殊重试通过。临时容器和网络已清理。"
+      },
+      {
+        "id": "AT-341843114dd7ed34e1d0",
+        "unit": "check:m2-05-real-temporal-scenario",
+        "executor": "codex-m2-05-temporal",
+        "input_version": "222eaca5c5be75fd0c3779b13cabf80cafeb3fff3dcf9f57be5d1f20c270ea50",
+        "candidate_version": "222eaca5c5be75fd0c3779b13cabf80cafeb3fff3dcf9f57be5d1f20c270ea50",
+        "started": "2026-11-13T00:13:26.579457Z",
+        "ended": "2026-11-13T00:13:26.624163Z",
+        "status": "pass",
+        "reason": "c3207925 干净源码在一次性真实 Temporal 1.29.7、独立 PostgreSQL 中执行正式 MediaWorkflow/ProcessMediaActivity：已持久提交围栏且无 Job ID 时为 submission_unknown，工作流历史 activity attempt=1，受控渲染端请求=0，未核对恢复/重新生成均被拒绝；干净候选、含四处草稿工作区及提交后均执行通过无 SKIP，4 项受控工作流回归通过。此场景不证明真实 ComfyUI 丢响应端到端，特殊上下文超时仍另有工单。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "m2-05-real-temporal-scenario",
+        "result": "pass",
+        "source": "scenario:codex-m2-05-temporal",
+        "config_hash": "ef01de950783870b1bd401301e2034dab5aabfbfe447c4b4ce63916d339439a6",
+        "at": "2026-11-13T00:13:26.623899Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/media_submission_guard.go": "0bed477d3fb994f8a58d208b80406b106cc9b1f64de5699992e64b70b0f2b2f3",
+          "apps/core-go/internal/workflow/m2_real_temporal_media_pause_integration_test.go": "f2dcf63d9550c079531363fa06991da40798be38013f541f3fd165879990c402",
+          "apps/core-go/internal/workflow/workflow.go": "0dab0621a56ad7b54300d2606f4ed7ae945d87e63cdfa262d056544f52e0c4ac",
+          "docs/verification/meromero-m2-evidence/m2-05-temporal-cleanup.log": "90120f002005c18d90de3324e6344dcdb48e2079f2a89c3f2693e4a24640a2a7",
+          "docs/verification/meromero-m2-evidence/m2-05-temporal-compile-failure.log": "9af8610ec602c3f3f30d934570550e157ef58cc9165fce33ffc3b95ceb915289",
+          "docs/verification/meromero-m2-evidence/m2-05-temporal-environment.log": "0e8b6b979b16a197bd17cce58cfeabeaafd46f408b9da43f5736c6569f963f20",
+          "docs/verification/meromero-m2-evidence/m2-05-temporal-final.log": "1d533ada27d6ffaa8ee3b84f1e6ae404ea2a721c23c1769d559a8630c3011008",
+          "docs/verification/meromero-m2-evidence/m2-05-temporal-postcommit.log": "067a55f7835c4795a4cb318a19bc079df1167d58ef3f431de4986d95f00780ae",
+          "docs/verification/meromero-m2-evidence/m2-05-temporal-regression.log": "60df459418e8cf5335c790b0cec573478bd934405700b55a1dcd9893e0f71b84",
+          "docs/verification/meromero-m2-evidence/m2-05-temporal-review-notes.md": "182a1216101dd44caed22ef6e00a9b7a561761b8107879454d4dba0a5a4913e6",
+          "docs/verification/meromero-m2-evidence/m2-05-temporal-working-tree.log": "002272209d1c6e134ee6ecb17bf05f96252a8ca81bd0a83d600fc68b02d919ea"
+        }
+      }
+    ]
   }
 }
