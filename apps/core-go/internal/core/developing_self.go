@@ -135,7 +135,21 @@ func (a *App) listDevelopingSelfClaims(ctx context.Context, fluctlightID string)
 		}
 		result = append(result, claim)
 	}
-	return result, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	live := make([]DevelopingSelfClaim, 0, len(result))
+	for _, claim := range result {
+		valid, err := developingSelfMemoryEvidenceLive(ctx, a.DB.Pool(), fluctlightID, claim.Provenance, claim.EvidenceRefs)
+		if err != nil {
+			return nil, err
+		}
+		if valid {
+			live = append(live, claim)
+		}
+	}
+	return live, nil
 }
 
 func (a *App) ListDevelopingSelfClaims(ctx context.Context, fluctlightID string) ([]DevelopingSelfClaim, error) {

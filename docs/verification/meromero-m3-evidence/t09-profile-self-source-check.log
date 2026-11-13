@@ -1,0 +1,23 @@
+SOURCE_HEAD 49addf72fb2f813557b66989727ae904b6e031cb
+OVERLAYS apps/core-go/internal/core/memory_profile_correction_integration_test.go,apps/core-go/internal/core/reflection_memory_dependencies.go,apps/core-go/internal/core/developing_self.go,apps/core-go/internal/core/reflection_aux_domains_v2.go,apps/core-go/internal/core/self_management.go
+COMMAND go test ./internal/core -count=1 -run ^Test(MemoryCorrectionInvalidatesReflectionDevelopingSelf|ReflectionCanonicalSelfOutcomeRetainsActorDependencies|ActorFactUnknownTimezoneAndLaterLocationChangeRemainDistinct|ActorFactForeignSourceCannotConfirmOrCorrectTheSubject|ActorCorrectionPersistsAndRetiresOnlySourcedDerivations|ActorCorrectionCannotReturnThroughResidentActiveSelfOrLateSnapshot)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestActorCorrectionPersistsAndRetiresOnlySourcedDerivations
+2026/11/13 15:04:02 INFO capability lifecycle capability=actor.inspect call_id=direct_call_3d2d89eeaeb48189c3fbf2613ca84cf8 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 15:04:02 INFO capability lifecycle capability=actor.inspect call_id=direct_call_3e7dbcf077b1dcb7cb15d66e65536411 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestActorCorrectionPersistsAndRetiresOnlySourcedDerivations (7.06s)
+=== RUN   TestActorFactUnknownTimezoneAndLaterLocationChangeRemainDistinct
+2026/11/13 15:04:05 INFO capability lifecycle capability=actor.inspect call_id=direct_call_9862ff6742eae702af8d998e85797eba type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestActorFactUnknownTimezoneAndLaterLocationChangeRemainDistinct (2.74s)
+=== RUN   TestActorFactForeignSourceCannotConfirmOrCorrectTheSubject
+--- PASS: TestActorFactForeignSourceCannotConfirmOrCorrectTheSubject (2.26s)
+=== RUN   TestActorCorrectionCannotReturnThroughResidentActiveSelfOrLateSnapshot
+--- PASS: TestActorCorrectionCannotReturnThroughResidentActiveSelfOrLateSnapshot (2.78s)
+=== RUN   TestMemoryCorrectionInvalidatesReflectionDevelopingSelf
+--- PASS: TestMemoryCorrectionInvalidatesReflectionDevelopingSelf (2.02s)
+=== RUN   TestReflectionCanonicalSelfOutcomeRetainsActorDependencies
+--- PASS: TestReflectionCanonicalSelfOutcomeRetainsActorDependencies (2.26s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	19.887s
+
+EXIT_CODE 0

@@ -647,3 +647,7 @@ is_current_character，防止把与甲的经历当作与乙的关系。scene_eve
 检索、resident 发布与既有缓存读取同样要求真实来源命令仍有效。既有 Owner
 记忆修订或现有 ActiveMemory 确认命令记录新的可核验来源后，可重新进入读取。
 来源、历史 revision 与 Owner 管理记录继续保留。
+
+Reflection 派生 DevelopingSelf 的运行输入读取复用既有 proposal `context_snapshot`
+中的 Memory 绑定，按实体、修订、request digest 及递归来源 liveness 复查。Owner
+查看保留记录及来源失效状态，恢复旧快照同样复查原绑定。来源元数据留在 Core。

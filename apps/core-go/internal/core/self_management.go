@@ -61,7 +61,19 @@ func (a *App) OwnerSelfClaims(ctx context.Context, owner, fid string, q url.Valu
 		items = append(items, decodeObject(raw))
 		last = ownerReadCursor{Scope: scope, ID: id, Time: at}
 	}
-	return map[string]any{"items": items, "next_cursor": next}, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	for _, raw := range items {
+		item := mapValue(raw)
+		live, err := developingSelfMemoryEvidenceLive(ctx, a.DB.Pool(), fid, mapValue(item["provenance"]), decisionServiceRefValues(item["evidence_refs"]))
+		if err != nil {
+			return nil, err
+		}
+		item["source_valid"] = item["source_valid"] == true && live
+	}
+	return map[string]any{"items": items, "next_cursor": next}, nil
 }
 
 func (a *App) OwnerSelfClaim(ctx context.Context, owner, fid, id string) (map[string]any, error) {
@@ -73,7 +85,16 @@ func (a *App) OwnerSelfClaim(ctx context.Context, owner, fid, id string) (map[st
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, &SurfaceError{Status: 404, Code: "self_claim_not_found", Message: "认识不存在或不属于当前角色"}
 	}
-	return decodeObject(raw), err
+	if err != nil {
+		return nil, err
+	}
+	item := decodeObject(raw)
+	live, err := developingSelfMemoryEvidenceLive(ctx, a.DB.Pool(), fid, mapValue(item["provenance"]), decisionServiceRefValues(item["evidence_refs"]))
+	if err != nil {
+		return nil, err
+	}
+	item["source_valid"] = item["source_valid"] == true && live
+	return item, nil
 }
 
 func (a *App) OwnerSelfHistory(ctx context.Context, owner, fid, id, kind string, q url.Values) (map[string]any, error) {
@@ -205,6 +226,13 @@ func (a *App) OwnerSelfCommand(ctx context.Context, owner, fid, id, operation st
 		normalized, err := normalizeDevelopingSelfClaim(selected, "owner_restore")
 		if err != nil {
 			return nil, &SurfaceError{Status: 422, Code: "self_snapshot_invalid", Message: "该历史快照不能恢复为有效认识"}
+		}
+		live, err := developingSelfMemoryEvidenceLive(ctx, tx, fid, mapValue(normalized["provenance"]), decisionServiceRefValues(normalized["evidence_refs"]))
+		if err != nil {
+			return nil, err
+		}
+		if !live {
+			return nil, &SurfaceError{Status: 409, Code: "self_snapshot_source_changed", Message: "该历史认识依赖的来源已变化，请核对来源"}
 		}
 		if err := validateArtifactActorDependenciesTx(ctx, tx, fid, "developing_self", id, target, a.now().UTC()); err != nil {
 			return nil, &SurfaceError{Status: 409, Code: "self_snapshot_source_changed", Message: "该历史认识依赖的来源已变化，请核对来源"}

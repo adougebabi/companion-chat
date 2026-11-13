@@ -1,0 +1,12 @@
+SOURCE_HEAD 49addf72fb2f813557b66989727ae904b6e031cb
+OVERLAYS apps/core-go/internal/core/memory_profile_correction_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestMemoryCorrectionInvalidatesReflectionDevelopingSelf$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestMemoryCorrectionInvalidatesReflectionDevelopingSelf
+    memory_profile_correction_integration_test.go:68: Memory correction left a derived self claim active: []core.DevelopingSelfClaim{core.DevelopingSelfClaim{ID:"self_claim_17506f7c896497ca1108a1e2c15d54cf", FluctlightID:"mixed-fluctlight-memory-self-source", Category:"preference", Claim:"我喜欢散步", Value:map[string]interface {}{"statement":"我喜欢散步"}, Confidence:0.9, EvidenceRefs:[]string{"memory:ctx_2f3cc5497d044cce27d9121089c2dfb8", "memory:ctx_e4c478d52bdb079ae8908468f536d4b7"}, Provenance:map[string]interface {}{"proposal_id":"reflection_proposal_ac66220183ba2db9ded20d984a75fc5f", "source":"reflection_v2"}, Status:"active", ExpiresAt:<nil>, Revision:1, SupersededBy:(*string)(nil), CreatedAt:time.Date(2026, time.November, 13, 14, 50, 21, 391051000, time.Local), UpdatedAt:time.Date(2026, time.November, 13, 14, 50, 21, 391051000, time.Local)}} err=<nil>
+--- FAIL: TestMemoryCorrectionInvalidatesReflectionDevelopingSelf (2.43s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.098s
+FAIL
+
+EXIT_CODE 1

@@ -1,0 +1,40 @@
+SOURCE_HEAD 49addf72fb2f813557b66989727ae904b6e031cb
+OVERLAYS apps/core-go/internal/core/memory_profile_correction_integration_test.go,apps/core-go/internal/core/reflection_memory_dependencies.go,apps/core-go/internal/core/developing_self.go,apps/core-go/internal/core/reflection_aux_domains_v2.go,apps/core-go/internal/core/self_management.go
+COMMAND go test ./internal/core -count=1 -run ^Test(Memory(Correction|SummaryAncestorCorrection)InvalidatesReflectionDevelopingSelf|OwnerSelfFullPagingReviewForgetRestoreAndScopedReplay|ReflectionCanonicalSelfOutcomeRetainsActorDependencies|NormalizeDevelopingSelf|ActorFact|ActorCorrection|ContextProjectionFromValuePreservesLayeredAuthority|LayeredContractsDoNotExposeLegacyAutomaticPersonalityTargets) -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestActorCorrectionPersistsAndRetiresOnlySourcedDerivations
+2026/11/13 15:12:49 INFO capability lifecycle capability=actor.inspect call_id=direct_call_15fc50adc8cd2b2cd9f201ebf8518f48 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 15:12:49 INFO capability lifecycle capability=actor.inspect call_id=direct_call_c45075700c98dcdd10c8fa33aebb9dd6 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestActorCorrectionPersistsAndRetiresOnlySourcedDerivations (1.75s)
+=== RUN   TestActorFactUnknownTimezoneAndLaterLocationChangeRemainDistinct
+2026/11/13 15:12:51 INFO capability lifecycle capability=actor.inspect call_id=direct_call_ee9c5ef53c963f6ef702fa0196cb0a26 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestActorFactUnknownTimezoneAndLaterLocationChangeRemainDistinct (1.63s)
+=== RUN   TestActorFactForeignSourceCannotConfirmOrCorrectTheSubject
+--- PASS: TestActorFactForeignSourceCannotConfirmOrCorrectTheSubject (1.48s)
+=== RUN   TestActorCorrectionCannotReturnThroughResidentActiveSelfOrLateSnapshot
+--- PASS: TestActorCorrectionCannotReturnThroughResidentActiveSelfOrLateSnapshot (1.67s)
+=== RUN   TestActorCorrectionRejectsUnrelatedAttributeAtomically
+2026/11/13 15:12:56 WARN tool.call.handled capability=actor.fact.record call_id=direct_call_be61b3425858ffea43c75f75ddab624e warning_code=actor_correction_target_invalid disposition=awaiting_state effect_applied=false
+--- PASS: TestActorCorrectionRejectsUnrelatedAttributeAtomically (2.07s)
+=== RUN   TestActorCorrectionFiltersEvolutionOverlayAfterReload
+--- PASS: TestActorCorrectionFiltersEvolutionOverlayAfterReload (1.84s)
+=== RUN   TestNormalizeDevelopingSelfClaimRequiresEvidenceMetadata
+--- PASS: TestNormalizeDevelopingSelfClaimRequiresEvidenceMetadata (0.00s)
+=== RUN   TestNormalizeDevelopingSelfClaimRejectsCoreCategories
+--- PASS: TestNormalizeDevelopingSelfClaimRejectsCoreCategories (0.00s)
+=== RUN   TestContextProjectionFromValuePreservesLayeredAuthority
+--- PASS: TestContextProjectionFromValuePreservesLayeredAuthority (0.00s)
+=== RUN   TestLayeredContractsDoNotExposeLegacyAutomaticPersonalityTargets
+--- PASS: TestLayeredContractsDoNotExposeLegacyAutomaticPersonalityTargets (0.00s)
+=== RUN   TestMemoryCorrectionInvalidatesReflectionDevelopingSelf
+--- PASS: TestMemoryCorrectionInvalidatesReflectionDevelopingSelf (1.90s)
+=== RUN   TestMemorySummaryAncestorCorrectionInvalidatesReflectionDevelopingSelf
+--- PASS: TestMemorySummaryAncestorCorrectionInvalidatesReflectionDevelopingSelf (1.85s)
+=== RUN   TestReflectionCanonicalSelfOutcomeRetainsActorDependencies
+--- PASS: TestReflectionCanonicalSelfOutcomeRetainsActorDependencies (2.39s)
+=== RUN   TestOwnerSelfFullPagingReviewForgetRestoreAndScopedReplay
+--- PASS: TestOwnerSelfFullPagingReviewForgetRestoreAndScopedReplay (3.04s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	20.363s
+
+EXIT_CODE 0

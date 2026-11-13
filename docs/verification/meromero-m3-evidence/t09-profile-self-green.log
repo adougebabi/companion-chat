@@ -1,0 +1,10 @@
+SOURCE_HEAD 49addf72fb2f813557b66989727ae904b6e031cb
+OVERLAYS apps/core-go/internal/core/memory_profile_correction_integration_test.go,apps/core-go/internal/core/reflection_memory_dependencies.go,apps/core-go/internal/core/developing_self.go,apps/core-go/internal/core/reflection_aux_domains_v2.go,apps/core-go/internal/core/self_management.go
+COMMAND go test ./internal/core -count=1 -run ^TestMemoryCorrectionInvalidatesReflectionDevelopingSelf$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core [build failed]
+FAIL
+# github.com/fluctlight/local-ai-companion/apps/core-go/internal/core [github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.test]
+internal/core/reflection_memory_dependencies.go:32:143: cannot convert "request_digest" (untyped string constant) to type int
+
+EXIT_CODE 1

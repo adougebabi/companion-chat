@@ -1,0 +1,12 @@
+SOURCE_HEAD 49addf72fb2f813557b66989727ae904b6e031cb
+OVERLAYS apps/core-go/internal/core/memory_profile_correction_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestMemoryCorrectionInvalidatesReflectionDevelopingSelf$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestMemoryCorrectionInvalidatesReflectionDevelopingSelf
+    memory_profile_correction_integration_test.go:51: reflection_persistence_identity_invalid
+--- FAIL: TestMemoryCorrectionInvalidatesReflectionDevelopingSelf (2.49s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.559s
+FAIL
+
+EXIT_CODE 1

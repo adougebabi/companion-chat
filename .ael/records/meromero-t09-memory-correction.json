@@ -22,7 +22,7 @@
   "failure": "M3-03可定位legacy summary refs纠错屏障与M3-04 direct/Writer在途纠错发布保护局部VERIFIED，分别在干净提交ae9023ce/b0d47d68通过真实隔离PG回归，无SKIP。完全无法解析来源的旧记忆兼容规则待用户选择，不能自行改变历史自动注入策略。父T09仍缺正确吸收纠错的摘要重建、完整未知来源处理和锁序矩阵，不标完成。继续M3原T10独立领域验收。",
   "result": "",
   "created": "2026-11-10T08:34:31.100173Z",
-  "updated": "2026-11-13T05:34:14.173459Z",
+  "updated": "2026-11-13T07:11:35.952638Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -78,6 +78,17 @@
         "input_version": "c7d89e9596cb61b0eabebf1e0f7df79a8292a581f23f6d1050ad3b434f91bacd",
         "candidate_version": "",
         "started": "2026-11-13T05:34:13.896635Z",
+        "ended": "2026-11-13T07:11:23.81834Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-87f5c749e8478d6557f9",
+        "unit": "execute",
+        "executor": "codex-m3-t09-profile-sources",
+        "input_version": "e65a681c79dba227e74c692a4c82beb90d590492ceec34807a69e3d85dcab0ca",
+        "candidate_version": "",
+        "started": "2026-11-13T07:11:35.704767Z",
         "ended": null,
         "status": "running",
         "reason": ""

@@ -111,3 +111,13 @@ M3-06 提交后 `a4b1bc8e25fc7ea89d56805f7994d3de85bc5df6`，无 overlay，`poli
 原 T09 要求相关摘要/画像/缓存/派生记忆能够“失效、更新或标记过时”。本轮沿用安全失效及原始历史回退。自动重新生成并启用已失效摘要不再被追加为完成前置，先前报告中的未验证重建历史记录保留。原条目最终状态仍以提交后验证及逐项核对为准。
 
 提交 `f5fccd0b88deacb77221e7f656f276298407bede`，`final-postcommit.log` 157 个核心顶层测试通过，`final-migration.log` 1 个迁移测试通过，均退出码 0、无 SKIP。原 T09 完整条目核对仍保留画像传播缺口：Reflection DevelopingSelf 可接受 Memory/summary refs，但持久化和读取目前仅显式追踪 ActorFact 依赖。下一节点通过正常正式入口验证仅修改 Memory 时画像能否退出，不由其他来源纠错已通过推断正确。父 T09 未标完成。
+
+## M3-08 Memory/摘要派生 SelfClaim 的来源传播
+
+正常 `CompileReflectionPlan → applyReflectionDevelopingSelfV2Tx → persistReflectionApplyTx` 可接受两条实际 Memory 的 Core 签发引用并保存冻结 context。`t09-profile-red-bound.log` 在 Owner 仅修订 Memory、ActorFacts 未变化后，真实复现旧 SelfClaim 仍被运行读取，确认 IMPLEMENTATION_MISSING。之前两份 red 日志是新增夹具缺 operation 和不透明 profile ref 的错误，完整保留。
+
+修复复用现有 proposal.context_snapshot.ReferenceIndex 与 FrozenMemoryEvidenceSource，按保存的实体/修订/request_digest、Owner scope 及既有 `memory_source_is_live` 递归校验。Reflection 写前拒绝已过时 Memory 来源，运行列表跳过来源失效的画像，Owner 列表/详情保留行并显示 `source_valid=false`，历史 rollback/restore 复查同一来源。原 ActorFact 依赖检查继续执行，独立 Owner 设定持续可用。没有新增来源表或迁移。
+
+`t09-profile-self-green.log` 保留本轮 helper 将 RawMessage 误作 map 的编译错误。后续首次 restore 夹具没有 target revision，已经改为原有 rollback 入口并明确要求 `self_snapshot_source_changed`，避免以任意错误判通过。`t09-self-validated.log` 保留本轮错误地对 JSONB 重新编码后的 snapshot 做 byte-level token 重验造成的误拦截；改为复核可信持久快照中的稳定 scope/实体/修订与实际 Memory digest/liveness，签发索引在正式持久化前沿用原校验。
+
+`t09-self-jsonb-snapshot.log` 14 个顶层测试通过、退出码 0、无 SKIP。包含直接 Memory、summary→Memory 祖先、进程重建读取、Owner 来源标记/旧源回滚、晚到快照拒绝、独立 Owner 声明保留，以及 ActorFacts 时效/冲突/来源归属/画像和 Owner 管理历史回归。SelfClaim 业务代码完成，提交后复验待记录。人格 overlay 及历史跨窗口证据的相同 Memory 依赖仍属下一独立节点，父 T09 未标完成。

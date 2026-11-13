@@ -194,6 +194,14 @@ func (a *App) applyReflectionDevelopingSelfV2Tx(ctx context.Context, tx pgx.Tx, 
 			continue
 		}
 		candidate := proposal.DevelopingSelfCandidates[candidatePlan.Index]
+		live, err := reflectionMemoryEvidenceLive(ctx, tx, fluctlightID, candidate.EvidenceRefs, evolution.ReferenceIndex)
+		if err != nil {
+			return err
+		}
+		if !live {
+			candidatePlan.Disposition, candidatePlan.ReasonCode = EvolutionRejected, "reflection_memory_source_stale"
+			continue
+		}
 		item := map[string]any{
 			"category": candidate.Category, "claim": candidate.Claim, "value": map[string]any{"statement": candidate.Claim},
 			"confidence": candidate.Confidence, "evidence_refs": stringSliceAny(candidate.EvidenceRefs),

@@ -1,0 +1,12 @@
+SOURCE_HEAD 49addf72fb2f813557b66989727ae904b6e031cb
+OVERLAYS apps/core-go/internal/core/memory_profile_correction_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestMemoryCorrectionInvalidatesReflectionDevelopingSelf$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestMemoryCorrectionInvalidatesReflectionDevelopingSelf
+    memory_profile_correction_integration_test.go:37: normal reflection did not accept sourced candidate: core.ReflectionEvolutionPlan{ProposalID:"", FluctlightID:"", SourceWindow:"", BaseWatermark:0, ToSequence:0, ExpectedRevisions:map[string]int(nil), Candidates:[]core.EvolutionCandidatePlan(nil), PolicyVersion:""} err=reflection_developing_self_candidate_0_invalid
+--- FAIL: TestMemoryCorrectionInvalidatesReflectionDevelopingSelf (1.79s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.510s
+FAIL
+
+EXIT_CODE 1
