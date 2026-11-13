@@ -1,0 +1,731 @@
+SOURCE_HEAD fda3abc6c9cbd5d2df37a8e1d9dca1b17a24ff65
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^(TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases|TestActiveMemoryActorExpiryRetiresReflectionDevelopingSelf|TestActiveMemoryCorrectionInvalidatesReflectionDevelopingSelf|TestActiveMemoryExpiryRetiresReflectionDevelopingSelf|TestActorCorrectionCannotReturnThroughResidentActiveSelfOrLateSnapshot|TestActorCorrectionFiltersEvolutionOverlayAfterReload|TestActorCorrectionPersistsAndRetiresOnlySourcedDerivations|TestActorCorrectionRejectsUnrelatedAttributeAtomically|TestActorFactExpiryFiltersEvolutionOverlayAfterReload|TestActorFactForeignSourceCannotConfirmOrCorrectTheSubject|TestActorFactUnknownTimezoneAndLaterLocationChangeRemainDistinct|TestBackgroundStartupCannotResurrectWakeWhileCognitionIsPending|TestBackgroundStartupExistingKeyAndMissingKeyReleaseOnce|TestContextProjectionFromValuePreservesLayeredAuthority|TestConversationDailyIntentsFreezeSeparateTimezoneDayWindows|TestConversationDailyMemoryDayWindowHandlesDST|TestConversationSegmentConcurrentSelectionUsesStoredWinner|TestConversationSegmentCrossMidnightConsecutiveUsersRemainCoverable|TestConversationSegmentCutsLongMessagesAtCompletedTurn|TestConversationSegmentDebouncesToLatestUserAndSupersedesOlderSource|TestConversationSegmentKeepsCrossMidnightReplyWithUserStartDate|TestConversationSegmentMissingSnapshotIsNotRecreated|TestConversationSegmentOlderGenerationCannotSettleReopenedIntent|TestConversationSegmentRetryRestoresFrozenModelAndNewGeneration|TestConversationSegmentSealsPreviousDayDuringContinuousChat|TestConversationSegmentToDailyMemoryAndRawCorrection|TestDailyMemoryBlocksCorrectedSummarySources|TestDailyMemoryConcurrentSelectionUsesStoredWinner|TestDailyMemoryLegacyGenerationCannotFollowReopen|TestDailyMemoryMissingSnapshotIsNotRecreated|TestDailyMemoryOlderGenerationCannotSettleReopenedIntent|TestDailyMemoryQuietResultSettlesPendingIntent|TestDailyMemoryRetryRestoresFrozenModel|TestDeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay|TestDirectConversationUsesAndRechecksApprovedExpression|TestDirectFollowupKeepsPriorCommittedAction|TestDirectFollowupsSupersedeLateReplyAndKeepWholeInput|TestDirectMainReplyPublishesAndSettlesAtomically|TestEmptyGoalEvaluationRejectsExpiredClaim|TestEvolutionBaselinePreservesProseTraitsVerbatim|TestEvolutionBaselineStillNormalizesStructuredTraits|TestEvolutionOverlayStageS09|TestEvolutionPersistenceS10|TestExpressionCandidateEnableUseAndDisableAcrossNewTurns|TestExpressionContextKeepsCurrentProfileRelationshipAddressing|TestExpressionExtractionHonorsLearningSwitchGeneration|TestExpressionExtractionLeaseRenewsAndCancelsAfterTakeover|TestExpressionExtractionRejectsSourceChangedDuringModelCall|TestExpressionLearningOwnerSourceReviewAndRevocation|TestExpressionLearningOwnerSurfaceRoutes|TestExpressionLearningPhysicalRequestAndSourceBinding|TestExpressionLearningRejectsForeignAlteredAndDuplicateSources|TestExpressionLearningRejectsInvalidSourcesBeforeProvider|TestExpressionSuggestionLegacyDraftWithoutBindingsIsAllowed|TestExpressionSuggestionPublicationRechecksOwnerControls|TestFactOnlyActorWirePreservesEveryFieldAndOrder|TestFactOnlyAssemblyBudgetsNativeWireButRetainsFinalContract|TestFactOnlyCognitionViewIsIndependentFromLegacy|TestFactOnlyCommittedReplyMalformedFinalSettlement|TestFactOnlyConsecutiveRepliesKeepTheirTrigger|TestFactOnlyEvidenceSnapshotsCannotReintroduceStrategy|TestFactOnlyFixtureReplayEstimates|TestFactOnlyFollowupRejectsStaleWriterDraft|TestFactOnlyGoalsKeepOriginalConditionsAndRealDependencies|TestFactOnlyHistoryBackfillUsesExactStoredSource|TestFactOnlyHistoryMetadataMatchesSelectedRoles|TestFactOnlyMomentPublicationPreparedCacheRejectsChangedSourceOrSpeaker|TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife|TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays|TestFactOnlyMomentUsesSameFrozenWriterWithFeedScene|TestFactOnlyMorningContextRegression|TestFactOnlyNativeArgumentsAndServerPurpose|TestFactOnlyPhaseProtocolsDoNotMutateMessages|TestFactOnlyProactiveSuppressionAcrossPurposeVersions|TestFactOnlyProductionActorShapeKeepsRecipientRelationship|TestFactOnlyRegistryViewIsFixedWithoutMutatingLegacy|TestFactOnlyReplyContextUsesAuthorityAndOriginalHistory|TestFactOnlyReplyHistoryRetainsAllUnsummarizedTurnsWithoutTokenCap|TestFactOnlyReplySummaryReplacesCoveredWholeTurn|TestFactOnlyRequiredGoalOverflowIsExplicit|TestFactOnlyRequiredHistoryOverflowIsExplicit|TestFactOnlyScheduleUsesSnapshotClockAndMinimalWindow|TestFactOnlySenderTimestampKeepsItsOriginalZone|TestFactOnlyStateExpiryIsFieldLocal|TestFactOnlyValidityDoesNotPromoteFutureOrInactiveMemory|TestFactOnlyViewsPreserveSourceSemanticsAndScope|TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles|TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel|TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses|TestGoalCandidateOmissionRetainsAndRotatesHistoricalEvidence|TestGoalEvaluationBatchRemainderRetainsActualSource|TestGoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder|TestGoalEvaluationNativePartialRetryPreservesFrozenRefsAndSuccessfulMemo|TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation|TestGoalEvaluationStaleReplacementMigratesDeferredReviews|TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete|TestGoalExecutionHandoffKeepsSamePlanBudgetAndTypedWait|TestGoalExecutionHandoffQualifiesCandidateWithoutDuplicatingDispatch|TestGoalExecutionHandoffSettlementRequiresSuccessfulWake|TestGoalExecutionHandoffUsesCurrentProjectionRefsOnly|TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires|TestGoalPlannerDependencyBlocksOldDueAndReleasesAfterRealCompletion|TestGoalPlannerE2EAllGoalsFinishThenNewGoalFinishesOriginalChain|TestGoalReviewCycleReplayAndLateEvidenceRevision|TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution|TestGoalStageCompletionReplayDoesNotRepeatNextStage|TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody|TestLayeredContractsDoNotExposeLegacyAutomaticPersonalityTargets|TestLegacyActiveMemoryQuarantineRejectsPersistedSnapshotAndCanReconfirm|TestLegacyConversationSegmentStillRejectsChangedModel|TestLegacyCrossDayChunkRebuildsFromRawAndSameDayKeepsSourceTimes|TestLegacyMemoryQuarantineCoversRecallAndPhysicalReplyRequests|TestLegacyMemoryQuarantineKeepsMixedLiveSupport|TestLegacyMemoryQuarantinePreservesHistoryAndOwnerReconfirmsSource|TestLongIdleConversationDrainsAllSegmentsIntoOneDayMemory|TestManagedMemoryCompletePagingGovernanceAndSourceHistory|TestMemoryConfirmationDoesNotReviveChangedInheritedSource|TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows|TestMemoryCorrectionInvalidatesReflectionDevelopingSelf|TestMemoryEventFreezesRuntimePlanAndSharesCallerTransaction|TestMemoryEventResolvesActorFactContextAlias|TestMemoryLifecycleCreateConfirmReviseMergeSupersedeDeprecate|TestMemoryProvenanceKeepsOtherSourceAndRejectsLastSourceLoss|TestMemoryRecallDistinguishesActualMessageSpeakers|TestMemoryRevisionInvalidatesAffectedEpisodeAndLegacyFixture|TestMemorySummaryAncestorCorrectionInvalidatesReflectionDevelopingSelf|TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision|TestNewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions|TestNextWakeUpDuePreservesFixedCadence|TestNormalizeDevelopingSelfClaimRejectsCoreCategories|TestNormalizeDevelopingSelfClaimRequiresEvidenceMetadata|TestNormalizeRelationshipRole|TestNormalizeRelationshipRoleAcceptsUnclassifiedLabel|TestOpaqueMemoryLineageRejectsSelfAndInvalidatesTransitiveDescendants|TestOpaqueOutcomeEvidenceRejectsLateRevision|TestOutcomeRevisionInvalidatesReflectionDevelopingSelf|TestOwnerMemoryCorrectionAndPublicationGenerationDoNotDeadlock|TestOwnerMemoryCorrectionAndSegmentReplacementDoNotDeadlock|TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies|TestOwnerMemoryCorrectionFencesOldSummarySources|TestOwnerMemoryReviseRollbackAndForgetUseLifecycleAuthority|TestOwnerMemoryRollbackCompensatesMergeAndSupersedeLineage|TestOwnerPersonaAssessmentTerminalsAndRecovery|TestOwnerPersonaSwitchWithoutConnectedRuntimeIsNotPending|TestOwnerSelfFullPagingReviewForgetRestoreAndScopedReplay|TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions|TestPendingGoalReviewLateSourceFencesOldDecision|TestPersonaDetailIndependentToolReadsCanonicalSource|TestPersonaDetailOutputContractRejectsMissingVersionAndCursor|TestPersonaDetailSectionsKeepProfileScopeAndFullFacts|TestPersonaDetailTraceSurvivesModelContinuationFailure|TestPostgresActiveMemoryEventFreezesRuntimeAuthorityWithoutMemoryProvider|TestPostgresActiveMemoryFactCorrectionInvalidatesRecallResidentAndLateReflection|TestPostgresActiveMemoryLifecycleReplayCASExpiryAndSupersede|TestPostgresMemoryRetrievalFindsOldRelevantBeyondRecentCandidateLimit|TestProcessMemoryEmbeddingFailureThenSuccessUsesOneFrozenTuple|TestProcessMemoryEmbeddingRevisionZeroIsExactAndRequiresActiveMemory|TestProcessReflectionAppliesAllMemoryCandidateV2OperationsAtomically|TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome|TestReflectionCanonicalSelfOutcomeRetainsActorDependencies|TestReflectionIntentionRejectsForeignNestedRefsBeforeApply|TestReflectionMemoryApplyRollsBackWithProposalAndWatermark|TestReflectionOverlayEvidenceCountsHistoricalWindowsNotFacts|TestReflectionSlotUpdateRejectsFrozenRevisionDrift|TestReflectionV2AppliesMemoryGoalIntentionAndAffectThenReprojects|TestReflectionV2ProviderSchemaOwnsOnlySemanticFields|TestReflectionV2StageS08|TestResidentMemoryPublishesWholeGenerationAndSkipsUnchangedReplay|TestResidentMemoryWinsDuplicateLongTermAndKeepsUnderlyingCandidates|TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow|TestSoftDeadlineQueuesVisibleReviewWithoutCancellation|TestSummaryCorrectionFenceKeepsOwnerConversationAndWindowScope|TestTicketCorrectionKeepsBothUtterancesAndDoesNotConfirmPurchase|TestTwentySleepingChecksDoNotWakePublishShopOrCreateReflectionEvidence|TestWakeUpBackoffLostRedisHintKeepsDurableFutureDue|TestWakeUpBackoffNewMessageAndManualTriggerReset|TestWakeUpBackoffNewNativeFactResetsButReplayPreserves|TestWakeUpBackoffOutcomeAndScheduleBoundaries|TestWakeUpBackoffPendingGoalCapsDurableDue|TestWakeUpBackoffScheduleDeadlineAndActiveCycleReset|TestWakeUpBackoffSupersededRecoveryKeepsFutureDue|TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts|TestWakeUpConsecutiveIdleCyclesBackOffAndReplayKeepsDue|TestWakeUpControlReplyRecoversToSilentDiagnosticWithoutPrivateMessage|TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage|TestWakeUpDueReleaseUsesLockedStatusAndDueCAS|TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider|TestWakeUpIdleClockKeepsAbsoluteTenMinutePhases|TestWakeUpNoOpSidecarWithAffectAndReplyStillDeliversPrivateMessage|TestWakeUpOutcomePersistsNextDueInsideOwningTransaction|TestWakeUpRequestReceivesNewEventAndUnansweredDelivery|TestWakeUpSuccessResetsConsecutiveRetryBudget|TestWakeUpSupervisorRepairsStrandedSupersededClock|TestWakeUpSuppressedReplyCannotResetIdleEpoch|TestWorkingPersonaAppliesActiveOverlayOfTheActiveProfile|TestWorkingPersonaAppliesReScopedOverlayToNonActiveSubject|TestWorkingPersonaBackfillPreviewApplyAndReplay|TestWorkingPersonaCanonicalizesFlatTraitsShape|TestWorkingPersonaDoesNotApplyAnOverlayToANonActiveProfile|TestWorkingPersonaDoesNotInventTraitsFromProse|TestWorkingPersonaExcludesOtherPersonasAndVisualAssets|TestWorkingPersonaIgnoresOverlayWithoutProfileIDForNonActiveSubject|TestWorkingPersonaIsDeterministicForTheSameInput|TestWorkingPersonaKeepsDescriptiveTraitsVerbatim|TestWorkingPersonaLifeProfileBeforeAfterComparison|TestWorkingPersonaLifeProfileKeepsOnlyDecisionKeys)$ -v -timeout=600s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestPostgresActiveMemoryFactCorrectionInvalidatesRecallResidentAndLateReflection
+--- PASS: TestPostgresActiveMemoryFactCorrectionInvalidatesRecallResidentAndLateReflection (1.65s)
+=== RUN   TestPostgresActiveMemoryLifecycleReplayCASExpiryAndSupersede
+--- PASS: TestPostgresActiveMemoryLifecycleReplayCASExpiryAndSupersede (1.95s)
+=== RUN   TestPostgresActiveMemoryEventFreezesRuntimeAuthorityWithoutMemoryProvider
+--- PASS: TestPostgresActiveMemoryEventFreezesRuntimeAuthorityWithoutMemoryProvider (1.70s)
+=== RUN   TestActorCorrectionPersistsAndRetiresOnlySourcedDerivations
+2026/11/13 16:32:58 INFO capability lifecycle capability=actor.inspect call_id=direct_call_3a3326c35be525fe0bd369c03bc4bd8d type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:32:58 INFO capability lifecycle capability=actor.inspect call_id=direct_call_53ff438711989168a199a9001d324c32 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestActorCorrectionPersistsAndRetiresOnlySourcedDerivations (1.68s)
+=== RUN   TestActorFactUnknownTimezoneAndLaterLocationChangeRemainDistinct
+2026/11/13 16:32:59 INFO capability lifecycle capability=actor.inspect call_id=direct_call_4980b43fbfa82d1f76209eacb674ad38 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestActorFactUnknownTimezoneAndLaterLocationChangeRemainDistinct (1.06s)
+=== RUN   TestActorFactForeignSourceCannotConfirmOrCorrectTheSubject
+--- PASS: TestActorFactForeignSourceCannotConfirmOrCorrectTheSubject (1.12s)
+=== RUN   TestActorCorrectionCannotReturnThroughResidentActiveSelfOrLateSnapshot
+--- PASS: TestActorCorrectionCannotReturnThroughResidentActiveSelfOrLateSnapshot (1.33s)
+=== RUN   TestActorCorrectionRejectsUnrelatedAttributeAtomically
+2026/11/13 16:33:03 WARN tool.call.handled capability=actor.fact.record call_id=direct_call_99d7a84dc92ea62486cf322e29ffd1f9 warning_code=actor_correction_target_invalid disposition=awaiting_state effect_applied=false
+--- PASS: TestActorCorrectionRejectsUnrelatedAttributeAtomically (1.37s)
+=== RUN   TestActorCorrectionFiltersEvolutionOverlayAfterReload
+--- PASS: TestActorCorrectionFiltersEvolutionOverlayAfterReload (1.46s)
+=== RUN   TestActorFactExpiryFiltersEvolutionOverlayAfterReload
+--- PASS: TestActorFactExpiryFiltersEvolutionOverlayAfterReload (1.71s)
+=== RUN   TestBackgroundStartupExistingKeyAndMissingKeyReleaseOnce
+--- PASS: TestBackgroundStartupExistingKeyAndMissingKeyReleaseOnce (1.88s)
+=== RUN   TestBackgroundStartupCannotResurrectWakeWhileCognitionIsPending
+--- PASS: TestBackgroundStartupCannotResurrectWakeWhileCognitionIsPending (1.27s)
+=== RUN   TestFactOnlyRegistryViewIsFixedWithoutMutatingLegacy
+--- PASS: TestFactOnlyRegistryViewIsFixedWithoutMutatingLegacy (0.01s)
+=== RUN   TestDailyMemoryBlocksCorrectedSummarySources
+=== RUN   TestDailyMemoryBlocksCorrectedSummarySources/before_model
+=== RUN   TestDailyMemoryBlocksCorrectedSummarySources/during_model
+--- PASS: TestDailyMemoryBlocksCorrectedSummarySources (3.03s)
+    --- PASS: TestDailyMemoryBlocksCorrectedSummarySources/before_model (1.31s)
+    --- PASS: TestDailyMemoryBlocksCorrectedSummarySources/during_model (1.72s)
+=== RUN   TestDailyMemoryQuietResultSettlesPendingIntent
+=== RUN   TestDailyMemoryQuietResultSettlesPendingIntent/no_source
+=== RUN   TestDailyMemoryQuietResultSettlesPendingIntent/inactive
+--- PASS: TestDailyMemoryQuietResultSettlesPendingIntent (3.22s)
+    --- PASS: TestDailyMemoryQuietResultSettlesPendingIntent/no_source (1.18s)
+    --- PASS: TestDailyMemoryQuietResultSettlesPendingIntent/inactive (2.04s)
+=== RUN   TestDailyMemoryOlderGenerationCannotSettleReopenedIntent
+--- PASS: TestDailyMemoryOlderGenerationCannotSettleReopenedIntent (2.16s)
+=== RUN   TestDailyMemoryLegacyGenerationCannotFollowReopen
+--- PASS: TestDailyMemoryLegacyGenerationCannotFollowReopen (1.73s)
+=== RUN   TestDailyMemoryRetryRestoresFrozenModel
+--- PASS: TestDailyMemoryRetryRestoresFrozenModel (1.66s)
+=== RUN   TestDailyMemoryConcurrentSelectionUsesStoredWinner
+--- PASS: TestDailyMemoryConcurrentSelectionUsesStoredWinner (1.52s)
+=== RUN   TestDailyMemoryMissingSnapshotIsNotRecreated
+--- PASS: TestDailyMemoryMissingSnapshotIsNotRecreated (1.83s)
+=== RUN   TestDirectFollowupsSupersedeLateReplyAndKeepWholeInput
+--- PASS: TestDirectFollowupsSupersedeLateReplyAndKeepWholeInput (2.29s)
+=== RUN   TestDirectFollowupKeepsPriorCommittedAction
+2026/11/13 16:33:28 INFO capability lifecycle capability=capability.catalog call_id=followup-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectFollowupKeepsPriorCommittedAction (1.41s)
+=== RUN   TestFactOnlyFollowupRejectsStaleWriterDraft
+2026/11/13 16:33:29 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:writer-first metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 16:33:29 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:writer-followup metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestFactOnlyFollowupRejectsStaleWriterDraft (1.10s)
+=== RUN   TestConversationSegmentOlderGenerationCannotSettleReopenedIntent
+--- PASS: TestConversationSegmentOlderGenerationCannotSettleReopenedIntent (0.89s)
+=== RUN   TestConversationSegmentRetryRestoresFrozenModelAndNewGeneration
+--- PASS: TestConversationSegmentRetryRestoresFrozenModelAndNewGeneration (1.81s)
+=== RUN   TestConversationSegmentConcurrentSelectionUsesStoredWinner
+--- PASS: TestConversationSegmentConcurrentSelectionUsesStoredWinner (1.18s)
+=== RUN   TestConversationSegmentMissingSnapshotIsNotRecreated
+--- PASS: TestConversationSegmentMissingSnapshotIsNotRecreated (1.37s)
+=== RUN   TestLegacyConversationSegmentStillRejectsChangedModel
+--- PASS: TestLegacyConversationSegmentStillRejectsChangedModel (1.06s)
+=== RUN   TestConversationSegmentToDailyMemoryAndRawCorrection
+--- PASS: TestConversationSegmentToDailyMemoryAndRawCorrection (2.27s)
+=== RUN   TestConversationSegmentDebouncesToLatestUserAndSupersedesOlderSource
+--- PASS: TestConversationSegmentDebouncesToLatestUserAndSupersedesOlderSource (1.73s)
+=== RUN   TestConversationSegmentCutsLongMessagesAtCompletedTurn
+--- PASS: TestConversationSegmentCutsLongMessagesAtCompletedTurn (1.71s)
+=== RUN   TestConversationSegmentKeepsCrossMidnightReplyWithUserStartDate
+--- PASS: TestConversationSegmentKeepsCrossMidnightReplyWithUserStartDate (1.72s)
+=== RUN   TestConversationSegmentCrossMidnightConsecutiveUsersRemainCoverable
+--- PASS: TestConversationSegmentCrossMidnightConsecutiveUsersRemainCoverable (2.44s)
+=== RUN   TestConversationSegmentSealsPreviousDayDuringContinuousChat
+--- PASS: TestConversationSegmentSealsPreviousDayDuringContinuousChat (1.69s)
+=== RUN   TestConversationDailyMemoryDayWindowHandlesDST
+=== RUN   TestConversationDailyMemoryDayWindowHandlesDST/spring
+=== RUN   TestConversationDailyMemoryDayWindowHandlesDST/autumn
+--- PASS: TestConversationDailyMemoryDayWindowHandlesDST (0.00s)
+    --- PASS: TestConversationDailyMemoryDayWindowHandlesDST/spring (0.00s)
+    --- PASS: TestConversationDailyMemoryDayWindowHandlesDST/autumn (0.00s)
+=== RUN   TestConversationDailyIntentsFreezeSeparateTimezoneDayWindows
+--- PASS: TestConversationDailyIntentsFreezeSeparateTimezoneDayWindows (2.16s)
+=== RUN   TestLegacyCrossDayChunkRebuildsFromRawAndSameDayKeepsSourceTimes
+--- PASS: TestLegacyCrossDayChunkRebuildsFromRawAndSameDayKeepsSourceTimes (1.33s)
+=== RUN   TestLongIdleConversationDrainsAllSegmentsIntoOneDayMemory
+--- PASS: TestLongIdleConversationDrainsAllSegmentsIntoOneDayMemory (2.18s)
+=== RUN   TestNormalizeDevelopingSelfClaimRequiresEvidenceMetadata
+--- PASS: TestNormalizeDevelopingSelfClaimRequiresEvidenceMetadata (0.00s)
+=== RUN   TestNormalizeDevelopingSelfClaimRejectsCoreCategories
+--- PASS: TestNormalizeDevelopingSelfClaimRejectsCoreCategories (0.00s)
+=== RUN   TestContextProjectionFromValuePreservesLayeredAuthority
+--- PASS: TestContextProjectionFromValuePreservesLayeredAuthority (0.00s)
+=== RUN   TestLayeredContractsDoNotExposeLegacyAutomaticPersonalityTargets
+--- PASS: TestLayeredContractsDoNotExposeLegacyAutomaticPersonalityTargets (0.00s)
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/unchanged
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/disabled
+2026/11/13 16:33:55 WARN tool.call.handled capability=conversation.reply call_id=direct-expression-1 warning_code=reply_expression_suggestion_stale disposition=awaiting_state effect_applied=false
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/revoked
+2026/11/13 16:33:56 WARN tool.call.handled capability=conversation.reply call_id=direct-expression-1 warning_code=reply_expression_suggestion_stale disposition=awaiting_state effect_applied=false
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/candidate_aba
+2026/11/13 16:33:57 WARN tool.call.handled capability=conversation.reply call_id=direct-expression-1 warning_code=reply_expression_suggestion_stale disposition=awaiting_state effect_applied=false
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/use_switch_aba
+2026/11/13 16:33:59 WARN tool.call.handled capability=conversation.reply call_id=direct-expression-1 warning_code=reply_expression_suggestion_stale disposition=awaiting_state effect_applied=false
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/source_aba
+2026/11/13 16:34:01 WARN tool.call.handled capability=conversation.reply call_id=direct-expression-1 warning_code=reply_expression_suggestion_stale disposition=awaiting_state effect_applied=false
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/unmatched
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/prior_action
+2026/11/13 16:34:05 INFO capability lifecycle capability=capability.catalog call_id=direct-expression-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/prior_action_then_disable
+2026/11/13 16:34:06 INFO capability lifecycle capability=capability.catalog call_id=direct-expression-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:34:06 WARN tool.call.handled capability=conversation.reply call_id=direct-expression-3 warning_code=reply_expression_suggestion_stale disposition=awaiting_state effect_applied=false
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/replay_after_disable
+=== RUN   TestDirectConversationUsesAndRechecksApprovedExpression/cancel
+--- PASS: TestDirectConversationUsesAndRechecksApprovedExpression (16.40s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/unchanged (1.01s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/disabled (1.40s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/revoked (1.27s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/candidate_aba (1.39s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/use_switch_aba (1.38s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/source_aba (2.27s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/unmatched (2.11s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/prior_action (1.36s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/prior_action_then_disable (1.38s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/replay_after_disable (1.61s)
+    --- PASS: TestDirectConversationUsesAndRechecksApprovedExpression/cancel (1.21s)
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/commit
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/rollback
+--- PASS: TestDirectMainReplyPublishesAndSettlesAtomically (3.15s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/commit (1.70s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/rollback (1.45s)
+=== RUN   TestWakeUpSupervisorRepairsStrandedSupersededClock
+--- PASS: TestWakeUpSupervisorRepairsStrandedSupersededClock (2.35s)
+=== RUN   TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases
+--- PASS: TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases (2.80s)
+=== RUN   TestNewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions
+--- PASS: TestNewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions (1.85s)
+=== RUN   TestEvolutionOverlayStageS09
+=== RUN   TestEvolutionOverlayStageS09/forbidden_and_non-allowlisted_paths_are_rejected
+=== RUN   TestEvolutionOverlayStageS09/numeric_overlay_requires_windows_confidence_max-delta_and_cooldown
+=== RUN   TestEvolutionOverlayStageS09/categorical_overlay_needs_stronger_multi-window_agreement
+=== RUN   TestEvolutionOverlayStageS09/effective_view_is_profile-scoped_provider-safe_and_frozen
+=== RUN   TestEvolutionOverlayStageS09/rollback_appends_a_compensating_revision_without_changing_baseline
+--- PASS: TestEvolutionOverlayStageS09 (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/forbidden_and_non-allowlisted_paths_are_rejected (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/numeric_overlay_requires_windows_confidence_max-delta_and_cooldown (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/categorical_overlay_needs_stronger_multi-window_agreement (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/effective_view_is_profile-scoped_provider-safe_and_frozen (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/rollback_appends_a_compensating_revision_without_changing_baseline (0.00s)
+=== RUN   TestReflectionOverlayEvidenceCountsHistoricalWindowsNotFacts
+--- PASS: TestReflectionOverlayEvidenceCountsHistoricalWindowsNotFacts (1.49s)
+=== RUN   TestEvolutionBaselinePreservesProseTraitsVerbatim
+--- PASS: TestEvolutionBaselinePreservesProseTraitsVerbatim (0.00s)
+=== RUN   TestEvolutionBaselineStillNormalizesStructuredTraits
+--- PASS: TestEvolutionBaselineStillNormalizesStructuredTraits (0.00s)
+=== RUN   TestEvolutionPersistenceS10
+--- PASS: TestEvolutionPersistenceS10 (1.86s)
+=== RUN   TestExpressionCandidateEnableUseAndDisableAcrossNewTurns
+--- PASS: TestExpressionCandidateEnableUseAndDisableAcrossNewTurns (1.95s)
+=== RUN   TestExpressionLearningOwnerSourceReviewAndRevocation
+--- PASS: TestExpressionLearningOwnerSourceReviewAndRevocation (1.68s)
+=== RUN   TestExpressionLearningOwnerSurfaceRoutes
+--- PASS: TestExpressionLearningOwnerSurfaceRoutes (1.26s)
+=== RUN   TestExpressionExtractionHonorsLearningSwitchGeneration
+=== RUN   TestExpressionExtractionHonorsLearningSwitchGeneration/use_switch_only
+=== RUN   TestExpressionExtractionHonorsLearningSwitchGeneration/learning_disabled_then_enabled
+--- PASS: TestExpressionExtractionHonorsLearningSwitchGeneration (3.42s)
+    --- PASS: TestExpressionExtractionHonorsLearningSwitchGeneration/use_switch_only (1.62s)
+    --- PASS: TestExpressionExtractionHonorsLearningSwitchGeneration/learning_disabled_then_enabled (1.80s)
+=== RUN   TestExpressionExtractionLeaseRenewsAndCancelsAfterTakeover
+--- PASS: TestExpressionExtractionLeaseRenewsAndCancelsAfterTakeover (1.19s)
+=== RUN   TestExpressionExtractionRejectsSourceChangedDuringModelCall
+--- PASS: TestExpressionExtractionRejectsSourceChangedDuringModelCall (1.95s)
+=== RUN   TestExpressionLearningPhysicalRequestAndSourceBinding
+--- PASS: TestExpressionLearningPhysicalRequestAndSourceBinding (0.00s)
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/foreign_ref
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/invented_excerpt
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/empty_situation
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/duplicate
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/chinese_instruction_override
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/wrong_source
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/empty_excerpt
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/english_instruction_override
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/instruction_in_situation
+--- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/foreign_ref (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/invented_excerpt (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/empty_situation (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/duplicate (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/chinese_instruction_override (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/wrong_source (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/empty_excerpt (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/english_instruction_override (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/instruction_in_situation (0.00s)
+=== RUN   TestExpressionLearningRejectsInvalidSourcesBeforeProvider
+--- PASS: TestExpressionLearningRejectsInvalidSourcesBeforeProvider (0.00s)
+=== RUN   TestExpressionSuggestionPublicationRechecksOwnerControls
+=== RUN   TestExpressionSuggestionPublicationRechecksOwnerControls/unchanged
+2026/11/13 16:34:35 INFO reply.evidence.reconciled correlation_id=turn:expression-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestExpressionSuggestionPublicationRechecksOwnerControls/disabled
+2026/11/13 16:34:37 INFO reply.evidence.reconciled correlation_id=turn:expression-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestExpressionSuggestionPublicationRechecksOwnerControls/use_switch_aba
+2026/11/13 16:34:39 INFO reply.evidence.reconciled correlation_id=turn:expression-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestExpressionSuggestionPublicationRechecksOwnerControls/source_changed
+2026/11/13 16:34:40 INFO reply.evidence.reconciled correlation_id=turn:expression-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestExpressionSuggestionPublicationRechecksOwnerControls/source_aba
+2026/11/13 16:34:42 INFO reply.evidence.reconciled correlation_id=turn:expression-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestExpressionSuggestionPublicationRechecksOwnerControls (8.13s)
+    --- PASS: TestExpressionSuggestionPublicationRechecksOwnerControls/unchanged (1.20s)
+    --- PASS: TestExpressionSuggestionPublicationRechecksOwnerControls/disabled (2.06s)
+    --- PASS: TestExpressionSuggestionPublicationRechecksOwnerControls/use_switch_aba (1.84s)
+    --- PASS: TestExpressionSuggestionPublicationRechecksOwnerControls/source_changed (1.61s)
+    --- PASS: TestExpressionSuggestionPublicationRechecksOwnerControls/source_aba (1.43s)
+=== RUN   TestExpressionSuggestionLegacyDraftWithoutBindingsIsAllowed
+--- PASS: TestExpressionSuggestionLegacyDraftWithoutBindingsIsAllowed (0.00s)
+=== RUN   TestExpressionContextKeepsCurrentProfileRelationshipAddressing
+--- PASS: TestExpressionContextKeepsCurrentProfileRelationshipAddressing (0.00s)
+=== RUN   TestFactOnlyActorWirePreservesEveryFieldAndOrder
+    fact_only_actor_wire_test.go:61: same-data Actor context estimate 5554 -> 4032
+--- PASS: TestFactOnlyActorWirePreservesEveryFieldAndOrder (0.00s)
+=== RUN   TestFactOnlyAssemblyBudgetsNativeWireButRetainsFinalContract
+--- PASS: TestFactOnlyAssemblyBudgetsNativeWireButRetainsFinalContract (0.00s)
+=== RUN   TestFactOnlyViewsPreserveSourceSemanticsAndScope
+--- PASS: TestFactOnlyViewsPreserveSourceSemanticsAndScope (0.00s)
+=== RUN   TestFactOnlyStateExpiryIsFieldLocal
+--- PASS: TestFactOnlyStateExpiryIsFieldLocal (0.00s)
+=== RUN   TestFactOnlyGoalsKeepOriginalConditionsAndRealDependencies
+--- PASS: TestFactOnlyGoalsKeepOriginalConditionsAndRealDependencies (0.00s)
+=== RUN   TestFactOnlyHistoryMetadataMatchesSelectedRoles
+--- PASS: TestFactOnlyHistoryMetadataMatchesSelectedRoles (0.00s)
+=== RUN   TestFactOnlyScheduleUsesSnapshotClockAndMinimalWindow
+--- PASS: TestFactOnlyScheduleUsesSnapshotClockAndMinimalWindow (0.00s)
+=== RUN   TestFactOnlyNativeArgumentsAndServerPurpose
+--- PASS: TestFactOnlyNativeArgumentsAndServerPurpose (0.00s)
+=== RUN   TestFactOnlyPhaseProtocolsDoNotMutateMessages
+--- PASS: TestFactOnlyPhaseProtocolsDoNotMutateMessages (0.00s)
+=== RUN   TestFactOnlyFixtureReplayEstimates
+    fact_only_context_view_test.go:301: synthetic Writer context-only comparison: estimated tokens 4229 -> 6549; wire chars 3413 -> 5268; provider actual usage and latency NOT_RUN
+    fact_only_context_view_test.go:301: synthetic Cognition context-only comparison: estimated tokens 12646 -> 6261; wire chars 10144 -> 5038; provider actual usage and latency NOT_RUN
+--- PASS: TestFactOnlyFixtureReplayEstimates (0.00s)
+=== RUN   TestFactOnlyCognitionViewIsIndependentFromLegacy
+--- PASS: TestFactOnlyCognitionViewIsIndependentFromLegacy (0.00s)
+=== RUN   TestFactOnlyRequiredHistoryOverflowIsExplicit
+--- PASS: TestFactOnlyRequiredHistoryOverflowIsExplicit (0.01s)
+=== RUN   TestFactOnlyEvidenceSnapshotsCannotReintroduceStrategy
+--- PASS: TestFactOnlyEvidenceSnapshotsCannotReintroduceStrategy (0.00s)
+=== RUN   TestFactOnlyValidityDoesNotPromoteFutureOrInactiveMemory
+--- PASS: TestFactOnlyValidityDoesNotPromoteFutureOrInactiveMemory (0.00s)
+=== RUN   TestFactOnlySenderTimestampKeepsItsOriginalZone
+--- PASS: TestFactOnlySenderTimestampKeepsItsOriginalZone (0.00s)
+=== RUN   TestFactOnlyMorningContextRegression
+--- PASS: TestFactOnlyMorningContextRegression (0.00s)
+=== RUN   TestFactOnlyProductionActorShapeKeepsRecipientRelationship
+--- PASS: TestFactOnlyProductionActorShapeKeepsRecipientRelationship (0.00s)
+=== RUN   TestFactOnlyConsecutiveRepliesKeepTheirTrigger
+--- PASS: TestFactOnlyConsecutiveRepliesKeepTheirTrigger (0.00s)
+=== RUN   TestFactOnlyMomentUsesSameFrozenWriterWithFeedScene
+2026/11/13 16:34:42 WARN Go Core diagnostic persistence failed component=event stage=create correlation_id=controlled-moment error_type=*errors.errorString safe_cause=diagnostics_unavailable event_type=reply.draft.prepared
+--- PASS: TestFactOnlyMomentUsesSameFrozenWriterWithFeedScene (0.01s)
+=== RUN   TestFactOnlyMomentPublicationPreparedCacheRejectsChangedSourceOrSpeaker
+2026/11/13 16:34:44 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+--- PASS: TestFactOnlyMomentPublicationPreparedCacheRejectsChangedSourceOrSpeaker (1.88s)
+=== RUN   TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays
+2026/11/13 16:34:46 INFO reply.evidence.reconciled correlation_id=tool-operation:writer-moment-operation metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays (2.00s)
+=== RUN   TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife
+=== RUN   TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/writer_failed
+2026/11/13 16:34:48 INFO reply.evidence.reconciled correlation_id=tool-operation:blocked-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/life_changed
+2026/11/13 16:34:50 INFO reply.evidence.reconciled correlation_id=tool-operation:blocked-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/13 16:34:50 WARN tool.call.handled capability=moment.publish call_id=direct_call_2bc862a0c556159e2f90e5288c3b7afc warning_code=moment_context_stale disposition=awaiting_state effect_applied=false
+--- PASS: TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife (4.66s)
+    --- PASS: TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/writer_failed (2.53s)
+    --- PASS: TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/life_changed (2.12s)
+=== RUN   TestFactOnlyCommittedReplyMalformedFinalSettlement
+=== RUN   TestFactOnlyCommittedReplyMalformedFinalSettlement/true
+2026/11/13 16:34:52 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:settlement-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestFactOnlyCommittedReplyMalformedFinalSettlement/false
+2026/11/13 16:34:55 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:settlement-turn metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestFactOnlyCommittedReplyMalformedFinalSettlement (4.32s)
+    --- PASS: TestFactOnlyCommittedReplyMalformedFinalSettlement/true (2.00s)
+    --- PASS: TestFactOnlyCommittedReplyMalformedFinalSettlement/false (2.31s)
+=== RUN   TestFactOnlyHistoryBackfillUsesExactStoredSource
+--- PASS: TestFactOnlyHistoryBackfillUsesExactStoredSource (1.91s)
+=== RUN   TestFactOnlyProactiveSuppressionAcrossPurposeVersions
+=== RUN   TestFactOnlyProactiveSuppressionAcrossPurposeVersions/old_to_new
+=== RUN   TestFactOnlyProactiveSuppressionAcrossPurposeVersions/new_to_old_draft
+=== RUN   TestFactOnlyProactiveSuppressionAcrossPurposeVersions/fallback_to_new
+=== RUN   TestFactOnlyProactiveSuppressionAcrossPurposeVersions/legacy_caller_unchanged
+=== RUN   TestFactOnlyProactiveSuppressionAcrossPurposeVersions/unrelated_legacy_delivery
+--- PASS: TestFactOnlyProactiveSuppressionAcrossPurposeVersions (7.94s)
+    --- PASS: TestFactOnlyProactiveSuppressionAcrossPurposeVersions/old_to_new (2.19s)
+    --- PASS: TestFactOnlyProactiveSuppressionAcrossPurposeVersions/new_to_old_draft (1.11s)
+    --- PASS: TestFactOnlyProactiveSuppressionAcrossPurposeVersions/fallback_to_new (1.66s)
+    --- PASS: TestFactOnlyProactiveSuppressionAcrossPurposeVersions/legacy_caller_unchanged (1.77s)
+    --- PASS: TestFactOnlyProactiveSuppressionAcrossPurposeVersions/unrelated_legacy_delivery (1.21s)
+=== RUN   TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles
+--- PASS: TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles (1.93s)
+=== RUN   TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses
+--- PASS: TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses (1.65s)
+=== RUN   TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel
+    goal_assessment_memo_integration_test.go:166: first failure=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 502: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel] calls=1
+--- PASS: TestGoalAssessmentFailureNeverCreatesMemoAndRetriesModel (2.09s)
+=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution
+=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active
+=== RUN   TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed
+--- PASS: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution (3.38s)
+    --- PASS: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/active (1.59s)
+    --- PASS: TestGoalSourceWithdrawalReevaluatesActiveAndPreservesRealResolution/completed (1.79s)
+=== RUN   TestGoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder
+--- PASS: TestGoalEvaluationClaimFencesLateResultsAndRetainsBatchRemainder (2.93s)
+=== RUN   TestEmptyGoalEvaluationRejectsExpiredClaim
+--- PASS: TestEmptyGoalEvaluationRejectsExpiredClaim (1.10s)
+=== RUN   TestGoalEvaluationBatchRemainderRetainsActualSource
+--- PASS: TestGoalEvaluationBatchRemainderRetainsActualSource (3.02s)
+=== RUN   TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation
+=== RUN   TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/single_expression_is_not_acceptance
+=== RUN   TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/quote_is_not_actual_expression
+=== RUN   TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/user_statement_cannot_be_self_expression
+--- PASS: TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation (0.00s)
+    --- PASS: TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/single_expression_is_not_acceptance (0.00s)
+    --- PASS: TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/quote_is_not_actual_expression (0.00s)
+    --- PASS: TestGoalEvaluationRejectsQuoteWrongActorAndMissingMutualConfirmation/user_statement_cannot_be_self_expression (0.00s)
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance
+    goal_closure_runtime_test.go:454: GOAL_CLOSURE_EVIDENCE scenario=mutual_relationship_confirmation goal=goal-dialogue-wardrobe_1794558929138979000 criteria_version=1 revision=3 status=completed request=goal_evaluation_026e62ec8a7c67dd9f8bb701936b0753 evaluation=goal_evaluated_5964cfd0e541698246947e32c317ebb1 evidence_refs=["source:10", "source:7"]
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit
+2026/11/13 16:35:31 WARN tool.call.handled capability=goal.evaluation.submit call_id=goal-native-fixture-1 warning_code=conflict disposition=awaiting_evidence effect_applied=false
+--- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision (9.80s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal (2.59s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation (2.46s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal (1.60s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance (1.66s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit (1.49s)
+=== RUN   TestGoalEvaluationNativePartialRetryPreservesFrozenRefsAndSuccessfulMemo
+--- PASS: TestGoalEvaluationNativePartialRetryPreservesFrozenRefsAndSuccessfulMemo (1.47s)
+=== RUN   TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete
+--- PASS: TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete (1.93s)
+=== RUN   TestGoalEvaluationStaleReplacementMigratesDeferredReviews
+--- PASS: TestGoalEvaluationStaleReplacementMigratesDeferredReviews (1.22s)
+=== RUN   TestGoalCandidateOmissionRetainsAndRotatesHistoricalEvidence
+--- PASS: TestGoalCandidateOmissionRetainsAndRotatesHistoricalEvidence (2.16s)
+=== RUN   TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires
+--- PASS: TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires (1.84s)
+=== RUN   TestGoalExecutionHandoffSettlementRequiresSuccessfulWake
+--- PASS: TestGoalExecutionHandoffSettlementRequiresSuccessfulWake (0.00s)
+=== RUN   TestGoalExecutionHandoffUsesCurrentProjectionRefsOnly
+--- PASS: TestGoalExecutionHandoffUsesCurrentProjectionRefsOnly (0.00s)
+=== RUN   TestGoalExecutionHandoffKeepsSamePlanBudgetAndTypedWait
+--- PASS: TestGoalExecutionHandoffKeepsSamePlanBudgetAndTypedWait (0.00s)
+=== RUN   TestGoalExecutionHandoffQualifiesCandidateWithoutDuplicatingDispatch
+--- PASS: TestGoalExecutionHandoffQualifiesCandidateWithoutDuplicatingDispatch (0.00s)
+=== RUN   TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow
+=== RUN   TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/boots
+2026/11/13 16:35:40 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_753f7cce2f2a8148d04353e9d4f9b039 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+    goal_life_chain_test.go:118: GOAL_CLOSURE_EVIDENCE scenario=actual_acquisition_separate_from_wearing goal=goal_tool_154466dff7373d7bf4aa8e2f15216082 criteria_version=1 revision=2 status=completed request=goal_evaluation_1d57f55a2c5131e8ca813075a19162db evaluation=goal_evaluated_4e9671b8819f6e607b665fc5369655ac evidence_refs=["source:4"]
+    goal_life_chain_test.go:154: CHAIN_EVIDENCE={"acquisition":{"activity_id":"activity_561139178055fc5755d23c014750f81d","event_id":"life_event_b1a5bcad1cd7a76d280f2b53ceeefd2a","intention_id":"intention_tool_154466dff7373d7bf4aa8e2f15216082","item_id":"wardrobe_6b5018df91c6b697249ce6c951c8c2e6","item_ids":["wardrobe_6b5018df91c6b697249ce6c951c8c2e6"],"reason":"实际获取成功","status":"completed","wardrobe_revision":1},"activity_id":"activity_561139178055fc5755d23c014750f81d","capture_snapshot":{"body_fields":{"chest_cup":{"status":"unknown"},"hair_color":{"status":"unknown"},"hair_length":{"status":"unknown"},"hair_style":{"status":"unknown"},"injuries":{"status":"unknown"}},"body_revision":0,"captured_at":"2026-10-05T03:15:00.000+00:00","ref":"appearance:ctx_deda4c140792e99e70d41de8abe99285","used_items":[],"wardrobe_revision":2,"wearing_state":"known","worn_items":[{"availability":"available","category":"coat","description":"blue coat","id":"wardrobe_e2eec62ade5e8b09c4137c4079a9f65c","ownership":"owned","slot":"outer","source_verified":true},{"availability":"available","category":"boots","description":"黑色短靴","id":"wardrobe_6b5018df91c6b697249ce6c951c8c2e6","ownership":"owned","slot":"shoes","source_verified":true}]},"final_workflow":{"positive":{"class_type":"CLIPTextEncode","inputs":{"text":"A photographic image. An upper-body composition. The subject is seated. A smiling expression. Soft light. A self-capture through a mirror, showing the subject's reflection. The phone's rear camera is used. The capture device is visible only where physically consistent with this camera relationship. The subject wears blue coat and 黑色短靴. The current setting is 商场."}},"sampler":{"class_type":"KSampler","inputs":{"positive":["positive",0]}}},"goal_id":"goal_tool_154466dff7373d7bf4aa8e2f15216082","intention_id":"intention_tool_154466dff7373d7bf4aa8e2f15216082","schedule":{"goal_id":"goal_tool_154466dff7373d7bf4aa8e2f15216082","intention_id":"intention_tool_154466dff7373d7bf4aa8e2f15216082","schedule_id":"schedule_e1582494ae0aeeaf58d1d47c6acc7a4b","schedule_item_id":"schedule_item_1dcb28d5d84ff54cb039ad86a28d6fb0","start_at":"2026-10-05T03:00:00.000+00:00","status":"scheduled"},"use":{"before_items":[{"availability":"available","category":"coat","description":"blue coat","id":"wardrobe_e2eec62ade5e8b09c4137c4079a9f65c","ownership":"owned","slot":"outer","source_verified":true}],"ignored_redundant_removals":0,"items":[{"availability":"available","category":"coat","description":"blue coat","id":"wardrobe_e2eec62ade5e8b09c4137c4079a9f65c","ownership":"owned","slot":"outer","source_verified":true},{"availability":"available","category":"boots","description":"黑色短靴","id":"wardrobe_6b5018df91c6b697249ce6c951c8c2e6","ownership":"owned","slot":"shoes","source_verified":true}],"mode":"partial","revision":2}}
+=== RUN   TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/brush
+2026/11/13 16:35:41 INFO capability lifecycle capability=wardrobe.inspect call_id=direct_call_ff9451465b21fa0de58815d851a10cc3 type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+    goal_life_chain_test.go:118: GOAL_CLOSURE_EVIDENCE scenario=actual_acquisition_separate_from_wearing goal=goal_tool_f059b648ddbefa2aae5b3b04e9249d95 criteria_version=1 revision=2 status=completed request=goal_evaluation_5a8849c3921b4e06da3060bacf6078a6 evaluation=goal_evaluated_b9762248278e39338edd21bb27023793 evidence_refs=["source:4"]
+    goal_life_chain_test.go:154: CHAIN_EVIDENCE={"acquisition":{"activity_id":"activity_f851cb9f92558d4d1c70fc75da30ce1b","event_id":"life_event_4ddba1c4958ba418df9787838d83b4f2","intention_id":"intention_tool_f059b648ddbefa2aae5b3b04e9249d95","item_id":"wardrobe_602890bf03c09a29ac6cebc5caf40d0e","item_ids":["wardrobe_602890bf03c09a29ac6cebc5caf40d0e"],"reason":"实际获取成功","status":"completed","wardrobe_revision":1},"activity_id":"activity_f851cb9f92558d4d1c70fc75da30ce1b","capture_snapshot":{"body_fields":{"chest_cup":{"status":"unknown"},"hair_color":{"status":"unknown"},"hair_length":{"status":"unknown"},"hair_style":{"status":"unknown"},"injuries":{"status":"unknown"}},"body_revision":0,"captured_at":"2026-10-05T03:15:00.000+00:00","ref":"appearance:ctx_07dbcccf10ada8729c66714c02c59d77","used_items":[{"activity":"画画","category":"art_supply","description":"细头画笔","event_id":"item_use_9782c284b98ba1eedc6d0856c00cb9f9","id":"wardrobe_602890bf03c09a29ac6cebc5caf40d0e","source_verified":true,"started_at":"2026-10-05T03:15:00.000+00:00"}],"wardrobe_revision":2,"wearing_state":"known","worn_items":[{"availability":"available","category":"coat","description":"blue coat","id":"wardrobe_433d42fd5f380b10ca49cc5002620e5e","ownership":"owned","slot":"outer","source_verified":true}]},"final_workflow":{"positive":{"class_type":"CLIPTextEncode","inputs":{"text":"A photographic image. An upper-body composition. The subject holds the object in actual use. A smiling expression. Soft light. A self-capture through a mirror, showing the subject's reflection. The phone's rear camera is used. The capture device is visible only where physically consistent with this camera relationship. The subject wears blue coat. The current setting is 商场. The subject uses 细头画笔."}},"sampler":{"class_type":"KSampler","inputs":{"positive":["positive",0]}}},"goal_id":"goal_tool_f059b648ddbefa2aae5b3b04e9249d95","intention_id":"intention_tool_f059b648ddbefa2aae5b3b04e9249d95","schedule":{"goal_id":"goal_tool_f059b648ddbefa2aae5b3b04e9249d95","intention_id":"intention_tool_f059b648ddbefa2aae5b3b04e9249d95","schedule_id":"schedule_1943e06f16c9759f187ae69a650268b0","schedule_item_id":"schedule_item_9cc213c6d89bbbaadfab4fc5fecf4b72","start_at":"2026-10-05T03:00:00.000+00:00","status":"scheduled"},"use":{"event_id":"item_use_9782c284b98ba1eedc6d0856c00cb9f9","item_id":"wardrobe_602890bf03c09a29ac6cebc5caf40d0e","occurred_at":"2026-10-05T03:15:00.000+00:00","operation":"start"}}
+--- PASS: TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow (2.36s)
+    --- PASS: TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/boots (1.14s)
+    --- PASS: TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow/brush (1.22s)
+=== RUN   TestGoalPlannerE2EAllGoalsFinishThenNewGoalFinishesOriginalChain
+2026/11/13 16:35:43 INFO capability lifecycle capability=goal_planner.query call_id=all-finish-1 type=query surface=goal_planner required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:35:43 INFO capability lifecycle capability=goal_planner.query call_id=all-finish-2 type=query surface=goal_planner required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:35:43 INFO capability lifecycle capability=goal_planner.query call_id=all-finish-3 type=query surface=goal_planner required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:35:43 INFO capability lifecycle capability=goal_planner.query call_id=all-finish-4 type=query surface=goal_planner required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:35:43 INFO capability lifecycle capability=goal_planner.query call_id=all-finish-5 type=query surface=goal_planner required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:35:43 INFO capability lifecycle capability=goal_planner.query call_id=all-finish-7 type=query surface=goal_planner required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+    goal_planner_test.go:800: PLANNER_COST_EVIDENCE physical_calls=8 estimated_input_tokens=119601 peak_estimated_input_tokens=21307 total_wire_chars=95678 real_provider_tokens=unavailable
+    goal_planner_test.go:801: E2E01_EVIDENCE instance=independent_fluctlight_wardrobe_1794558942915462000 old_goals=[goal_owner_087e4938baaea1093d82652fe4b66034 goal_owner_a0657a434f1827711935a4859fd55409 goal_owner_381c42efc2836f35257046ebfdd6a786] planner_run=goal_planner_219e74a66aade93edb1f402184a1d2e3 new_goal=goal_plan_3fe441053e3d537a1d8e36a09f4276be completed=4 planner_calls=8 merged_completion_events=true
+--- PASS: TestGoalPlannerE2EAllGoalsFinishThenNewGoalFinishesOriginalChain (1.53s)
+=== RUN   TestGoalPlannerDependencyBlocksOldDueAndReleasesAfterRealCompletion
+2026/11/13 16:35:44 WARN tool.call.handled capability=life.activity.start call_id=direct_call_cabafd344d95398166053916efb309d4 warning_code=goal_dependency_unsatisfied disposition=awaiting_state effect_applied=false
+    goal_planner_test.go:1066: DEPENDENCY_EVIDENCE prerequisite=goal_owner_c1f7b4b68c9d6ccc522008a3d1c72a8a downstream=goal_tool_fd9dd22b5007207e1b00485ac0774046 intention=intention_tool_fd9dd22b5007207e1b00485ac0774046 old_due_blocked=true actual_parent_result=true new_activity=activity_b431240eee6396d49a8bff593ff959d8
+--- PASS: TestGoalPlannerDependencyBlocksOldDueAndReleasesAfterRealCompletion (1.02s)
+=== RUN   TestGoalReviewCycleReplayAndLateEvidenceRevision
+--- PASS: TestGoalReviewCycleReplayAndLateEvidenceRevision (1.08s)
+=== RUN   TestPendingGoalReviewLateSourceFencesOldDecision
+--- PASS: TestPendingGoalReviewLateSourceFencesOldDecision (0.98s)
+=== RUN   TestSoftDeadlineQueuesVisibleReviewWithoutCancellation
+--- PASS: TestSoftDeadlineQueuesVisibleReviewWithoutCancellation (1.07s)
+=== RUN   TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions
+--- PASS: TestPausedGoalReviewCanAbandonWithoutResumingOrCreatingActions (2.02s)
+=== RUN   TestGoalStageCompletionReplayDoesNotRepeatNextStage
+--- PASS: TestGoalStageCompletionReplayDoesNotRepeatNextStage (2.47s)
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/direct/revise
+    memory_correction_inflight_reply_test.go:104: old reply fenced after committed revise: main=1 writer=0 inbox=failed error=adk_run: [NodeRunError] failed to invoke tool[name:conversation.reply id:inflight-memory-1]: tool execution tool_execution_dependency_failed: current_facts_stale
+        ------------------------
+        node path: [node_1, ToolNode]
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/direct/forget
+    memory_correction_inflight_reply_test.go:104: old reply fenced after committed forget: main=1 writer=0 inbox=failed error=adk_run: [NodeRunError] failed to invoke tool[name:conversation.reply id:inflight-memory-1]: tool execution tool_execution_dependency_failed: current_facts_stale
+        ------------------------
+        node path: [node_1, ToolNode]
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/revise
+2026/11/13 16:35:57 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:memory-inflight-fact_only-revise metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 16:35:57 WARN tool.call.handled capability=conversation.reply call_id=inflight-memory-1 warning_code=reply_context_stale disposition=awaiting_state effect_applied=false
+    memory_correction_inflight_reply_test.go:104: old reply fenced after committed revise: main=2 writer=1 inbox=failed error=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 400: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel]
+=== RUN   TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/forget
+2026/11/13 16:35:58 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:memory-inflight-fact_only-forget metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 16:35:58 WARN tool.call.handled capability=conversation.reply call_id=inflight-memory-1 warning_code=reply_context_stale disposition=awaiting_state effect_applied=false
+    memory_correction_inflight_reply_test.go:104: old reply fenced after committed forget: main=2 writer=1 inbox=failed error=adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 400: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel]
+--- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies (6.14s)
+    --- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/direct/revise (2.22s)
+    --- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/direct/forget (1.68s)
+    --- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/revise (1.26s)
+    --- PASS: TestOwnerMemoryCorrectionFencesInflightDirectAndWriterReplies/fact_only/forget (0.99s)
+=== RUN   TestOwnerMemoryCorrectionAndSegmentReplacementDoNotDeadlock
+--- PASS: TestOwnerMemoryCorrectionAndSegmentReplacementDoNotDeadlock (1.08s)
+=== RUN   TestOwnerMemoryCorrectionAndPublicationGenerationDoNotDeadlock
+--- PASS: TestOwnerMemoryCorrectionAndPublicationGenerationDoNotDeadlock (1.12s)
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/message:summary-message-1
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/fact:summary-source-fact
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/summary-source-fact
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/sequence:1
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/confirmed-first
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/confirmed-first
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/legacy-confirm
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/legacy-confirm
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/legacy-parent
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/legacy-first
+--- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources (15.38s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/message:summary-message-1 (1.16s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/fact:summary-source-fact (0.92s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/summary-source-fact (1.14s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/sequence:1 (1.10s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old (1.56s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base (1.66s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/confirmed-first (1.10s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/confirmed-first (1.21s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/legacy-confirm (1.19s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/legacy-confirm (1.13s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/legacy-parent (1.47s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/legacy-first (1.74s)
+=== RUN   TestMemoryConfirmationDoesNotReviveChangedInheritedSource
+--- PASS: TestMemoryConfirmationDoesNotReviveChangedInheritedSource (1.20s)
+=== RUN   TestSummaryCorrectionFenceKeepsOwnerConversationAndWindowScope
+--- PASS: TestSummaryCorrectionFenceKeepsOwnerConversationAndWindowScope (1.59s)
+=== RUN   TestLegacyMemoryQuarantinePreservesHistoryAndOwnerReconfirmsSource
+--- PASS: TestLegacyMemoryQuarantinePreservesHistoryAndOwnerReconfirmsSource (1.19s)
+=== RUN   TestLegacyActiveMemoryQuarantineRejectsPersistedSnapshotAndCanReconfirm
+--- PASS: TestLegacyActiveMemoryQuarantineRejectsPersistedSnapshotAndCanReconfirm (2.29s)
+=== RUN   TestLegacyMemoryQuarantineKeepsMixedLiveSupport
+--- PASS: TestLegacyMemoryQuarantineKeepsMixedLiveSupport (2.02s)
+=== RUN   TestLegacyMemoryQuarantineCoversRecallAndPhysicalReplyRequests
+=== RUN   TestLegacyMemoryQuarantineCoversRecallAndPhysicalReplyRequests/direct
+2026/11/13 16:36:25 INFO capability lifecycle capability=memory.recall call_id=direct_call_e68087a19909f57d36233540b838b942 type=query surface=conversation required_context=[memory_scope] duration_ms=3 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestLegacyMemoryQuarantineCoversRecallAndPhysicalReplyRequests/fact_only
+2026/11/13 16:36:26 INFO capability lifecycle capability=memory.recall call_id=direct_call_1278088beb4b52ea3ad82a7023c58fb7 type=query surface=conversation required_context=[memory_scope] duration_ms=3 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:36:26 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:legacy-policy-fact_only metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 16:36:26 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:legacy-policy-fact_only-restored metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestLegacyMemoryQuarantineCoversRecallAndPhysicalReplyRequests (2.46s)
+    --- PASS: TestLegacyMemoryQuarantineCoversRecallAndPhysicalReplyRequests/direct (1.15s)
+    --- PASS: TestLegacyMemoryQuarantineCoversRecallAndPhysicalReplyRequests/fact_only (1.31s)
+=== RUN   TestProcessMemoryEmbeddingRevisionZeroIsExactAndRequiresActiveMemory
+--- PASS: TestProcessMemoryEmbeddingRevisionZeroIsExactAndRequiresActiveMemory (1.17s)
+=== RUN   TestProcessMemoryEmbeddingFailureThenSuccessUsesOneFrozenTuple
+--- PASS: TestProcessMemoryEmbeddingFailureThenSuccessUsesOneFrozenTuple (1.03s)
+=== RUN   TestOwnerMemoryReviseRollbackAndForgetUseLifecycleAuthority
+--- PASS: TestOwnerMemoryReviseRollbackAndForgetUseLifecycleAuthority (0.91s)
+=== RUN   TestOwnerMemoryRollbackCompensatesMergeAndSupersedeLineage
+--- PASS: TestOwnerMemoryRollbackCompensatesMergeAndSupersedeLineage (1.08s)
+=== RUN   TestProcessReflectionAppliesAllMemoryCandidateV2OperationsAtomically
+--- PASS: TestProcessReflectionAppliesAllMemoryCandidateV2OperationsAtomically (1.19s)
+=== RUN   TestReflectionMemoryApplyRollsBackWithProposalAndWatermark
+--- PASS: TestReflectionMemoryApplyRollsBackWithProposalAndWatermark (1.32s)
+=== RUN   TestMemoryLifecycleCreateConfirmReviseMergeSupersedeDeprecate
+--- PASS: TestMemoryLifecycleCreateConfirmReviseMergeSupersedeDeprecate (1.10s)
+=== RUN   TestMemoryEventFreezesRuntimePlanAndSharesCallerTransaction
+--- PASS: TestMemoryEventFreezesRuntimePlanAndSharesCallerTransaction (1.09s)
+=== RUN   TestMemoryEventResolvesActorFactContextAlias
+--- PASS: TestMemoryEventResolvesActorFactContextAlias (1.18s)
+=== RUN   TestManagedMemoryCompletePagingGovernanceAndSourceHistory
+--- PASS: TestManagedMemoryCompletePagingGovernanceAndSourceHistory (2.30s)
+=== RUN   TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows
+--- PASS: TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows (1.33s)
+=== RUN   TestDeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay
+--- PASS: TestDeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay (1.07s)
+=== RUN   TestMemoryCorrectionInvalidatesReflectionDevelopingSelf
+--- PASS: TestMemoryCorrectionInvalidatesReflectionDevelopingSelf (1.20s)
+=== RUN   TestMemorySummaryAncestorCorrectionInvalidatesReflectionDevelopingSelf
+--- PASS: TestMemorySummaryAncestorCorrectionInvalidatesReflectionDevelopingSelf (1.45s)
+=== RUN   TestActiveMemoryCorrectionInvalidatesReflectionDevelopingSelf
+--- PASS: TestActiveMemoryCorrectionInvalidatesReflectionDevelopingSelf (1.09s)
+=== RUN   TestActiveMemoryExpiryRetiresReflectionDevelopingSelf
+--- PASS: TestActiveMemoryExpiryRetiresReflectionDevelopingSelf (1.32s)
+=== RUN   TestActiveMemoryActorExpiryRetiresReflectionDevelopingSelf
+--- PASS: TestActiveMemoryActorExpiryRetiresReflectionDevelopingSelf (1.31s)
+=== RUN   TestOutcomeRevisionInvalidatesReflectionDevelopingSelf
+--- PASS: TestOutcomeRevisionInvalidatesReflectionDevelopingSelf (1.31s)
+=== RUN   TestMemoryProvenanceKeepsOtherSourceAndRejectsLastSourceLoss
+--- PASS: TestMemoryProvenanceKeepsOtherSourceAndRejectsLastSourceLoss (1.28s)
+=== RUN   TestMemoryRevisionInvalidatesAffectedEpisodeAndLegacyFixture
+--- PASS: TestMemoryRevisionInvalidatesAffectedEpisodeAndLegacyFixture (1.51s)
+=== RUN   TestOpaqueMemoryLineageRejectsSelfAndInvalidatesTransitiveDescendants
+--- PASS: TestOpaqueMemoryLineageRejectsSelfAndInvalidatesTransitiveDescendants (2.15s)
+=== RUN   TestOpaqueOutcomeEvidenceRejectsLateRevision
+--- PASS: TestOpaqueOutcomeEvidenceRejectsLateRevision (1.53s)
+=== RUN   TestMemoryRecallDistinguishesActualMessageSpeakers
+2026/11/13 16:36:56 INFO capability lifecycle capability=memory.recall call_id=direct_call_24ed073f44d2e6f2bc9935afa87ce87b type=query surface=conversation required_context=[memory_scope] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:36:56 INFO capability lifecycle capability=memory.recall call_id=direct_call_ec4ad0a43b4583e9416989efd4d71a23 type=query surface=conversation required_context=[memory_scope] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:36:56 INFO capability lifecycle capability=memory.recall call_id=recall-speaker-call type=query surface=conversation required_context=[memory_scope] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:36:56 INFO capability lifecycle capability=memory.recall call_id=recall-speaker-call type=query surface=conversation required_context=[memory_scope] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestMemoryRecallDistinguishesActualMessageSpeakers (1.24s)
+=== RUN   TestPostgresMemoryRetrievalFindsOldRelevantBeyondRecentCandidateLimit
+--- PASS: TestPostgresMemoryRetrievalFindsOldRelevantBeyondRecentCandidateLimit (2.03s)
+=== RUN   TestTicketCorrectionKeepsBothUtterancesAndDoesNotConfirmPurchase
+2026/11/13 16:36:59 INFO capability lifecycle capability=memory.recall call_id=direct_call_a9cda32c6f929a96b18239f4c1e7a738 type=query surface=conversation required_context=[memory_scope] duration_ms=3 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestTicketCorrectionKeepsBothUtterancesAndDoesNotConfirmPurchase (1.07s)
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/keep
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/workflow_failure
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/late_workflow_failure
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/failure
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/recover
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/foundation_cas
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/runtime_cas
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/wrong_target
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/wrong_rule
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/disabled_rule
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/retired
+--- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery (16.19s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/keep (1.29s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/workflow_failure (0.95s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/late_workflow_failure (1.05s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/failure (1.49s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/recover (1.23s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/foundation_cas (1.47s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/runtime_cas (2.09s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/wrong_target (1.91s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/wrong_rule (1.24s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/disabled_rule (1.68s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/retired (1.79s)
+=== RUN   TestOwnerPersonaSwitchWithoutConnectedRuntimeIsNotPending
+--- PASS: TestOwnerPersonaSwitchWithoutConnectedRuntimeIsNotPending (0.00s)
+=== RUN   TestPersonaDetailSectionsKeepProfileScopeAndFullFacts
+--- PASS: TestPersonaDetailSectionsKeepProfileScopeAndFullFacts (0.00s)
+=== RUN   TestPersonaDetailOutputContractRejectsMissingVersionAndCursor
+--- PASS: TestPersonaDetailOutputContractRejectsMissingVersionAndCursor (0.00s)
+=== RUN   TestPersonaDetailIndependentToolReadsCanonicalSource
+2026/11/13 16:37:17 INFO capability lifecycle capability=persona.detail call_id=direct_call_14d58d3798e080627c9931da350c2b80 type=query surface=native_cognition required_context=[] duration_ms=2 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:37:17 INFO capability lifecycle capability=persona.detail call_id=direct_call_b4bdcbd1d8a017db805a05b72afe1bb0 type=query surface=native_cognition required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:37:17 INFO capability lifecycle capability=persona.detail call_id=direct_call_b5f5abc634d111968b26d60786640427 type=query surface=native_cognition required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:37:17 INFO capability lifecycle capability=persona.detail call_id=direct_call_962ebce5316a64c8c08a566d9a067f23 type=query surface=native_cognition required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:37:17 WARN capability lifecycle capability=persona.detail call_id=direct_call_6cc9c19a4680c89e78b56796d963bbd4 type=query surface=native_cognition required_context=[] duration_ms=1 status=failed retryable=false intent_present=false intent_runes=0 error_code=persona_detail_section_not_found
+2026/11/13 16:37:17 WARN tool.call.handled capability=persona.detail call_id=direct_call_6cc9c19a4680c89e78b56796d963bbd4 warning_code=persona_detail_section_not_found disposition=no_results effect_applied=false
+2026/11/13 16:37:17 WARN capability lifecycle capability=persona.detail call_id=direct_call_d2fc6acf7e2f41d6ae0671bca48a1066 type=query surface=native_cognition required_context=[] duration_ms=0 status=failed retryable=true intent_present=false intent_runes=0 error_code=persona_detail_source_changed
+2026/11/13 16:37:17 WARN tool.call.handled capability=persona.detail call_id=direct_call_d2fc6acf7e2f41d6ae0671bca48a1066 warning_code=persona_detail_source_changed disposition=awaiting_state effect_applied=false
+--- PASS: TestPersonaDetailIndependentToolReadsCanonicalSource (1.51s)
+=== RUN   TestReflectionCanonicalSelfOutcomeRetainsActorDependencies
+--- PASS: TestReflectionCanonicalSelfOutcomeRetainsActorDependencies (1.23s)
+=== RUN   TestWakeUpIdleClockKeepsAbsoluteTenMinutePhases
+--- PASS: TestWakeUpIdleClockKeepsAbsoluteTenMinutePhases (0.00s)
+=== RUN   TestNextWakeUpDuePreservesFixedCadence
+--- PASS: TestNextWakeUpDuePreservesFixedCadence (0.00s)
+=== RUN   TestReflectionSlotUpdateRejectsFrozenRevisionDrift
+--- PASS: TestReflectionSlotUpdateRejectsFrozenRevisionDrift (1.16s)
+=== RUN   TestReflectionIntentionRejectsForeignNestedRefsBeforeApply
+--- PASS: TestReflectionIntentionRejectsForeignNestedRefsBeforeApply (0.00s)
+=== RUN   TestReflectionV2AppliesMemoryGoalIntentionAndAffectThenReprojects
+--- PASS: TestReflectionV2AppliesMemoryGoalIntentionAndAffectThenReprojects (2.05s)
+=== RUN   TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome
+--- PASS: TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome (4.27s)
+=== RUN   TestReflectionV2ProviderSchemaOwnsOnlySemanticFields
+--- PASS: TestReflectionV2ProviderSchemaOwnsOnlySemanticFields (0.00s)
+=== RUN   TestReflectionV2StageS08
+=== RUN   TestReflectionV2StageS08/closed_schema_rejects_runtime_ownership
+=== RUN   TestReflectionV2StageS08/compile_records_accepted_and_deferred_dispositions
+=== RUN   TestReflectionV2StageS08/foreign_evidence_invalidates_the_whole_proposal
+=== RUN   TestReflectionV2StageS08/CAS_and_domain_failure_roll_back_watermark_and_revisions
+=== RUN   TestReflectionV2StageS08/empty_proposal_is_explicit_no_change_and_WakeUp_cannot_own_reflection
+=== RUN   TestReflectionV2StageS08/domain_no-change_and_developing-self_threshold_stay_truthful
+--- PASS: TestReflectionV2StageS08 (0.00s)
+    --- PASS: TestReflectionV2StageS08/closed_schema_rejects_runtime_ownership (0.00s)
+    --- PASS: TestReflectionV2StageS08/compile_records_accepted_and_deferred_dispositions (0.00s)
+    --- PASS: TestReflectionV2StageS08/foreign_evidence_invalidates_the_whole_proposal (0.00s)
+    --- PASS: TestReflectionV2StageS08/CAS_and_domain_failure_roll_back_watermark_and_revisions (0.00s)
+    --- PASS: TestReflectionV2StageS08/empty_proposal_is_explicit_no_change_and_WakeUp_cannot_own_reflection (0.00s)
+    --- PASS: TestReflectionV2StageS08/domain_no-change_and_developing-self_threshold_stay_truthful (0.00s)
+=== RUN   TestNormalizeRelationshipRole
+--- PASS: TestNormalizeRelationshipRole (0.00s)
+=== RUN   TestNormalizeRelationshipRoleAcceptsUnclassifiedLabel
+--- PASS: TestNormalizeRelationshipRoleAcceptsUnclassifiedLabel (0.00s)
+=== RUN   TestFactOnlyReplyHistoryRetainsAllUnsummarizedTurnsWithoutTokenCap
+=== RUN   TestFactOnlyReplyHistoryRetainsAllUnsummarizedTurnsWithoutTokenCap/旧轮
+    reply_context_test.go:59: history chars 31708 -> 31393; final wire chars=107599 estimated tokens=134463
+=== RUN   TestFactOnlyReplyHistoryRetainsAllUnsummarizedTurnsWithoutTokenCap/Older_
+    reply_context_test.go:59: history chars 105108 -> 104059; final wire chars=180463 estimated tokens=225543
+--- PASS: TestFactOnlyReplyHistoryRetainsAllUnsummarizedTurnsWithoutTokenCap (0.02s)
+    --- PASS: TestFactOnlyReplyHistoryRetainsAllUnsummarizedTurnsWithoutTokenCap/旧轮 (0.01s)
+    --- PASS: TestFactOnlyReplyHistoryRetainsAllUnsummarizedTurnsWithoutTokenCap/Older_ (0.01s)
+=== RUN   TestFactOnlyReplySummaryReplacesCoveredWholeTurn
+--- PASS: TestFactOnlyReplySummaryReplacesCoveredWholeTurn (0.00s)
+=== RUN   TestFactOnlyReplyContextUsesAuthorityAndOriginalHistory
+--- PASS: TestFactOnlyReplyContextUsesAuthorityAndOriginalHistory (0.00s)
+=== RUN   TestFactOnlyRequiredGoalOverflowIsExplicit
+--- PASS: TestFactOnlyRequiredGoalOverflowIsExplicit (0.00s)
+=== RUN   TestResidentMemoryPublishesWholeGenerationAndSkipsUnchangedReplay
+--- PASS: TestResidentMemoryPublishesWholeGenerationAndSkipsUnchangedReplay (3.74s)
+=== RUN   TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody
+2026/11/13 16:37:31 WARN tool.call.handled capability=life.activity.start call_id=direct_call_9a0d8d8ca53f76c178082c94e5850621 warning_code=intention_trigger_not_due disposition=awaiting_state effect_applied=false
+2026/11/13 16:37:31 WARN tool.call.handled capability=life.activity.advance call_id=direct_call_aaf041878cf90d4ebb3bebbaeb61d819 warning_code=activity_result_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:37:31 WARN tool.call.handled capability=life.activity.advance call_id=direct_call_aaf041878cf90d4ebb3bebbaeb61d819 warning_code=activity_result_invalid disposition=awaiting_evidence effect_applied=false
+--- PASS: TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody (1.63s)
+=== RUN   TestOwnerSelfFullPagingReviewForgetRestoreAndScopedReplay
+--- PASS: TestOwnerSelfFullPagingReviewForgetRestoreAndScopedReplay (1.38s)
+=== RUN   TestTwentySleepingChecksDoNotWakePublishShopOrCreateReflectionEvidence
+2026/11/13 16:37:34 WARN tool.call.handled capability=life.activity.start call_id=direct_call_2c4cbf3c00537f94c90acc790d1ee36e warning_code=life_state_sleeping disposition=awaiting_state effect_applied=false
+--- PASS: TestTwentySleepingChecksDoNotWakePublishShopOrCreateReflectionEvidence (1.57s)
+=== RUN   TestWakeUpRequestReceivesNewEventAndUnansweredDelivery
+--- PASS: TestWakeUpRequestReceivesNewEventAndUnansweredDelivery (1.50s)
+=== RUN   TestWakeUpConsecutiveIdleCyclesBackOffAndReplayKeepsDue
+--- PASS: TestWakeUpConsecutiveIdleCyclesBackOffAndReplayKeepsDue (1.49s)
+=== RUN   TestWakeUpBackoffLostRedisHintKeepsDurableFutureDue
+--- PASS: TestWakeUpBackoffLostRedisHintKeepsDurableFutureDue (1.21s)
+=== RUN   TestWakeUpBackoffNewMessageAndManualTriggerReset
+--- PASS: TestWakeUpBackoffNewMessageAndManualTriggerReset (1.25s)
+=== RUN   TestWakeUpBackoffNewNativeFactResetsButReplayPreserves
+--- PASS: TestWakeUpBackoffNewNativeFactResetsButReplayPreserves (1.83s)
+=== RUN   TestWakeUpBackoffOutcomeAndScheduleBoundaries
+--- PASS: TestWakeUpBackoffOutcomeAndScheduleBoundaries (0.00s)
+=== RUN   TestWakeUpBackoffPendingGoalCapsDurableDue
+--- PASS: TestWakeUpBackoffPendingGoalCapsDurableDue (2.18s)
+=== RUN   TestWakeUpBackoffScheduleDeadlineAndActiveCycleReset
+--- PASS: TestWakeUpBackoffScheduleDeadlineAndActiveCycleReset (1.93s)
+=== RUN   TestWakeUpBackoffSupersededRecoveryKeepsFutureDue
+=== RUN   TestWakeUpBackoffSupersededRecoveryKeepsFutureDue/ensure
+=== RUN   TestWakeUpBackoffSupersededRecoveryKeepsFutureDue/audit
+--- PASS: TestWakeUpBackoffSupersededRecoveryKeepsFutureDue (1.70s)
+    --- PASS: TestWakeUpBackoffSupersededRecoveryKeepsFutureDue/ensure (0.01s)
+    --- PASS: TestWakeUpBackoffSupersededRecoveryKeepsFutureDue/audit (0.01s)
+=== RUN   TestWakeUpDueReleaseUsesLockedStatusAndDueCAS
+--- PASS: TestWakeUpDueReleaseUsesLockedStatusAndDueCAS (0.00s)
+=== RUN   TestWakeUpOutcomePersistsNextDueInsideOwningTransaction
+--- PASS: TestWakeUpOutcomePersistsNextDueInsideOwningTransaction (0.00s)
+=== RUN   TestWakeUpSuccessResetsConsecutiveRetryBudget
+--- PASS: TestWakeUpSuccessResetsConsecutiveRetryBudget (0.00s)
+=== RUN   TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage
+--- PASS: TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage (2.09s)
+=== RUN   TestWakeUpNoOpSidecarWithAffectAndReplyStillDeliversPrivateMessage
+--- PASS: TestWakeUpNoOpSidecarWithAffectAndReplyStillDeliversPrivateMessage (1.28s)
+=== RUN   TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider
+--- PASS: TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider (1.87s)
+=== RUN   TestWakeUpControlReplyRecoversToSilentDiagnosticWithoutPrivateMessage
+2026/11/13 16:37:54 WARN tool.call.handled capability=conversation.reply call_id=wake-control-call warning_code=reply_control_value_invalid disposition=no_change effect_applied=false
+--- PASS: TestWakeUpControlReplyRecoversToSilentDiagnosticWithoutPrivateMessage (1.12s)
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/declared_proactive_without_receipt
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/failed_reply
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_reply_missing_target
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_reply
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/suppressed_duplicate_is_not_a_publication
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/accepted_moment_is_not_published
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_moment
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/query_only_is_capability_not_message
+=== RUN   TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/accepted_durable_capability
+--- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/declared_proactive_without_receipt (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/failed_reply (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_reply_missing_target (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_reply (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/suppressed_duplicate_is_not_a_publication (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/accepted_moment_is_not_published (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/completed_moment (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/query_only_is_capability_not_message (0.00s)
+    --- PASS: TestWakeUpCommittedActionTypeUsesAuthoritativeReceipts/accepted_durable_capability (0.00s)
+=== RUN   TestWakeUpSuppressedReplyCannotResetIdleEpoch
+--- PASS: TestWakeUpSuppressedReplyCannotResetIdleEpoch (0.00s)
+=== RUN   TestResidentMemoryWinsDuplicateLongTermAndKeepsUnderlyingCandidates
+--- PASS: TestResidentMemoryWinsDuplicateLongTermAndKeepsUnderlyingCandidates (0.00s)
+=== RUN   TestWorkingPersonaBackfillPreviewApplyAndReplay
+--- PASS: TestWorkingPersonaBackfillPreviewApplyAndReplay (1.27s)
+=== RUN   TestPersonaDetailTraceSurvivesModelContinuationFailure
+2026/11/13 16:37:57 INFO capability lifecycle capability=persona.detail call_id=portrait-list-before-failure type=query surface=conversation required_context=[] duration_ms=5 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestPersonaDetailTraceSurvivesModelContinuationFailure (2.59s)
+=== RUN   TestWorkingPersonaKeepsDescriptiveTraitsVerbatim
+--- PASS: TestWorkingPersonaKeepsDescriptiveTraitsVerbatim (0.00s)
+=== RUN   TestWorkingPersonaExcludesOtherPersonasAndVisualAssets
+--- PASS: TestWorkingPersonaExcludesOtherPersonasAndVisualAssets (0.00s)
+=== RUN   TestWorkingPersonaIsDeterministicForTheSameInput
+--- PASS: TestWorkingPersonaIsDeterministicForTheSameInput (0.00s)
+=== RUN   TestWorkingPersonaAppliesActiveOverlayOfTheActiveProfile
+--- PASS: TestWorkingPersonaAppliesActiveOverlayOfTheActiveProfile (0.00s)
+=== RUN   TestWorkingPersonaDoesNotApplyAnOverlayToANonActiveProfile
+--- PASS: TestWorkingPersonaDoesNotApplyAnOverlayToANonActiveProfile (0.00s)
+=== RUN   TestWorkingPersonaAppliesReScopedOverlayToNonActiveSubject
+--- PASS: TestWorkingPersonaAppliesReScopedOverlayToNonActiveSubject (0.00s)
+=== RUN   TestWorkingPersonaIgnoresOverlayWithoutProfileIDForNonActiveSubject
+--- PASS: TestWorkingPersonaIgnoresOverlayWithoutProfileIDForNonActiveSubject (0.00s)
+=== RUN   TestWorkingPersonaCanonicalizesFlatTraitsShape
+--- PASS: TestWorkingPersonaCanonicalizesFlatTraitsShape (0.00s)
+=== RUN   TestWorkingPersonaDoesNotInventTraitsFromProse
+--- PASS: TestWorkingPersonaDoesNotInventTraitsFromProse (0.00s)
+=== RUN   TestWorkingPersonaLifeProfileKeepsOnlyDecisionKeys
+--- PASS: TestWorkingPersonaLifeProfileKeepsOnlyDecisionKeys (0.00s)
+=== RUN   TestWorkingPersonaLifeProfileBeforeAfterComparison
+--- PASS: TestWorkingPersonaLifeProfileBeforeAfterComparison (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	307.449s
+
+EXIT_CODE 0

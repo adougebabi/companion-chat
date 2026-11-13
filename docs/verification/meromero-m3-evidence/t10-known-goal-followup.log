@@ -1,0 +1,37 @@
+SOURCE_HEAD fda3abc6c9cbd5d2df37a8e1d9dca1b17a24ff65
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^Test(GoalEvaluationGhostStageFailsBeforeDomainCommit|GoalSubmissionRecoveryPersistenceHandledCycleAndReplay)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/empty_stage_ref
+    goal_closure_runtime_test.go:203: invalid native reference did not remain unresolved: <nil>
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_stage_ref
+    goal_closure_runtime_test.go:203: invalid native reference did not remain unresolved: <nil>
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/foreign_goal_ref
+    goal_closure_runtime_test.go:203: invalid native reference did not remain unresolved: <nil>
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_review_stage_ref
+    goal_closure_runtime_test.go:203: invalid native reference did not remain unresolved: <nil>
+--- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit (8.22s)
+    --- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/empty_stage_ref (3.66s)
+    --- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_stage_ref (1.60s)
+    --- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/foreign_goal_ref (1.41s)
+    --- FAIL: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_review_stage_ref (1.55s)
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan
+    goal_submission_recovery_integration_test.go:54: map[not_before:2026-11-13T09:07:35.900537Z reason:evaluation_cadence status:deferred] <nil>
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion
+    goal_submission_recovery_integration_test.go:54: map[not_before:2026-11-13T09:07:37.388017Z reason:evaluation_cadence status:deferred] <nil>
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan_ignores_tools
+    goal_submission_recovery_integration_test.go:54: map[not_before:2026-11-13T09:07:38.84822Z reason:evaluation_cadence status:deferred] <nil>
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion_ignores_tools
+    goal_submission_recovery_integration_test.go:54: map[not_before:2026-11-13T09:07:40.07686Z reason:evaluation_cadence status:deferred] <nil>
+--- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay (5.46s)
+    --- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan (1.50s)
+    --- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion (1.50s)
+    --- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan_ignores_tools (1.24s)
+    --- FAIL: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion_ignores_tools (1.22s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	14.549s
+FAIL
+
+EXIT_CODE 1
