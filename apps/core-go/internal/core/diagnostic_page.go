@@ -85,7 +85,7 @@ func finishDiagnosticPage(rows []map[string]any, limit int, cursor diagnosticPag
 	return page
 }
 func (a *App) ModelRunsPage(ctx context.Context, actor string, limit int, correlation, rawCursor string) (DiagnosticRunPage, error) {
-	if err := a.requireOwner(ctx, actor); err != nil {
+	if err := a.requireDiagnosticDebugRead(ctx, actor); err != nil {
 		return DiagnosticRunPage{}, err
 	}
 	correlation = strings.TrimSpace(correlation)

@@ -175,6 +175,9 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		} else if errors.As(operationErr, &surface) {
 			code = surface.Code
 		}
+		if surface != nil && code == "diagnostic_debug_read_disabled" {
+			operationErr = surfaceCoreError(operationErr)
+		}
 		if code == "permanent_harm_forbidden" {
 			b.server.app.ObserveOwnerHarmRejection(ctx, actorID, method, path, firstString(values["idempotency_key"], stringValue(values["idempotencyKey"])))
 		}

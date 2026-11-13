@@ -90,6 +90,7 @@ func TestV3WorkflowPostgresUnknownCommandReplayRunFenceAndHistory(t *testing.T) 
 	if err = f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.workflow_control_commands`).Scan(&commands); err != nil || commands != 1 {
 		t.Fatal("duplicate durable commands", commands, err)
 	}
+	f.app.DiagnosticDebugReadEnabled = true // Explicit authorization for raw diagnostic assertions.
 	first, err := f.app.OwnerWorkflowHistoryPage(f.ctx, f.ownerID, "control-workflow", url.Values{"runId": {"actual-run"}})
 	if err != nil || first["complete"] != false || first["next_cursor"] == "" {
 		t.Fatal("history page lost continuation", first, err)

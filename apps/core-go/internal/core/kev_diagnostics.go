@@ -10,7 +10,7 @@ import (
 )
 
 func (a *App) KevDecisionsPage(ctx context.Context, actor string, filter map[string]string) (DiagnosticRunPage, error) {
-	if err := a.requireOwner(ctx, actor); err != nil {
+	if err := a.requireDiagnosticDebugRead(ctx, actor); err != nil {
 		return DiagnosticRunPage{}, err
 	}
 	identity := map[string]string{}

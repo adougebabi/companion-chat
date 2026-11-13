@@ -446,7 +446,7 @@ func (a *App) filterKevContext(ctx context.Context, scope decision.Scope, curren
 // KevDecisions is an Owner-only bounded JSON export/list. Filters never grant
 // authority; the authenticated owner gate is applied before reading payloads.
 func (a *App) KevDecisions(ctx context.Context, actor string, filter map[string]string) ([]map[string]any, error) {
-	if err := a.requireOwner(ctx, actor); err != nil {
+	if err := a.requireDiagnosticDebugRead(ctx, actor); err != nil {
 		return nil, err
 	}
 	limit := 100

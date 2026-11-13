@@ -84,3 +84,21 @@ func TestFromEnvAcceptsMultipleTrustedOriginsAndHTTPDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestDiagnosticDebugReadRequiresExplicitValidStartupOptIn(t *testing.T) {
+	values := map[string]string{"CORE_GO_DATABASE_URL": "postgresql://localhost/test", "FLUCTLIGHT_CORE_SERVICE_KEY": "test-key", "FLUCTLIGHT_SETTINGS_KEY": "test-settings", "S3_SECRET_KEY": "test-secret", "FLUCTLIGHT_TRUSTED_ORIGIN": "http://localhost:13001"}
+	lookup := func(key string) (string, bool) { value, ok := values[key]; return value, ok }
+	for _, value := range []string{"", "false", "true", "invalid"} {
+		values["FLUCTLIGHT_DIAGNOSTIC_DEBUG_READ"] = value
+		cfg, err := FromEnv(lookup)
+		if value == "invalid" {
+			if err == nil || !strings.Contains(err.Error(), "FLUCTLIGHT_DIAGNOSTIC_DEBUG_READ") {
+				t.Fatal("invalid debug grant accepted", err)
+			}
+			continue
+		}
+		if err != nil || cfg.DiagnosticDebugReadEnabled != (value == "true") {
+			t.Fatal("unexpected debug authorization", value, cfg.DiagnosticDebugReadEnabled, err)
+		}
+	}
+}

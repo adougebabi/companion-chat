@@ -9,21 +9,22 @@ import (
 )
 
 type Config struct {
-	ListenAddress string
-	DatabaseURL   string
-	ServiceKey    string
-	SettingsKey   string
-	S3Endpoint    string
-	S3Region      string
-	S3Bucket      string
-	S3AccessKey   string
-	S3SecretKey   string
-	S3UseSSL      bool
-	TemporalAddr  string
-	TemporalNS    string
-	RedisURL      string
-	TrustedOrigin string
-	SecureCookies bool
+	ListenAddress              string
+	DatabaseURL                string
+	ServiceKey                 string
+	SettingsKey                string
+	S3Endpoint                 string
+	S3Region                   string
+	S3Bucket                   string
+	S3AccessKey                string
+	S3SecretKey                string
+	S3UseSSL                   bool
+	TemporalAddr               string
+	TemporalNS                 string
+	RedisURL                   string
+	TrustedOrigin              string
+	SecureCookies              bool
+	DiagnosticDebugReadEnabled bool
 }
 
 // DatabaseURLFromEnv is intentionally dependency-light so the migration
@@ -67,6 +68,14 @@ func FromEnv(lookup func(string) (string, bool)) (Config, error) {
 		}
 	}
 	listen := strings.TrimSpace(first(lookup, "CORE_GO_LISTEN_ADDRESS"))
+	diagnosticDebugRead := false
+	if value := first(lookup, "FLUCTLIGHT_DIAGNOSTIC_DEBUG_READ"); value != "" {
+		var parseErr error
+		diagnosticDebugRead, parseErr = strconv.ParseBool(value)
+		if parseErr != nil {
+			return Config{}, fmt.Errorf("FLUCTLIGHT_DIAGNOSTIC_DEBUG_READ must be a boolean")
+		}
+	}
 	if listen == "" {
 		listen = ":8080"
 	}
@@ -95,21 +104,22 @@ func FromEnv(lookup func(string) (string, bool)) (Config, error) {
 		return Config{}, fmt.Errorf("S3_SECRET_KEY is required")
 	}
 	return Config{
-		ListenAddress: listen,
-		DatabaseURL:   databaseURL,
-		ServiceKey:    serviceKey,
-		SettingsKey:   settingsKey,
-		S3Endpoint:    s3Endpoint,
-		S3Region:      s3Region,
-		S3Bucket:      s3Bucket,
-		S3AccessKey:   s3Access,
-		S3SecretKey:   s3Secret,
-		S3UseSSL:      strings.EqualFold(first(lookup, "S3_USE_SSL"), "true"),
-		TemporalAddr:  first(lookup, "TEMPORAL_ADDRESS"),
-		TemporalNS:    first(lookup, "TEMPORAL_NAMESPACE"),
-		RedisURL:      firstOrDefault(lookup, "REDIS_URL", "redis://redis:6379/0"),
-		TrustedOrigin: strings.Join(trustedOrigins, ","),
-		SecureCookies: secureCookies,
+		ListenAddress:              listen,
+		DatabaseURL:                databaseURL,
+		ServiceKey:                 serviceKey,
+		SettingsKey:                settingsKey,
+		S3Endpoint:                 s3Endpoint,
+		S3Region:                   s3Region,
+		S3Bucket:                   s3Bucket,
+		S3AccessKey:                s3Access,
+		S3SecretKey:                s3Secret,
+		S3UseSSL:                   strings.EqualFold(first(lookup, "S3_USE_SSL"), "true"),
+		TemporalAddr:               first(lookup, "TEMPORAL_ADDRESS"),
+		TemporalNS:                 first(lookup, "TEMPORAL_NAMESPACE"),
+		RedisURL:                   firstOrDefault(lookup, "REDIS_URL", "redis://redis:6379/0"),
+		TrustedOrigin:              strings.Join(trustedOrigins, ","),
+		SecureCookies:              secureCookies,
+		DiagnosticDebugReadEnabled: diagnosticDebugRead,
 	}, nil
 }
 

@@ -1,0 +1,73 @@
+SOURCE_HEAD 39068f2aaf225a5615a8906895bf4223ef03d1a0
+OVERLAYS apps/core-go/internal/core/diagnostic_debug_access_integration_test.go
+COMMAND go test ./internal/core -count=1 -run TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/events
+    diagnostic_debug_access_integration_test.go:15: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/lifecycle
+    diagnostic_debug_access_integration_test.go:15: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/model-runs
+    diagnostic_debug_access_integration_test.go:15: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/agent-runs
+    diagnostic_debug_access_integration_test.go:15: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/world-event-generations
+    diagnostic_debug_access_integration_test.go:15: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/media-prompts
+    diagnostic_debug_access_integration_test.go:15: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/kev
+    diagnostic_debug_access_integration_test.go:15: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/workflow-intents
+    diagnostic_debug_access_integration_test.go:15: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/audit
+    diagnostic_debug_access_integration_test.go:15: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/harm
+    diagnostic_debug_access_integration_test.go:15: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/media-recoveries
+    diagnostic_debug_access_integration_test.go:15: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/turns
+    diagnostic_debug_access_integration_test.go:15: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/links
+    diagnostic_debug_access_integration_test.go:15: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/lifecycle
+    diagnostic_debug_access_integration_test.go:28: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/models
+    diagnostic_debug_access_integration_test.go:28: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/model-page
+    diagnostic_debug_access_integration_test.go:28: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/media
+    diagnostic_debug_access_integration_test.go:28: expected diagnostic_debug_read_disabled, got <nil>
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/workflow-history
+    diagnostic_debug_access_integration_test.go:28: expected diagnostic_debug_read_disabled, got resource not found
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/detail
+    diagnostic_debug_access_integration_test.go:28: expected diagnostic_debug_read_disabled, got diagnostics_filter_invalid
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/events
+    diagnostic_debug_access_integration_test.go:28: expected diagnostic_debug_read_disabled, got <nil>
+=== NAME  TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints
+    diagnostic_debug_access_integration_test.go:33: expected diagnostic_debug_read_disabled, got <nil>
+--- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints (3.20s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/events (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/lifecycle (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/model-runs (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/agent-runs (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/world-event-generations (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/media-prompts (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/kev (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/workflow-intents (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/audit (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/harm (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/media-recoveries (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/turns (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/links (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/lifecycle (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/models (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/model-page (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/media (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/workflow-history (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/detail (0.00s)
+    --- FAIL: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/events (0.00s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.880s
+FAIL
+
+EXIT_CODE 1

@@ -1758,7 +1758,7 @@ func (a *App) DiagnosticsFiltered(ctx context.Context, actorID string, limit int
 }
 
 func (a *App) diagnosticsFiltered(ctx context.Context, actorID string, limit int, correlationID, fluctlightID, runID string) ([]map[string]any, error) {
-	if err := a.requireOwner(ctx, actorID); err != nil {
+	if err := a.requireDiagnosticDebugRead(ctx, actorID); err != nil {
 		return nil, err
 	}
 	if limit < 1 {
@@ -1851,7 +1851,7 @@ func (value LifecycleDiagnosticsFilter) Map() map[string]any {
 }
 
 func (a *App) LifecycleDiagnostics(ctx context.Context, actorID string, filter LifecycleDiagnosticsFilter) (map[string]any, error) {
-	if err := a.requireOwner(ctx, actorID); err != nil {
+	if err := a.requireDiagnosticDebugRead(ctx, actorID); err != nil {
 		return nil, err
 	}
 	normalized, err := filter.Normalized()
@@ -2050,7 +2050,7 @@ func (a *App) ModelRunsFiltered(ctx context.Context, actorID string, limit int, 
 // enrichments of the same durable media intent rather than separate rows in
 // the general model-run list.
 func (a *App) MediaPromptsFiltered(ctx context.Context, actorID string, limit int) ([]map[string]any, error) {
-	if err := a.requireOwner(ctx, actorID); err != nil {
+	if err := a.requireDiagnosticDebugRead(ctx, actorID); err != nil {
 		return nil, err
 	}
 	if limit < 1 {
@@ -2386,7 +2386,7 @@ func (a *App) WorkflowList(ctx context.Context, actorID, query string) ([]map[st
 }
 
 func (a *App) WorkflowStatus(ctx context.Context, actorID, wf string) (map[string]any, error) {
-	if err := a.requireOwner(ctx, actorID); err != nil {
+	if err := a.requireDiagnosticDebugRead(ctx, actorID); err != nil {
 		_ = a.auditWorkflow(ctx, actorID, "status", wf, false, nil)
 		return nil, err
 	}

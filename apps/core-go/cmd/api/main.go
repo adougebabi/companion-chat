@@ -48,6 +48,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	application.DiagnosticDebugReadEnabled = settings.DiagnosticDebugReadEnabled
 	if err := application.VerifyWorkingPersonasReady(ctx); err != nil {
 		log.Fatal(err)
 	}

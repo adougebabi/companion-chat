@@ -29,6 +29,7 @@ func TestWorldEventDiagnosticsFiltersReachOldClocksAndWorldOnlyGenerations(t *te
 			t.Fatal(err)
 		}
 	}
+	f.app.DiagnosticDebugReadEnabled = true // Explicit authorization for raw diagnostic assertions.
 	recent, err := f.app.OwnerDiagnosticRecords(f.ctx, f.ownerID, "workflow-intents", url.Values{"limit": {"20"}})
 	if err != nil {
 		t.Fatal(err)

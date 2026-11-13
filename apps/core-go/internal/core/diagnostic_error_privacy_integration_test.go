@@ -50,6 +50,7 @@ func TestAgentDiagnosticErrorDoesNotExposeBearerCredential(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	app.DiagnosticDebugReadEnabled = true // Explicit authorization for raw diagnostic assertions.
 	page, err := app.OwnerDiagnosticRecords(ctx, owner, "agent-runs", url.Values{"limit": {"10"}})
 	if err != nil {
 		t.Fatal(err)

@@ -129,6 +129,7 @@ func TestPostgresOwnerModelRunWriteReadAndPrivateExport(t *testing.T) {
 		t.Fatal(err)
 	}
 	app := &App{DB: repository}
+	app.DiagnosticDebugReadEnabled = true // Explicit authorization for raw diagnostic assertions.
 	runs, err := app.ModelRunsFiltered(ctx, ownerID, 10, correlationID)
 	if err != nil || len(runs) != 1 {
 		t.Fatalf("Owner runs=%#v err=%v", runs, err)
@@ -464,7 +465,7 @@ func TestPostgresADKModelRunsKeepPhysicalRoundsAndSafeToolSummary(t *testing.T) 
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.diagnostic_events(id,event_type,severity,correlation_id,payload) VALUES('adk-round-tool','adk.tool.result','info',$1,$2)`, correlationID, jsonBytes(map[string]any{"model_call_id": "call-one", "call_id": "tool-one", "capability": "scene_event", "status": "completed", "arguments_digest": "secret-digest"})); err != nil {
 		t.Fatal(err)
 	}
-	runs, err := (&App{DB: repository}).modelRunsFiltered(ctx, ownerID, 10, correlationID, "")
+	runs, err := (&App{DB: repository, DiagnosticDebugReadEnabled: true}).modelRunsFiltered(ctx, ownerID, 10, correlationID, "")
 	if err != nil || len(runs) != 2 {
 		t.Fatalf("model runs: rows=%#v err=%v", runs, err)
 	}
@@ -509,7 +510,7 @@ func TestPostgresADKToolDiagnosticUsesRecordedPhysicalCallIdentity(t *testing.T)
 	if decoded["model_call_id"] != "physical-request-1" || decoded["run_id"] != "agent-correlation-1" || !strings.Contains(string(payload), "PRIVATE") {
 		t.Fatalf("Tool event did not retain physical call identity and arguments: %s", payload)
 	}
-	runs, err := (&App{DB: repository}).ModelRunsFiltered(ctx, ownerID, 10, "agent-correlation-1")
+	runs, err := (&App{DB: repository, DiagnosticDebugReadEnabled: true}).ModelRunsFiltered(ctx, ownerID, 10, "agent-correlation-1")
 	if err != nil || len(runs) != 1 {
 		t.Fatalf("physical rounds: %#v %v", runs, err)
 	}
@@ -553,6 +554,7 @@ func TestPostgresAgentRunDiagnosticsShowLogicalFailureWithoutChangingPhysicalSta
 	if agentRuns[0]["status"] != "failed" || agentRuns[0]["failure_stage"] != "tool" || agentRuns[0]["failure_code"] != "capability_prepare_failed" || !strings.Contains(stringValue(agentRuns[0]["safe_cause"]), "invalid arguments") {
 		t.Fatalf("logical failure omitted: %#v", agentRuns[0])
 	}
+	app.DiagnosticDebugReadEnabled = true // Explicit authorization for raw diagnostic assertions.
 	modelRuns, err := app.ModelRunsFiltered(ctx, ownerID, 10, correlationID)
 	if err != nil || len(modelRuns) != 1 || modelRuns[0]["status"] != "completed" {
 		t.Fatalf("physical status changed or missing: %#v %v", modelRuns, err)
@@ -602,7 +604,7 @@ func TestPostgresADKModelRunFailureAndLegacyRowDoNotInventFinalStage(t *testing.
 			t.Fatal(err)
 		}
 	}
-	runs, err := (&App{DB: repository}).modelRunsFiltered(ctx, ownerID, 10, "legacy-corr", "")
+	runs, err := (&App{DB: repository, DiagnosticDebugReadEnabled: true}).modelRunsFiltered(ctx, ownerID, 10, "legacy-corr", "")
 	if err != nil || len(runs) != 2 {
 		t.Fatalf("model runs: rows=%#v err=%v", runs, err)
 	}
@@ -636,7 +638,7 @@ func TestPostgresCurrentNonADKModelRunsHaveRoundsAndStages(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	runs, err := (&App{DB: repository}).modelRunsFiltered(ctx, ownerID, 10, "fixed-round-correlation", "")
+	runs, err := (&App{DB: repository, DiagnosticDebugReadEnabled: true}).modelRunsFiltered(ctx, ownerID, 10, "fixed-round-correlation", "")
 	if err != nil || len(runs) != 2 {
 		t.Fatalf("model runs: %#v %v", runs, err)
 	}

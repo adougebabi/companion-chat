@@ -28,6 +28,7 @@ func TestDiagnosticModelPagesKeepCreationOrderPrecisionAndSnapshotMembership(t *
 			t.Fatal(err)
 		}
 	}
+	app.DiagnosticDebugReadEnabled = true // Explicit authorization for raw diagnostic assertions.
 	first, err := app.ModelRunsPage(ctx, owner, 2, "pages", "")
 	if err != nil {
 		t.Fatal(err)
@@ -127,6 +128,7 @@ func TestDiagnosticPagesSameInstantNullTailAndMalformedCursor(t *testing.T) {
 	ids := []string{}
 	cursor := ""
 	for {
+		app.DiagnosticDebugReadEnabled = true // Explicit authorization for raw diagnostic assertions.
 		page, err := app.ModelRunsPage(ctx, owner, 1, "null-pages", cursor)
 		if err != nil {
 			t.Fatal(err)

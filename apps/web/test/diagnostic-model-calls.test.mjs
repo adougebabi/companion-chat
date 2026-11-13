@@ -33,3 +33,13 @@ test('Owner switch retires unresolved main records and selected sources',async()
  const pending=[];const w=workspace((kind)=>kind==='model-runs'?new Promise(resolve=>pending.push(resolve)):Promise.resolve({items:[],next_cursor:''})),v=await mount(w),originalCount=pending.length;
  try{await act(async()=>w.state.session.actorId='new-owner');await v.flush();await act(async()=>{for(const resolve of pending.slice(0,originalCount))resolve({items:[row('STALE OWNER')],next_cursor:'old-owner-cursor'});});await v.flush();assert.equal(v.host.querySelector('[data-testid="diag-open-STALE OWNER"]'),null);assert.equal(document.querySelector('[role=dialog]'),null);}finally{await v.dispose();}
 });
+
+test('disabled debug reading explains operator authorization and cannot look like an empty call list',async()=>{
+ const v=await mount(workspace(async()=>{throw Object.assign(new Error('diagnostic_debug_read_disabled'),{code:'diagnostic_debug_read_disabled',status:403});}));
+ try{
+  assert.match(v.host.textContent,/完整诊断读取未启用/);
+  assert.match(v.host.textContent,/FLUCTLIGHT_DIAGNOSTIC_DEBUG_READ/);
+  assert.doesNotMatch(v.host.textContent,/当前还没有这类调用记录/);
+  assert.equal(document.querySelector('[role=dialog]'),null);
+ }finally{await v.dispose();}
+});

@@ -169,7 +169,9 @@ func TestStreamTurnPreservesProviderResponseWhenCommittedReplyPrecedesFinalContr
 		t.Fatalf("inbox status=%q code=%q err=%v", inboxStatus, inboxCode, err)
 	}
 	correlationID := "turn:" + turnID
-	runs, err := app.ModelRunsFiltered(ctx, ownerID, 100, correlationID)
+	diagnosticApp := *app
+	diagnosticApp.DiagnosticDebugReadEnabled = true
+	runs, err := diagnosticApp.ModelRunsFiltered(ctx, ownerID, 100, correlationID)
 	if err != nil {
 		t.Fatal(err)
 	}

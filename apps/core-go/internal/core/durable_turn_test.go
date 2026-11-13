@@ -29,6 +29,7 @@ func TestDurableTurnDiagnosticsUseTheSameInboxStatusAsChat(t *testing.T) {
 		if _, err := repository.Pool().Exec(ctx, `UPDATE public.cognition_inbox SET status=$2::varchar,error_code=CASE WHEN $2::varchar='failed' THEN 'provider_gateway_timeout' ELSE NULL END WHERE id=$1`, accepted.InboxID, state); err != nil {
 			t.Fatal(err)
 		}
+		app.DiagnosticDebugReadEnabled = true // Explicit authorization for raw diagnostic assertions.
 		page, err := app.OwnerDiagnosticRecords(ctx, owner, "turns", query)
 		if err != nil || len(arrayValue(page["items"])) != 1 {
 			t.Fatal(page, err)

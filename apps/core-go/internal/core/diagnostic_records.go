@@ -183,7 +183,7 @@ func diagnosticRecord(kind, key string, at *time.Time, data map[string]any) map[
 }
 
 func (a *App) OwnerDiagnosticRecords(ctx context.Context, owner, kind string, q url.Values) (map[string]any, error) {
-	if err := a.requireOwner(ctx, owner); err != nil {
+	if err := a.requireDiagnosticDebugRead(ctx, owner); err != nil {
 		return nil, err
 	}
 	if !containsString(ownerDiagnosticKinds, kind) {
@@ -242,7 +242,7 @@ func (a *App) OwnerDiagnosticRecords(ctx context.Context, owner, kind string, q 
 }
 
 func (a *App) OwnerDiagnosticRecord(ctx context.Context, owner, kind, ref string) (map[string]any, error) {
-	if err := a.requireOwner(ctx, owner); err != nil {
+	if err := a.requireDiagnosticDebugRead(ctx, owner); err != nil {
 		return nil, err
 	}
 	source, err := ownerDiagnosticSource(kind)

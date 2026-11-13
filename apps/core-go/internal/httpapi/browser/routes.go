@@ -363,7 +363,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 				query.Set(key, value)
 			}
 		}
-		s.callAny(response, request, "/internal/diagnostics/kev-decisions?"+query.Encode(), http.MethodGet, nil, s.readOnlyError(http.StatusForbidden, "kev_diagnostics_unavailable", "Kev diagnostics are unavailable"), nil)
+		s.callAny(response, request, "/internal/diagnostics/kev-decisions?"+query.Encode(), http.MethodGet, nil, s.surfaceStatusError(http.StatusForbidden, "kev_diagnostics_unavailable", "Kev diagnostics are unavailable"), nil)
 		return
 	}
 	if path == "/api/settings/vision/test" && methodName == http.MethodPost {
@@ -1538,6 +1538,8 @@ func (s *Server) diagnosticsError(response http.ResponseWriter, err error) {
 	var coreErr *CoreError
 	if errors.As(err, &coreErr) {
 		switch {
+		case coreErr.Status == http.StatusForbidden && coreErr.Code == "diagnostic_debug_read_disabled":
+			writeError(response, 403, coreErr.Code, coreErr.Message)
 		case coreErr.Status == http.StatusUnauthorized:
 			writeError(response, 401, "unauthenticated", "Authentication is required")
 		case coreErr.Status == http.StatusForbidden:

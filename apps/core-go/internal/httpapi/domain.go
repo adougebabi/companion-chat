@@ -600,6 +600,11 @@ func (s *Server) lifecycleDiagnostics(w http.ResponseWriter, r *http.Request) {
 	}
 	value, err := s.app.LifecycleDiagnostics(r.Context(), actor, lifecycleDiagnosticsFilter(r, 100))
 	if err != nil {
+		var surface *core.SurfaceError
+		if errors.As(err, &surface) {
+			s.opError(w, err, surface.Code)
+			return
+		}
 		if errors.Is(err, core.ErrDiagnosticsFilterInvalid) {
 			s.opErrorWithDetails(w, err, "diagnostics_filter_invalid", diagnosticsFilterDetails())
 			return
@@ -687,6 +692,11 @@ func (s *Server) exportDiagnostics(w http.ResponseWriter, r *http.Request) {
 	}
 	value, err := s.app.DiagnosticsExportFiltered(r.Context(), actor, lifecycleDiagnosticsFilter(r, 500))
 	if err != nil {
+		var surface *core.SurfaceError
+		if errors.As(err, &surface) {
+			s.opError(w, err, surface.Code)
+			return
+		}
 		if errors.Is(err, core.ErrDiagnosticsFilterInvalid) {
 			s.opErrorWithDetails(w, err, "diagnostics_filter_invalid", diagnosticsFilterDetails())
 			return

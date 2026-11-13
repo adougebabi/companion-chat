@@ -111,7 +111,7 @@ func workflowRecovery(kind string, input map[string]any) map[string]any {
 // PostgreSQL intent, command receipts and Runtime are independent panels. A
 // Runtime outage never hides a persisted task or changes its business state.
 func (a *App) OwnerWorkflowInspection(ctx context.Context, owner, wf string) (map[string]any, error) {
-	if err := a.requireOwner(ctx, owner); err != nil {
+	if err := a.requireDiagnosticDebugRead(ctx, owner); err != nil {
 		return nil, err
 	}
 	i, err := a.ownerWorkflowIntent(ctx, owner, wf)
@@ -159,7 +159,7 @@ type workflowHistoryCursor struct {
 }
 
 func (a *App) OwnerWorkflowHistoryPage(ctx context.Context, owner, wf string, q url.Values) (map[string]any, error) {
-	if err := a.requireOwner(ctx, owner); err != nil {
+	if err := a.requireDiagnosticDebugRead(ctx, owner); err != nil {
 		return nil, err
 	}
 	i, err := a.ownerWorkflowIntent(ctx, owner, wf)

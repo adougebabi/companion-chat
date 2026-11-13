@@ -39,6 +39,7 @@ func TestV3DiagnosticsPostgresSnapshotExportScopedClearAndAuthority(t *testing.T
 		t.Fatal(err)
 	}
 	query := url.Values{"correlationId": {"diagnostic-scope"}, "limit": {"1"}}
+	f.app.DiagnosticDebugReadEnabled = true // Explicit authorization for raw diagnostic assertions.
 	first, err := f.app.OwnerDiagnosticRecords(f.ctx, f.ownerID, "events", query)
 	if err != nil {
 		t.Fatal(err)

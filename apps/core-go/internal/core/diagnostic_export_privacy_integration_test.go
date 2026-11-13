@@ -26,6 +26,7 @@ func TestDiagnosticExportsExcludePrivateContentAndIdentifiers(t *testing.T) {
 		t.Fatal(err)
 	}
 	var stream bytes.Buffer
+	app.DiagnosticDebugReadEnabled = true // Explicit authorization for raw diagnostic assertions.
 	if err := app.ExportOwnerDiagnostics(ctx, owner, url.Values{"dataset": {"all"}, "correlationId": {correlation}, "q": {privateText}}, &stream); err != nil {
 		t.Fatal(err)
 	}

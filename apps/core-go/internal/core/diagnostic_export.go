@@ -22,6 +22,9 @@ func (a *App) ExportOwnerDiagnostics(ctx context.Context, owner string, q url.Va
 	if err != nil {
 		return err
 	}
+	if err := a.requireDiagnosticSearchAccess(ctx, owner, f); err != nil {
+		return err
+	}
 	sanitizer, err := newDiagnosticExportSanitizer()
 	if err != nil {
 		return err
@@ -132,6 +135,9 @@ func (a *App) ClearOwnerDiagnosticRecords(ctx context.Context, owner string, bod
 	}
 	f, err := parseOwnerDiagnosticFilter(filters)
 	if err != nil {
+		return nil, err
+	}
+	if err := a.requireDiagnosticSearchAccess(ctx, owner, f); err != nil {
 		return nil, err
 	}
 	ctx = context.WithValue(ctx, ownerCommandAuditActionKey{}, "diagnostic_clear")

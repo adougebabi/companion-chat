@@ -20,7 +20,7 @@ func (a *App) modelRunsFiltered(ctx context.Context, actorID string, limit int, 
 	return rows, err
 }
 func (a *App) modelRunsQuery(ctx context.Context, actorID string, limit int, correlationID, runID string, cursor *diagnosticPageCursor) ([]map[string]any, error) {
-	if err := a.requireOwner(ctx, actorID); err != nil {
+	if err := a.requireDiagnosticDebugRead(ctx, actorID); err != nil {
 		return nil, err
 	}
 	if limit < 1 {

@@ -38,6 +38,9 @@ type App struct {
 	Workflows   WorkflowRuntime
 	SettingsKey []byte
 	ServiceKey  string
+	// DiagnosticDebugReadEnabled is startup-only operator authorization for
+	// Owner access to raw diagnostic bodies. Zero value keeps access disabled.
+	DiagnosticDebugReadEnabled bool
 
 	// --- AI Provider & Planning Subsystems ---
 	Provider        *ProviderClient

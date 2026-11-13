@@ -1,0 +1,56 @@
+SOURCE_HEAD 39068f2aaf225a5615a8906895bf4223ef03d1a0
+OVERLAYS apps/core-go/cmd/api/main.go,apps/core-go/internal/config/config.go,apps/core-go/internal/config/config_test.go,apps/core-go/internal/core/app.go,apps/core-go/internal/core/conversation_mixed_media_reply_test.go,apps/core-go/internal/core/diagnostic_error_privacy_integration_test.go,apps/core-go/internal/core/diagnostic_export.go,apps/core-go/internal/core/diagnostic_export_privacy_integration_test.go,apps/core-go/internal/core/diagnostic_model_runs_filter.go,apps/core-go/internal/core/diagnostic_page.go,apps/core-go/internal/core/diagnostic_page_test.go,apps/core-go/internal/core/diagnostic_parent_test.go,apps/core-go/internal/core/diagnostic_records.go,apps/core-go/internal/core/diagnostics_test.go,apps/core-go/internal/core/durable_turn_test.go,apps/core-go/internal/core/kev_decisions.go,apps/core-go/internal/core/kev_diagnostics.go,apps/core-go/internal/core/operations.go,apps/core-go/internal/core/v3_diagnostic_operations_integration_test.go,apps/core-go/internal/core/v3_workflow_backup_integration_test.go,apps/core-go/internal/core/workflow_controls.go,apps/core-go/internal/core/world_event_visibility_test.go,apps/core-go/internal/httpapi/browser/routes.go,apps/core-go/internal/httpapi/browser_backend.go,apps/core-go/internal/httpapi/domain.go,apps/core-go/internal/core/diagnostic_debug_access.go,apps/core-go/internal/core/diagnostic_debug_access_integration_test.go,apps/core-go/internal/httpapi/diagnostic_debug_access_integration_test.go
+COMMAND go test ./internal/config -count=1 -run Test -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestFromEnvUsesCoreDatabaseURLAndDefaultAddress
+--- PASS: TestFromEnvUsesCoreDatabaseURLAndDefaultAddress (0.00s)
+=== RUN   TestFromEnvRejectsMissingServiceKey
+--- PASS: TestFromEnvRejectsMissingServiceKey (0.00s)
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/#00
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/,http://localhost
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://localhost,
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://localhost,,https://example.com
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://localhost,_null
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://localhost,_ftp://example.com
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://user:pass@example.com
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://example.com/path
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://example.com?
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://example.com#
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://example.com:99999
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://example.com:
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://::1
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://bad_host
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://-invalid.test
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://999.999.999.999
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/https://*.test
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://[not-an-ip]
+=== RUN   TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://
+--- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/#00 (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/,http://localhost (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://localhost, (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://localhost,,https://example.com (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://localhost,_null (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://localhost,_ftp://example.com (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://user:pass@example.com (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://example.com/path (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://example.com? (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://example.com# (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://example.com:99999 (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://example.com: (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://::1 (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://bad_host (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://-invalid.test (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://999.999.999.999 (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/https://*.test (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http://[not-an-ip] (0.00s)
+    --- PASS: TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces/http:// (0.00s)
+=== RUN   TestFromEnvAcceptsMultipleTrustedOriginsAndHTTPDefaults
+--- PASS: TestFromEnvAcceptsMultipleTrustedOriginsAndHTTPDefaults (0.00s)
+=== RUN   TestDiagnosticDebugReadRequiresExplicitValidStartupOptIn
+--- PASS: TestDiagnosticDebugReadRequiresExplicitValidStartupOptIn (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/config	0.309s
+
+EXIT_CODE 0
