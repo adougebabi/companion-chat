@@ -1,0 +1,26 @@
+{
+  "workflow_sha256": "ce2a0e0e467f6e76c53c0b4bf0627c779da0e38704cfd6387ce3e5676d5d7997",
+  "workflow_format": "api_prompt",
+  "output_prefix": "codex-m2-verification-618b2638",
+  "requested_prompt_id": "618b2638-7d09-40dd-ab85-031bf1592f68",
+  "prompt_id": "618b2638-7d09-40dd-ab85-031bf1592f68",
+  "status": "verified",
+  "post_attempts": 1,
+  "http_status": 200,
+  "elapsed_seconds": 70.94,
+  "original_workflow_unchanged": true,
+  "images": [
+    {
+      "filename": "codex-m2-verification-618b2638_00001_.png",
+      "type": "output",
+      "content_type": "image/png",
+      "bytes": 786942,
+      "dimensions": [
+        1024,
+        576
+      ],
+      "format": "PNG",
+      "sha256": "a931e3864e65c8e70ad1f1159b4c3ddad59a65ca2d04a9d6e62866f87dc5d80f"
+    }
+  ]
+}
