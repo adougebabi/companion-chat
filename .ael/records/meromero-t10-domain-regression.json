@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "M3-05 Goal领域验收恢复局部VERIFIED。生产准入未改，修正隔离测试DB时间前置、实际模型调用和跨profile时钟独立性。干净4f9d6aba上112个M3相关核心顶层测试+1迁移通过，无SKIP；9f50332f跨profile加强测试单独通过。原四组领域失败、handoff及24个直接影响回归通过。父T10真实模型/真实渲染和完整领域矩阵仍未验收，不标完成。当前用户已明确T09旧来源隔离政策，转回该授权原节点实施。",
+  "failure": "M3原T10当前关键领域本地验收收口。仅修测试时间前置，原四组Goal/活动及GhostStage/SubmissionRecovery已实际进入准入、原拒绝/完成/重放断言通过。fda3abc6干净生产源码206核心+1迁移汇总通过，无SKIP；27159e40仅测试改动后6项Goal复验通过。真实配置模型、真实渲染/交付与完整领域矩阵按用户授权保留未验收，父任务不写全链完成。M3复核报告交付后停止。",
   "result": "",
   "created": "2026-11-10T08:34:31.183643Z",
-  "updated": "2026-11-13T08:40:56.249119Z",
+  "updated": "2026-11-13T08:48:08.382259Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -76,11 +76,11 @@
         "unit": "execute",
         "executor": "codex-m3-t10-final-goal",
         "input_version": "332e06d533adadf79a87c5f55b3757aa48bf07394106751baee3e606235e0e61",
-        "candidate_version": "",
+        "candidate_version": "6d760bd34c466586d9e7d449fcff664f2e355bc03f72034cad7acb7fd6d612b6",
         "started": "2026-11-13T08:40:56.006693Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-13T08:47:57.787453Z",
+        "status": "blocked",
+        "reason": "M3原T10当前关键领域本地验收收口。仅修测试时间前置，原四组Goal/活动及GhostStage/SubmissionRecovery已实际进入准入、原拒绝/完成/重放断言通过。fda3abc6干净生产源码206核心+1迁移汇总通过，无SKIP；27159e40仅测试改动后6项Goal复验通过。真实配置模型、真实渲染/交付与完整领域矩阵按用户授权保留未验收，父任务不写全链完成。M3复核报告交付后停止。"
       }
     ],
     "checks": null

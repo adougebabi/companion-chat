@@ -151,3 +151,5 @@ M3-10 提交 `fda3abc6c9cbd5d2df37a8e1d9dca1b17a24ff65` 干净源码最终汇总
 交付前原有两项 Goal bug 复核在 `t10-known-goal-followup.log` 仍失败，表现为首次评估 quiet/cadence 前置未满足。下一步仅按已完成的 T10 时间推进方式恢复这两项原回归，不修改生产准入。
 
 M3-11 既有 Goal 两项关联回归已补齐同一个时间前置：GhostStage 四种引用拒绝和 SubmissionRecovery 四种持久化/重放模式实际进入评估并通过，`t10-final-goal-green.log` 2 个顶层测试退出码 0、无 SKIP。仅改测试，生产 Goal 准入与成功标准保持原合同。提交后复验待记录。
+
+M3-11 提交 `27159e40c5b89fd6f15519938fae1de114bf29ab` 干净源码复验 6 个顶层 Goal 测试通过，退出码 0、无 SKIP，包含两项原登记失败及 cadence/实际接受/summary-only/handoff 对照，证据 `t10-final-postcommit.log`。本轮代码交付复核见仓库根 `M3-review-for-chatgpt.md`。里程碑保持 PARTIAL，真实模型自然行为与完整 UI/多端/媒体矩阵待验收。

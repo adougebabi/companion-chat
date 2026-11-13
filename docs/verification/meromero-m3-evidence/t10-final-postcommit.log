@@ -1,0 +1,62 @@
+SOURCE_HEAD 27159e40c5b89fd6f15519938fae1de114bf29ab
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^Test(GoalEvaluationGhostStageFailsBeforeDomainCommit|GoalSubmissionRecoveryPersistenceHandledCycleAndReplay|GoalAgentCadenceEvaluationPendingFrozenAndProfiles|MutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision|GoalEvaluationSummaryWithoutNativeSubmissionCannotComplete|GoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles
+--- PASS: TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles (1.75s)
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/empty_stage_ref
+2026/11/13 16:43:30 WARN tool.call.handled capability=goal.object.submit call_id=ghost-empty_stage_ref warning_code=goal_evaluation_wire_object_ref_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:43:30 WARN tool.call.handled capability=goal.object.submit call_id=ghost-empty_stage_ref warning_code=goal_evaluation_wire_object_ref_invalid disposition=awaiting_evidence effect_applied=false
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_stage_ref
+2026/11/13 16:43:31 WARN tool.call.handled capability=goal.object.submit call_id=ghost-unknown_stage_ref warning_code=goal_evaluation_wire_object_ref_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:43:32 WARN tool.call.handled capability=goal.object.submit call_id=ghost-unknown_stage_ref warning_code=goal_evaluation_wire_object_ref_invalid disposition=awaiting_evidence effect_applied=false
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/foreign_goal_ref
+2026/11/13 16:43:33 WARN tool.call.handled capability=goal.object.submit call_id=ghost-foreign_goal_ref warning_code=goal_evaluation_wire_goal_ref_invalid disposition=needs_input effect_applied=false
+2026/11/13 16:43:33 WARN tool.call.handled capability=goal.object.submit call_id=ghost-foreign_goal_ref warning_code=goal_evaluation_wire_goal_ref_invalid disposition=needs_input effect_applied=false
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_review_stage_ref
+2026/11/13 16:43:34 WARN tool.call.handled capability=goal.evaluation.submit call_id=ghost-unknown_review_stage_ref warning_code=goal_evaluation_wire_review_stage_ref_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:43:34 WARN tool.call.handled capability=goal.evaluation.submit call_id=ghost-unknown_review_stage_ref warning_code=goal_evaluation_wire_review_stage_ref_invalid disposition=awaiting_evidence effect_applied=false
+--- PASS: TestGoalEvaluationGhostStageFailsBeforeDomainCommit (5.55s)
+    --- PASS: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/empty_stage_ref (1.27s)
+    --- PASS: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_stage_ref (1.47s)
+    --- PASS: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/foreign_goal_ref (1.21s)
+    --- PASS: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_review_stage_ref (1.59s)
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance
+    goal_closure_runtime_test.go:456: GOAL_CLOSURE_EVIDENCE scenario=mutual_relationship_confirmation goal=goal-dialogue-wardrobe_1794559419712066000 criteria_version=1 revision=3 status=completed request=goal_evaluation_a6bd33254f62887db2c80716e34dbe0a evaluation=goal_evaluated_5df2363988764ce133eb0e1c7b22276e evidence_refs=["source:10", "source:7"]
+=== RUN   TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit
+2026/11/13 16:43:41 WARN tool.call.handled capability=goal.evaluation.submit call_id=goal-native-fixture-1 warning_code=conflict disposition=awaiting_evidence effect_applied=false
+--- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision (6.49s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/open_signal (1.48s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/quotation (1.24s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/refusal (1.33s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/acceptance (1.20s)
+    --- PASS: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision/concurrent_relationship_edit (1.25s)
+=== RUN   TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete
+--- PASS: TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete (1.05s)
+=== RUN   TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires
+--- PASS: TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires (1.61s)
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion
+2026/11/13 16:43:46 WARN tool.call.handled capability=goal.evaluation.submit call_id=unresolved-2 warning_code=goal_evaluation_wire_criterion_ref_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:43:46 WARN tool.call.handled capability=goal.evaluation.submit call_id=unresolved-3 warning_code=goal_evaluation_wire_criterion_ref_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:43:46 WARN tool.call.handled capability=goal.evaluation.submit call_id=unresolved-4 warning_code=goal_evaluation_wire_criterion_ref_invalid disposition=awaiting_evidence effect_applied=false
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan_ignores_tools
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion_ignores_tools
+2026/11/13 16:43:49 WARN tool.call.handled capability=goal.evaluation.submit call_id=unresolved-2 warning_code=goal_evaluation_wire_criterion_ref_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:43:49 WARN tool.call.handled capability=goal.evaluation.submit call_id=unresolved-3 warning_code=goal_evaluation_wire_criterion_ref_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:43:49 WARN tool.call.handled capability=goal.evaluation.submit call_id=unresolved-4 warning_code=goal_evaluation_wire_criterion_ref_invalid disposition=awaiting_evidence effect_applied=false
+--- PASS: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay (5.20s)
+    --- PASS: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan (1.14s)
+    --- PASS: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion (1.49s)
+    --- PASS: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan_ignores_tools (1.29s)
+    --- PASS: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion_ignores_tools (1.28s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	22.538s
+
+EXIT_CODE 0
