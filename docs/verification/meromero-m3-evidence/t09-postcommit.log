@@ -1,0 +1,52 @@
+SOURCE_HEAD ae9023ce81eb9e08d28e14539a228d4d18c1778a
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^Test(OwnerMemoryCorrectionFencesOldSummarySources|MemoryConfirmationDoesNotReviveChangedInheritedSource|SummaryCorrectionFenceKeepsOwnerConversationAndWindowScope|DailyMemoryBlocksCorrectedSummarySources|MemoryProvenance|MemoryRevisionInvalidatesAffectedEpisodeAndLegacyFixture|ResidentMemory) -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestDailyMemoryBlocksCorrectedSummarySources
+=== RUN   TestDailyMemoryBlocksCorrectedSummarySources/before_model
+=== RUN   TestDailyMemoryBlocksCorrectedSummarySources/during_model
+--- PASS: TestDailyMemoryBlocksCorrectedSummarySources (6.15s)
+    --- PASS: TestDailyMemoryBlocksCorrectedSummarySources/before_model (4.69s)
+    --- PASS: TestDailyMemoryBlocksCorrectedSummarySources/during_model (1.46s)
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/message:summary-message-1
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/fact:summary-source-fact
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/summary-source-fact
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/sequence:1
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/confirmed-first
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/confirmed-first
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/legacy-confirm
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/legacy-confirm
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/legacy-parent
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/legacy-first
+--- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources (16.94s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/message:summary-message-1 (2.65s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/fact:summary-source-fact (2.20s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/summary-source-fact (1.14s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/sequence:1 (1.25s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old (1.24s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base (1.21s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/confirmed-first (1.17s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/confirmed-first (1.23s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/legacy-confirm (1.17s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/legacy-confirm (1.19s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/memory:base/legacy-parent (1.20s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/legacy-first (1.29s)
+=== RUN   TestMemoryConfirmationDoesNotReviveChangedInheritedSource
+--- PASS: TestMemoryConfirmationDoesNotReviveChangedInheritedSource (1.25s)
+=== RUN   TestSummaryCorrectionFenceKeepsOwnerConversationAndWindowScope
+--- PASS: TestSummaryCorrectionFenceKeepsOwnerConversationAndWindowScope (1.25s)
+=== RUN   TestMemoryProvenanceKeepsOtherSourceAndRejectsLastSourceLoss
+--- PASS: TestMemoryProvenanceKeepsOtherSourceAndRejectsLastSourceLoss (1.32s)
+=== RUN   TestMemoryRevisionInvalidatesAffectedEpisodeAndLegacyFixture
+--- PASS: TestMemoryRevisionInvalidatesAffectedEpisodeAndLegacyFixture (1.38s)
+=== RUN   TestResidentMemoryPublishesWholeGenerationAndSkipsUnchangedReplay
+--- PASS: TestResidentMemoryPublishesWholeGenerationAndSkipsUnchangedReplay (1.29s)
+=== RUN   TestResidentMemoryWinsDuplicateLongTermAndKeepsUnderlyingCandidates
+--- PASS: TestResidentMemoryWinsDuplicateLongTermAndKeepsUnderlyingCandidates (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	30.422s
+
+EXIT_CODE 0
