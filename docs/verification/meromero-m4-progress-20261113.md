@@ -2,12 +2,17 @@
 
 起点提交 `39068f2aaf225a5615a8906895bf4223ef03d1a0`，分支 `codex/fluctlight-meromero-plugin-humanization`。继承 M1～M3 报告和已完成证据。四处用户草稿保持原校验值，验证使用干净 Git 导出与明确的本单元覆盖文件。
 
-| 单元 | 原始条目 | 唯一目标 | 状态 | 证据 |
-|---|---|---|---|---|
-| M4-01 | T11 14.3 开发调试权限 | 原始诊断读取和全文搜索需要 Operator 显式开启及 Owner 身份 | VERIFIED | 本目录 meromero-m4-evidence/debug-* |
-| M4-04 | T11 页面→运行消费 | 模型 variant 页面保存、重载与正式 reflection 请求消费及撤销恢复 | VERIFIED | management-react-http-twice.log |
-| M4-03 | T11 14.3 诊断留存 | 证明已有周期清理删除过期/超量诊断并保留业务恢复 | VERIFIED | diagnostic_retention_integration_test.go |
-| M4-02 | T11 14.4 默认只读重放 | 在单个已存 correlation 范围内逐条回放记录，保留失败和分页缺口 | VERIFIED | 正式调用详情及现有 diagnostic-records GET |
+| 单元 | 原始条目 | 唯一目标 | 已满足依赖 | 状态 | 证据（本目录meromero-m4-evidence） |
+| --- | --- | --- | --- | --- | --- |
+| M4-01 | T11 14.3 | 原始读取/搜索双重授权 | 现有Owner/配置 | VERIFIED，限对应验证层 | debug-core-postcommit.log |
+| M4-02 | T11 14.4 | 单correlation只读记录回放 | 01+现有诊断GET | VERIFIED，限对应验证层 | replay-web-postcommit.log |
+| M4-03 | T11 14.3 | 既有留存清理及恢复证据 | 隔离PG | VERIFIED，限对应验证层 | retention-postcommit.log |
+| M4-04 | T11 14.1 | 模型页面到正式reflection | 既有路由/隔离App | VERIFIED，限对应验证层 | management-postcommit-wait1.log |
+| M4-05 | T11/E15 | 原生模型保存刷新撤销 | 04+生产构建 | VERIFIED，限对应验证层 | management-native.log |
+| M4-06 | T11/T05 | 插件页面到独立Tool | 隔离App/插件注册 | VERIFIED，限对应验证层 | plugin-management-postcommit.log |
+| M4-07 | T11/T08 | 表达页面到新direct输入 | 真实受理来源/人格 | VERIFIED，限对应验证层 | expression-management-postcommit.log |
+| M4-08 | T11/T09 | 记忆页面纠错来源与新请求 | 既有记忆治理 | VERIFIED，限对应验证层 | memory-management-postcommit.log |
+| M4-09 | T11 14.2/14.4 | 正式13记录回放与零新增效果 | 01/02+已提交回合 | VERIFIED，限对应验证层 | replay-native-ui.log |
 
 ## M4-01
 
@@ -126,3 +131,5 @@ final-core.log 的 DomainPluginPostgresSettingsAdmissionAndReplay 在 Image 关�
 最终 Web 定向 57 项通过，无 SKIP。最终 HTTP/Browser/配置包和所有管理跨层场景通过，无 SKIP；API 编译通过。最终 Core 扩展回归按该夹具修正继续复验。
 
 Owner 已明确本轮真实模型保留未验收。两个既有 loopback Provider 端口连接拒绝，Mac 锁屏阻碍读取 MLX-Serve 配置。既有 CLI 在宿主环境可运行，其默认模型列表为空，已知请求仓库缓存没有确认到可加载配置，未确认当前 GUI 选定模型的目录。真实模型条目沿原要求保留恢复条件。
+
+最终主回执 M4-review-for-chatgpt.md。全部原acceptance和E01～E18保留；整体PARTIAL，原父任务继续按真实证据维护。

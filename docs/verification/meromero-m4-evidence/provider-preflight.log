@@ -1,0 +1,4 @@
+UTC 2026-11-13T10:12:36.846637+00:00
+Loopback provider catalog preflight only; no inference and no credentials.
+http://127.0.0.1:11234/v1/models ERROR URLError <urlopen error [Errno 61] Connection refused>
+http://127.0.0.1:1234/v1/models ERROR URLError <urlopen error [Errno 61] Connection refused>

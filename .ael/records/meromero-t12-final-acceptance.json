@@ -22,7 +22,7 @@
   "failure": "T12 已更新 review-for-chatgpt.md、E01–E18 矩阵和脱敏证据：42b43abf 干净源码 Go 全量 18 包通过、3108 测试事件通过/1073 跳过；隔离 PostgreSQL 与受控 Provider 14 个顶层专项通过；Web 定向 8 项与类型检查通过。另跑衣柜/无人主体 9 个顶层测试，8 通过、1 失败；两个换衣不可用后回退纠错子场景在起始提交通过、当前失败，临时将 400 改为 503 仍失败，已登记 reply-wear-fallback-correction-regression。新增的 400 不回退独立测试在提交 45489e84 后通过。E14 四组旧 Goal/活动失败、E16 正文与媒体不一致、真实模型多场景、真实媒体和 UI 到运行闭环均未完成，不能将任何 E 项整体标为通过；当前默认 fact_only 仍使用独立 Writer。按用户要求保留未完成状态并继续原任务。",
   "result": "",
   "created": "2026-11-10T08:34:31.35389Z",
-  "updated": "2026-11-11T19:01:40.007311Z",
+  "updated": "2026-11-13T12:40:45.350299Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -59,6 +59,17 @@
         "ended": "2026-11-11T19:01:29.851882Z",
         "status": "fail",
         "reason": "T12 已更新 review-for-chatgpt.md、E01–E18 矩阵和脱敏证据：42b43abf 干净源码 Go 全量 18 包通过、3108 测试事件通过/1073 跳过；隔离 PostgreSQL 与受控 Provider 14 个顶层专项通过；Web 定向 8 项与类型检查通过。另跑衣柜/无人主体 9 个顶层测试，8 通过、1 失败；两个换衣不可用后回退纠错子场景在起始提交通过、当前失败，临时将 400 改为 503 仍失败，已登记 reply-wear-fallback-correction-regression。新增的 400 不回退独立测试在提交 45489e84 后通过。E14 四组旧 Goal/活动失败、E16 正文与媒体不一致、真实模型多场景、真实媒体和 UI 到运行闭环均未完成，不能将任何 E 项整体标为通过；当前默认 fact_only 仍使用独立 Writer。按用户要求保留未完成状态并继续原任务。"
+      },
+      {
+        "id": "AT-f54594e1085373fc8e21",
+        "unit": "execute",
+        "executor": "codex-m4-final-report",
+        "input_version": "8befa34b712d8b204f4bb5ba8d1e9e923d4d6ec7f50b6fb63658b9fd68e9e718",
+        "candidate_version": "",
+        "started": "2026-11-13T12:20:36.577966Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
       }
     ],
     "checks": null

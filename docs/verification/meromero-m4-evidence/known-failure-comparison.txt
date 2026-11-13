@@ -1,0 +1,15 @@
+CURRENT_SOURCE 160cc3a26a8728759b44b46b36f403f9fd56db99
+M4_BASELINE 39068f2aaf225a5615a8906895bf4223ef03d1a0
+Same dedicated PostgreSQL container and unmodified test inputs.
+Current failures and baseline failures are the same two fallback-repair subcases.
+Existing issue .ael/work-items/reply-wear-fallback-correction-regression.md retained.
+CURRENT
+--- PASS: TestTicketCorrectionKeepsBothUtterancesAndDoesNotConfirmPurchase (2.05s)
+--- FAIL: TestR6PrivateChatDiscoveryWearReceiptAndWriter (54.33s)
+    --- FAIL: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=false (2.69s)
+    --- FAIL: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=true (3.33s)
+--- PASS: TestReplyBadRequestDoesNotInvokeExplicitFallback (0.01s)
+BASELINE
+--- FAIL: TestR6PrivateChatDiscoveryWearReceiptAndWriter (42.84s)
+    --- FAIL: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=false (1.54s)
+    --- FAIL: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=true (2.45s)

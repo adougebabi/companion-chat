@@ -1,0 +1,270 @@
+SOURCE_HEAD 0ece567a3b6fab54b9dc31d3a8eed06a9a29ed21
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^(TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure|TestConversationTurnWithNativeImageAndReplyCommitsBothOutputs|TestEinoADKStructuredContentToolCallsAreNotExecuted|TestStreamTurnWithNativeImageAndReplyEmitsAssistantFrame|TestStreamTurnPreservesProviderResponseWhenCommittedReplyPrecedesFinalContractFailure|TestFailedConversationTurnCanBeRetriedAndStreamed|TestAgentDiagnosticErrorDoesNotExposeBearerCredential|TestDiagnosticExportsExcludePrivateContentAndIdentifiers|TestDiagnosticModelPagesKeepCreationOrderPrecisionAndSnapshotMembership|TestDiagnosticAgentUnionSortsBeforePaginationWithoutErrorPriority|TestDiagnosticPagesSameInstantNullTailAndMalformedCursor|TestModelRunReadKeepsIndependentReplyParentProvenance|TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport|TestPromptDiagnosticsAlwaysReturnsMutableMap|TestPromptDiagnosticsKeepTextAndCollectionBounded|TestDiagnosticPreservesNonImageTextAndToolArguments|TestEinoDiagnosticMessagesKeepMultimodalTextWithImageMarker|TestPostgresOwnerModelRunWriteReadAndPrivateExport|TestPromptDiagnosticsKeepCoreSourceRefs|TestProviderUsageAndWireBudgetDiagnosticsNormalizeActuals|TestInitializationScenarioPreservesConfiguredBudgetAndExtendsTimeout|TestDetailedPromptMetricsStayOutOfOrdinaryModelRunsAPIAndRemainPrunable|TestModelRunPersistenceDoesNotReturnGhostID|TestDiagnosticPersistenceWarningIncludesBoundedSafeCause|TestProviderAttemptIdentityIsStableWithinInvocationAndDistinctAcrossRetries|TestProviderModelRunIdentitySeparatesAttempts|TestProviderRequestIdentityStaysStableAcrossDiagnosticAttempts|TestProviderPreflightFailuresAreDiagnosedBeforeQueue|TestProviderPreflightDiagnosticsKeepSourceText|TestProviderModelRunLifecycleCannotRegressFromTerminalToQueued|TestPostgresModelRunLateTerminalCallbackIsAnIdempotentNoop|TestPostgresADKModelRunsKeepPhysicalRoundsAndSafeToolSummary|TestPostgresADKToolDiagnosticUsesRecordedPhysicalCallIdentity|TestPostgresAgentRunDiagnosticsShowLogicalFailureWithoutChangingPhysicalStatus|TestPostgresADKModelRunFailureAndLegacyRowDoNotInventFinalStage|TestPostgresCurrentNonADKModelRunsHaveRoundsAndStages|TestNonADKModelRunStageNeedsResponseForFinalAnswer|TestPostgresProviderTimeoutPersistsOneTypedTerminalState|TestPostgresProviderCancellationPersistsTerminalStateAfterContextCancellation|TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure|TestProviderProvenanceRoleParameterHasOnePostgresType|TestLifecycleProviderAttemptsRemainDistinct|TestLifecycleMetadataKeepsTypedContainersAndRejectsCycles|TestLifecycleDiagnosticsPreserveFirstAndLatestFailureCause|TestProviderPreflightErrorsHaveStableCategoryAndRetryability|TestLifecycleOwningFilesUseOnlyExplicitBestEffortAssignments|TestLifecycleTraceDistinguishesNoopActionableRetryAndFailure|TestLifecycleDiagnosticsFilterBuildsAllPostgresPredicates|TestLifecycleDiagnosticsRejectsUnsafeFilterValues|TestLifecycleDiagnosticsExportUsesSameFilterAndPostgresSnapshot|TestDurableTurnDiagnosticsUseTheSameInboxStatusAsChat|TestStaleProviderRecoveryNeverFailsARunningDurableIntentByAge|TestDurableBrowserObserverDisconnectDoesNotCancelWorker|TestDurableObserverEmitsWorkerCommittedReplyAndTerminal|TestDurableObserverReceivesDirectMainReply|TestExplicitCancelIsRetryableWithoutDuplicateUserMessage|TestWakeUpSupervisorRepairsStrandedSupersededClock|TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases|TestNewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions|TestPublicationFailureDiagnosticRetainsBusinessCode|TestCurrentFactsFailureDiagnosticIncludesBoundedGenerationSources|TestCommittedReplyDegradationRearmsWakeUp|TestProviderFailureExposesRetryableTurnAndReusesUserMessage|TestWorkerPreservesOwnerAuthorizationForActorSender|TestExplicitCancelStopsRunningProviderAndFencesLateReply|TestNativeProseFailureDurableRetryPreservesSenderIdentity|TestFailedConversationHistoryRetainsCommittedMutationRetryFence|TestV3DiagnosticsPostgresSnapshotExportScopedClearAndAuthority|TestV3WorkflowPostgresUnknownCommandReplayRunFenceAndHistory|TestV3BackupPostgresAdmissionReceiptRetryTokenFenceAndRestoreComparison|TestWorldEventDiagnosticsFiltersReachOldClocksAndWorldOnlyGenerations|TestWorldDiagnosticFiltersValidateLength|TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints|TestDiagnosticDebugReadExplicitGrantAndRevocation|TestDiagnosticRetentionDefaultsPrunePrivateRecordsAndPreserveRecovery|TestDomainPluginPostgresSettingsAdmissionAndReplay|TestDomainPluginCatalogReportsSavedRendererConfiguration|TestExpressionCandidateEnableUseAndDisableAcrossNewTurns|TestManagedMemoryCompletePagingGovernanceAndSourceHistory|TestMemoryCorrectionPreservesStatementsWithoutRevivingTicketClaim|TestTicketCorrectionKeepsBothUtterancesAndDoesNotConfirmPurchase)$ -v -timeout=300s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure
+=== RUN   TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/missing_visible_reply
+=== RUN   TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/invalid_provider_tool
+=== RUN   TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/media_capability
+=== RUN   TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/provider_transport
+=== RUN   TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/legacy_provider_transport_wrapper
+=== RUN   TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/provider_suppression
+=== RUN   TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/agent_failure
+=== RUN   TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/wrapped_required_input_budget
+=== RUN   TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/wrapped_current_input_budget
+=== RUN   TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/business_final_contract_failure
+=== RUN   TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/final_contract_failure
+=== RUN   TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/tool_execution_failure
+=== RUN   TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/unknown_internal
+--- PASS: TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure (0.00s)
+    --- PASS: TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/missing_visible_reply (0.00s)
+    --- PASS: TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/invalid_provider_tool (0.00s)
+    --- PASS: TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/media_capability (0.00s)
+    --- PASS: TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/provider_transport (0.00s)
+    --- PASS: TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/legacy_provider_transport_wrapper (0.00s)
+    --- PASS: TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/provider_suppression (0.00s)
+    --- PASS: TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/agent_failure (0.00s)
+    --- PASS: TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/wrapped_required_input_budget (0.00s)
+    --- PASS: TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/wrapped_current_input_budget (0.00s)
+    --- PASS: TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/business_final_contract_failure (0.00s)
+    --- PASS: TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/final_contract_failure (0.00s)
+    --- PASS: TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/tool_execution_failure (0.00s)
+    --- PASS: TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure/unknown_internal (0.00s)
+=== RUN   TestConversationTurnWithNativeImageAndReplyCommitsBothOutputs
+--- PASS: TestConversationTurnWithNativeImageAndReplyCommitsBothOutputs (1.80s)
+=== RUN   TestEinoADKStructuredContentToolCallsAreNotExecuted
+--- PASS: TestEinoADKStructuredContentToolCallsAreNotExecuted (1.49s)
+=== RUN   TestStreamTurnWithNativeImageAndReplyEmitsAssistantFrame
+--- PASS: TestStreamTurnWithNativeImageAndReplyEmitsAssistantFrame (1.50s)
+=== RUN   TestStreamTurnPreservesProviderResponseWhenCommittedReplyPrecedesFinalContractFailure
+--- PASS: TestStreamTurnPreservesProviderResponseWhenCommittedReplyPrecedesFinalContractFailure (1.56s)
+=== RUN   TestFailedConversationTurnCanBeRetriedAndStreamed
+2026/11/13 20:01:16 ERROR Go Core conversation turn lifecycle settlement failed after visible output error_type=*fmt.wrapError error_code=adk_run_failed turn_id=retry-turn-1
+--- PASS: TestFailedConversationTurnCanBeRetriedAndStreamed (1.63s)
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/events
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/lifecycle
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/model-runs
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/agent-runs
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/world-event-generations
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/media-prompts
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/kev
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/workflow-intents
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/audit
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/harm
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/media-recoveries
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/turns
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/links
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/events
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/model-page
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/lifecycle
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/models
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/media
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/workflow-history
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/kev
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/kev-page
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/workflow-status
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/workflow-inspection
+=== RUN   TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/detail
+--- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints (1.85s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/events (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/lifecycle (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/model-runs (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/agent-runs (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/world-event-generations (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/media-prompts (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/kev (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/workflow-intents (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/audit (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/harm (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/media-recoveries (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/turns (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/records/links (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/events (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/model-page (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/lifecycle (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/models (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/media (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/workflow-history (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/kev (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/kev-page (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/workflow-status (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/workflow-inspection (0.00s)
+    --- PASS: TestDiagnosticDebugReadDeniedByDefaultAcrossRawEntrypoints/detail (0.00s)
+=== RUN   TestDiagnosticDebugReadExplicitGrantAndRevocation
+--- PASS: TestDiagnosticDebugReadExplicitGrantAndRevocation (1.63s)
+=== RUN   TestAgentDiagnosticErrorDoesNotExposeBearerCredential
+--- PASS: TestAgentDiagnosticErrorDoesNotExposeBearerCredential (1.54s)
+=== RUN   TestDiagnosticExportsExcludePrivateContentAndIdentifiers
+--- PASS: TestDiagnosticExportsExcludePrivateContentAndIdentifiers (1.48s)
+=== RUN   TestDiagnosticModelPagesKeepCreationOrderPrecisionAndSnapshotMembership
+--- PASS: TestDiagnosticModelPagesKeepCreationOrderPrecisionAndSnapshotMembership (1.33s)
+=== RUN   TestDiagnosticAgentUnionSortsBeforePaginationWithoutErrorPriority
+--- PASS: TestDiagnosticAgentUnionSortsBeforePaginationWithoutErrorPriority (1.46s)
+=== RUN   TestDiagnosticPagesSameInstantNullTailAndMalformedCursor
+--- PASS: TestDiagnosticPagesSameInstantNullTailAndMalformedCursor (1.58s)
+=== RUN   TestModelRunReadKeepsIndependentReplyParentProvenance
+--- PASS: TestModelRunReadKeepsIndependentReplyParentProvenance (1.46s)
+=== RUN   TestDiagnosticRetentionDefaultsPrunePrivateRecordsAndPreserveRecovery
+--- PASS: TestDiagnosticRetentionDefaultsPrunePrivateRecordsAndPreserveRecovery (1.72s)
+=== RUN   TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport
+=== RUN   TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport/final
+=== RUN   TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport/cancelled
+=== RUN   TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport/timeout
+=== RUN   TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport/provider_transport
+=== RUN   TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport/invalid_tool_call
+=== RUN   TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport/tool_execution
+=== RUN   TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport/agent_failure
+--- PASS: TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport (0.00s)
+    --- PASS: TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport/final (0.00s)
+    --- PASS: TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport/cancelled (0.00s)
+    --- PASS: TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport/timeout (0.00s)
+    --- PASS: TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport/provider_transport (0.00s)
+    --- PASS: TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport/invalid_tool_call (0.00s)
+    --- PASS: TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport/tool_execution (0.00s)
+    --- PASS: TestADKTerminationReasonSeparatesAgentFailuresFromProviderTransport/agent_failure (0.00s)
+=== RUN   TestPromptDiagnosticsAlwaysReturnsMutableMap
+--- PASS: TestPromptDiagnosticsAlwaysReturnsMutableMap (0.00s)
+=== RUN   TestPromptDiagnosticsKeepTextAndCollectionBounded
+--- PASS: TestPromptDiagnosticsKeepTextAndCollectionBounded (0.00s)
+=== RUN   TestDiagnosticPreservesNonImageTextAndToolArguments
+--- PASS: TestDiagnosticPreservesNonImageTextAndToolArguments (0.00s)
+=== RUN   TestEinoDiagnosticMessagesKeepMultimodalTextWithImageMarker
+--- PASS: TestEinoDiagnosticMessagesKeepMultimodalTextWithImageMarker (0.00s)
+=== RUN   TestPostgresOwnerModelRunWriteReadAndPrivateExport
+--- PASS: TestPostgresOwnerModelRunWriteReadAndPrivateExport (1.61s)
+=== RUN   TestPromptDiagnosticsKeepCoreSourceRefs
+--- PASS: TestPromptDiagnosticsKeepCoreSourceRefs (0.00s)
+=== RUN   TestProviderUsageAndWireBudgetDiagnosticsNormalizeActuals
+--- PASS: TestProviderUsageAndWireBudgetDiagnosticsNormalizeActuals (0.00s)
+=== RUN   TestInitializationScenarioPreservesConfiguredBudgetAndExtendsTimeout
+--- PASS: TestInitializationScenarioPreservesConfiguredBudgetAndExtendsTimeout (0.00s)
+=== RUN   TestDetailedPromptMetricsStayOutOfOrdinaryModelRunsAPIAndRemainPrunable
+2026/11/13 20:01:32 WARN Go Core diagnostic persistence failed component=event stage=create correlation_id="" error_type=*errors.errorString safe_cause=diagnostics_unavailable event_type=prompt.test
+--- PASS: TestDetailedPromptMetricsStayOutOfOrdinaryModelRunsAPIAndRemainPrunable (0.00s)
+=== RUN   TestModelRunPersistenceDoesNotReturnGhostID
+--- PASS: TestModelRunPersistenceDoesNotReturnGhostID (0.00s)
+=== RUN   TestDiagnosticPersistenceWarningIncludesBoundedSafeCause
+--- PASS: TestDiagnosticPersistenceWarningIncludesBoundedSafeCause (0.00s)
+=== RUN   TestProviderAttemptIdentityIsStableWithinInvocationAndDistinctAcrossRetries
+--- PASS: TestProviderAttemptIdentityIsStableWithinInvocationAndDistinctAcrossRetries (0.00s)
+=== RUN   TestProviderModelRunIdentitySeparatesAttempts
+--- PASS: TestProviderModelRunIdentitySeparatesAttempts (0.00s)
+=== RUN   TestProviderRequestIdentityStaysStableAcrossDiagnosticAttempts
+--- PASS: TestProviderRequestIdentityStaysStableAcrossDiagnosticAttempts (0.00s)
+=== RUN   TestProviderPreflightFailuresAreDiagnosedBeforeQueue
+--- PASS: TestProviderPreflightFailuresAreDiagnosedBeforeQueue (0.00s)
+=== RUN   TestProviderPreflightDiagnosticsKeepSourceText
+--- PASS: TestProviderPreflightDiagnosticsKeepSourceText (0.00s)
+=== RUN   TestProviderModelRunLifecycleCannotRegressFromTerminalToQueued
+--- PASS: TestProviderModelRunLifecycleCannotRegressFromTerminalToQueued (0.00s)
+=== RUN   TestPostgresModelRunLateTerminalCallbackIsAnIdempotentNoop
+--- PASS: TestPostgresModelRunLateTerminalCallbackIsAnIdempotentNoop (0.01s)
+=== RUN   TestPostgresADKModelRunsKeepPhysicalRoundsAndSafeToolSummary
+--- PASS: TestPostgresADKModelRunsKeepPhysicalRoundsAndSafeToolSummary (1.57s)
+=== RUN   TestPostgresADKToolDiagnosticUsesRecordedPhysicalCallIdentity
+--- PASS: TestPostgresADKToolDiagnosticUsesRecordedPhysicalCallIdentity (1.75s)
+=== RUN   TestPostgresAgentRunDiagnosticsShowLogicalFailureWithoutChangingPhysicalStatus
+--- PASS: TestPostgresAgentRunDiagnosticsShowLogicalFailureWithoutChangingPhysicalStatus (5.97s)
+=== RUN   TestPostgresADKModelRunFailureAndLegacyRowDoNotInventFinalStage
+--- PASS: TestPostgresADKModelRunFailureAndLegacyRowDoNotInventFinalStage (2.46s)
+=== RUN   TestPostgresCurrentNonADKModelRunsHaveRoundsAndStages
+--- PASS: TestPostgresCurrentNonADKModelRunsHaveRoundsAndStages (1.40s)
+=== RUN   TestNonADKModelRunStageNeedsResponseForFinalAnswer
+--- PASS: TestNonADKModelRunStageNeedsResponseForFinalAnswer (0.00s)
+=== RUN   TestPostgresProviderTimeoutPersistsOneTypedTerminalState
+--- PASS: TestPostgresProviderTimeoutPersistsOneTypedTerminalState (0.01s)
+=== RUN   TestPostgresProviderCancellationPersistsTerminalStateAfterContextCancellation
+--- PASS: TestPostgresProviderCancellationPersistsTerminalStateAfterContextCancellation (0.01s)
+=== RUN   TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure
+--- PASS: TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure (0.02s)
+=== RUN   TestProviderProvenanceRoleParameterHasOnePostgresType
+--- PASS: TestProviderProvenanceRoleParameterHasOnePostgresType (0.00s)
+=== RUN   TestLifecycleProviderAttemptsRemainDistinct
+--- PASS: TestLifecycleProviderAttemptsRemainDistinct (0.00s)
+=== RUN   TestLifecycleMetadataKeepsTypedContainersAndRejectsCycles
+--- PASS: TestLifecycleMetadataKeepsTypedContainersAndRejectsCycles (0.00s)
+=== RUN   TestLifecycleDiagnosticsPreserveFirstAndLatestFailureCause
+--- PASS: TestLifecycleDiagnosticsPreserveFirstAndLatestFailureCause (0.00s)
+=== RUN   TestProviderPreflightErrorsHaveStableCategoryAndRetryability
+=== RUN   TestProviderPreflightErrorsHaveStableCategoryAndRetryability/unassigned
+=== RUN   TestProviderPreflightErrorsHaveStableCategoryAndRetryability/invalid_role
+=== RUN   TestProviderPreflightErrorsHaveStableCategoryAndRetryability/role_preflight
+=== RUN   TestProviderPreflightErrorsHaveStableCategoryAndRetryability/wire_budget
+=== RUN   TestProviderPreflightErrorsHaveStableCategoryAndRetryability/store
+--- PASS: TestProviderPreflightErrorsHaveStableCategoryAndRetryability (0.00s)
+    --- PASS: TestProviderPreflightErrorsHaveStableCategoryAndRetryability/unassigned (0.00s)
+    --- PASS: TestProviderPreflightErrorsHaveStableCategoryAndRetryability/invalid_role (0.00s)
+    --- PASS: TestProviderPreflightErrorsHaveStableCategoryAndRetryability/role_preflight (0.00s)
+    --- PASS: TestProviderPreflightErrorsHaveStableCategoryAndRetryability/wire_budget (0.00s)
+    --- PASS: TestProviderPreflightErrorsHaveStableCategoryAndRetryability/store (0.00s)
+=== RUN   TestLifecycleOwningFilesUseOnlyExplicitBestEffortAssignments
+--- PASS: TestLifecycleOwningFilesUseOnlyExplicitBestEffortAssignments (0.00s)
+=== RUN   TestLifecycleTraceDistinguishesNoopActionableRetryAndFailure
+--- PASS: TestLifecycleTraceDistinguishesNoopActionableRetryAndFailure (0.00s)
+=== RUN   TestLifecycleDiagnosticsFilterBuildsAllPostgresPredicates
+--- PASS: TestLifecycleDiagnosticsFilterBuildsAllPostgresPredicates (0.00s)
+=== RUN   TestLifecycleDiagnosticsRejectsUnsafeFilterValues
+--- PASS: TestLifecycleDiagnosticsRejectsUnsafeFilterValues (0.00s)
+=== RUN   TestLifecycleDiagnosticsExportUsesSameFilterAndPostgresSnapshot
+--- PASS: TestLifecycleDiagnosticsExportUsesSameFilterAndPostgresSnapshot (0.00s)
+=== RUN   TestDomainPluginPostgresSettingsAdmissionAndReplay
+--- PASS: TestDomainPluginPostgresSettingsAdmissionAndReplay (1.29s)
+=== RUN   TestDomainPluginCatalogReportsSavedRendererConfiguration
+--- PASS: TestDomainPluginCatalogReportsSavedRendererConfiguration (2.29s)
+=== RUN   TestDurableTurnDiagnosticsUseTheSameInboxStatusAsChat
+--- PASS: TestDurableTurnDiagnosticsUseTheSameInboxStatusAsChat (1.82s)
+=== RUN   TestStaleProviderRecoveryNeverFailsARunningDurableIntentByAge
+--- PASS: TestStaleProviderRecoveryNeverFailsARunningDurableIntentByAge (1.25s)
+=== RUN   TestDurableBrowserObserverDisconnectDoesNotCancelWorker
+--- PASS: TestDurableBrowserObserverDisconnectDoesNotCancelWorker (2.10s)
+=== RUN   TestDurableObserverEmitsWorkerCommittedReplyAndTerminal
+--- PASS: TestDurableObserverEmitsWorkerCommittedReplyAndTerminal (2.25s)
+=== RUN   TestDurableObserverReceivesDirectMainReply
+--- PASS: TestDurableObserverReceivesDirectMainReply (2.50s)
+=== RUN   TestExplicitCancelIsRetryableWithoutDuplicateUserMessage
+--- PASS: TestExplicitCancelIsRetryableWithoutDuplicateUserMessage (2.20s)
+=== RUN   TestWakeUpSupervisorRepairsStrandedSupersededClock
+--- PASS: TestWakeUpSupervisorRepairsStrandedSupersededClock (1.38s)
+=== RUN   TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases
+--- PASS: TestAcceptedUserMessageOwnsWakeUpIdleEpochAndAbsolutePhases (2.25s)
+=== RUN   TestNewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions
+--- PASS: TestNewUserIdleEpochFencesOldWakeUpFinalAndToolTransactions (2.32s)
+=== RUN   TestPublicationFailureDiagnosticRetainsBusinessCode
+--- PASS: TestPublicationFailureDiagnosticRetainsBusinessCode (2.13s)
+=== RUN   TestCurrentFactsFailureDiagnosticIncludesBoundedGenerationSources
+--- PASS: TestCurrentFactsFailureDiagnosticIncludesBoundedGenerationSources (2.05s)
+=== RUN   TestCommittedReplyDegradationRearmsWakeUp
+--- PASS: TestCommittedReplyDegradationRearmsWakeUp (3.20s)
+=== RUN   TestProviderFailureExposesRetryableTurnAndReusesUserMessage
+--- PASS: TestProviderFailureExposesRetryableTurnAndReusesUserMessage (2.99s)
+=== RUN   TestWorkerPreservesOwnerAuthorizationForActorSender
+--- PASS: TestWorkerPreservesOwnerAuthorizationForActorSender (2.46s)
+=== RUN   TestExplicitCancelStopsRunningProviderAndFencesLateReply
+--- PASS: TestExplicitCancelStopsRunningProviderAndFencesLateReply (1.81s)
+=== RUN   TestNativeProseFailureDurableRetryPreservesSenderIdentity
+--- PASS: TestNativeProseFailureDurableRetryPreservesSenderIdentity (1.83s)
+=== RUN   TestFailedConversationHistoryRetainsCommittedMutationRetryFence
+--- PASS: TestFailedConversationHistoryRetainsCommittedMutationRetryFence (1.51s)
+=== RUN   TestExpressionCandidateEnableUseAndDisableAcrossNewTurns
+--- PASS: TestExpressionCandidateEnableUseAndDisableAcrossNewTurns (2.13s)
+=== RUN   TestMemoryCorrectionPreservesStatementsWithoutRevivingTicketClaim
+--- PASS: TestMemoryCorrectionPreservesStatementsWithoutRevivingTicketClaim (2.31s)
+=== RUN   TestManagedMemoryCompletePagingGovernanceAndSourceHistory
+--- PASS: TestManagedMemoryCompletePagingGovernanceAndSourceHistory (2.38s)
+=== RUN   TestTicketCorrectionKeepsBothUtterancesAndDoesNotConfirmPurchase
+--- PASS: TestTicketCorrectionKeepsBothUtterancesAndDoesNotConfirmPurchase (2.26s)
+=== RUN   TestV3DiagnosticsPostgresSnapshotExportScopedClearAndAuthority
+--- PASS: TestV3DiagnosticsPostgresSnapshotExportScopedClearAndAuthority (1.74s)
+=== RUN   TestV3WorkflowPostgresUnknownCommandReplayRunFenceAndHistory
+--- PASS: TestV3WorkflowPostgresUnknownCommandReplayRunFenceAndHistory (1.65s)
+=== RUN   TestV3BackupPostgresAdmissionReceiptRetryTokenFenceAndRestoreComparison
+--- PASS: TestV3BackupPostgresAdmissionReceiptRetryTokenFenceAndRestoreComparison (2.16s)
+=== RUN   TestWorldEventDiagnosticsFiltersReachOldClocksAndWorldOnlyGenerations
+--- PASS: TestWorldEventDiagnosticsFiltersReachOldClocksAndWorldOnlyGenerations (2.09s)
+=== RUN   TestWorldDiagnosticFiltersValidateLength
+--- PASS: TestWorldDiagnosticFiltersValidateLength (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	93.864s
+
+EXIT_CODE 0

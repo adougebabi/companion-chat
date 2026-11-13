@@ -1,0 +1,7 @@
+Owner instruction: 本轮先保留真实模型未验收
+Real-model inference was not executed in this M4 batch. Controlled Provider HTTP/task requests are evidenced separately.
+Loopback availability result is preserved in provider-preflight.log.
+Computer tool reported Mac locked when selecting MLX-Serve.
+Installed CLI path /opt/homebrew/bin/mlx-serve. Default downloaded-model list reported none.
+CLI help in sandbox exited 255 with no Metal device; the same help outside sandbox exited 0.
+Selected GUI model directory was not confirmed; no alternate cached model was selected.
