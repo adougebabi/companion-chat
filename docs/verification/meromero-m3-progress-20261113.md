@@ -11,7 +11,7 @@
 | M3-03 可定位 legacy 摘要来源纠错屏障 | T09 旧来源及派生失效 | VERIFIED | 修复首次全 unknown 的摘要来源负向屏障，提交 `ae9023ce` 的干净源码复验 8 个核心顶层测试及 1 个迁移测试通过，退出码 0、无 SKIP。 |
 | M3-04 在途纠错发布保护证据 | T09 后续输入/在途请求 | VERIFIED | direct/Writer × revise/forget 四场景及正常发布/追发对照在提交 `b0d47d68` 的干净源码通过，3 个顶层测试、退出码 0、无 SKIP。沿用既有 generation fence，本节点仅增加测试。 |
 | M3-06 无可解析来源的旧记忆暂停自动注入 | T09 用户确认的历史兼容策略 | VERIFIED | 长期/ActiveMemory/resident 旧快照、正式 recall、direct/Writer 及 Owner 恢复场景通过，提交 `a4b1bc8e` 的干净源码 121 项核心汇总及 1 项迁移测试通过，退出码 0，无 SKIP。 |
-| M3-07 记忆纠错与摘要/发布锁序 | T09 并发锁序及真实纠错后检索 | IMPLEMENTED | 两个正式双事务红测复现 40P01，最小两处行锁修正后通过，39 个相关回归及 6 个来源/购票反例测试通过，等待提交后复验。 |
+| M3-07 记忆纠错与摘要/发布锁序 | T09 并发锁序及真实纠错后检索 | VERIFIED | 两个正式双事务红测复现 40P01，最小两处行锁修正后通过，39 个相关回归及 6 个来源/购票反例测试通过，提交 `f5fccd0b` 的干净源码 157 核心项及 1 个迁移测试通过，无 SKIP。 |
 | T09 原条目收口 | 记忆治理 | IN_PROGRESS | 对原 T09 允许的安全失效路径做最后逐项核验，不将自动重建或穷尽并发交错追加为验收前置。 |
 | M3-05 Goal 领域验收恢复 | T10 成功条件、日程/活动、衣柜和依赖保护 | VERIFIED | 修正隔离测试的 DB 时间前置，原四组失败与 handoff 实际进入评估，24 个直接受影响顶层回归通过，提交后 112 项 M3 汇总回归和独立迁移测试通过。跨人格时钟加强后单独复验通过。 |
 | T10 其他原验收 | 领域保护 | PARTIAL | 继承既有其他领域证据，真实模型、真实渲染及完整领域矩阵仍未验收。 |
@@ -109,3 +109,5 @@ M3-06 提交后 `a4b1bc8e25fc7ea89d56805f7994d3de85bc5df6`，无 overlay，`poli
 新增正式仓库测试 `TestTicketCorrectionKeepsBothUtterancesAndDoesNotConfirmPurchase`，真实 AcceptTurn 受理“我买了票”和“刚才是开玩笑”两条消息，经 Owner 改正原购买结论后调用正式 memory.recall。两条消息仍按实际 speaker/kind/historical 返回，长期记忆只保留购票未知的更正，第一条原话未被改写。`t09-final-source-cases.log` 的 6 个顶层测试通过，无 SKIP，另包括 actor/会话隔离、递归派生失效、晚到 outcome 与 embedding 来源生命周期。
 
 原 T09 要求相关摘要/画像/缓存/派生记忆能够“失效、更新或标记过时”。本轮沿用安全失效及原始历史回退。自动重新生成并启用已失效摘要不再被追加为完成前置，先前报告中的未验证重建历史记录保留。原条目最终状态仍以提交后验证及逐项核对为准。
+
+提交 `f5fccd0b88deacb77221e7f656f276298407bede`，`final-postcommit.log` 157 个核心顶层测试通过，`final-migration.log` 1 个迁移测试通过，均退出码 0、无 SKIP。原 T09 完整条目核对仍保留画像传播缺口：Reflection DevelopingSelf 可接受 Memory/summary refs，但持久化和读取目前仅显式追踪 ActorFact 依赖。下一节点通过正常正式入口验证仅修改 Memory 时画像能否退出，不由其他来源纠错已通过推断正确。父 T09 未标完成。
