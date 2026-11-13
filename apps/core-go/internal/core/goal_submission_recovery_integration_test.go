@@ -49,6 +49,7 @@ func TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay(t *testing.T) {
 				return fakeProviderResult{ToolCalls: []map[string]any{{"call_id": fmt.Sprint("unresolved-", calls), "capability_name": name, "arguments": args}}}
 			})}
 			request := latestPendingGoalRequest(t, f)
+			advanceGoalEvaluationCycleForTest(t, f, request)
 			result, err := f.app.ProcessGoalEvaluationIntent(f.ctx, request)
 			if err != nil || result["disposition"] != "awaiting_evidence" || result["assessment_complete"] != false || len(arrayValue(result["evaluated_goals"])) != 1 || len(arrayValue(result["unresolved_goals"])) != 1 {
 				t.Fatal(result, err)

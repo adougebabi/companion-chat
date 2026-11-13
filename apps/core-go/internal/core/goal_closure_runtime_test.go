@@ -198,7 +198,9 @@ func TestGoalEvaluationGhostStageFailsBeforeDomainCommit(t *testing.T) {
 			if _, err := f.app.HandleTurn(f.ctx, f.ownerID, f.conversationID, map[string]any{"fluctlight_id": f.fluctlightID, "text": "请告诉我你的心意。", "idempotency_key": "ghost-stage-turn-" + f.suffix}); err != nil {
 				t.Fatal(err)
 			}
-			_, err := f.app.ProcessGoalEvaluationIntent(f.ctx, latestPendingGoalRequest(t, f))
+			request := latestPendingGoalRequest(t, f)
+			advanceGoalEvaluationCycleForTest(t, f, request)
+			_, err := f.app.ProcessGoalEvaluationIntent(f.ctx, request)
 			if err == nil || !strings.Contains(err.Error(), "goal_assessment_coverage_missing") {
 				t.Fatalf("invalid native reference did not remain unresolved: %v", err)
 			}

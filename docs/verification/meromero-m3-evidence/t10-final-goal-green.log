@@ -1,0 +1,42 @@
+SOURCE_HEAD 02adffad30b2f348777ad199f4c362a78293ba41
+OVERLAYS apps/core-go/internal/core/goal_closure_runtime_test.go,apps/core-go/internal/core/goal_submission_recovery_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^Test(GoalEvaluationGhostStageFailsBeforeDomainCommit|GoalSubmissionRecoveryPersistenceHandledCycleAndReplay)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/empty_stage_ref
+2026/11/13 16:42:09 WARN tool.call.handled capability=goal.object.submit call_id=ghost-empty_stage_ref warning_code=goal_evaluation_wire_object_ref_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:42:09 WARN tool.call.handled capability=goal.object.submit call_id=ghost-empty_stage_ref warning_code=goal_evaluation_wire_object_ref_invalid disposition=awaiting_evidence effect_applied=false
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_stage_ref
+2026/11/13 16:42:10 WARN tool.call.handled capability=goal.object.submit call_id=ghost-unknown_stage_ref warning_code=goal_evaluation_wire_object_ref_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:42:10 WARN tool.call.handled capability=goal.object.submit call_id=ghost-unknown_stage_ref warning_code=goal_evaluation_wire_object_ref_invalid disposition=awaiting_evidence effect_applied=false
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/foreign_goal_ref
+2026/11/13 16:42:11 WARN tool.call.handled capability=goal.object.submit call_id=ghost-foreign_goal_ref warning_code=goal_evaluation_wire_goal_ref_invalid disposition=needs_input effect_applied=false
+2026/11/13 16:42:11 WARN tool.call.handled capability=goal.object.submit call_id=ghost-foreign_goal_ref warning_code=goal_evaluation_wire_goal_ref_invalid disposition=needs_input effect_applied=false
+=== RUN   TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_review_stage_ref
+2026/11/13 16:42:13 WARN tool.call.handled capability=goal.evaluation.submit call_id=ghost-unknown_review_stage_ref warning_code=goal_evaluation_wire_review_stage_ref_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:42:13 WARN tool.call.handled capability=goal.evaluation.submit call_id=ghost-unknown_review_stage_ref warning_code=goal_evaluation_wire_review_stage_ref_invalid disposition=awaiting_evidence effect_applied=false
+--- PASS: TestGoalEvaluationGhostStageFailsBeforeDomainCommit (6.65s)
+    --- PASS: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/empty_stage_ref (2.46s)
+    --- PASS: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_stage_ref (1.49s)
+    --- PASS: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/foreign_goal_ref (1.41s)
+    --- PASS: TestGoalEvaluationGhostStageFailsBeforeDomainCommit/unknown_review_stage_ref (1.29s)
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion
+2026/11/13 16:42:16 WARN tool.call.handled capability=goal.evaluation.submit call_id=unresolved-2 warning_code=goal_evaluation_wire_criterion_ref_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:42:16 WARN tool.call.handled capability=goal.evaluation.submit call_id=unresolved-3 warning_code=goal_evaluation_wire_criterion_ref_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:42:16 WARN tool.call.handled capability=goal.evaluation.submit call_id=unresolved-4 warning_code=goal_evaluation_wire_criterion_ref_invalid disposition=awaiting_evidence effect_applied=false
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan_ignores_tools
+=== RUN   TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion_ignores_tools
+2026/11/13 16:42:19 WARN tool.call.handled capability=goal.evaluation.submit call_id=unresolved-2 warning_code=goal_evaluation_wire_criterion_ref_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:42:19 WARN tool.call.handled capability=goal.evaluation.submit call_id=unresolved-3 warning_code=goal_evaluation_wire_criterion_ref_invalid disposition=awaiting_evidence effect_applied=false
+2026/11/13 16:42:19 WARN tool.call.handled capability=goal.evaluation.submit call_id=unresolved-4 warning_code=goal_evaluation_wire_criterion_ref_invalid disposition=awaiting_evidence effect_applied=false
+--- PASS: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay (6.44s)
+    --- PASS: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan (1.14s)
+    --- PASS: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion (2.07s)
+    --- PASS: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/replay_plan_ignores_tools (1.39s)
+    --- PASS: TestGoalSubmissionRecoveryPersistenceHandledCycleAndReplay/bad_criterion_ignores_tools (1.85s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	13.812s
+
+EXIT_CODE 0

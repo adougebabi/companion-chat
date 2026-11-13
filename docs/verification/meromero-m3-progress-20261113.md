@@ -149,3 +149,5 @@ M3-09 提交 `7731b7daa81085a0e9c15b0bb36d062f022e24e0` 干净源码复验 39 �
 M3-10 提交 `fda3abc6c9cbd5d2df37a8e1d9dca1b17a24ff65` 干净源码最终汇总 206 个核心顶层测试和 1 个迁移测试通过，退出码 0、无 SKIP，证据 `delivery-postcommit.log` / `delivery-migration.log` 与 `delivery-test-selection.txt`。当前实现逐项静态核对未发现确定的原 T09 必需实现缺口；自然语言自动识别/调用/恢复仍保留 REAL_MODEL 未验证。父任务未借局部证据提前标记完整链通过。
 
 交付前原有两项 Goal bug 复核在 `t10-known-goal-followup.log` 仍失败，表现为首次评估 quiet/cadence 前置未满足。下一步仅按已完成的 T10 时间推进方式恢复这两项原回归，不修改生产准入。
+
+M3-11 既有 Goal 两项关联回归已补齐同一个时间前置：GhostStage 四种引用拒绝和 SubmissionRecovery 四种持久化/重放模式实际进入评估并通过，`t10-final-goal-green.log` 2 个顶层测试退出码 0、无 SKIP。仅改测试，生产 Goal 准入与成功标准保持原合同。提交后复验待记录。
