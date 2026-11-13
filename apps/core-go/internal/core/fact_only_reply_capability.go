@@ -371,7 +371,16 @@ func (s *factOnlyReplyService) resolveReplyEvidence(ctx context.Context, invocat
 	var includedEntries []ContextReference
 	for _, entry := range entries {
 		if invocation.CapabilityName == "moment.publish" {
-			if fact := momentReplyEvidenceFact(entry, projection); fact != nil {
+			var fact map[string]any
+			if entry.Kind == ContextReferenceAppearance {
+				fact, err = s.appearanceEvidenceFact(ctx, entry, projection)
+				if err != nil {
+					return ContextProjection{}, nil, nil, err
+				}
+			} else {
+				fact = momentReplyEvidenceFact(entry, projection)
+			}
+			if fact != nil {
 				toolFacts = append(toolFacts, fact)
 				includedEntries = append(includedEntries, entry)
 			}

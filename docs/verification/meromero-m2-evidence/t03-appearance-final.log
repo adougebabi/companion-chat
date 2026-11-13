@@ -1,0 +1,15 @@
+SOURCE_HEAD 60ec741268024b82587f1d08b210891726fd45d8
+OVERLAYS apps/core-go/internal/core/moment_appearance_evidence_integration_test.go,apps/core-go/internal/core/moment_appearance_evidence.go,apps/core-go/internal/core/fact_only_reply_capability.go,apps/core-go/internal/core/fact_only_reply_facts.go
+COMMAND go test ./internal/core -count=1 -run ^Test(MomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs|MomentInjuryEvidenceRequiresMatchingProvenance|MomentAppearanceEvidenceDoesNotUseOtherCharactersBodyEvents)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs
+2026/11/13 11:17:58 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:1 retained_count:1 surface:]"
+--- PASS: TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs (1.33s)
+=== RUN   TestMomentInjuryEvidenceRequiresMatchingProvenance
+--- PASS: TestMomentInjuryEvidenceRequiresMatchingProvenance (0.00s)
+=== RUN   TestMomentAppearanceEvidenceDoesNotUseOtherCharactersBodyEvents
+--- PASS: TestMomentAppearanceEvidenceDoesNotUseOtherCharactersBodyEvents (1.30s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.312s
+
+EXIT_CODE 0

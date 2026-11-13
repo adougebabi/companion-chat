@@ -1,0 +1,13 @@
+SOURCE_HEAD 60ec741268024b82587f1d08b210891726fd45d8
+OVERLAYS apps/core-go/internal/core/moment_appearance_evidence_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs
+2026/11/13 11:09:58 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:1 retained_count:1 surface:]"
+    moment_appearance_evidence_integration_test.go:92: appearance business value changed: [{"count":0,"schema":{"properties":{"item_ids":{"type":"array"}}},"unknown":null,"valid":false},"Owner 提供的旧伤描述",{"body_part":"ankle","description":"脚踝扭伤","impact":"mobility_limited","severity":"moderate","status":"recovered"}]
+--- FAIL: TestMomentSelectedAppearanceKeepsBusinessValuesAndRemovesProvenEventIDs (2.44s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.179s
+FAIL
+
+EXIT_CODE 1

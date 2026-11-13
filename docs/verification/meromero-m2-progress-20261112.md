@@ -85,3 +85,8 @@ Provider 和渲染服务均为受控替身；M2-02 的真实模型失败、真�
 AEL `image-targets-disabled-moment-review`，暂不修改该行为。证据见
 `meromero-m2-evidence/m2-moment-disabled-target-observation.log`，隔离测试输入
 保存在同名 `.go.txt` 中，未加入常规测试集。
+
+继续原 T03 时，既有 24 个顶层输入契约与隔离回归通过。原任务历史中已登记的
+外貌证据递归删键缺口经正式 Moment 准备入口红测复现，现按同角色已确认身体
+事件来源区分 Core 标识与业务值。专项及含原有草稿的工作区验证通过，证据见
+`meromero-m2-evidence/t03-appearance-review.md`。原 T03 的其他证据类型继续处理。

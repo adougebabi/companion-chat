@@ -22,7 +22,7 @@
   "failure": "用户要求先逐项说明尚未完成内容；当前单元停止，未修改 T03 业务代码。既有提交 17cc7fb2 仅覆盖 Moment Active Memory；外貌证据、其他证据类型、全 Agent/variant 实际输入及来源追踪仍未完成或未验收。后续须遵循用户要求，按任务逐个收敛，不把受控测试或局部实现标为整体完成。",
   "result": "",
   "created": "2026-11-10T08:34:30.58656Z",
-  "updated": "2026-11-12T00:57:57.120407Z",
+  "updated": "2026-11-13T03:20:12.32569Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -103,6 +103,17 @@
         "ended": "2026-11-12T00:57:46.706915Z",
         "status": "fail",
         "reason": "用户要求先逐项说明尚未完成内容；当前单元停止，未修改 T03 业务代码。既有提交 17cc7fb2 仅覆盖 Moment Active Memory；外貌证据、其他证据类型、全 Agent/variant 实际输入及来源追踪仍未完成或未验收。后续须遵循用户要求，按任务逐个收敛，不把受控测试或局部实现标为整体完成。"
+      },
+      {
+        "id": "AT-af987862101346ff57c8",
+        "unit": "execute",
+        "executor": "codex-m2-t03-appearance",
+        "input_version": "51952a8b416a37516ba206440c3e59d2d7b7c048a8d4205dab8f457004d79342",
+        "candidate_version": "",
+        "started": "2026-11-13T03:07:09.280601Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
       }
     ],
     "checks": null

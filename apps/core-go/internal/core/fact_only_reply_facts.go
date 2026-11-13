@@ -179,6 +179,10 @@ func momentReplyToolFacts(facts []map[string]any) []map[string]any {
 			item := copyPromptFields(fact, "kind", "certainty")
 			item["value"] = momentReplyRelationshipEvidence(mapValue(fact["value"]))
 			result = append(result, item)
+		case string(ContextReferenceAppearance):
+			item := copyPromptFields(fact, "kind", "certainty")
+			item["value"] = copyPromptFields(mapValue(fact["value"]), "wearing_state", "body_fields", "worn_items", "used_items")
+			result = append(result, item)
 		case string(ContextReferenceDrive), string(ContextReferencePreference), string(ContextReferenceTrigger):
 			item := copyPromptFields(fact, "kind", "certainty")
 			item["value"] = copyPromptFields(mapValue(fact["value"]), "key", "label", "description", "value_schema", "trigger_schema", "value", "confidence", "status", "updated_at", "pressure", "salience", "direction")
