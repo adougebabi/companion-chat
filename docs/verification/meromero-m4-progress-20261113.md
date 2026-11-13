@@ -5,7 +5,7 @@
 | 单元 | 原始条目 | 唯一目标 | 状态 | 证据 |
 |---|---|---|---|---|
 | M4-01 | T11 14.3 开发调试权限 | 原始诊断读取和全文搜索需要 Operator 显式开启及 Owner 身份 | VERIFIED | 本目录 meromero-m4-evidence/debug-* |
-| M4-02 | T11 14.4 默认只读重放 | 在单个已存 correlation 范围内逐条回放记录，保留失败和分页缺口 | IMPLEMENTED，待提交后复验 | 正式调用详情及现有 diagnostic-records GET |
+| M4-02 | T11 14.4 默认只读重放 | 在单个已存 correlation 范围内逐条回放记录，保留失败和分页缺口 | VERIFIED | 正式调用详情及现有 diagnostic-records GET |
 
 ## M4-01
 
@@ -44,3 +44,5 @@ M4-01 收口提交 `8ca56aa56abc9c7bd48ed7b71ab01f892e9df017`。下一单元按 
 - 真实 Browser HTTP/隔离 PostgreSQL 对九类 GET 的读取测试通过，三个相同 call_id 的 requested/failed/completed 均保留。tool_executions、conversation_messages、media_intents、workflow_control_commands 行数读取前后相等。`replay-http.log` 退出 0，无 SKIP。受控数据与 nil runtime，不代表真实模型/Temporal执行或端到端浏览器。
 - Web build 退出 0，生产图扫描通过。保留既有大于 500kB chunk 警告，无本单元打包优化。`replay-build.log`。
 - 独立只读复核未发现指定范围阻断，复核者 React 13 项通过。四用户草稿保持原 SHA-256。
+
+M4-02 收口于提交 `0c0e259b8a9f300ed936ef31d49bbf7b8e954bb0`。提交后 HTTP/Browser/配置包及 API 编译退出 0，React 13 项退出 0，无 SKIP，typecheck 退出 0。证据为 `replay-*-postcommit.log`。
