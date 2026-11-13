@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/cloudwego/eino/schema"
@@ -17,6 +18,15 @@ func TestDomainPluginPostgresSettingsAdmissionAndReplay(t *testing.T) {
 		t.Fatal(err)
 	}
 	persistConversationReplyMode(t, ctx, repo, "legacy")
+	// The text-only sample mentions images. Its existing publication check
+	// requires a configured text model even while the Image plugin is disabled.
+	seedCognitiveProviderRole(t, ctx, repo, "plugin-checker-endpoint")
+	app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		if schema := providerWireSchemaName(payload); schema != "direct_media_delivery_check_v1" {
+			t.Errorf("unexpected model task in plugin admission test: %s", schema)
+		}
+		return fakeProviderResult{Structured: map[string]any{"claims": []any{}}}
+	})}
 	moment := ToolExecutionRequest{CapabilityName: "moment.publish", OperationID: "plugin-existing-moment", AuthorizationActorID: owner, FluctlightID: fid, Arguments: json.RawMessage(`{"text":"已发布的文字动态"}`)}
 	image := ToolExecutionRequest{CapabilityName: "media.image.generate", OperationID: "plugin-existing-image", AuthorizationActorID: owner, FluctlightID: fid, ConversationID: conversation, TargetKind: "conversation", TargetRef: conversation, Arguments: jsonBytes(map[string]any{"intent": "窗外风景", "media_plan": mediaTestPlan("landscape", "none", "no", "unknown")})}
 	firstMoment, err := app.ExecuteTool(ctx, moment)

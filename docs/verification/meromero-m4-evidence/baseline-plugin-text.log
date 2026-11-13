@@ -1,0 +1,14 @@
+SOURCE_HEAD 39068f2aaf225a5615a8906895bf4223ef03d1a0
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^TestDomainPluginPostgresSettingsAdmissionAndReplay$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestDomainPluginPostgresSettingsAdmissionAndReplay
+2026/11/13 19:56:18 WARN tool.call.handled capability=moment.publish call_id=direct_call_d587b53530c2a471f7016b1b40210506 warning_code=direct_media_delivery_check_failed disposition=unavailable effect_applied=false
+2026/11/13 19:56:18 WARN tool.call.handled capability=moment.publish call_id=direct_call_d587b53530c2a471f7016b1b40210506 warning_code=direct_media_delivery_check_failed disposition=unavailable effect_applied=false
+    domain_plugins_integration_test.go:86: text-only Moment depended on Image: core.ToolExecutionReceipt{OperationID:"plugin-text-moment-without-image", NativeToolCallID:"", ExecutionCallID:"direct_call_d587b53530c2a471f7016b1b40210506", Result:capability.CapabilityResult{ActingProfileID:"", CallID:"direct_call_d587b53530c2a471f7016b1b40210506", CapabilityName:"moment.publish", Status:"handled", Output:map[string]interface {}{"disposition":"unavailable", "effect_applied":false, "handled":true, "mutation_committed":false, "refresh_context":false, "refresh_reply":false, "retry_same_arguments":false, "warning_code":"direct_media_delivery_check_failed"}, ErrorCode:"", Retryable:false, ProviderRequestID:"", CorrelationID:"tool-operation:plugin-text-moment-without-image", Duration:0, RequiredContext:[]capability.ContextSlot(nil)}, AuthorityRevisions:core.ToolAuthorityRevisions{Before:(*core.ToolAuthorityRevisions)(0x233c4b7b4f00), Foundation:0, CurrentState:0, CurrentFacts:"facts_gen_11", LifeContext:"life_ctx_5c40befa036c12d56f8cc3e975a70c39"}, Replayed:false} <nil>
+--- FAIL: TestDomainPluginPostgresSettingsAdmissionAndReplay (2.61s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.482s
+FAIL
+
+EXIT_CODE 1

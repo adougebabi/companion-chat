@@ -1,0 +1,10 @@
+SOURCE_HEAD 160cc3a26a8728759b44b46b36f403f9fd56db99
+OVERLAYS apps/core-go/internal/core/domain_plugins_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestDomainPluginPostgresSettingsAdmissionAndReplay$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestDomainPluginPostgresSettingsAdmissionAndReplay
+--- PASS: TestDomainPluginPostgresSettingsAdmissionAndReplay (3.43s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	4.170s
+
+EXIT_CODE 0

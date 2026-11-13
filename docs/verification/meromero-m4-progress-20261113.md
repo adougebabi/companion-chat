@@ -118,3 +118,11 @@ M4-08 提交 7daa1863 后两次新隔离库、新页面进程的同一完整场�
 M4-09 提交 356e1702 后两次新隔离库与新页面进程均通过，退出 0、无 SKIP。replay-stored-run-postcommit.log。旧 AEL 租约续租返回 STALE_TOKEN，已在代码分批提交、测试退出及探子结束后恢复同一任务并领取新执行租约，技术验收与原父任务验收保持独立。
 
 M4-09 提交 356e1702 后两次独立场景通过，replay-stored-run-postcommit.log 退出 0、无 SKIP。随后生产 Web 构建在 IAB 原生浏览器打开本回合详情和只读回放，逐条查看对话回合、Agent、实际模型、physical_attempt、工具各阶段和运行终止，共 13 条。回放结束时模型调用增加 0、完整业务行集相等，replay-native-ui.log 退出 0、无 SKIP。截图 /private/tmp/fluctlight-m4-native-replay.jpg 保留仓库外。测试遍历显式回到首条再逐条前进，覆盖各来源异步加载时初始选中位置可能不同的情况；页面的稳定选中行为继续保留。
+
+## 最终回归发现的旧夹具前置
+
+final-core.log 的 DomainPluginPostgresSettingsAdmissionAndReplay 在 Image 关闭后的文字动态失败，错误为 direct_media_delivery_check_failed。39068f2a 起点的同测试、相同隔离容器和输入复现相同错误，baseline-plugin-text.log。正文“图片停用时的文字动态”进入现有发布核验，但原夹具没有文本模型。只在该测试内补默认文本绑定和受控 claims=[] 核验，原正文、全部原断言、插件和发布生产实现保留。当前与起点分别覆盖同一测试前置后通过，plugin-fixture-current.log / plugin-fixture-baseline.log，均退出 0、无 SKIP。故此为起点已有的测试前置失败，修正不改变业务。
+
+最终 Web 定向 57 项通过，无 SKIP。最终 HTTP/Browser/配置包和所有管理跨层场景通过，无 SKIP；API 编译通过。最终 Core 扩展回归按该夹具修正继续复验。
+
+Owner 已明确本轮真实模型保留未验收。两个既有 loopback Provider 端口连接拒绝，Mac 锁屏阻碍读取 MLX-Serve 配置。既有 CLI 在宿主环境可运行，其默认模型列表为空，已知请求仓库缓存没有确认到可加载配置，未确认当前 GUI 选定模型的目录。真实模型条目沿原要求保留恢复条件。
