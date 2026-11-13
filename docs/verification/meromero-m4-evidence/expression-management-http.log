@@ -1,0 +1,10 @@
+SOURCE_HEAD 9f55287b56af70440a89245488caf46050216d39
+OVERLAYS apps/core-go/internal/httpapi/model_management_react_integration_test.go
+COMMAND go test ./internal/httpapi -count=1 -run ^TestModelManagementReactHTTPPersistenceAndRuntime$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi [setup failed]
+FAIL
+# github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi
+internal/httpapi/model_management_react_integration_test.go:78:328: missing ',' in composite literal
+
+EXIT_CODE 1

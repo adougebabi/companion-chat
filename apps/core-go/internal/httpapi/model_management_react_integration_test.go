@@ -3,11 +3,13 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -31,6 +33,7 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 	}
 	var mu sync.Mutex
 	var models []string
+	var chatRequests []string
 	proposal := map[string]any{"schema_version": "fluctlight.reflection-proposal.v2", "summary": "Controlled management fixture", "emotional_summary": map[string]any{"dominant_patterns": []any{}, "triggers": []any{}, "recovery_patterns": []any{}, "conflicts": []any{}, "evidence_refs": []any{}}}
 	for _, key := range []string{"active_memory_candidates", "memory_candidates", "relationship_observations", "goal_candidates", "intention_candidates", "affect_recalibration_candidates", "drive_candidates", "preference_candidates", "trigger_candidates", "developing_self_candidates", "personality_evolution_candidates", "behavior_policy_evolution_candidates"} {
 		proposal[key] = []any{}
@@ -60,6 +63,38 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 		schema, _ := format["json_schema"].(map[string]any)
 		if schema["name"] == "persona_compilation_response" {
 			response = map[string]any{"portrait_text": "Synthetic fixture preserves the selected personality and its established habits."}
+		}
+
+		if schema["name"] == "expression_learning_v1" {
+			response = map[string]any{"candidates": []any{map[string]any{"source_ref": "s1", "excerpt": "慢慢来呀", "situation": "讨论当前进度"}}}
+		}
+		tools, _ := request["tools"].([]any)
+		if len(tools) > 0 {
+			names := make([]any, 0, len(tools))
+			for _, raw := range tools {
+				tool, _ := raw.(map[string]any)
+				function, _ := tool["function"].(map[string]any)
+				names = append(names, function["name"])
+			}
+			t.Logf("M4_PROVIDER_TOOLS schema=%v names=%v", schema["name"], names)
+		}
+		for _, raw := range tools {
+			tool, _ := raw.(map[string]any)
+			function, _ := tool["function"].(map[string]any)
+			if function["name"] != "conversation_reply" {
+				continue
+			}
+			wire, _ := json.Marshal(request["messages"])
+			mu.Lock()
+			chatRequests = append(chatRequests, string(wire))
+			callID := fmt.Sprintf("m4-expression-chat-%d", len(chatRequests))
+			mu.Unlock()
+			arguments, _ := json.Marshal(map[string]any{"text": "好，我知道了。", "decision": map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}}})
+			toolCall := map[string]any{"id": callID, "type": "function", "function": map[string]any{"name": function["name"], "arguments": string(arguments)}}
+			message := map[string]any{"role": "assistant", "tool_calls": []any{toolCall}}
+			choice := map[string]any{"index": 0, "finish_reason": "tool_calls", "message": message}
+			_ = json.NewEncoder(w).Encode(map[string]any{"model": model, "choices": []any{choice}})
+			return
 		}
 		content, _ := json.Marshal(response)
 		if len(format) == 0 {
@@ -183,6 +218,47 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 		var moments, images int
 		if err := repo.Pool().QueryRow(ctx, `SELECT (SELECT count(*) FROM public.moments WHERE owner_fluctlight_id='m4-reflection'),(SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id='m4-reflection')`).Scan(&moments, &images); err != nil || moments != 1 || images != 0 {
 			t.Fatal("plugin persistence", moments, images, err)
+		}
+	})
+
+	t.Run("expression review page and next direct request", func(t *testing.T) {
+		if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES('human-1','m4-reflection','m4-conversation')`); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := app.AcceptTurn(ctx, "human-1", "m4-conversation", map[string]any{"fluctlight_id": "m4-reflection", "text": "慢慢来呀", "turn_id": "m4-expression-source", "idempotency_key": "m4-expression-source", "attachment_refs": []any{}}); err != nil {
+			t.Fatal(err)
+		}
+		for _, phase := range []string{"enable", "disable"} {
+			command := exec.CommandContext(ctx, "node", filepath.Join(webRoot, "test", "expression-management-http-scenario.mjs"), phase)
+			command.Dir = webRoot
+			command.Env = append(os.Environ(), "FLUCTLIGHT_M4_HTTP_BASE="+browser.URL)
+			output, err := command.CombinedOutput()
+			t.Log(string(output))
+			if err != nil {
+				t.Fatal("expression review page", phase, err)
+			}
+			mu.Lock()
+			before := len(chatRequests)
+			mu.Unlock()
+			id := "m4-expression-" + phase
+			if _, err := app.HandleTurn(ctx, "human-1", "m4-conversation", map[string]any{"fluctlight_id": "m4-reflection", "text": "现在进度怎么样？", "turn_id": id, "idempotency_key": id, "attachment_refs": []any{}}); err != nil {
+				t.Fatal("formal direct expression turn", phase, err)
+			}
+			mu.Lock()
+			count := len(chatRequests)
+			wire := ""
+			if count > before {
+				wire = chatRequests[before]
+			}
+			mu.Unlock()
+			if count != before+1 {
+				t.Fatal("unexpected main request count", count, before)
+			}
+			injected := strings.Contains(wire, "expression_suggestions")
+			if injected != (phase == "enable") || (injected && !strings.Contains(wire, "慢慢来呀")) {
+				t.Fatal("expression runtime consumption", phase, injected)
+			}
+			t.Logf("M4_EXPRESSION_RUNTIME phase=%s suggestions=%t formal_direct_contract=pass", phase, injected)
 		}
 	})
 

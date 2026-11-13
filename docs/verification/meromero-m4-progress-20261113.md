@@ -83,10 +83,18 @@ M4-04 在提交 aeb21237 的干净源码上两轮独立场景复验通过，退�
 
 M4-05 的三个实际覆盖文件与提交 76dbc6e1 按 SHA-256 完全一致，生产实现相对浏览器受检版本未变。提交后 HTTP/Browser/配置全包及 API 编译通过，无 SKIP。详见 native-source-and-screenshots.txt 与 native-postcommit-regression.log。
 
-M4-06 IMPLEMENTED，待提交后复验，补插件开关从真实 React 页面经 HTTP 保存、重新挂载回读，再由正式独立 Tool 消费同一配置。仅使用一次性库的合成文字动态，图片保持停用以验证拒绝，不调用外部生图。
+M4-06 VERIFIED，补插件开关从真实 React 页面经 HTTP 保存、重新挂载回读，再由正式独立 Tool 消费同一配置。仅使用一次性库的合成文字动态，图片保持停用以验证拒绝，不调用外部生图。
 
 ### M4-06 实际结果
 
 真实 React 配置页分别保存 plugins.domains 的 false/false（version 1）和 false/true（version 2），真实 HTTP 回读后重新挂载页面，开关状态与保存值一致。正式 ExecuteTool 在前一阶段拒绝 Image 与 Moment，后一阶段只允许 Moment。后者通过现有独立 Writer 生成纯文本并在隔离库持久化一条动态；图片 intent 为 0，其他正式 reflection 任务继续使用默认模型并通过合同。受控 Provider 不代表真实推理或渲染。日志 `plugin-management-http-contract1.log` 退出 0，无 SKIP。
 
 首轮测试沿用了 legacy 的 text 参数，当前默认模式的独立 Moment 正式合同只接收 evidence_refs，故返回 handled/needs_input。测试已改用现行无正文参数，并给受控 Writer 返回纯文本，未切换默认模式或修改业务合同。失败保存在 `plugin-management-http.log`。另外测试断言的 moments 归属列名在静态核对时修正为 owner_fluctlight_id，首轮未执行到该计数断言。React 异步轮询已包入测试 act，原警告保留在首轮日志。
+
+M4-06 提交 9f55287b 后，两次新隔离数据库、新页面进程的同一模型+插件场景串行复验通过，退出 0，无 SKIP，见 plugin-management-postcommit.log。
+
+## M4-07 表达审核页面到新 direct 请求
+
+状态 IMPLEMENTED，待提交后复验。真实 ExpressionLearningPanel / createSelfProvider / BrowserClient 经隔离 HTTP 开启学习与参考，从正式 AcceptTurn 的合成 Owner 消息提取候选、审核并设置触发词。重新挂载回读“使用中”后，正式 HandleTurn 的实际请求包含候选。页面停用并重新挂载回读“已停用”后，新 HandleTurn 请求不再含 expression_suggestions。两次均正常发布，已有单主 direct 合同通过；模型响应为受控原生 ToolCall，不代表真实模型自主模仿。
+
+保留首轮 Go 复合字面量语法错误（测试未真正运行），修正后表单测试错误假设了 aria-label，按正式 label/htmlFor 读取字段。之后受控响应使用 Core capability 名 conversation.reply，实际物理请求公布的是 conversation_reply，导致原生最终合同失败；观察实际请求工具名后改按已公布 wire 名回复。两次失败及只读观察记录分别保存在 expression-management-http*.log。未修改正式工具 schema、校验或生产路由。完整场景在 expression-management-http-wire1.log 退出 0、无 SKIP。
