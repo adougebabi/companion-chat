@@ -256,6 +256,14 @@ func TestActorCorrectionRejectsUnrelatedAttributeAtomically(t *testing.T) {
 }
 
 func TestActorCorrectionFiltersEvolutionOverlayAfterReload(t *testing.T) {
+	testActorFactSourceRetiresEvolutionOverlay(t, false)
+}
+
+func TestActorFactExpiryFiltersEvolutionOverlayAfterReload(t *testing.T) {
+	testActorFactSourceRetiresEvolutionOverlay(t, true)
+}
+
+func testActorFactSourceRetiresEvolutionOverlay(t *testing.T, expiry bool) {
 	f := seedWardrobeToolFixture(t)
 	old := recordActorFact(t, f, "overlay-location", "assert", "location_scope", "same_building", "")
 	baseline := PersonaEvolutionState{FluctlightID: f.fluctlightID, ProfileID: "default", ProfileRef: "personality:ctx_" + stableDigest("overlay-test"), BehaviorPolicy: map[string]any{}, Personality: map[string]any{"traits": map[string]any{"openness": 0.5}}}
@@ -276,7 +284,21 @@ func TestActorCorrectionFiltersEvolutionOverlayAfterReload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	recordActorFact(t, f, "overlay-correction", "correct", "location_scope", "abroad", "")
+	if expiry {
+		if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.actor_facts SET valid_from=now()-interval '2 hours',valid_until=now()-interval '1 hour' WHERE id=$1`, old); err != nil {
+			t.Fatal(err)
+		}
+		businessAt := time.Now().UTC().Add(-90 * time.Minute)
+		core := map[string]any{"personality": baseline.Personality, "behavioral_policy": baseline.BehaviorPolicy, "personality_system": map[string]any{"profiles": []any{map[string]any{"id": "default", "personality": baseline.Personality, "behavioral_policy": baseline.BehaviorPolicy}}}}
+		if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
+			return verifyCompiledOverlayVersionsTx(f.ctx, tx, f.fluctlightID, core, []CompiledWorkingPersona{{ProfileID: "default", OverlayRevision: 1}}, businessAt)
+		}); err != nil {
+			t.Fatalf("publication used a different clock from valid compilation: %v", err)
+		}
+
+	} else {
+		recordActorFact(t, f, "overlay-correction", "correct", "location_scope", "abroad", "")
+	}
 	loaded, err := loadPersonaEvolutionState(f.ctx, f.repository.Pool(), baseline)
 	if err != nil || len(loaded.Overlays) != 1 || loaded.Overlays[0].Status != OverlaySuperseded || portraitOverlayRevision(loaded) != 0 {
 		t.Fatalf("stale overlay %#v %v", loaded, err)

@@ -518,7 +518,7 @@ func (a *App) setFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 					return err
 				}
 			} else {
-				if err := verifyCompiledOverlayVersionsTx(ctx, tx, fluctlightID, decodeObject(corePersona), compiledWorkingPersonas); err != nil {
+				if err := verifyCompiledOverlayVersionsTx(ctx, tx, fluctlightID, decodeObject(corePersona), compiledWorkingPersonas, a.now()); err != nil {
 					return err
 				}
 				if err := verifyCompiledBudgetTx(ctx, tx, compiledWorkingPersonas); err != nil {
@@ -662,7 +662,7 @@ func (a *App) RollbackFoundation(ctx context.Context, actorID, fluctlightID stri
 		if _, err := tx.Exec(ctx, `UPDATE public.fluctlights SET current_revision=$2,core_persona=$3,identity=$4,personality=$5,behavioral_policy=$6,life_profile=$7,provenance=$8,updated_at=now() WHERE id=$1`, fluctlightID, newRevision, corePersona, identity, personality, policy, life, provenance); err != nil {
 			return err
 		}
-		if err := verifyCompiledOverlayVersionsTx(ctx, tx, fluctlightID, decodeObject(corePersona), compiledWorkingPersonas); err != nil {
+		if err := verifyCompiledOverlayVersionsTx(ctx, tx, fluctlightID, decodeObject(corePersona), compiledWorkingPersonas, a.now()); err != nil {
 			return err
 		}
 		if err := verifyCompiledBudgetTx(ctx, tx, compiledWorkingPersonas); err != nil {

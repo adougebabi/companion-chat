@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -9,14 +10,30 @@ import (
 )
 
 func TestMemoryCorrectionInvalidatesReflectionDevelopingSelf(t *testing.T) {
-	testMemoryCorrectionInvalidatesReflectionDevelopingSelf(t, false)
+	testMemoryCorrectionInvalidatesReflectionDevelopingSelf(t, "memory")
 }
 
 func TestMemorySummaryAncestorCorrectionInvalidatesReflectionDevelopingSelf(t *testing.T) {
-	testMemoryCorrectionInvalidatesReflectionDevelopingSelf(t, true)
+	testMemoryCorrectionInvalidatesReflectionDevelopingSelf(t, "summary")
 }
 
-func testMemoryCorrectionInvalidatesReflectionDevelopingSelf(t *testing.T, summaryAncestor bool) {
+func TestActiveMemoryCorrectionInvalidatesReflectionDevelopingSelf(t *testing.T) {
+	testMemoryCorrectionInvalidatesReflectionDevelopingSelf(t, "active")
+}
+
+func TestActiveMemoryExpiryRetiresReflectionDevelopingSelf(t *testing.T) {
+	testMemoryCorrectionInvalidatesReflectionDevelopingSelf(t, "active_expiry")
+}
+
+func TestActiveMemoryActorExpiryRetiresReflectionDevelopingSelf(t *testing.T) {
+	testMemoryCorrectionInvalidatesReflectionDevelopingSelf(t, "active_actor_expiry")
+}
+
+func TestOutcomeRevisionInvalidatesReflectionDevelopingSelf(t *testing.T) {
+	testMemoryCorrectionInvalidatesReflectionDevelopingSelf(t, "outcome")
+}
+
+func testMemoryCorrectionInvalidatesReflectionDevelopingSelf(t *testing.T, sourceKind string) {
 	ctx, repo, app, owner, fid, conversation := durableReplyFixture(t, "memory-self-source")
 	index := newContextReferenceIndex(ContextProjection{FluctlightID: fid, OwnerActorID: owner, ConversationID: conversation, CurrentSpeaker: map[string]any{"actor_id": owner}, PersonalityRuntime: map[string]any{"active_profile_id": "default"}})
 	var sources []MemoryApplyResult
@@ -36,7 +53,7 @@ func testMemoryCorrectionInvalidatesReflectionDevelopingSelf(t *testing.T, summa
 		}
 		refs = append(refs, ref)
 	}
-	if summaryAncestor {
+	if sourceKind == "summary" {
 		seedConversationSummaryMessages(t, ctx, repo, owner, fid, conversation, 1, 2)
 		if _, err := repo.Pool().Exec(ctx, `UPDATE public.conversation_messages SET text=CASE sequence WHEN 1 THEN '我喜欢散步' ELSE '以前也这么说过' END WHERE conversation_id=$1`, conversation); err != nil {
 			t.Fatal(err)
@@ -71,6 +88,80 @@ func testMemoryCorrectionInvalidatesReflectionDevelopingSelf(t *testing.T, summa
 		refs[0], err = index.add(ContextReferenceMemory, stored.MemoryID, stored.Revision, decodeObject(raw))
 		if err != nil {
 			t.Fatal(err)
+		}
+	}
+	correctSource := func() error {
+		revision := sources[0].Revision
+		_, err := app.ReviseMemory(ctx, owner, sources[0].MemoryID, "更正：先前的散步偏好推断没有依据", &revision, []any{"owner:walking-correction"})
+		return err
+	}
+	if sourceKind == "active" || sourceKind == "active_expiry" || sourceKind == "active_actor_expiry" {
+		command := PreparedActiveMemoryMutation{SchemaVersion: activeMemoryLifecycleSchemaVersion, Operation: ActiveMemoryCreate, OwnerFluctlightID: fid, OwnerActorID: owner, ActorID: owner, ActorRefs: []string{owner}, SourceFactID: "owner:walking-plan", EvidenceRefs: []string{"owner:walking-plan"}, SourceKind: "authenticated_command", OccurredAt: app.now(), SemanticReason: "Owner confirmed temporary commitment", IdempotencyKey: "profile-active-source", Semantic: &ActiveMemorySemanticInput{Kind: "commitment", Content: "今晚去散步", Confidence: 0.9, Importance: 0.9, TimePrecision: "unknown", Timezone: "UTC"}}
+		if sourceKind == "active_expiry" {
+			until := app.now().UTC().Add(time.Hour)
+			command.Semantic.TimePrecision = "exact"
+			command.Semantic.OriginalTimeExpression = "未来一小时"
+			command.Semantic.ValidUntil = &until
+		}
+		command.SourceFingerprint = stableDigest(command.IdempotencyKey + "\x1f" + command.SourceFactID)
+		command.RequestDigest = activeMemoryCommandDigest(command)
+		created := applyActiveMemoryLifecycleTestCommand(t, ctx, app, command)
+		var raw []byte
+		if err := repo.Pool().QueryRow(ctx, `SELECT to_jsonb(m) FROM public.active_memories m WHERE id=$1`, created.ActiveMemoryID).Scan(&raw); err != nil {
+			t.Fatal(err)
+		}
+		var err error
+		refs[0], err = index.add(ContextReferenceActiveMemory, created.ActiveMemoryID, created.Revision, decodeObject(raw))
+		if err != nil {
+			t.Fatal(err)
+		}
+		actorDependency := ""
+		if sourceKind == "active_actor_expiry" {
+			f := independentToolE2EFixture{ctx: ctx, repository: repo, app: app, ownerID: owner, fluctlightID: fid, conversationID: conversation, suffix: "profile-active-dependency"}
+			actorDependency = recordActorFact(t, f, "profile-location", "assert", "location_scope", "same_building", "")
+			if err := withTransaction(ctx, repo.Pool(), func(tx pgx.Tx) error {
+				return attachActorFactArtifactTx(ctx, tx, fid, actorDependency, "active_memory", created.ActiveMemoryID, created.Revision, app.now())
+			}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		correctSource = func() error {
+			if sourceKind == "active_actor_expiry" {
+				_, err := repo.Pool().Exec(ctx, `UPDATE public.actor_facts SET valid_from=now()-interval '2 hours',valid_until=now()-interval '1 hour' WHERE id=$1`, actorDependency)
+				return err
+			}
+			if sourceKind == "active_expiry" {
+				app.Clock = fixedClock(command.Semantic.ValidUntil.Add(time.Minute))
+				return nil
+			}
+			revised := command
+			revised.Operation, revised.IdempotencyKey = ActiveMemoryRevise, "profile-active-correction"
+			revised.Target = &ActiveMemoryTarget{ActiveMemoryID: created.ActiveMemoryID, ExpectedRevision: created.Revision}
+			revised.Semantic = &ActiveMemorySemanticInput{Kind: "commitment", Content: "更正：这个散步承诺已撤回", Confidence: 0.9, Importance: 0.9, TimePrecision: "unknown", Timezone: "UTC"}
+			revised.SourceFingerprint = stableDigest(revised.IdempotencyKey + "\x1f" + revised.SourceFactID)
+			revised.RequestDigest = activeMemoryCommandDigest(revised)
+			return withTransaction(ctx, repo.Pool(), func(tx pgx.Tx) error {
+				_, err := app.applyActiveMemoryCommandTx(ctx, tx, revised)
+				return err
+			})
+		}
+	}
+	if sourceKind == "outcome" {
+		if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.cognition_action_outcomes(id,fluctlight_id,action_id,call_id,capability_name,status,success_boundary,expected,observed,goal_refs,intention_refs,evidence_refs,context_references,revision,request_digest,occurred_at) VALUES('profile-outcome',$1,'profile-action','profile-call','life.activity.advance','completed','confirmed_result','{}','{"walking":"completed"}','[]','[]','[]','{}',1,$2,now())`, fid, strings.Repeat("a", 64)); err != nil {
+			t.Fatal(err)
+		}
+		var raw []byte
+		if err := repo.Pool().QueryRow(ctx, `SELECT to_jsonb(o) FROM public.cognition_action_outcomes o WHERE id='profile-outcome'`).Scan(&raw); err != nil {
+			t.Fatal(err)
+		}
+		var err error
+		refs[0], err = index.add(ContextReferenceOutcome, "profile-outcome", 1, decodeObject(raw))
+		if err != nil {
+			t.Fatal(err)
+		}
+		correctSource = func() error {
+			_, err := repo.Pool().Exec(ctx, `UPDATE public.cognition_action_outcomes SET revision=2,request_digest=$1,observed='{"walking":"unknown"}' WHERE id='profile-outcome'`, strings.Repeat("b", 64))
+			return err
 		}
 	}
 	evolution, err := BuildEvolutionContext(EvolutionContext{ProviderRole: "reflection", FluctlightID: fid, SourceWindow: "sequence:1-2", FromSequence: 1, ToSequence: 2, Watermark: 0, Evidence: []EvolutionEvidence{{Ref: "reflection-opportunity", Kind: "conversation", Summary: "一次反思机会", Sequence: 1, OccurredAt: time.Now().UTC()}}, ReferenceIndex: index, BaseRevisions: map[string]int{string(EvolutionDevelopingSelf): 0, string(EvolutionAffectProfile): 0}})
@@ -109,11 +200,10 @@ func testMemoryCorrectionInvalidatesReflectionDevelopingSelf(t *testing.T, summa
 	if err := repo.Pool().QueryRow(ctx, `SELECT core_persona::text FROM public.fluctlights WHERE id=$1`, fid).Scan(&beforeCore); err != nil {
 		t.Fatal(err)
 	}
-	revision := sources[0].Revision
-	if _, err := app.ReviseMemory(ctx, owner, sources[0].MemoryID, "更正：先前的散步偏好推断没有依据", &revision, []any{"owner:walking-correction"}); err != nil {
+	if err := correctSource(); err != nil {
 		t.Fatal(err)
 	}
-	restarted := &App{DB: repo}
+	restarted := &App{DB: repo, Clock: app.Clock}
 	after, err := restarted.listDevelopingSelfClaims(ctx, fid)
 	if err != nil || len(after) != 0 {
 		t.Fatalf("Memory correction left a derived self claim active: %#v err=%v", after, err)

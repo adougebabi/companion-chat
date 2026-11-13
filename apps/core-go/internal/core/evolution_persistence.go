@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -417,8 +418,12 @@ func persistEvolutionOverlayTx(ctx context.Context, tx pgx.Tx, before, after Per
 	return false, nil
 }
 
-func loadPersonaEvolutionState(ctx context.Context, query scheduleQuerier, baseline PersonaEvolutionState) (PersonaEvolutionState, error) {
+func loadPersonaEvolutionState(ctx context.Context, query scheduleQuerier, baseline PersonaEvolutionState, clocks ...time.Time) (PersonaEvolutionState, error) {
 	result := clonePersonaEvolutionState(baseline)
+	at := time.Now().UTC()
+	if len(clocks) > 0 && !clocks[0].IsZero() {
+		at = clocks[0].UTC()
+	}
 	var rawRevisions []byte
 	if err := query.QueryRow(ctx, `SELECT profile_ref,revision,domain_revisions FROM public.fluctlight_evolution_states WHERE fluctlight_id=$1 AND profile_id=$2`, baseline.FluctlightID, baseline.ProfileID).Scan(&result.ProfileRef, &result.Revision, &rawRevisions); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -426,7 +431,7 @@ func loadPersonaEvolutionState(ctx context.Context, query scheduleQuerier, basel
 		}
 		return PersonaEvolutionState{}, err
 	}
-	rows, err := query.Query(ctx, `SELECT id,ref,kind,field_path,value_kind,semantic_direction,requested_delta,applied_delta,before_value,after_value,confidence,evidence_refs,evidence_windows,policy_version,base_revision,revision,status,COALESCE(supersedes,''),COALESCE(rollback_of,''),cooldown_until,created_at,EXISTS(SELECT 1 FROM public.actor_fact_artifacts d JOIN public.actor_facts f ON f.id=d.fact_id WHERE d.artifact_kind='evolution_overlay' AND d.artifact_id=fluctlight_evolution_overlays.id AND d.artifact_revision=fluctlight_evolution_overlays.revision AND (f.status<>'active' OR f.revision<>d.fact_revision)) FROM public.fluctlight_evolution_overlays WHERE fluctlight_id=$1 AND profile_id=$2 ORDER BY revision`, baseline.FluctlightID, baseline.ProfileID)
+	rows, err := query.Query(ctx, `SELECT id,ref,kind,field_path,value_kind,semantic_direction,requested_delta,applied_delta,before_value,after_value,confidence,evidence_refs,evidence_windows,policy_version,base_revision,revision,status,COALESCE(supersedes,''),COALESCE(rollback_of,''),cooldown_until,created_at,EXISTS(SELECT 1 FROM public.actor_fact_artifacts d JOIN public.actor_facts f ON f.id=d.fact_id WHERE d.artifact_kind='evolution_overlay' AND d.artifact_id=fluctlight_evolution_overlays.id AND d.artifact_revision=fluctlight_evolution_overlays.revision AND (f.status<>'active' OR f.revision<>d.fact_revision OR f.valid_from>$3 OR (f.valid_until IS NOT NULL AND f.valid_until<=$3))) FROM public.fluctlight_evolution_overlays WHERE fluctlight_id=$1 AND profile_id=$2 ORDER BY revision`, baseline.FluctlightID, baseline.ProfileID, at)
 	if err != nil {
 		return PersonaEvolutionState{}, err
 	}
@@ -467,7 +472,7 @@ func loadPersonaEvolutionState(ctx context.Context, query scheduleQuerier, basel
 		if overlay.Status != OverlayActive && overlay.Status != OverlaySuperseded {
 			continue
 		}
-		live, err := reflectionOverlayMemoryEvidenceLive(ctx, query, baseline.FluctlightID, *overlay)
+		live, err := reflectionOverlayMemoryEvidenceLive(ctx, query, baseline.FluctlightID, *overlay, at)
 		if err != nil {
 			return PersonaEvolutionState{}, err
 		}

@@ -182,7 +182,7 @@ func (a *App) ProcessPersonaPreparationIntent(ctx context.Context, id string) (m
 		if before != after {
 			return ErrConflict
 		}
-		if err := verifyCompiledOverlayVersionsTx(ctx, tx, fid, resource.CorePersona, compiled); err != nil {
+		if err := verifyCompiledOverlayVersionsTx(ctx, tx, fid, resource.CorePersona, compiled, a.now()); err != nil {
 			return err
 		}
 		if err := verifyCompiledBudgetTx(ctx, tx, compiled); err != nil {

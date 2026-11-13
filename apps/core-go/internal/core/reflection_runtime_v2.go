@@ -249,7 +249,7 @@ func (a *App) processReflectionV2(
 		}
 	}
 	overlayBaseline := personaEvolutionBaselineFromProjection(projection)
-	overlayState, err := loadPersonaEvolutionState(ctx, a.DB.Pool(), overlayBaseline)
+	overlayState, err := loadPersonaEvolutionState(ctx, a.DB.Pool(), overlayBaseline, a.now())
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
@@ -267,7 +267,7 @@ func (a *App) processReflectionV2(
 		} else {
 			candidate = proposal.BehaviorPolicyEvolutionCandidates[candidatePlan.Index]
 		}
-		live, sourceErr := reflectionMemoryEvidenceLive(ctx, a.DB.Pool(), fluctlightID, candidate.EvidenceRefs, evolution.ReferenceIndex)
+		live, sourceErr := reflectionMemoryEvidenceLive(ctx, a.DB.Pool(), fluctlightID, candidate.EvidenceRefs, evolution.ReferenceIndex, a.now())
 		if sourceErr != nil {
 			_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 			return nil, sourceErr
@@ -427,7 +427,7 @@ func (a *App) processReflectionV2(
 		if err := a.applyReflectionDevelopingSelfV2Tx(ctx, tx, fluctlightID, proposal, &plan, evolution, projection.ActorFacts); err != nil {
 			return err
 		}
-		liveOverlayState, loadErr := loadPersonaEvolutionState(ctx, tx, overlayBaseline)
+		liveOverlayState, loadErr := loadPersonaEvolutionState(ctx, tx, overlayBaseline, a.now())
 		if loadErr != nil {
 			return loadErr
 		}
@@ -439,7 +439,7 @@ func (a *App) processReflectionV2(
 			if !ok {
 				continue
 			}
-			live, sourceErr := reflectionMemoryEvidenceLive(ctx, tx, fluctlightID, decision.Overlay.EvidenceRefs, evolution.ReferenceIndex)
+			live, sourceErr := reflectionMemoryEvidenceLive(ctx, tx, fluctlightID, decision.Overlay.EvidenceRefs, evolution.ReferenceIndex, a.now())
 			if sourceErr != nil {
 				return sourceErr
 			}
@@ -452,7 +452,7 @@ func (a *App) processReflectionV2(
 			} else {
 				candidate = proposal.PersonalityEvolutionCandidates[candidatePlan.Index]
 			}
-			historyLive, historyErr := reflectionOverlayHistoryMemoryEvidenceLive(ctx, tx, fluctlightID, decision.Overlay.EvidenceWindows, evolution.SourceWindow, candidate, candidatePlan.Domain)
+			historyLive, historyErr := reflectionOverlayHistoryMemoryEvidenceLive(ctx, tx, fluctlightID, decision.Overlay.EvidenceWindows, evolution.SourceWindow, candidate, candidatePlan.Domain, a.now())
 			if historyErr != nil {
 				return historyErr
 			}
@@ -626,7 +626,7 @@ func (a *App) reflectionOverlayEvidenceWindows(ctx context.Context, fluctlightID
 		}
 		for _, item := range items {
 			if item.FieldPath == candidate.FieldPath && item.Direction == candidate.Direction && item.SemanticValue == candidate.SemanticValue {
-				live, err := reflectionMemoryEvidenceLive(ctx, a.DB.Pool(), fluctlightID, item.EvidenceRefs, evolution.ReferenceIndex)
+				live, err := reflectionMemoryEvidenceLive(ctx, a.DB.Pool(), fluctlightID, item.EvidenceRefs, evolution.ReferenceIndex, a.now())
 				if err != nil {
 					return nil, err
 				}

@@ -1,0 +1,15 @@
+SOURCE_HEAD 7731b7daa81085a0e9c15b0bb36d062f022e24e0
+OVERLAYS apps/core-go/internal/core/memory_profile_correction_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^Test(ActiveMemoryCorrection|OutcomeRevision)InvalidatesReflectionDevelopingSelf$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestActiveMemoryCorrectionInvalidatesReflectionDevelopingSelf
+    memory_profile_correction_integration_test.go:177: Memory correction left a derived self claim active: []core.DevelopingSelfClaim{core.DevelopingSelfClaim{ID:"self_claim_17506f7c896497ca1108a1e2c15d54cf", FluctlightID:"mixed-fluctlight-memory-self-source", Category:"preference", Claim:"我喜欢散步", Value:map[string]interface {}{"statement":"我喜欢散步"}, Confidence:0.9, EvidenceRefs:[]string{"active_memory:ctx_fe0cfb786d03dae3c05bfddd080c1693", "memory:ctx_72a69471e4043389a9b5139231b6ec5f"}, Provenance:map[string]interface {}{"proposal_id":"reflection_proposal_ac770cce132404601b3b75614377f653", "source":"reflection_v2"}, Status:"active", ExpiresAt:<nil>, Revision:1, SupersededBy:(*string)(nil), CreatedAt:time.Date(2026, time.November, 13, 16, 12, 56, 639190000, time.Local), UpdatedAt:time.Date(2026, time.November, 13, 16, 12, 56, 639190000, time.Local)}} err=<nil>
+--- FAIL: TestActiveMemoryCorrectionInvalidatesReflectionDevelopingSelf (1.81s)
+=== RUN   TestOutcomeRevisionInvalidatesReflectionDevelopingSelf
+    memory_profile_correction_integration_test.go:177: Memory correction left a derived self claim active: []core.DevelopingSelfClaim{core.DevelopingSelfClaim{ID:"self_claim_17506f7c896497ca1108a1e2c15d54cf", FluctlightID:"mixed-fluctlight-memory-self-source", Category:"preference", Claim:"我喜欢散步", Value:map[string]interface {}{"statement":"我喜欢散步"}, Confidence:0.9, EvidenceRefs:[]string{"outcome:ctx_cae355d309f8ddf28ed1d09f03de4d01", "memory:ctx_1309e6a633127602b89ef55c80ee176c"}, Provenance:map[string]interface {}{"proposal_id":"reflection_proposal_7c002c0c0970e316be3cf5a6b26c2377", "source":"reflection_v2"}, Status:"active", ExpiresAt:<nil>, Revision:1, SupersededBy:(*string)(nil), CreatedAt:time.Date(2026, time.November, 13, 16, 12, 57, 814183000, time.Local), UpdatedAt:time.Date(2026, time.November, 13, 16, 12, 57, 814183000, time.Local)}} err=<nil>
+--- FAIL: TestOutcomeRevisionInvalidatesReflectionDevelopingSelf (1.17s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.900s
+FAIL
+
+EXIT_CODE 1

@@ -141,7 +141,7 @@ func (a *App) listDevelopingSelfClaims(ctx context.Context, fluctlightID string)
 	rows.Close()
 	live := make([]DevelopingSelfClaim, 0, len(result))
 	for _, claim := range result {
-		valid, err := developingSelfMemoryEvidenceLive(ctx, a.DB.Pool(), fluctlightID, claim.Provenance, claim.EvidenceRefs)
+		valid, err := developingSelfMemoryEvidenceLive(ctx, a.DB.Pool(), fluctlightID, claim.Provenance, claim.EvidenceRefs, a.now())
 		if err != nil {
 			return nil, err
 		}

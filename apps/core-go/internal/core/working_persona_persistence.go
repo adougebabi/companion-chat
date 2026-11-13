@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -146,7 +147,7 @@ func (a *App) personaCompilationInputForProfile(ctx context.Context, fluctlightI
 	}
 	input.EffectiveLifeHabits = &habits
 	baseline := personaEvolutionBaseline(fluctlightID, mapValue(corePersona["personality"]), mapValue(corePersona["behavioral_policy"]), mapValue(corePersona["personality_system"]), map[string]any{"active_profile_id": profileID})
-	state, err := loadPersonaEvolutionState(ctx, a.DB.Pool(), baseline)
+	state, err := loadPersonaEvolutionState(ctx, a.DB.Pool(), baseline, a.now())
 	if err != nil {
 		return PersonaCompilationInput{}, err
 	}
@@ -326,10 +327,10 @@ func insertCompiledWorkingPersonasTx(ctx context.Context, tx pgx.Tx, fluctlightI
 	return nil
 }
 
-func verifyCompiledOverlayVersionsTx(ctx context.Context, tx pgx.Tx, fluctlightID string, corePersona map[string]any, compiled []CompiledWorkingPersona) error {
+func verifyCompiledOverlayVersionsTx(ctx context.Context, tx pgx.Tx, fluctlightID string, corePersona map[string]any, compiled []CompiledWorkingPersona, clocks ...time.Time) error {
 	for _, item := range compiled {
 		baseline := personaEvolutionBaseline(fluctlightID, mapValue(corePersona["personality"]), mapValue(corePersona["behavioral_policy"]), mapValue(corePersona["personality_system"]), map[string]any{"active_profile_id": item.ProfileID})
-		state, err := loadPersonaEvolutionState(ctx, tx, baseline)
+		state, err := loadPersonaEvolutionState(ctx, tx, baseline, clocks...)
 		if err != nil {
 			return err
 		}

@@ -402,7 +402,7 @@ func clonePersonaEvolutionState(state PersonaEvolutionState) PersonaEvolutionSta
 
 func (a *App) readEffectivePersonaProjection(ctx context.Context, fluctlight Fluctlight, system, runtime map[string]any) (map[string]any, []map[string]any, error) {
 	baseline := personaEvolutionBaseline(fluctlight.ID, fluctlight.Personality, fluctlight.BehavioralPolicy, system, runtime)
-	state, err := loadPersonaEvolutionState(ctx, a.DB.Pool(), baseline)
+	state, err := loadPersonaEvolutionState(ctx, a.DB.Pool(), baseline, a.now())
 	if err != nil {
 		return nil, nil, err
 	}

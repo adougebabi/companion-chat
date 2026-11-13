@@ -276,7 +276,7 @@ func (service *personaActionBusinessService) applyPersonaActionTx(ctx context.Co
 				if stringValue(profile["id"]) == targetID {
 					persona := corePersonaData(decodeObject(rawPersona))
 					baseline := personaEvolutionBaseline(plan.FluctlightID, mapValue(persona["personality"]), mapValue(persona["behavioral_policy"]), mapValue(persona["personality_system"]), map[string]any{"active_profile_id": targetID})
-					state, loadErr := loadPersonaEvolutionState(ctx, tx, baseline)
+					state, loadErr := loadPersonaEvolutionState(ctx, tx, baseline, service.app.now())
 					if loadErr != nil {
 						return failedCapabilityResult(invocation, "persona_overlay_read_failed", true), loadErr
 					}

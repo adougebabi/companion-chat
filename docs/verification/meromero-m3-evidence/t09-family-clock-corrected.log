@@ -1,0 +1,20 @@
+SOURCE_HEAD 7731b7daa81085a0e9c15b0bb36d062f022e24e0
+OVERLAYS apps/core-go/internal/core/memory_profile_correction_integration_test.go,apps/core-go/internal/core/actor_facts_test.go,apps/core-go/internal/core/reflection_memory_dependencies.go,apps/core-go/internal/core/developing_self.go,apps/core-go/internal/core/self_management.go,apps/core-go/internal/core/reflection_aux_domains_v2.go,apps/core-go/internal/core/reflection_runtime_v2.go,apps/core-go/internal/core/evolution_persistence.go,apps/core-go/internal/core/evolution_overlay.go,apps/core-go/internal/core/owner_persona_detail.go,apps/core-go/internal/core/takeover_scope.go,apps/core-go/internal/core/working_persona_persistence.go,apps/core-go/internal/core/persona_action_service.go,apps/core-go/internal/core/persona_detail_capability.go
+COMMAND go test ./internal/core -count=1 -run ^Test(ActiveMemoryExpiryRetiresReflectionDevelopingSelf|ActorFactExpiryFiltersEvolutionOverlayAfterReload|ActiveMemoryCorrectionInvalidatesReflectionDevelopingSelf|OutcomeRevisionInvalidatesReflectionDevelopingSelf|MemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows|DeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestActorFactExpiryFiltersEvolutionOverlayAfterReload
+--- PASS: TestActorFactExpiryFiltersEvolutionOverlayAfterReload (1.61s)
+=== RUN   TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows
+--- PASS: TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows (1.84s)
+=== RUN   TestDeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay
+--- PASS: TestDeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay (2.09s)
+=== RUN   TestActiveMemoryCorrectionInvalidatesReflectionDevelopingSelf
+--- PASS: TestActiveMemoryCorrectionInvalidatesReflectionDevelopingSelf (1.95s)
+=== RUN   TestActiveMemoryExpiryRetiresReflectionDevelopingSelf
+--- PASS: TestActiveMemoryExpiryRetiresReflectionDevelopingSelf (1.35s)
+=== RUN   TestOutcomeRevisionInvalidatesReflectionDevelopingSelf
+--- PASS: TestOutcomeRevisionInvalidatesReflectionDevelopingSelf (1.20s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	10.710s
+
+EXIT_CODE 0

@@ -155,7 +155,7 @@ func (a *App) BackfillWorkingPersonas(ctx context.Context, ownerID string, fluct
 					return ErrConflict
 				}
 				baseline := personaEvolutionBaseline(id, mapValue(input.CorePersona["personality"]), mapValue(input.CorePersona["behavioral_policy"]), mapValue(input.CorePersona["personality_system"]), map[string]any{"active_profile_id": profileID})
-				currentState, err := loadPersonaEvolutionState(ctx, tx, baseline)
+				currentState, err := loadPersonaEvolutionState(ctx, tx, baseline, a.now())
 				if err != nil {
 					return err
 				}

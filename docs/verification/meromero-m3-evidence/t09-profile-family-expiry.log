@@ -1,0 +1,23 @@
+SOURCE_HEAD 7731b7daa81085a0e9c15b0bb36d062f022e24e0
+OVERLAYS apps/core-go/internal/core/memory_profile_correction_integration_test.go,apps/core-go/internal/core/actor_facts_test.go,apps/core-go/internal/core/reflection_memory_dependencies.go,apps/core-go/internal/core/developing_self.go,apps/core-go/internal/core/self_management.go,apps/core-go/internal/core/reflection_aux_domains_v2.go,apps/core-go/internal/core/reflection_runtime_v2.go,apps/core-go/internal/core/evolution_persistence.go,apps/core-go/internal/core/evolution_overlay.go,apps/core-go/internal/core/owner_persona_detail.go,apps/core-go/internal/core/takeover_scope.go,apps/core-go/internal/core/working_persona_persistence.go,apps/core-go/internal/core/persona_action_service.go,apps/core-go/internal/core/persona_detail_capability.go
+COMMAND go test ./internal/core -count=1 -run ^Test(ActiveMemoryExpiryRetiresReflectionDevelopingSelf|ActorFactExpiryFiltersEvolutionOverlayAfterReload|ActiveMemoryCorrectionInvalidatesReflectionDevelopingSelf|OutcomeRevisionInvalidatesReflectionDevelopingSelf|MemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows|DeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestActorFactExpiryFiltersEvolutionOverlayAfterReload
+    actor_facts_test.go:289: ERROR: new row for relation "actor_facts" violates check constraint "actor_facts_check" (SQLSTATE 23514)
+--- FAIL: TestActorFactExpiryFiltersEvolutionOverlayAfterReload (1.87s)
+=== RUN   TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows
+--- PASS: TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows (1.31s)
+=== RUN   TestDeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay
+--- PASS: TestDeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay (1.27s)
+=== RUN   TestActiveMemoryCorrectionInvalidatesReflectionDevelopingSelf
+--- PASS: TestActiveMemoryCorrectionInvalidatesReflectionDevelopingSelf (1.08s)
+=== RUN   TestActiveMemoryExpiryRetiresReflectionDevelopingSelf
+    memory_profile_correction_integration_test.go:191: Memory correction left a derived self claim active: []core.DevelopingSelfClaim{core.DevelopingSelfClaim{ID:"self_claim_17506f7c896497ca1108a1e2c15d54cf", FluctlightID:"mixed-fluctlight-memory-self-source", Category:"preference", Claim:"我喜欢散步", Value:map[string]interface {}{"statement":"我喜欢散步"}, Confidence:0.9, EvidenceRefs:[]string{"active_memory:ctx_7ce71edf8b22b10c6bbf0e3011a904f2", "memory:ctx_aac61e69aa346ce6640475fe19dcdde5"}, Provenance:map[string]interface {}{"proposal_id":"reflection_proposal_7a2c7636fcc39ca57bdd96f7c79e22a3", "source":"reflection_v2"}, Status:"active", ExpiresAt:<nil>, Revision:1, SupersededBy:(*string)(nil), CreatedAt:time.Date(2026, time.November, 13, 16, 19, 4, 957325000, time.Local), UpdatedAt:time.Date(2026, time.November, 13, 16, 19, 4, 957325000, time.Local)}} err=<nil>
+--- FAIL: TestActiveMemoryExpiryRetiresReflectionDevelopingSelf (1.13s)
+=== RUN   TestOutcomeRevisionInvalidatesReflectionDevelopingSelf
+--- PASS: TestOutcomeRevisionInvalidatesReflectionDevelopingSelf (1.28s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	8.711s
+FAIL
+
+EXIT_CODE 1

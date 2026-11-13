@@ -133,3 +133,15 @@ M3-08 SelfClaim 来源传播在提交 `75f03c394606d308f8a407a5a51b6416de6e80c6`
 独立复核指出本轮初版读取会把同窗口的未采用同字段候选误作来源。已按实际 accepted candidate index 定位当前候选，历史窗口与原 collector 使用同一个 first-match/semantic-value 选择规则，允许同窗口独立有效 proposal 提供支持。新增 `TestDeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay` 证明低置信度未采用候选的 Memory 纠错不会撤销实际有效 overlay。初版 lineage JSON helper 参数错误保留于 `t09-overlay-green.log`。
 
 `t09-overlay-final-regression.log` 39 个顶层回归通过，退出码 0、无 SKIP，覆盖 Memory 画像/overlay、ActorFacts、原 overlay 阈值/冷却/回滚、Reflection 完整链、Owner 管理和 persona/cache。独立节点已实现，提交后复验待记录。
+
+M3-09 提交 `7731b7daa81085a0e9c15b0bb36d062f022e24e0` 干净源码复验 39 个顶层测试通过，退出码 0，无 SKIP，证据 `t09-overlay-postcommit.log`，该独立行为标 VERIFIED。
+
+## M3-10 其他已支持来源及画像时效
+
+原 Reflection 同样接受 ActiveMemory 和 Outcome 引用，`t09-profile-family-red.log` 正式复现这两类来源修订后旧 SelfClaim 仍可读取。复用原 source authority 补齐：ActiveMemory 核对实体、Owner、revision、request_digest、适用时间及最新来源命令，Outcome 沿原 md5(request_digest:revision) 冻结 fingerprint 规则核验。来源表示和存储继续复用原结构。
+
+`t09-actor-expiry-red.log` 证明已过期、revision/status 保持原值的 ActorFact 仍影响人格 overlay。新增读取时效检查，并在 App 人格、Owner、detail、takeover、编译、backfill 和发布复核间传递同一现有业务时钟。`t09-family-clock-corrected.log` 的 6 项场景通过。
+
+独立复核指出 ActiveMemory 还可能依赖已过期 ActorFact，以及两个编译发布复核漏传 clock。已按原 Active/resident 来源合同补齐间接依赖，统一传递 clock；`t09-indirect-clock-corrected.log` 的 4 项场景通过，包括 ActiveMemory 自身未到期但其 ActorFact 依赖到期、编译所用业务时钟与机器时间在边界两侧时发布复核保持一致。
+
+初次时效 fixture 将 valid_until 设在 valid_from 之前，以及重建 App 时遗漏模拟 clock，分别已按合法历史区间及同一时钟修正。新增 clock 转传误用 habit receiver 的编译错误保留在 `t09-indirect-source-expiry.log`，修正为原 service.app 时钟。所有失败日志保留。此节点实现完成，提交后复验待记录。

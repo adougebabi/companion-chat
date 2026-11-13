@@ -112,7 +112,7 @@ func (a *App) rescopeEffectivePersona(ctx context.Context, scoped *ContextProjec
 		system = mapValue(corePersonaData(scoped.CorePersona)["personality_system"])
 	}
 	baseline := personaEvolutionBaseline(scoped.FluctlightID, scoped.Personality, scoped.BehavioralPolicy, system, map[string]any{"active_profile_id": owner})
-	state, err := loadPersonaEvolutionState(ctx, a.DB.Pool(), baseline)
+	state, err := loadPersonaEvolutionState(ctx, a.DB.Pool(), baseline, a.now())
 	if err != nil {
 		return newTakeoverScopeError(takeoverOverlayLoadFailed, err)
 	}

@@ -1,0 +1,16 @@
+SOURCE_HEAD 7731b7daa81085a0e9c15b0bb36d062f022e24e0
+OVERLAYS apps/core-go/internal/core/memory_profile_correction_integration_test.go,apps/core-go/internal/core/reflection_memory_dependencies.go,apps/core-go/internal/core/developing_self.go,apps/core-go/internal/core/self_management.go,apps/core-go/internal/core/reflection_aux_domains_v2.go,apps/core-go/internal/core/reflection_runtime_v2.go
+COMMAND go test ./internal/core -count=1 -run ^Test(ActiveMemoryCorrection|OutcomeRevision|MemoryCorrection|MemorySummaryAncestorCorrection)InvalidatesReflectionDevelopingSelf$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestMemoryCorrectionInvalidatesReflectionDevelopingSelf
+--- PASS: TestMemoryCorrectionInvalidatesReflectionDevelopingSelf (1.78s)
+=== RUN   TestMemorySummaryAncestorCorrectionInvalidatesReflectionDevelopingSelf
+--- PASS: TestMemorySummaryAncestorCorrectionInvalidatesReflectionDevelopingSelf (1.91s)
+=== RUN   TestActiveMemoryCorrectionInvalidatesReflectionDevelopingSelf
+--- PASS: TestActiveMemoryCorrectionInvalidatesReflectionDevelopingSelf (1.79s)
+=== RUN   TestOutcomeRevisionInvalidatesReflectionDevelopingSelf
+--- PASS: TestOutcomeRevisionInvalidatesReflectionDevelopingSelf (1.73s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	8.112s
+
+EXIT_CODE 0

@@ -1,0 +1,143 @@
+SOURCE_HEAD 7731b7daa81085a0e9c15b0bb36d062f022e24e0
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^Test(MemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows|DeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay|Memory(Correction|SummaryAncestorCorrection)InvalidatesReflectionDevelopingSelf|Evolution|ReflectionOverlay|ActorCorrection|ActorFact|ReflectionV2|ReflectionSlot|ReflectionIntention|OwnerSelf|OwnerPersona|PersonaDetail|WorkingPersona) -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestActorCorrectionPersistsAndRetiresOnlySourcedDerivations
+2026/11/13 16:10:40 INFO capability lifecycle capability=actor.inspect call_id=direct_call_230f1d746232c1c7ffb01fbd2c39b41e type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:10:40 INFO capability lifecycle capability=actor.inspect call_id=direct_call_a6853be712ab8484da5c4e4ab7d6f41c type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestActorCorrectionPersistsAndRetiresOnlySourcedDerivations (2.58s)
+=== RUN   TestActorFactUnknownTimezoneAndLaterLocationChangeRemainDistinct
+2026/11/13 16:10:42 INFO capability lifecycle capability=actor.inspect call_id=direct_call_037bed5dabfd612060a3d12f601ddf7c type=query surface=native_cognition required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestActorFactUnknownTimezoneAndLaterLocationChangeRemainDistinct (1.63s)
+=== RUN   TestActorFactForeignSourceCannotConfirmOrCorrectTheSubject
+--- PASS: TestActorFactForeignSourceCannotConfirmOrCorrectTheSubject (1.59s)
+=== RUN   TestActorCorrectionCannotReturnThroughResidentActiveSelfOrLateSnapshot
+--- PASS: TestActorCorrectionCannotReturnThroughResidentActiveSelfOrLateSnapshot (1.54s)
+=== RUN   TestActorCorrectionRejectsUnrelatedAttributeAtomically
+2026/11/13 16:10:46 WARN tool.call.handled capability=actor.fact.record call_id=direct_call_e55b0d246e074325f13539f602fa597a warning_code=actor_correction_target_invalid disposition=awaiting_state effect_applied=false
+--- PASS: TestActorCorrectionRejectsUnrelatedAttributeAtomically (1.54s)
+=== RUN   TestActorCorrectionFiltersEvolutionOverlayAfterReload
+--- PASS: TestActorCorrectionFiltersEvolutionOverlayAfterReload (1.68s)
+=== RUN   TestEvolutionOverlayStageS09
+=== RUN   TestEvolutionOverlayStageS09/forbidden_and_non-allowlisted_paths_are_rejected
+=== RUN   TestEvolutionOverlayStageS09/numeric_overlay_requires_windows_confidence_max-delta_and_cooldown
+=== RUN   TestEvolutionOverlayStageS09/categorical_overlay_needs_stronger_multi-window_agreement
+=== RUN   TestEvolutionOverlayStageS09/effective_view_is_profile-scoped_provider-safe_and_frozen
+=== RUN   TestEvolutionOverlayStageS09/rollback_appends_a_compensating_revision_without_changing_baseline
+--- PASS: TestEvolutionOverlayStageS09 (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/forbidden_and_non-allowlisted_paths_are_rejected (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/numeric_overlay_requires_windows_confidence_max-delta_and_cooldown (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/categorical_overlay_needs_stronger_multi-window_agreement (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/effective_view_is_profile-scoped_provider-safe_and_frozen (0.00s)
+    --- PASS: TestEvolutionOverlayStageS09/rollback_appends_a_compensating_revision_without_changing_baseline (0.00s)
+=== RUN   TestReflectionOverlayEvidenceCountsHistoricalWindowsNotFacts
+--- PASS: TestReflectionOverlayEvidenceCountsHistoricalWindowsNotFacts (1.07s)
+=== RUN   TestEvolutionBaselinePreservesProseTraitsVerbatim
+--- PASS: TestEvolutionBaselinePreservesProseTraitsVerbatim (0.00s)
+=== RUN   TestEvolutionBaselineStillNormalizesStructuredTraits
+--- PASS: TestEvolutionBaselineStillNormalizesStructuredTraits (0.00s)
+=== RUN   TestEvolutionPersistenceS10
+--- PASS: TestEvolutionPersistenceS10 (1.30s)
+=== RUN   TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows
+--- PASS: TestMemoryCorrectionInvalidatesPersonaOverlayAndHistoricalWindows (1.14s)
+=== RUN   TestDeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay
+--- PASS: TestDeferredMemoryCandidateCannotRetireAcceptedPersonaOverlay (1.80s)
+=== RUN   TestMemoryCorrectionInvalidatesReflectionDevelopingSelf
+--- PASS: TestMemoryCorrectionInvalidatesReflectionDevelopingSelf (1.51s)
+=== RUN   TestMemorySummaryAncestorCorrectionInvalidatesReflectionDevelopingSelf
+--- PASS: TestMemorySummaryAncestorCorrectionInvalidatesReflectionDevelopingSelf (1.30s)
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/keep
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/workflow_failure
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/late_workflow_failure
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/failure
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/recover
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/foundation_cas
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/runtime_cas
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/wrong_target
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/wrong_rule
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/disabled_rule
+=== RUN   TestOwnerPersonaAssessmentTerminalsAndRecovery/retired
+--- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery (14.99s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/keep (1.03s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/workflow_failure (0.93s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/late_workflow_failure (1.06s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/failure (1.27s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/recover (1.30s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/foundation_cas (1.11s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/runtime_cas (1.22s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/wrong_target (1.25s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/wrong_rule (1.37s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/disabled_rule (1.46s)
+    --- PASS: TestOwnerPersonaAssessmentTerminalsAndRecovery/retired (2.98s)
+=== RUN   TestOwnerPersonaSwitchWithoutConnectedRuntimeIsNotPending
+--- PASS: TestOwnerPersonaSwitchWithoutConnectedRuntimeIsNotPending (0.00s)
+=== RUN   TestPersonaDetailSectionsKeepProfileScopeAndFullFacts
+--- PASS: TestPersonaDetailSectionsKeepProfileScopeAndFullFacts (0.00s)
+=== RUN   TestPersonaDetailOutputContractRejectsMissingVersionAndCursor
+--- PASS: TestPersonaDetailOutputContractRejectsMissingVersionAndCursor (0.00s)
+=== RUN   TestPersonaDetailIndependentToolReadsCanonicalSource
+2026/11/13 16:11:13 INFO capability lifecycle capability=persona.detail call_id=direct_call_c9e38b8e931aa1082db7f5bcc68b56b3 type=query surface=native_cognition required_context=[] duration_ms=3 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:11:13 INFO capability lifecycle capability=persona.detail call_id=direct_call_6a413de08c116ec27dbdc2c6d0d0e234 type=query surface=native_cognition required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:11:13 INFO capability lifecycle capability=persona.detail call_id=direct_call_9939893595e0b64169e17ee434fde680 type=query surface=native_cognition required_context=[] duration_ms=2 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:11:13 INFO capability lifecycle capability=persona.detail call_id=direct_call_6fbd095a9c4f16ed1ffe9ebbb3329504 type=query surface=native_cognition required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 16:11:13 WARN capability lifecycle capability=persona.detail call_id=direct_call_eaa506a05c9c8b4f4fe05c5e5da5c0af type=query surface=native_cognition required_context=[] duration_ms=1 status=failed retryable=false intent_present=false intent_runes=0 error_code=persona_detail_section_not_found
+2026/11/13 16:11:13 WARN tool.call.handled capability=persona.detail call_id=direct_call_eaa506a05c9c8b4f4fe05c5e5da5c0af warning_code=persona_detail_section_not_found disposition=no_results effect_applied=false
+2026/11/13 16:11:13 WARN capability lifecycle capability=persona.detail call_id=direct_call_5d7edcdc6cdd9cce8543acde3b601707 type=query surface=native_cognition required_context=[] duration_ms=0 status=failed retryable=true intent_present=false intent_runes=0 error_code=persona_detail_source_changed
+2026/11/13 16:11:13 WARN tool.call.handled capability=persona.detail call_id=direct_call_5d7edcdc6cdd9cce8543acde3b601707 warning_code=persona_detail_source_changed disposition=awaiting_state effect_applied=false
+--- PASS: TestPersonaDetailIndependentToolReadsCanonicalSource (1.86s)
+=== RUN   TestReflectionSlotUpdateRejectsFrozenRevisionDrift
+--- PASS: TestReflectionSlotUpdateRejectsFrozenRevisionDrift (2.34s)
+=== RUN   TestReflectionIntentionRejectsForeignNestedRefsBeforeApply
+--- PASS: TestReflectionIntentionRejectsForeignNestedRefsBeforeApply (0.00s)
+=== RUN   TestReflectionV2AppliesMemoryGoalIntentionAndAffectThenReprojects
+--- PASS: TestReflectionV2AppliesMemoryGoalIntentionAndAffectThenReprojects (1.45s)
+=== RUN   TestReflectionV2ProviderSchemaOwnsOnlySemanticFields
+--- PASS: TestReflectionV2ProviderSchemaOwnsOnlySemanticFields (0.00s)
+=== RUN   TestReflectionV2StageS08
+=== RUN   TestReflectionV2StageS08/closed_schema_rejects_runtime_ownership
+=== RUN   TestReflectionV2StageS08/compile_records_accepted_and_deferred_dispositions
+=== RUN   TestReflectionV2StageS08/foreign_evidence_invalidates_the_whole_proposal
+=== RUN   TestReflectionV2StageS08/CAS_and_domain_failure_roll_back_watermark_and_revisions
+=== RUN   TestReflectionV2StageS08/empty_proposal_is_explicit_no_change_and_WakeUp_cannot_own_reflection
+=== RUN   TestReflectionV2StageS08/domain_no-change_and_developing-self_threshold_stay_truthful
+--- PASS: TestReflectionV2StageS08 (0.00s)
+    --- PASS: TestReflectionV2StageS08/closed_schema_rejects_runtime_ownership (0.00s)
+    --- PASS: TestReflectionV2StageS08/compile_records_accepted_and_deferred_dispositions (0.00s)
+    --- PASS: TestReflectionV2StageS08/foreign_evidence_invalidates_the_whole_proposal (0.00s)
+    --- PASS: TestReflectionV2StageS08/CAS_and_domain_failure_roll_back_watermark_and_revisions (0.00s)
+    --- PASS: TestReflectionV2StageS08/empty_proposal_is_explicit_no_change_and_WakeUp_cannot_own_reflection (0.00s)
+    --- PASS: TestReflectionV2StageS08/domain_no-change_and_developing-self_threshold_stay_truthful (0.00s)
+=== RUN   TestOwnerSelfFullPagingReviewForgetRestoreAndScopedReplay
+--- PASS: TestOwnerSelfFullPagingReviewForgetRestoreAndScopedReplay (1.33s)
+=== RUN   TestWorkingPersonaBackfillPreviewApplyAndReplay
+--- PASS: TestWorkingPersonaBackfillPreviewApplyAndReplay (1.13s)
+=== RUN   TestPersonaDetailTraceSurvivesModelContinuationFailure
+2026/11/13 16:11:21 INFO capability lifecycle capability=persona.detail call_id=portrait-list-before-failure type=query surface=conversation required_context=[] duration_ms=2 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestPersonaDetailTraceSurvivesModelContinuationFailure (1.59s)
+=== RUN   TestWorkingPersonaKeepsDescriptiveTraitsVerbatim
+--- PASS: TestWorkingPersonaKeepsDescriptiveTraitsVerbatim (0.00s)
+=== RUN   TestWorkingPersonaExcludesOtherPersonasAndVisualAssets
+--- PASS: TestWorkingPersonaExcludesOtherPersonasAndVisualAssets (0.00s)
+=== RUN   TestWorkingPersonaIsDeterministicForTheSameInput
+--- PASS: TestWorkingPersonaIsDeterministicForTheSameInput (0.00s)
+=== RUN   TestWorkingPersonaAppliesActiveOverlayOfTheActiveProfile
+--- PASS: TestWorkingPersonaAppliesActiveOverlayOfTheActiveProfile (0.00s)
+=== RUN   TestWorkingPersonaDoesNotApplyAnOverlayToANonActiveProfile
+--- PASS: TestWorkingPersonaDoesNotApplyAnOverlayToANonActiveProfile (0.00s)
+=== RUN   TestWorkingPersonaAppliesReScopedOverlayToNonActiveSubject
+--- PASS: TestWorkingPersonaAppliesReScopedOverlayToNonActiveSubject (0.00s)
+=== RUN   TestWorkingPersonaIgnoresOverlayWithoutProfileIDForNonActiveSubject
+--- PASS: TestWorkingPersonaIgnoresOverlayWithoutProfileIDForNonActiveSubject (0.00s)
+=== RUN   TestWorkingPersonaCanonicalizesFlatTraitsShape
+--- PASS: TestWorkingPersonaCanonicalizesFlatTraitsShape (0.00s)
+=== RUN   TestWorkingPersonaDoesNotInventTraitsFromProse
+--- PASS: TestWorkingPersonaDoesNotInventTraitsFromProse (0.00s)
+=== RUN   TestWorkingPersonaLifeProfileKeepsOnlyDecisionKeys
+--- PASS: TestWorkingPersonaLifeProfileKeepsOnlyDecisionKeys (0.00s)
+=== RUN   TestWorkingPersonaLifeProfileBeforeAfterComparison
+--- PASS: TestWorkingPersonaLifeProfileBeforeAfterComparison (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	44.288s
+
+EXIT_CODE 0

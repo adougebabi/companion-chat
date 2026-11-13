@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -16,6 +17,7 @@ type personaDetailRevisionContextKey struct{}
 type personaDetailOverlayContextKey struct{}
 
 type personaDetailService struct {
+	clock      func() time.Time
 	repository *PostgresRepository
 	appearance func(context.Context, string) (map[string]any, error)
 }
@@ -24,7 +26,7 @@ func newPersonaDetailService(app *App) personaDetailService {
 	if app == nil {
 		return personaDetailService{}
 	}
-	return personaDetailService{repository: app.DB, appearance: func(ctx context.Context, fluctlightID string) (map[string]any, error) {
+	return personaDetailService{repository: app.DB, clock: app.now, appearance: func(ctx context.Context, fluctlightID string) (map[string]any, error) {
 		current, _, _, err := app.readEffectiveLifeSnapshot(ctx, fluctlightID, app.now().UTC())
 		return current, err
 	}}
@@ -53,7 +55,11 @@ func (s personaDetailService) read(ctx context.Context, fluctlightID, owner, pro
 		return nil, 0, 0, "", err
 	}
 	baseline := personaEvolutionBaseline(resource.ID, resource.Personality, resource.BehavioralPolicy, mapValue(resource.CorePersona["personality_system"]), map[string]any{"active_profile_id": profileID})
-	state, err := loadPersonaEvolutionState(ctx, s.repository.Pool(), baseline)
+	at := time.Now().UTC()
+	if s.clock != nil {
+		at = s.clock().UTC()
+	}
+	state, err := loadPersonaEvolutionState(ctx, s.repository.Pool(), baseline, at)
 	if err != nil {
 		return nil, 0, 0, "", err
 	}

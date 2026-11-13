@@ -656,3 +656,7 @@ Reflection 派生 DevelopingSelf 的运行输入读取复用既有 proposal `con
 及 accepted candidate disposition。Memory 来源失效时，相关字段和依赖其绝对值
 基线的后继 overlay 退出有效人格；独立字段及新有效基线保留。缓存继续根据
 有效 persona 内容与 overlay revision 校验。
+
+同一画像证据检查覆盖既有 ActiveMemory 和 Outcome：核对原实体修订、来源命令/
+fingerprint，并按业务时钟处理 ActiveMemory 及其 ActorFact 依赖的适用时间。
+人格编译与发布复核使用同一业务时间，过期来源退出有效画像/overlay。

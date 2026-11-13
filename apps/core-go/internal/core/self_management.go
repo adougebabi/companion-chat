@@ -67,7 +67,7 @@ func (a *App) OwnerSelfClaims(ctx context.Context, owner, fid string, q url.Valu
 	rows.Close()
 	for _, raw := range items {
 		item := mapValue(raw)
-		live, err := developingSelfMemoryEvidenceLive(ctx, a.DB.Pool(), fid, mapValue(item["provenance"]), decisionServiceRefValues(item["evidence_refs"]))
+		live, err := developingSelfMemoryEvidenceLive(ctx, a.DB.Pool(), fid, mapValue(item["provenance"]), decisionServiceRefValues(item["evidence_refs"]), a.now())
 		if err != nil {
 			return nil, err
 		}
@@ -89,7 +89,7 @@ func (a *App) OwnerSelfClaim(ctx context.Context, owner, fid, id string) (map[st
 		return nil, err
 	}
 	item := decodeObject(raw)
-	live, err := developingSelfMemoryEvidenceLive(ctx, a.DB.Pool(), fid, mapValue(item["provenance"]), decisionServiceRefValues(item["evidence_refs"]))
+	live, err := developingSelfMemoryEvidenceLive(ctx, a.DB.Pool(), fid, mapValue(item["provenance"]), decisionServiceRefValues(item["evidence_refs"]), a.now())
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +227,7 @@ func (a *App) OwnerSelfCommand(ctx context.Context, owner, fid, id, operation st
 		if err != nil {
 			return nil, &SurfaceError{Status: 422, Code: "self_snapshot_invalid", Message: "该历史快照不能恢复为有效认识"}
 		}
-		live, err := developingSelfMemoryEvidenceLive(ctx, tx, fid, mapValue(normalized["provenance"]), decisionServiceRefValues(normalized["evidence_refs"]))
+		live, err := developingSelfMemoryEvidenceLive(ctx, tx, fid, mapValue(normalized["provenance"]), decisionServiceRefValues(normalized["evidence_refs"]), a.now())
 		if err != nil {
 			return nil, err
 		}

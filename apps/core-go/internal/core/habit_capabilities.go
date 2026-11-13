@@ -207,7 +207,7 @@ func (c habitDecideCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invocat
 	if compiled.ProfileID != profileID || compiled.SourceRevision != foundationRevision || compiled.OverlayRevision != intValue(plan["overlay_revision"]) || compiled.SourceHash == "" {
 		return failedCapabilityResult(invocation, "habit_compilation_invalid", false), ErrConflict
 	}
-	if err := verifyCompiledOverlayVersionsTx(ctx, tx, fluctlightID, decodeObject(coreRaw), []CompiledWorkingPersona{compiled}); err != nil {
+	if err := verifyCompiledOverlayVersionsTx(ctx, tx, fluctlightID, decodeObject(coreRaw), []CompiledWorkingPersona{compiled}, c.service.app.now()); err != nil {
 		return failedCapabilityResult(invocation, "habit_overlay_changed", true), err
 	}
 	if err := verifyCompiledBudgetTx(ctx, tx, []CompiledWorkingPersona{compiled}); err != nil {

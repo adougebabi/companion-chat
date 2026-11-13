@@ -1,0 +1,12 @@
+SOURCE_HEAD 7731b7daa81085a0e9c15b0bb36d062f022e24e0
+OVERLAYS apps/core-go/internal/core/actor_facts_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestActorFactExpiryFiltersEvolutionOverlayAfterReload$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestActorFactExpiryFiltersEvolutionOverlayAfterReload
+    actor_facts_test.go:296: stale overlay core.PersonaEvolutionState{FluctlightID:"independent_fluctlight_wardrobe_1794557984358889000", ProfileID:"default", ProfileRef:"personality:ctx_6f917ee2a109c4c6ef6515b03c4dac76", Revision:1, Personality:map[string]interface {}{"traits":map[string]interface {}{"openness":0.5}}, BehaviorPolicy:map[string]interface {}{}, Overlays:[]core.EvolutionOverlay{core.EvolutionOverlay{ID:"evolution_overlay_2bc9d196d3f4b1db9d913dd15fed47a6", Ref:"evolution_overlay:ctx_2bc9d196d3f4b1db9d913dd15fed47a6", FluctlightID:"independent_fluctlight_wardrobe_1794557984358889000", ProfileID:"default", Kind:"personality", FieldPath:"traits.openness", ValueKind:"numeric", SemanticDirection:"increase", RequestedDelta:0.9, AppliedDelta:0.09999999999999998, BeforeValue:0.5, AfterValue:0.6, Confidence:0.9, EvidenceRefs:[]string{"fact:a", "fact:b"}, EvidenceWindows:[]string{"window-a", "window-b"}, PolicyVersion:"persona-evolution.policy.v1", BaseRevision:0, Revision:1, Status:"active", Supersedes:"", RollbackOf:"", CooldownUntil:time.Date(2026, time.November, 14, 16, 19, 44, 410507000, time.Local), CreatedAt:time.Date(2026, time.November, 13, 16, 19, 44, 410507000, time.Local)}}} <nil>
+--- FAIL: TestActorFactExpiryFiltersEvolutionOverlayAfterReload (1.81s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.492s
+FAIL
+
+EXIT_CODE 1

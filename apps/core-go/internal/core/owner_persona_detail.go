@@ -11,7 +11,7 @@ import (
 func (a *App) readOwnerPersonaProjection(ctx context.Context, fid string, foundation map[string]any, revision int, runtime map[string]any) (map[string]any, error) {
 	profile := firstString(runtime["active_profile_id"], initialPersonalityProfileID(foundation))
 	baseline := personaEvolutionBaseline(fid, mapValue(foundation["personality"]), mapValue(foundation["behavioral_policy"]), mapValue(foundation["personality_system"]), runtime)
-	state, err := loadPersonaEvolutionState(ctx, a.DB.Pool(), baseline)
+	state, err := loadPersonaEvolutionState(ctx, a.DB.Pool(), baseline, a.now())
 	if err != nil {
 		return nil, err
 	}

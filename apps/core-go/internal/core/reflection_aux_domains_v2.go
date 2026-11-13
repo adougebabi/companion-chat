@@ -194,7 +194,7 @@ func (a *App) applyReflectionDevelopingSelfV2Tx(ctx context.Context, tx pgx.Tx, 
 			continue
 		}
 		candidate := proposal.DevelopingSelfCandidates[candidatePlan.Index]
-		live, err := reflectionMemoryEvidenceLive(ctx, tx, fluctlightID, candidate.EvidenceRefs, evolution.ReferenceIndex)
+		live, err := reflectionMemoryEvidenceLive(ctx, tx, fluctlightID, candidate.EvidenceRefs, evolution.ReferenceIndex, a.now())
 		if err != nil {
 			return err
 		}
