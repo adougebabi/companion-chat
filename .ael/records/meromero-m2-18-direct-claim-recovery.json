@@ -16,13 +16,13 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "execute",
+  "current_step": "verify",
   "status": "open",
-  "candidate": "",
+  "candidate": "c3fa516c593087d226885e9004a8e72eb02276049f0775a0e52688de99721667",
   "failure": "",
   "result": "",
   "created": "2026-11-13T01:16:13.613729Z",
-  "updated": "2026-11-13T02:14:11.521879Z",
+  "updated": "2026-11-13T02:16:10.588889Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -65,11 +65,11 @@
         "unit": "execute",
         "executor": "codex-m2-18-resume",
         "input_version": "4234522c39553ac2a3a05b7d99aa5865e933e4e94344e336210bd0ae46aa7fc3",
-        "candidate_version": "",
+        "candidate_version": "c3fa516c593087d226885e9004a8e72eb02276049f0775a0e52688de99721667",
         "started": "2026-11-13T02:14:11.233844Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-13T02:15:58.390347Z",
+        "status": "pass",
+        "reason": "提交 71fb07bd：隔离库先复现重复图片任务及旧领取并发写入；修复接管、部分动作、fact_only 草稿与领取权栅栏，干净候选 23 个顶层相关用例及含原有草稿工作区用例通过，无 SKIP。提交后仍须正式验证；受控 Provider 不代表真实模型或完整自动恢复。"
       }
     ],
     "checks": null

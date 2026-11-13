@@ -1,0 +1,51 @@
+SOURCE_HEAD 71fb07bd778c754233ea0efa13e78757e8e37f37
+OVERLAYS (none)
+COMMAND go test ./internal/core -count=1 -run ^Test(M2DirectExpiredClaim(DoesNotRepeatCommittedTool|WithoutCommittedToolCanRecover)|M2ExpiredClaimPreservesFactOnlyMediaDraft|M2LostClaimCannotCommitToolOrFailNewOwner|PrivateReplyModeSwitchKeepsExplicitFactOnly|DefaultPrivateReplyUsesConfiguredModelWithoutWriter|DirectTurnRetryKeepsOriginalModelBinding|DirectMainReplyRetainsExistingDraftContract)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestDirectMainReplyRetainsExistingDraftContract
+--- PASS: TestDirectMainReplyRetainsExistingDraftContract (2.54s)
+=== RUN   TestDirectTurnRetryKeepsOriginalModelBinding
+    direct_turn_model_snapshot_integration_test.go:108: M1_04B first=model-a retry=model-a new_turn=model-b fingerprint_preserved=true snapshot_has_secret=false
+--- PASS: TestDirectTurnRetryKeepsOriginalModelBinding (2.20s)
+=== RUN   TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter
+--- PASS: TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter (1.50s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/13 10:16:41 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (1.30s)
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=agent_partial_committed
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream-pending
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=agent_partial_committed
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=<nil>
+=== RUN   TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker-pending
+    m2_direct_claim_recovery_test.go:27: recovery intents=1 receipts=1 messages=0 status=failed code=agent_partial_committed model_calls=0 err=<nil>
+--- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool (7.67s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream (2.11s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/stream-pending (1.50s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker (1.49s)
+    --- PASS: TestM2DirectExpiredClaimDoesNotRepeatCommittedTool/worker-pending (2.56s)
+=== RUN   TestM2DirectExpiredClaimWithoutCommittedToolCanRecover
+--- PASS: TestM2DirectExpiredClaimWithoutCommittedToolCanRecover (1.49s)
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner/fact_only
+=== RUN   TestM2LostClaimCannotCommitToolOrFailNewOwner/legacy_direct
+--- PASS: TestM2LostClaimCannotCommitToolOrFailNewOwner (2.31s)
+    --- PASS: TestM2LostClaimCannotCommitToolOrFailNewOwner/fact_only (1.23s)
+    --- PASS: TestM2LostClaimCannotCommitToolOrFailNewOwner/legacy_direct (1.08s)
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/draft-only
+2026/11/13 10:16:54 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/independent-image
+2026/11/13 10:16:56 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestM2ExpiredClaimPreservesFactOnlyMediaDraft/bound-image
+2026/11/13 10:16:57 INFO reply.evidence.reconciled correlation_id=turn:m2-claim-fact-draft metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft (3.87s)
+    --- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/draft-only (1.17s)
+    --- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/independent-image (1.60s)
+    --- PASS: TestM2ExpiredClaimPreservesFactOnlyMediaDraft/bound-image (1.10s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	23.590s
+
+EXIT_CODE 0
