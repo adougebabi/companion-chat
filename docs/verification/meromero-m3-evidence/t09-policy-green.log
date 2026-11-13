@@ -1,0 +1,12 @@
+SOURCE_HEAD cab379fe5e502a2f46624e4f5c8424c2b9f219d0
+OVERLAYS apps/core-go/internal/core/memory_legacy_quarantine_integration_test.go,apps/core-go/internal/core/memory_provenance.go,apps/core-go/internal/core/memory_retrieval.go,apps/core-go/internal/core/active_memory.go,apps/core-go/internal/core/resident_memory.go,apps/core-go/internal/migrations/resident_memory.go,apps/core-go/internal/core/memory_correction_summary_fence_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestLegacy(MemoryQuarantinePreservesHistoryAndOwnerReconfirmsSource|ActiveMemoryQuarantineRejectsPersistedSnapshotAndCanReconfirm)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestLegacyMemoryQuarantinePreservesHistoryAndOwnerReconfirmsSource
+--- PASS: TestLegacyMemoryQuarantinePreservesHistoryAndOwnerReconfirmsSource (1.46s)
+=== RUN   TestLegacyActiveMemoryQuarantineRejectsPersistedSnapshotAndCanReconfirm
+--- PASS: TestLegacyActiveMemoryQuarantineRejectsPersistedSnapshotAndCanReconfirm (1.33s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.525s
+
+EXIT_CODE 0

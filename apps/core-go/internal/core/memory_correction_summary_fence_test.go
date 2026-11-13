@@ -131,8 +131,8 @@ func TestOwnerMemoryCorrectionFencesOldSummarySources(t *testing.T) {
 				if _, err := repo.Pool().Exec(ctx, `UPDATE public.memories SET provenance_status='legacy_unknown' WHERE id=$1`, legacyDerivedID); err != nil {
 					t.Fatal(err)
 				}
-				if valid, err := memorySourcesStillValid(ctx, repo.Pool(), legacyDerivedID, legacyDerivedRevision, "legacy_unknown"); err != nil || !valid {
-					t.Fatalf("uncorrected legacy summary was rejected: valid=%t err=%v", valid, err)
+				if valid, err := memorySourcesStillValid(ctx, repo.Pool(), legacyDerivedID, legacyDerivedRevision, "legacy_unknown"); err != nil || valid {
+					t.Fatalf("unconfirmed legacy memory bypassed quarantine: valid=%t err=%v", valid, err)
 				}
 			}
 			if test.confirm {
@@ -166,6 +166,10 @@ func TestOwnerMemoryCorrectionFencesOldSummarySources(t *testing.T) {
 				t.Fatal(err)
 			}
 			if legacyDerivedID != "" {
+				var corrected bool
+				if err := repo.Pool().QueryRow(ctx, `SELECT public.memory_has_corrected_summary_source($1,$2,$3)`, fid, legacyDerivedID, legacyDerivedRevision).Scan(&corrected); err != nil || !corrected {
+					t.Fatalf("legacy derived source lost its independent correction fence: corrected=%t err=%v", corrected, err)
+				}
 				if valid, err := memorySourcesStillValid(ctx, repo.Pool(), legacyDerivedID, legacyDerivedRevision, "legacy_unknown"); err != nil || valid {
 					t.Fatalf("legacy derived memory bypassed correction: valid=%t err=%v", valid, err)
 				}

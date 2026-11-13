@@ -29,9 +29,6 @@ func memorySourcesStillValid(ctx context.Context, query currentAuthorityReader, 
 	if err := query.QueryRow(ctx, `SELECT COALESCE((SELECT NOT public.memory_has_corrected_summary_source(owner_fluctlight_id,id,$2) FROM public.memories WHERE id=$1),false)`, memoryID, revision).Scan(&clean); err != nil || !clean {
 		return false, err
 	}
-	if provenanceStatus == "legacy_unknown" {
-		return true, nil
-	}
 	var supported bool
 	err := query.QueryRow(ctx, `SELECT CASE WHEN EXISTS(SELECT 1 FROM public.conversation_daily_memories d WHERE d.memory_id=$1)
  THEN count(*)>0 AND count(*) FILTER (WHERE l.status='valid' AND public.memory_source_is_live(l.source_kind,l.source_id,l.source_revision,l.source_fingerprint))=count(*)

@@ -48,7 +48,7 @@ BEGIN
   SELECT a.id,a.importance,jsonb_build_object(
    'source_kind','active_memory','id',a.id,'revision',a.revision,'type',a.kind,
    'content',left(a.content,512),'confidence',a.confidence,'importance',a.importance,
-   'source_validity',CASE WHEN support.source_kind IS NULL OR support.source_kind='' THEN 'legacy_unknown' ELSE 'verified' END,
+   'source_validity','verified',
    'source_refs',a.evidence_refs,'original_time_expression',a.original_time_expression,'valid_from',a.valid_from,
    'valid_until',a.valid_until,'conversation_id',a.conversation_id
   ) AS item
@@ -63,8 +63,7 @@ BEGIN
   ) support ON true
   WHERE a.owner_fluctlight_id=p_fluctlight_id AND a.conversation_id IS NULL
    AND a.status='active' AND a.kind IN ('commitment','future_event')
-   AND (support.source_kind IS NULL OR support.source_kind=''
-        OR public.active_memory_source_is_live(support.source_kind,support.source_fact_id,support.source_fingerprint,support.command_id))
+   AND public.active_memory_source_is_live(support.source_kind,support.source_fact_id,support.source_fingerprint,support.command_id)
    AND (a.valid_from IS NULL OR a.valid_from<=now())
    AND (a.valid_until IS NULL OR a.valid_until>now())
   ORDER BY a.importance DESC,a.id LIMIT 4

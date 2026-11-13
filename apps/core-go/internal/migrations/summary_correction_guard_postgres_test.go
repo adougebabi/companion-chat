@@ -39,6 +39,9 @@ func TestSummaryCorrectionGuardMigrationFromPreviousHeadAndRerun(t *testing.T) {
 		if !strings.Contains(correctionBody, "source.source_kind='legacy'") || !strings.Contains(correctionBody, "source.status='unknown'") {
 			t.Fatal("migration lost the resolvable legacy summary correction fence")
 		}
+		if strings.Contains(refreshBody, "support.source_kind IS NULL") || !strings.Contains(refreshBody, "AND public.active_memory_source_is_live(") {
+			t.Fatal("resident publisher retained the unknown-source injection bypass")
+		}
 		var blocked bool
 		if err := pool.QueryRow(ctx, `SELECT public.summary_contains_corrected_memory_source('migration-0106-character','missing',1,2)`).Scan(&blocked); err != nil || blocked {
 			t.Fatalf("empty correction source blocked=%v err=%v", blocked, err)
@@ -72,6 +75,21 @@ func TestSummaryCorrectionGuardMigrationFromPreviousHeadAndRerun(t *testing.T) {
 	assertHead()
 	if err := New(pool).Apply(ctx); err != nil {
 		t.Fatalf("repeat 0106: %v", err)
+	}
+	assertHead()
+	// Reinstall the historical publisher at the already-current head. Apply
+	// must update its idempotent function without a data backfill or new head.
+	legacyRefresh := strings.Replace(originalRefresh,
+		"AND public.active_memory_source_is_live(support.source_kind,support.source_fact_id,support.source_fingerprint,support.command_id)",
+		"AND (support.source_kind IS NULL OR support.source_kind='' OR public.active_memory_source_is_live(support.source_kind,support.source_fact_id,support.source_fingerprint,support.command_id))", 1)
+	if legacyRefresh == originalRefresh {
+		t.Fatal("legacy publisher fixture was not constructed")
+	}
+	if _, err := pool.Exec(ctx, "CREATE OR REPLACE FUNCTION public.refresh_resident_memory_snapshot"+legacyRefresh); err != nil {
+		t.Fatal(err)
+	}
+	if err := New(pool).Apply(ctx); err != nil {
+		t.Fatal(err)
 	}
 	assertHead()
 }

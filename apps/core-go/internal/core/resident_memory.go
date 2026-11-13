@@ -69,7 +69,17 @@ func (a *App) readResidentMemorySnapshot(ctx context.Context, ownerActorID, spea
 			result.Memories = append(result.Memories, cloneMap(item))
 		case "active_memory":
 			var current bool
-			err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.active_memories WHERE id=$1 AND owner_fluctlight_id=$2 AND revision=$3 AND status='active') AND NOT EXISTS(SELECT 1 FROM public.actor_fact_artifacts d JOIN public.actor_facts f ON f.id=d.fact_id WHERE d.artifact_kind='active_memory' AND d.artifact_id=$1 AND d.artifact_revision=$3 AND (f.status<>'active' OR f.revision<>d.fact_revision OR (f.valid_until IS NOT NULL AND f.valid_until<=$4)))`, stringValue(item["id"]), fluctlightID, intValue(item["revision"]), at).Scan(&current)
+			err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(
+				SELECT 1 FROM public.active_memories a
+				WHERE a.id=$1 AND a.owner_fluctlight_id=$2 AND a.revision=$3 AND a.status='active'
+				AND COALESCE((
+				 SELECT public.active_memory_source_is_live(c.command->>'source_kind',c.source_fact_id,c.command->>'source_fingerprint',c.id)
+				 FROM public.active_memory_commands c
+				 WHERE c.owner_fluctlight_id=a.owner_fluctlight_id AND c.result->>'active_memory_id'=a.id
+				   AND (c.result->>'revision')::integer=a.revision
+				 ORDER BY c.created_at DESC,c.id DESC LIMIT 1
+				),false)
+			) AND NOT EXISTS(SELECT 1 FROM public.actor_fact_artifacts d JOIN public.actor_facts f ON f.id=d.fact_id WHERE d.artifact_kind='active_memory' AND d.artifact_id=$1 AND d.artifact_revision=$3 AND (f.status<>'active' OR f.revision<>d.fact_revision OR (f.valid_until IS NOT NULL AND f.valid_until<=$4)))`, stringValue(item["id"]), fluctlightID, intValue(item["revision"]), at).Scan(&current)
 			if err != nil {
 				return residentMemorySnapshot{}, err
 			}

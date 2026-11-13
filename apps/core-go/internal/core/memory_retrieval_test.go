@@ -89,26 +89,36 @@ func TestPostgresMemoryRetrievalFindsOldRelevantBeyondRecentCandidateLimit(t *te
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance) VALUES($1,$2,'blank_slate','active','{}','{}','{}','{}','{}','{}')`, fluctlightID, ownerID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repository.Pool().Exec(ctx, `
-		INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,personality_perspectives,confidence,importance,emotional_significance,visibility,status,revision,canonical_key,request_digest,created_at)
-		SELECT 'authorized-distractor-'||value,$1,'semantic','unrelated recent distractor '||value,jsonb_build_array($2::text),NULL,'[]','["fact"]','[]',0.8,0.8,0.2,'participants','active',0,lpad(to_hex(value),32,'0'),lpad(to_hex(value+10000),32,'0'),now()+value*interval '1 second'
-		FROM generate_series(1,250) value`, fluctlightID, viewerID); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,personality_perspectives,confidence,importance,emotional_significance,visibility,status,revision,canonical_key,request_digest,created_at) VALUES('authorized-old-relevant',$1,'semantic','archive telescope calibration',jsonb_build_array($2::text),NULL,'[]','["fact"]','[]',0.9,0.9,0.3,'participants','active',0,'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa','bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',now()-interval '2 years')`, fluctlightID, viewerID); err != nil {
-		t.Fatal(err)
+	app := &App{DB: repository}
+	relevantID := ""
+	for index := 0; index <= 250; index++ {
+		content := fmt.Sprintf("unrelated recent distractor %d", index)
+		if index == 250 {
+			content = "archive telescope calibration"
+		}
+		command := memoryLifecycleTestCommand(MemoryCreate, fmt.Sprintf("retrieval-source-%d", index), &MemorySemanticInput{Type: "semantic", Content: content, Confidence: 0.9, Importance: 0.9, EmotionalSignificance: 0.3}, nil, nil)
+		command.OwnerActorID, command.OwnerFluctlightID, command.ActorID = ownerID, fluctlightID, ownerID
+		command.ActorRefs, command.Visibility = []string{viewerID}, "participants"
+		command.RequestDigest = memoryCommandDigest(command)
+		created := applyMemoryLifecycleTestCommand(t, ctx, app, command)
+		if index == 250 {
+			relevantID = created.MemoryID
+			if _, err := repository.Pool().Exec(ctx, `UPDATE public.memories SET created_at=now()-interval '2 years' WHERE id=$1`, relevantID); err != nil {
+				t.Fatal(err)
+			}
+		}
 	}
 	plan, err := buildMemoryQueryPlan(MemoryForNativeCognition, []string{viewerID}, MemoryConversationGlobalOnly, "", nil, "default", []MemoryQueryCue{{Kind: "current", Text: "telescope calibration"}}, 12, 2400)
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, err := (&App{DB: repository}).retrieveMemoryWithPlan(ctx, ownerID, fluctlightID, plan)
+	result, err := app.retrieveMemoryWithPlan(ctx, ownerID, fluctlightID, plan)
 	if err != nil {
 		t.Fatal(err)
 	}
 	found := false
 	for _, item := range result.Items {
-		found = found || stringValue(item["id"]) == "authorized-old-relevant"
+		found = found || stringValue(item["id"]) == relevantID
 	}
 	if !found || result.Trace.AuthorizedCandidateCount != memoryCandidateLimit || len(result.Trace.Ranking) != memoryCandidateLimit {
 		t.Fatalf("old relevant memory was crowded out: found=%t items=%#v trace=%#v", found, result.Items, result.Trace)

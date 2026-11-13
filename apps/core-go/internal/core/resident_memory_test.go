@@ -42,10 +42,13 @@ func TestResidentMemoryPublishesWholeGenerationAndSkipsUnchangedReplay(t *testin
 	if err != nil || second.Trace.Generation <= first.Trace.Generation || len(second.Memories) != 1 || stringValue(second.Memories[0]["content"]) != "纠正：与用户约定每月交流" {
 		t.Fatalf("corrected Resident generation=%#v err=%v", second, err)
 	}
-	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.active_memories(id,owner_fluctlight_id,kind,content,status,confidence,importance,source_fact_id,evidence_refs,original_time_expression,time_precision,timezone,last_relevant_at,revision,canonical_key,request_digest,created_at,updated_at)
-VALUES('resident-commitment',$1,'commitment','下周完成回访','active',0.9,0.9,'owner-commitment','["owner-commitment"]','','unknown','Asia/Shanghai',now(),1,'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa','bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',now(),now())`, fluctlightID); err != nil {
-		t.Fatal(err)
-	}
+	commitment := activeMemoryLifecycleTestCommand(ActiveMemoryCreate, "resident-commitment", time.Now().UTC(), &ActiveMemorySemanticInput{Kind: "commitment", Content: "下周完成回访", Confidence: 0.9, Importance: 0.9, TimePrecision: "unknown", Timezone: "Asia/Shanghai"}, nil)
+	commitment.OwnerActorID, commitment.OwnerFluctlightID, commitment.ActorID = ownerID, fluctlightID, ownerID
+	commitment.ConversationID = ""
+	commitment.SourceKind = "authenticated_command"
+	commitment.SourceFingerprint = stableDigest(commitment.IdempotencyKey + "\x1f" + commitment.SourceFactID)
+	commitment.RequestDigest = activeMemoryCommandDigest(commitment)
+	applyActiveMemoryLifecycleTestCommand(t, ctx, app, commitment)
 	withCommitment, err := app.readResidentMemorySnapshot(ctx, ownerID, ownerID, fluctlightID, time.Now().UTC())
 	if err != nil || withCommitment.Trace.Generation <= second.Trace.Generation || len(withCommitment.Active) != 1 || stringValue(withCommitment.Active[0]["content"]) != "下周完成回访" {
 		t.Fatalf("unfinished commitment missing from Resident: %#v err=%v", withCommitment, err)

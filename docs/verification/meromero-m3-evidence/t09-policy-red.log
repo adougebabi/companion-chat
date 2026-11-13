@@ -1,0 +1,15 @@
+SOURCE_HEAD cab379fe5e502a2f46624e4f5c8424c2b9f219d0
+OVERLAYS apps/core-go/internal/core/memory_legacy_quarantine_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestLegacy(MemoryQuarantinePreservesHistoryAndOwnerReconfirmsSource|ActiveMemoryQuarantineRejectsPersistedSnapshotAndCanReconfirm)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestLegacyMemoryQuarantinePreservesHistoryAndOwnerReconfirmsSource
+    memory_legacy_quarantine_integration_test.go:29: unresolved legacy memory was automatically retrieved: []map[string]interface {}{map[string]interface {}{"actor_refs":[]interface {}{"mixed-owner-legacy-quarantine"}, "confidence":0.9, "content":"LEGACY_UNKNOWN_MEMORY 暂存的旧结论", "conversation_id":(*string)(nil), "created_at":"2026-11-13T13:40:01.130341+08:00", "effective_source_refs":[]interface {}{"opaque:legacy-quarantine"}, "emotional_significance":0, "epistemic_kind":"inference", "event_refs":[]interface {}{}, "evidence_refs":[]interface {}{"opaque:legacy-quarantine"}, "id":"memory_bf5b8ae0f81aeaf37b5741904693826c", "importance":0.9, "occurred_at":"2026-11-13T05:40:01.130341Z", "provenance_status":"legacy_unknown", "request_digest":"2b1bcaf28bb29639c9bedaf5159a680b", "revision":0, "source":"memory:memory_bf5b8ae0f81aeaf37b5741904693826c", "status":"active", "type":"autobiographical", "visibility":"private"}} err=<nil>
+--- FAIL: TestLegacyMemoryQuarantinePreservesHistoryAndOwnerReconfirmsSource (2.78s)
+=== RUN   TestLegacyActiveMemoryQuarantineRejectsPersistedSnapshotAndCanReconfirm
+    memory_legacy_quarantine_integration_test.go:61: unknown active source was retrieved: []map[string]interface {}{map[string]interface {}{"actor_refs":[]interface {}{"mixed-owner-legacy-active-quarantine"}, "confidence":0.9, "content":"LEGACY_UNKNOWN_ACTIVE 下周回访", "conversation_id":"", "created_at":time.Date(2026, time.November, 13, 13, 40, 3, 647887000, time.Local), "evidence_refs":[]interface {}{"opaque:legacy-active"}, "id":"active_memory_b3e020f117910c8957ebd939b398017f", "importance":0.9, "kind":"commitment", "last_relevant_at":time.Date(2026, time.November, 13, 13, 40, 3, 647887000, time.Local), "original_time_expression":"", "owner_fluctlight_id":"mixed-fluctlight-legacy-active-quarantine", "revision":1, "source_fact_id":"opaque:legacy-active", "source_validity":"legacy_unknown", "status":"active", "time_precision":"unknown", "timezone":"UTC", "updated_at":time.Date(2026, time.November, 13, 13, 40, 3, 647887000, time.Local), "valid_from":<nil>, "valid_until":<nil>}} err=<nil>
+--- FAIL: TestLegacyActiveMemoryQuarantineRejectsPersistedSnapshotAndCanReconfirm (2.51s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.116s
+FAIL
+
+EXIT_CODE 1

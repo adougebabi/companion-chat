@@ -10,6 +10,7 @@
 | T08 其他原验收 | 表达学习闭环 | PARTIAL | 继承候选启停闭环证据。任意注入/日志排除、真实模型关系称呼语义和 UI 到运行闭环尚未完成或未验收。 |
 | M3-03 可定位 legacy 摘要来源纠错屏障 | T09 旧来源及派生失效 | VERIFIED | 修复首次全 unknown 的摘要来源负向屏障，提交 `ae9023ce` 的干净源码复验 8 个核心顶层测试及 1 个迁移测试通过，退出码 0、无 SKIP。 |
 | M3-04 在途纠错发布保护证据 | T09 后续输入/在途请求 | VERIFIED | direct/Writer × revise/forget 四场景及正常发布/追发对照在提交 `b0d47d68` 的干净源码通过，3 个顶层测试、退出码 0、无 SKIP。沿用既有 generation fence，本节点仅增加测试。 |
+| M3-06 无可解析来源的旧记忆暂停自动注入 | T09 用户确认的历史兼容策略 | IMPLEMENTED | 长期/ActiveMemory/resident 旧快照、正式 recall、direct/Writer 及 Owner 恢复场景通过，等待提交后复验。 |
 | T09 其他原验收 | 记忆治理 | PARTIAL | 完全不可解析来源、正确吸收纠错的重建、其余主链在途与锁序矩阵仍未验收。 |
 | M3-05 Goal 领域验收恢复 | T10 成功条件、日程/活动、衣柜和依赖保护 | VERIFIED | 修正隔离测试的 DB 时间前置，原四组失败与 handoff 实际进入评估，24 个直接受影响顶层回归通过，提交后 112 项 M3 汇总回归和独立迁移测试通过。跨人格时钟加强后单独复验通过。 |
 | T10 其他原验收 | 领域保护 | PARTIAL | 继承既有其他领域证据，真实模型、真实渲染及完整领域矩阵仍未验收。 |
@@ -77,3 +78,17 @@ M3-04 提交后 `b0d47d683b12127d7a3cd62702c2c3811f99ee08`，`t09-inflight-postc
 用户已明确选择：完全无法解析来源的旧记忆暂停自动注入，保留记录，待 Owner 重新确认来源后恢复。当前 T10 节点收口后恢复原 T09 实施该策略。此前待确认状态保留为当时事实。
 
 M3 汇总受检提交 `4f9d6abaff7017621b665b21207646c7602f16cb`，干净源码无 overlay，112 个明确选择的核心顶层测试通过，退出码 0、无 SKIP；同提交独立迁移测试 1 项通过。清单 `aggregate-test-selection.txt`、完整命令及结果 `aggregate-postcommit.log` / `aggregate-migration.log`。后续 `9f50332f6a3d07060f120b814a949e287a5a3a95` 仅加强跨人格 clock 测试的独立性，`t10-clock-postcommit.log` 干净提交单独复验通过。此轮汇总未运行需要私有录制的可选 wire replay，历史 SKIP 保留在 T08 日志。M3 和父 T07～T10 仍未标完成。
+
+## M3-06 用户已确认的旧记忆兼容策略
+
+用户明确选择暂停完全无法解析来源的旧记忆自动注入，保留记录，待 Owner 重新确认来源。实现沿用现有 source links 和 source liveness，不新增记忆系统、表结构或新状态。长期 SQL 候选在 LIMIT 前要求 live support，输出 effective refs 仅含 live refs；普通混合来源按现有至少一条有效来源保留，daily 仍要求完整来源有效。ActiveMemory 检索、resident publisher 和旧 resident snapshot 读取均重新核验现有最新来源命令。
+
+`t09-policy-red.log` 实际复现旧长期和 ActiveMemory 无来源仍被读取。`t09-policy-green.log` 两项正向/恢复场景通过。`t09-policy-expanded.log` 加入 mixed、正式 recall 和 direct/Writer 物理请求后通过。后续扩展中 `t09-policy-regression.log`、`t09-policy-regression-corrected.log` 保留新增噪声 SQL 夹具缺字段/约束错误，以及两个旧正向 fixture 仅有原始无来源行的预期冲突。噪声改用正式 Memory 创建入口；正向排序 fixture 改为真实 Owner 来源命令，Resident 承诺 fixture 改为正式 authenticated command，保留原排序、窗口、generation 与内容断言。
+
+独立复核未发现 zero-live-source 经长期/向量/recall/Active/resident 绕过。复核发现本轮首次文字替换误将显式修正目标的 legacy 标签写成 verified，已恢复原真实标签。对“DB 仍残留 legacy_unknown 标签但已有人为补入 live link”的防御性场景，长期查询按有效来源保留；Resident 与派生冻结来源继续保留原有 verified/partial 标签要求，未顺便放宽其来源合同。
+
+`t09-policy-migration.log` 验证已有 current head 上恢复旧 publisher 函数再 Apply 会恢复新校验，同时保持原配置与角色记录。沿用现有 Apply 的函数重装及 Resident 重建，没有新增数据回填步骤。新读取校验也独立挡住尚未重建的旧 snapshot。
+
+正式 Owner ReviseMemory 重新提供确认来源后，新 revision 可重新检索，旧 revision/source links 保留；现有 ActiveMemory lifecycle Confirm 以 authenticated command 恢复 Active/Resident。后者证明 Core 生命周期入口，未声称已有 Owner UI/API 一键恢复验收。direct 与 fact-only 新轮真实物理请求均验证隔离 marker 缺席、Owner 确认后的新 marker 出现、正常聊天仍能发布。Provider 为受控夹具。
+
+`t09-policy-regression-final.log` 18 个核心顶层测试通过、退出码 0、无 SKIP，独立 migration 1 项通过。Source/quarantine 是本节点验收对象，完整自然语言事实准确性与所有旧 ready draft 重放未由此证明。

@@ -472,8 +472,7 @@ func (a *App) retrieveActiveMemories(ctx context.Context, query ActiveMemoryQuer
 		WHERE owner_fluctlight_id=$1
 		  AND status='active'
 		  AND NOT EXISTS(SELECT 1 FROM public.actor_fact_artifacts d JOIN public.actor_facts f ON f.id=d.fact_id WHERE d.artifact_kind='active_memory' AND d.artifact_id=active_memories.id AND d.artifact_revision=active_memories.revision AND (f.status<>'active' OR f.revision<>d.fact_revision OR (f.valid_until IS NOT NULL AND f.valid_until<=$3)))
-		  AND (source_support.source_kind IS NULL OR source_support.source_kind=''
-		   OR public.active_memory_source_is_live(source_support.source_kind,source_support.source_fact_id,source_support.source_fingerprint,source_support.command_id))
+		  AND public.active_memory_source_is_live(source_support.source_kind,source_support.source_fact_id,source_support.source_fingerprint,source_support.command_id)
 		  AND (conversation_id IS NULL OR conversation_id=$2)
 		  AND (valid_from IS NULL OR valid_from <= $3)
 		  AND (valid_until IS NULL OR valid_until > $3)

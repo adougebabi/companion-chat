@@ -638,3 +638,12 @@ is_current_character，防止把与甲的经历当作与乙的关系。scene_eve
   each world/hour owns one staged result and a 10-minute execution deadline.
   New-world baseline configuration is materialized transactionally, without an
   additional model entry or fabricated Life facts. No token limits were added.
+
+## 旧记忆的自动输入边界
+
+2026-11-13 用户确认完全无法解析来源的旧记忆暂停自动注入，保留记录待 Owner
+重新确认来源。长期记忆按现有 live-source 校验，零有效支持退出候选窗口；混合
+来源仍按既有 partial 语义保留，仅将 live refs 标为有效支持。ActiveMemory 的
+检索、resident 发布与既有缓存读取同样要求真实来源命令仍有效。既有 Owner
+记忆修订或现有 ActiveMemory 确认命令记录新的可核验来源后，可重新进入读取。
+来源、历史 revision 与 Owner 管理记录继续保留。

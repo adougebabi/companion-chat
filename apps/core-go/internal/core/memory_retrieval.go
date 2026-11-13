@@ -332,8 +332,7 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 	rows, err := a.DB.Pool().Query(ctx, `
 		SELECT id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,personality_perspectives,
 		       confidence,importance,emotional_significance,visibility,status,revision,
-		       CASE WHEN provenance_status='legacy_unknown' THEN 'legacy_unknown'
-		            WHEN source_support.live_count=source_support.total_count THEN 'verified'
+		       CASE WHEN source_support.live_count=source_support.total_count THEN 'verified'
 		            ELSE 'partial' END,epistemic_kind,request_digest,source_support.live_refs,occurred_at,created_at,
 		       CASE WHEN query_terms.query IS NULL THEN 0 ELSE COALESCE(ts_rank_cd(search_document,query_terms.query),0) END
 		FROM public.memories
@@ -354,10 +353,9 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 		  AND status='active'
 		  AND provenance_status NOT IN ('pending','invalid')
 		  AND NOT public.memory_has_corrected_summary_source(owner_fluctlight_id,id,revision)
-		  AND (provenance_status='legacy_unknown' OR (
-		    source_support.live_count>0 AND (
-		      NOT EXISTS (SELECT 1 FROM public.conversation_daily_memories d WHERE d.memory_id=memories.id)
-		      OR source_support.live_count=source_support.total_count)))
+		  AND source_support.live_count>0
+		  AND (NOT EXISTS (SELECT 1 FROM public.conversation_daily_memories d WHERE d.memory_id=memories.id)
+		       OR source_support.live_count=source_support.total_count)
 		  AND type=ANY($3::text[])
 		  AND (
 		    (visibility IN ('private','owner') AND $4)
@@ -401,10 +399,7 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 		ageHours := math.Max(0, time.Since(created).Hours())
 		components["recency"] = 0.25 / (1 + ageHours/(7*24))
 		score += components["recency"]
-		if provenanceStatus == "legacy_unknown" {
-			components["source_unknown_penalty"] = -1
-			score--
-		} else if provenanceStatus == "partial" {
+		if provenanceStatus == "partial" {
 			components["partial_source_penalty"] = -0.25
 			score -= 0.25
 		}
@@ -426,11 +421,7 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 			"evidence_refs": decodeArray(evidenceRefs), "source": "memory:" + id,
 			"created_at": created.Format(time.RFC3339Nano), "actor_refs": decodeArray(actorRefs),
 		}
-		if provenanceStatus == "legacy_unknown" {
-			value["effective_source_refs"] = decodeArray(evidenceRefs)
-		} else {
-			value["effective_source_refs"] = decodeArray(liveSourceRefs)
-		}
+		value["effective_source_refs"] = decodeArray(liveSourceRefs)
 		if occurred != nil {
 			value["occurred_at"] = occurred.UTC().Format(time.RFC3339Nano)
 		}
