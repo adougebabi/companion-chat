@@ -1,0 +1,6 @@
+{
+  "head": "9d25d208c0d8dab42ea7b8ff8fde1a69f04e7d37",
+  "overlays": {
+    "apps/core-go/internal/workflow/m2_real_temporal_media_pause_integration_test.go": "f2dcf63d9550c079531363fa06991da40798be38013f541f3fd165879990c402"
+  }
+}

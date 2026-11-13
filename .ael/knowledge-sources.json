@@ -255,6 +255,27 @@
       }
     },
     {
+      "path": "docs/verification/meromero-m2-evidence/m2-05-temporal-review-notes.md",
+      "hash": "1ac614fdd7f6b3081b08bb9c49104aaf62f42f7b0e2cc8c2bd8fa8eb716a63a2",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/meromero-m2-evidence/m2-05-temporal-review-notes.md",
+        "title": "m2-05-temporal-review-notes.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/meromero-m2-evidence/m2-05-temporal-review-notes.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/meromero-m2-evidence/m2-05-temporal-review-notes.md",
+        "hash": "1ac614fdd7f6b3081b08bb9c49104aaf62f42f7b0e2cc8c2bd8fa8eb716a63a2",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
       "path": "docs/verification/meromero-m2-evidence/m2-11-review-notes.md",
       "hash": "88555fe9e0d89323ac356da148159f7f8eb637cca14b374c6f8aabd84c8d9a31",
       "action": "historical",
@@ -403,7 +424,7 @@
     },
     {
       "path": "docs/verification/meromero-m2-progress-20261112.md",
-      "hash": "30957d8f004c02f80946e62c7d83e973a794561ceeb6288248dae0ce0f55db06",
+      "hash": "d5a457fdce33bd7c62980923c08612ac2dd035cb377ab1e1d6e84d8864cf9e26",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -417,7 +438,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/verification/meromero-m2-progress-20261112.md",
-        "hash": "30957d8f004c02f80946e62c7d83e973a794561ceeb6288248dae0ce0f55db06",
+        "hash": "d5a457fdce33bd7c62980923c08612ac2dd035cb377ab1e1d6e84d8864cf9e26",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -530,7 +551,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 23,
+    "historical": 24,
     "retired": 1
   }
 }

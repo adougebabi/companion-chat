@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-05-real-temporal-pause",
+  "definition_hash": "d291dd8b1104bc28dc9542b1c12dc986c1650360f5f25f011cdeb974871a64c4",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T23:51:24.235072Z",
+  "updated": "2026-11-13T00:08:23.491999Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-c8f788c91c3f0b9a120c",
+        "unit": "define",
+        "executor": "codex-m2-05-temporal",
+        "input_version": "b1a68fba026e9d7e7da55a49fccd7ae022bd4dc9136336217a643a861555a099",
+        "candidate_version": "b1a68fba026e9d7e7da55a49fccd7ae022bd4dc9136336217a643a861555a099",
+        "started": "2026-11-12T23:52:14.95361Z",
+        "ended": "2026-11-12T23:52:47.164029Z",
+        "status": "pass",
+        "reason": "T06 的单一验收：真实隔离 Temporal 调用正式媒体工作流与 Core 活动，未知提交保持暂停且无自动重试。"
+      },
+      {
+        "id": "AT-e9be32f8f087adf81f7b",
+        "unit": "analysis",
+        "executor": "codex-m2-05-temporal",
+        "input_version": "b1a68fba026e9d7e7da55a49fccd7ae022bd4dc9136336217a643a861555a099",
+        "candidate_version": "b1a68fba026e9d7e7da55a49fccd7ae022bd4dc9136336217a643a861555a099",
+        "started": "2026-11-12T23:53:04.721424Z",
+        "ended": "2026-11-12T23:53:05.062954Z",
+        "status": "pass",
+        "reason": "复用本机缓存的 Temporal 镜像建立一次性服务，结合隔离 PostgreSQL 中已持久提交围栏测试正式活动；不调用真实模型或渲染服务。"
+      },
+      {
+        "id": "AT-a672390ee0967818d71d",
+        "unit": "execute",
+        "executor": "codex-m2-05-temporal",
+        "input_version": "b1a68fba026e9d7e7da55a49fccd7ae022bd4dc9136336217a643a861555a099",
+        "candidate_version": "",
+        "started": "2026-11-12T23:53:20.554054Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}

@@ -1,0 +1,10 @@
+SOURCE_HEAD 9d25d208c0d8dab42ea7b8ff8fde1a69f04e7d37 (clean archive plus test overlay)
+CANDIDATE /private/tmp/fluctlight-m2-temporal-candidate-e6h4v27g
+MANIFEST /private/tmp/fluctlight-m2-temporal-candidate-e6h4v27g/m2-temporal-manifest.json
+COMMAND go test ./internal/workflow -count=1 -run ^TestM2RealTemporalMediaUnknownSubmissionPauses$ -v -timeout=8m DATABASE disposable-loopback
+# github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow [github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow.test]
+internal/workflow/m2_real_temporal_media_pause_integration_test.go:4:2: "context" imported and not used
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow [build failed]
+FAIL
+
+EXIT_CODE 1

@@ -1,0 +1,28 @@
+SOURCE_HEAD 9d25d208c0d8dab42ea7b8ff8fde1a69f04e7d37 (clean archive plus test overlay)
+CANDIDATE /private/tmp/fluctlight-m2-temporal-candidate-e6h4v27g
+MANIFEST /private/tmp/fluctlight-m2-temporal-candidate-e6h4v27g/m2-temporal-final2-manifest.json
+COMMAND go test ./internal/workflow -count=1 -run ^(TestAmbiguousMediaActivityIsNonRetryable|TestVisualWorkflowWaitsForResumeAfterAmbiguousSubmission|TestVisualWorkflowLegacyHistoryCanContinueAsNew|TestMediaReconcilePreservesUnknownSubmissionAfterWorkerLoss)$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestAmbiguousMediaActivityIsNonRetryable
+--- PASS: TestAmbiguousMediaActivityIsNonRetryable (0.00s)
+=== RUN   TestVisualWorkflowWaitsForResumeAfterAmbiguousSubmission
+=== RUN   TestVisualWorkflowWaitsForResumeAfterAmbiguousSubmission/image_submission_unknown
+2026/11/13 08:05:20 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 2 ActivityType ProcessVisualIdentityActivity
+2026/11/13 08:05:20 DEBUG Auto fire timer TimerID 0 TimerDuration 1m0s TimeSkipped 1m0s
+2026/11/13 08:05:20 DEBUG Auto fire timer TimerID 3 TimerDuration 5s TimeSkipped 5s
+=== RUN   TestVisualWorkflowWaitsForResumeAfterAmbiguousSubmission/character_sheet_submission_unknown
+2026/11/13 08:05:20 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 2 ActivityType ProcessVisualIdentityActivity
+2026/11/13 08:05:20 DEBUG Auto fire timer TimerID 0 TimerDuration 1m0s TimeSkipped 1m0s
+2026/11/13 08:05:20 DEBUG Auto fire timer TimerID 3 TimerDuration 5s TimeSkipped 5s
+--- PASS: TestVisualWorkflowWaitsForResumeAfterAmbiguousSubmission (0.07s)
+    --- PASS: TestVisualWorkflowWaitsForResumeAfterAmbiguousSubmission/image_submission_unknown (0.07s)
+    --- PASS: TestVisualWorkflowWaitsForResumeAfterAmbiguousSubmission/character_sheet_submission_unknown (0.00s)
+=== RUN   TestVisualWorkflowLegacyHistoryCanContinueAsNew
+2026/11/13 08:05:20 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 1 ActivityType ProcessVisualIdentityActivity
+2026/11/13 08:05:20 DEBUG Auto fire timer TimerID 2 TimerDuration 5s TimeSkipped 5s
+--- PASS: TestVisualWorkflowLegacyHistoryCanContinueAsNew (0.00s)
+=== RUN   TestMediaReconcilePreservesUnknownSubmissionAfterWorkerLoss
+--- PASS: TestMediaReconcilePreservesUnknownSubmissionAfterWorkerLoss (2.46s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow	2.913s
+
+EXIT_CODE 0

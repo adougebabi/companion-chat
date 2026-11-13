@@ -1,0 +1,6 @@
+Temporal image: temporalio/auto-setup:1.29.7
+Temporal database image: pgvector/pgvector:pg16
+Host endpoint: 127.0.0.1:32769
+Command: temporal operator cluster health --address <test-container>:7233
+Output: SERVING
+Exit code: 0
