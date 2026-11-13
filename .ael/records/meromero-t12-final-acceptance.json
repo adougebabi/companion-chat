@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "T12 已更新 review-for-chatgpt.md、E01–E18 矩阵和脱敏证据：42b43abf 干净源码 Go 全量 18 包通过、3108 测试事件通过/1073 跳过；隔离 PostgreSQL 与受控 Provider 14 个顶层专项通过；Web 定向 8 项与类型检查通过。另跑衣柜/无人主体 9 个顶层测试，8 通过、1 失败；两个换衣不可用后回退纠错子场景在起始提交通过、当前失败，临时将 400 改为 503 仍失败，已登记 reply-wear-fallback-correction-regression。新增的 400 不回退独立测试在提交 45489e84 后通过。E14 四组旧 Goal/活动失败、E16 正文与媒体不一致、真实模型多场景、真实媒体和 UI 到运行闭环均未完成，不能将任何 E 项整体标为通过；当前默认 fact_only 仍使用独立 Writer。按用户要求保留未完成状态并继续原任务。",
+  "failure": "M4回执已交付并提交a231d78e，九个限定单元按各自层次VERIFIED。完整原acceptance、E01-E18、迁移/旧在途/回滚及15项原始自检逐项映射。最终Core81、HTTP125、Web57通过且无SKIP；全Go3181PASS/1292SKIP。当前与M4起点同两项换衣回退FAIL保留，Owner本轮真实模型明确未验收，实媒体与既有人工恢复/拒绝重放/增量流工单继续保留。独立只读复核确认数字、原始日志校验、链接及四草稿hash。整体PARTIAL，原父任务不标完成，M4交付后停止。",
   "result": "",
   "created": "2026-11-10T08:34:31.35389Z",
-  "updated": "2026-11-13T12:40:45.350299Z",
+  "updated": "2026-11-13T12:43:09.53256Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -65,11 +65,11 @@
         "unit": "execute",
         "executor": "codex-m4-final-report",
         "input_version": "8befa34b712d8b204f4bb5ba8d1e9e923d4d6ec7f50b6fb63658b9fd68e9e718",
-        "candidate_version": "",
+        "candidate_version": "9bd4daf56e41adf2204a3a2ca522726bb8917e7d2108e7e95a5b433700620784",
         "started": "2026-11-13T12:20:36.577966Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-13T12:42:58.436629Z",
+        "status": "blocked",
+        "reason": "M4回执已交付并提交a231d78e，九个限定单元按各自层次VERIFIED。完整原acceptance、E01-E18、迁移/旧在途/回滚及15项原始自检逐项映射。最终Core81、HTTP125、Web57通过且无SKIP；全Go3181PASS/1292SKIP。当前与M4起点同两项换衣回退FAIL保留，Owner本轮真实模型明确未验收，实媒体与既有人工恢复/拒绝重放/增量流工单继续保留。独立只读复核确认数字、原始日志校验、链接及四草稿hash。整体PARTIAL，原父任务不标完成，M4交付后停止。"
       }
     ],
     "checks": null
