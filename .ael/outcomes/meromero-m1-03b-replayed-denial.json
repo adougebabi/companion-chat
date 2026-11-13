@@ -1,0 +1,27 @@
+{
+  "id": "meromero-m1-03b-replayed-denial",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "1fc2ef3ed111d3e2a19ec3edb057421024789a521a416a9ea410a6f5ed39d765",
+  "completed": "2026-11-13T16:23:17.174317Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "m1-03b-scenario",
+      "result": "pass",
+      "source": "scenario:codex-postm4-denial",
+      "config_hash": "d199ed287fdbdd4c1795718b97b7c89b08069a9b4006393327a928f61537df10",
+      "at": "2026-11-13T16:23:12.887823Z",
+      "artifact_hashes": {
+        "apps/core-go/internal/core/conversation_loop_progress.go": "25dbc2538118943dfb922fc7bfb6697b6f95b88503aafc67b2e7629fa2304409",
+        "apps/core-go/internal/core/conversation_publication_policy.go": "6dde57f394bf1ef61b3053cdd6a4822a927881f1c1c2bc0fa9d64520f95c142b",
+        "apps/core-go/internal/core/m1_replayed_denial_test.go": "65a1e0c34fa497240ceb5880b1186b03a679c570c318a2f12954067ab01e48be",
+        "apps/core-go/internal/core/runtime_context_refresh.go": "b0c82fd281c9cd2fb4c85246f122f0f2f1ff053a8b9617617eb63758ae9ed725",
+        "docs/verification/post-m4-fixes-evidence/postdenial-postcommit.log": "341a4a94e29fbc65765091765c5ec19c2cea85b70f1a7c6a4da3b2809d0b3a5b",
+        "docs/verification/post-m4-fixes-evidence/postdenial-workingtree.log": "03499faa4b74b6ca73de4595a32aa45a4367c7f6e5a8525f662efb5b51a7d739"
+      }
+    }
+  ]
+}

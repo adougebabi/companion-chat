@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "id": "diagnostic-task-detail-baseline-regressions",
+  "definition_hash": "8a34435d1633d476a3adf35297a1097cc451b4334a654f9ee0e0db1a289f9b20",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "fast",
+    "steps": [
+      "define",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-13T16:28:28.743924Z",
+  "updated": "2026-11-13T16:28:28.744342Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}

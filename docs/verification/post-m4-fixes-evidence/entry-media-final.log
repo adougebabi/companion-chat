@@ -1,0 +1,30 @@
+✔ failed media task recovers the original attempt and follows the accepted new task (1317.93925ms)
+✔ media retry uses explicit regenerate mode and keeps its original revision (215.904375ms)
+✔ media quality failure presents only supported recovery actions (true) (87.171833ms)
+✔ media quality failure presents only supported recovery actions (false) (86.49525ms)
+✔ media quality failure presents only supported recovery actions (null) (83.74625ms)
+✔ media quality recovery preserves a ready legacy asset (75.466083ms)
+✔ media quality recovery checks already delivered legacy results (unsettled) (111.06525ms)
+✔ media quality recovery checks already delivered legacy results (failed) (88.2355ms)
+✔ media recovery respects visual domain and attempt boundaries (114.502125ms)
+✔ media recovery respects studio domain and attempt boundaries (119.595583ms)
+✔ media recovery respects superseded domain and attempt boundaries (86.513083ms)
+✔ media recovery respects active domain and attempt boundaries (85.763583ms)
+✔ media stage display uses only persisted checkpoints and never turns provider admission into a finished image (0.311083ms)
+✔ media recovery survives remount after an unknown transport result without changing the submission (311.308042ms)
+✔ media revision conflict requires a fresh read and explicit release before a new submission (399.853583ms)
+✔ incomplete media recovery receipt retains the original command for safe replay (269.476542ms)
+✔ media recovery warns about an unknown provider submission only when job id is missing (148.349083ms)
+✔ media recovery warns about an unknown provider submission only when job id is saved (153.897583ms)
+✔ uncertain media submission_unknown requires explicit review before regeneration (223.511417ms)
+✔ uncertain media failed requires explicit review before regeneration (230.384458ms)
+✔ uncertain media with a ready asset offers reviewed recovery without regeneration (118.814292ms)
+✔ diagnostic media recovery follows the current original task and never submits from its stale snapshot (40.556459ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4796.914417

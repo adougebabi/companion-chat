@@ -16,14 +16,14 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "execute",
-  "status": "open",
-  "candidate": "",
-  "failure": "用户要求对偏离原任务的非阻断性问题只登记 AEL 缺陷、不继续修复。同一调用 ID 的条件性拒绝重放已记录为非阻断缺陷；正式路径红测与实验补丁已保留，实验业务代码已撤出工作树。此状态表示用户指定暂缓，而非声称主链环境故障或验收通过。",
-  "result": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "1fc2ef3ed111d3e2a19ec3edb057421024789a521a416a9ea410a6f5ed39d765",
+  "failure": "",
+  "result": "verified",
   "created": "2026-11-12T06:00:42.44921Z",
-  "updated": "2026-11-12T06:24:09.700107Z",
-  "completed": null,
+  "updated": "2026-11-13T16:23:17.175889Z",
+  "completed": "2026-11-13T16:23:17.174317Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -59,8 +59,57 @@
         "ended": "2026-11-12T06:23:58.543059Z",
         "status": "blocked",
         "reason": "用户要求对偏离原任务的非阻断性问题只登记 AEL 缺陷、不继续修复。同一调用 ID 的条件性拒绝重放已记录为非阻断缺陷；正式路径红测与实验补丁已保留，实验业务代码已撤出工作树。此状态表示用户指定暂缓，而非声称主链环境故障或验收通过。"
+      },
+      {
+        "id": "AT-b6e44c05979c97fb0846",
+        "unit": "execute",
+        "executor": "codex-postm4-denial",
+        "input_version": "d33f08c66530761f85c0efdb2dd010798ac4f3d878355a14f71dfb5c9d343090",
+        "candidate_version": "230a74b24754764d706c7ff739a7b4f492ed4c28c20ddc3c63b3f43d6dc72b15",
+        "started": "2026-11-13T16:00:01.673601Z",
+        "ended": "2026-11-13T16:16:46.000805Z",
+        "status": "pass",
+        "reason": "F02修复提交9a11ec65。原7项红测及同批查询保护通过，67项相关顶层回归通过，无SKIP，四原稿保持。提交后干净源码复验。"
+      },
+      {
+        "id": "AT-ca611f56863a2012ab33",
+        "unit": "execute",
+        "executor": "codex-postm4-denial-close",
+        "input_version": "1fc2ef3ed111d3e2a19ec3edb057421024789a521a416a9ea410a6f5ed39d765",
+        "candidate_version": "1fc2ef3ed111d3e2a19ec3edb057421024789a521a416a9ea410a6f5ed39d765",
+        "started": "2026-11-13T16:22:52.583649Z",
+        "ended": "2026-11-13T16:22:52.971754Z",
+        "status": "pass",
+        "reason": "F02修复提交9a11ec65。原7项红测及同批查询保护通过，67项相关顶层回归通过，无SKIP，四原稿保持。提交后干净源码复验。"
+      },
+      {
+        "id": "AT-63cfc9def8b1b9f10276",
+        "unit": "check:m1-03b-scenario",
+        "executor": "codex-postm4-denial",
+        "input_version": "1fc2ef3ed111d3e2a19ec3edb057421024789a521a416a9ea410a6f5ed39d765",
+        "candidate_version": "1fc2ef3ed111d3e2a19ec3edb057421024789a521a416a9ea410a6f5ed39d765",
+        "started": "2026-11-13T16:23:12.84862Z",
+        "ended": "2026-11-13T16:23:12.888089Z",
+        "status": "pass",
+        "reason": "提交9a11ec65干净源码67项顶层回归通过，无SKIP，包含正式HandleTurn重放拒绝、同批合法动作和Moment媒体发布边界；四原稿只读叠加8项目标通过。原7项红测保留，独立审查指出的查询批次提前停止已修正并增回归。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "m1-03b-scenario",
+        "result": "pass",
+        "source": "scenario:codex-postm4-denial",
+        "config_hash": "d199ed287fdbdd4c1795718b97b7c89b08069a9b4006393327a928f61537df10",
+        "at": "2026-11-13T16:23:12.887823Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/conversation_loop_progress.go": "25dbc2538118943dfb922fc7bfb6697b6f95b88503aafc67b2e7629fa2304409",
+          "apps/core-go/internal/core/conversation_publication_policy.go": "6dde57f394bf1ef61b3053cdd6a4822a927881f1c1c2bc0fa9d64520f95c142b",
+          "apps/core-go/internal/core/m1_replayed_denial_test.go": "65a1e0c34fa497240ceb5880b1186b03a679c570c318a2f12954067ab01e48be",
+          "apps/core-go/internal/core/runtime_context_refresh.go": "b0c82fd281c9cd2fb4c85246f122f0f2f1ff053a8b9617617eb63758ae9ed725",
+          "docs/verification/post-m4-fixes-evidence/postdenial-postcommit.log": "341a4a94e29fbc65765091765c5ec19c2cea85b70f1a7c6a4da3b2809d0b3a5b",
+          "docs/verification/post-m4-fixes-evidence/postdenial-workingtree.log": "03499faa4b74b6ca73de4595a32aa45a4367c7f6e5a8525f662efb5b51a7d739"
+        }
+      }
+    ]
   }
 }

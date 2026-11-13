@@ -1,0 +1,120 @@
+✔ task status labels never expose inherited object properties for unknown wire values (48.514709ms)
+✖ dialog task recovery is owned once and portaled outside its scrolling body across tabs (1101.912583ms)
+✖ sheet task recovery is owned once and portaled outside its scrolling body across tabs (126.37725ms)
+✖ task checkpoint reset uses the actual completed history point and keeps its confirmation locked while submitting (118.16875ms)
+✖ readable task title and subtitle keep exact IDs and raw recovery semantics in technical details (82.033167ms)
+✖ task reasons translate only known causes, unknown types stay readable and pending source links do not claim recovery (1.019125ms)
+✔ queued unattempted task uses a preparation link while retaining the backend domain target (109.501709ms)
+✔ failed media task recovers the original attempt and follows the accepted new task (306.289667ms)
+✔ media retry uses explicit regenerate mode and keeps its original revision (194.279083ms)
+✔ media quality failure presents only supported recovery actions (true) (87.52525ms)
+✔ media quality failure presents only supported recovery actions (false) (86.07725ms)
+✔ media quality failure presents only supported recovery actions (null) (89.535083ms)
+✔ media quality recovery preserves a ready legacy asset (84.208584ms)
+✔ media quality recovery checks already delivered legacy results (unsettled) (119.214625ms)
+✔ media quality recovery checks already delivered legacy results (failed) (85.907916ms)
+✔ media recovery respects visual domain and attempt boundaries (108.754292ms)
+✔ media recovery respects studio domain and attempt boundaries (103.84ms)
+✔ media recovery respects superseded domain and attempt boundaries (78.3555ms)
+✔ media recovery respects active domain and attempt boundaries (76.773583ms)
+✔ media stage display uses only persisted checkpoints and never turns provider admission into a finished image (0.429291ms)
+✔ media recovery survives remount after an unknown transport result without changing the submission (322.111458ms)
+✔ media revision conflict requires a fresh read and explicit release before a new submission (408.673709ms)
+✔ incomplete media recovery receipt retains the original command for safe replay (246.985875ms)
+✔ media recovery warns about an unknown provider submission only when job id is missing (157.853208ms)
+✔ media recovery warns about an unknown provider submission only when job id is saved (149.359542ms)
+✔ uncertain media submission_unknown requires explicit review before regeneration (238.090666ms)
+✔ uncertain media failed requires explicit review before regeneration (236.686042ms)
+✔ uncertain media with a ready asset offers reviewed recovery without regeneration (110.569417ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 23
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5258.688875
+
+✖ failing tests:
+
+test at apps/web/test/.postm4-entry-baseline.test.mjs:24:46
+✖ dialog task recovery is owned once and portaled outside its scrolling body across tabs (1101.912583ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /生命周期记录 · 已读取 2 条/. Input:
+  
+  '原角色 · 人格整理人格整理 · 未记录时间需要处理原角色 · 已尝试 2 次执行阶段执行记录已读取 2任务信息09:00:00排队中09:02:00执行失败模型调用记录 · 0 次生命周期原始记录查看完整生命周期执行方式后台工作流 · 执行失败恢复策略当前支持重试原任务；操作受理后仍需读取实际任务结果。执行历史与检查点管理命令与技术详情重试任务关闭'
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/.postm4-entry-baseline.test.mjs:32:33)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '原角色 · 人格整理人格整理 · 未记录时间需要处理原角色 · 已尝试 2 次执行阶段执行记录已读取 2任务信息09:00:00排队中09:02:00执行失败模型调用记录 · 0 次生命周期原始记录查看完整生命周期执行方式后台工作流 · 执行失败恢复策略当前支持重试原任务；操作受理后仍需读取实际任务结果。执行历史与检查点管理命令与技术详情重试任务关闭',
+    expected: /生命周期记录 · 已读取 2 条/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at apps/web/test/.postm4-entry-baseline.test.mjs:24:46
+✖ sheet task recovery is owned once and portaled outside its scrolling body across tabs (126.37725ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /生命周期记录 · 已读取 2 条/. Input:
+  
+  '原角色 · 人格整理人格整理 · 未记录时间需要处理原角色 · 已尝试 2 次执行阶段执行记录已读取 2任务信息09:00:00排队中09:02:00执行失败模型调用记录 · 0 次生命周期原始记录查看完整生命周期执行方式后台工作流 · 执行失败恢复策略当前支持重试原任务；操作受理后仍需读取实际任务结果。执行历史与检查点管理命令与技术详情重试任务关闭'
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/.postm4-entry-baseline.test.mjs:32:33)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '原角色 · 人格整理人格整理 · 未记录时间需要处理原角色 · 已尝试 2 次执行阶段执行记录已读取 2任务信息09:00:00排队中09:02:00执行失败模型调用记录 · 0 次生命周期原始记录查看完整生命周期执行方式后台工作流 · 执行失败恢复策略当前支持重试原任务；操作受理后仍需读取实际任务结果。执行历史与检查点管理命令与技术详情重试任务关闭',
+    expected: /生命周期记录 · 已读取 2 条/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at apps/web/test/.postm4-entry-baseline.test.mjs:38:1
+✖ task checkpoint reset uses the actual completed history point and keeps its confirmation locked while submitting (118.16875ms)
+  TypeError: Cannot read properties of undefined (reading 'click')
+      at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/helpers/react-dom.mjs:121:34
+      at process.env.NODE_ENV.exports.act (/Users/vinson/Documents/project/个人/local-ai-companion/node_modules/.pnpm/react@19.3.1/node_modules/react/cjs/react.development.js:890:22)
+      at Object.click (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/helpers/react-dom.mjs:121:13)
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/.postm4-entry-baseline.test.mjs:44:198)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at apps/web/test/.postm4-entry-baseline.test.mjs:50:1
+✖ readable task title and subtitle keep exact IDs and raw recovery semantics in technical details (82.033167ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /人格资料整理 · 需要处理/. Input:
+  
+  '人格资料整理 · 10-30 09:00'
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/.postm4-entry-baseline.test.mjs:55:212)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '人格资料整理 · 10-30 09:00',
+    expected: /人格资料整理 · 需要处理/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at apps/web/test/.postm4-entry-baseline.test.mjs:60:1
+✖ task reasons translate only known causes, unknown types stay readable and pending source links do not claim recovery (1.019125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'unrecognized raw cause'
+  - ''
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/.postm4-entry-baseline.test.mjs:62:156)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'unrecognized raw cause',
+    expected: '',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+EXIT_CODE 1

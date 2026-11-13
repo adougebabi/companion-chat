@@ -200,3 +200,28 @@ test('uncertain media with a ready asset offers reviewed recovery without regene
  const view=await mountReact(vite,Record,{workspace:w,props:{taskId:'task-review-ready',onClose(){}}});
  try{const footer=document.querySelector('[data-slot=sheet-footer]');assert.ok(button(footer,'核对后恢复已有资产'));assert.equal(button(footer,'核对后重新生成'),undefined);await view.click(button(footer,'核对后恢复已有资产'));const dialog=[...document.querySelectorAll('[role=dialog]')].at(-1);assert.match(dialog.textContent,/不会再次提交生成请求/);}finally{await view.dispose();}
 });
+
+test('diagnostic media recovery follows the current original task and never submits from its stale snapshot',async()=>{
+ const {renderRealDiagnosticRecord}=await vite.ssrLoadModule('/src/v3-domain/diagnostics.js');
+ const {configureDomainService}=await vite.ssrLoadModule('/src/v3/proto/services.js');
+ const store=await vite.ssrLoadModule('/src/v3/proto/store.js');
+ store.replaceSnapshot({...store.get(),session:{actorId:'diagnostic-recovery-entry-owner'}});
+ let writes=0;
+ for(const status of ['failed','submission_unknown','running']){
+  const host=document.createElement('div');document.body.append(host);
+  configureDomainService('diagnostics',{record:async()=>({id:'media-entry',kind:'media-prompts',data:{id:'media-entry',status,revision:8,execution:{intent_id:'original/task ?#',status:'failed'}},related_workflows:[{workflow_id:'old-workflow',intent_id:'old-task'}]}),mediaRetry:async()=>{writes++;}});
+  const dispose=renderRealDiagnosticRecord(host,{params:{kind:'media-prompts',recordRef:'media-entry-ref'}});
+  try{
+   await new Promise(resolve=>setImmediate(resolve));
+   const recovery=host.querySelector('[data-media-original-task]');
+   if(status==='running')assert.equal(recovery,null);
+   else {assert.ok(recovery);assert.equal(recovery.getAttribute('href'),'#/diag/task/original%2Ftask%20%3F%23');assert.match(recovery.textContent,/原任务/);}
+   assert.equal(host.querySelector('[data-media-retry]'),null);
+   assert.equal(writes,0);
+  }finally{dispose();host.remove();}
+ }
+ const host=document.createElement('div');document.body.append(host);
+ configureDomainService('diagnostics',{record:async()=>({id:'media-entry',kind:'media-prompts',data:{id:'media-entry',status:'submission_unknown'},related_workflows:[{workflow_id:'old-workflow',intent_id:'old-task'}]})});
+ const dispose=renderRealDiagnosticRecord(host,{params:{kind:'media-prompts',recordRef:'media-entry-ref'}});
+ try{await new Promise(resolve=>setImmediate(resolve));assert.equal(host.querySelector('[data-media-original-task]'),null);assert.match(host.textContent,/当前媒体执行任务尚未读到/);assert.equal(host.querySelector('[data-media-retry]'),null);assert.equal(writes,0);}finally{dispose();host.remove();}
+});

@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "id": "diagnostic-media-original-recovery-entry",
+  "definition_hash": "fff348aee4ccd5adbc9ec0962bbd3164875bba18762cfcc6a74c017da4985126",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "fast",
+    "steps": [
+      "define",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-13T16:23:43.076911Z",
+  "updated": "2026-11-13T16:24:23.564235Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-ffeaae9b36437fa79967",
+        "unit": "define",
+        "executor": "codex-postm4-entry",
+        "input_version": "1fc2ef3ed111d3e2a19ec3edb057421024789a521a416a9ea410a6f5ed39d765",
+        "candidate_version": "1fc2ef3ed111d3e2a19ec3edb057421024789a521a416a9ea410a6f5ed39d765",
+        "started": "2026-11-13T16:23:47.417614Z",
+        "ended": "2026-11-13T16:24:14.906188Z",
+        "status": "pass",
+        "reason": "范围仅诊断详情恢复导航，复用React原任务既有人工核对协议。生产无新增恢复语义，缺任务身份保留只读。"
+      },
+      {
+        "id": "AT-4aa24b1744fa887d0b5b",
+        "unit": "execute",
+        "executor": "codex-postm4-entry",
+        "input_version": "1fc2ef3ed111d3e2a19ec3edb057421024789a521a416a9ea410a6f5ed39d765",
+        "candidate_version": "",
+        "started": "2026-11-13T16:24:23.413682Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}

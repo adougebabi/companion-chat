@@ -1,0 +1,28 @@
+✖ diagnostic media recovery follows the current original task and never submits from its stale snapshot (104.43625ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 850.058125
+
+✖ failing tests:
+
+test at apps/web/test/diagnostic-task-detail.test.mjs:204:1
+✖ diagnostic media recovery follows the current original task and never submits from its stale snapshot (104.43625ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(recovery)
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/diagnostic-task-detail.test.mjs:218:17)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
