@@ -7,7 +7,7 @@
 | F01 | 确认并修复换衣失败后的显式技术回退及纠错场景 | VERIFIED | post-m4-fixes-evidence/postwear-* |
 | F02 | 同ID无权限/关闭窗口回执跨轮重放有界 | VERIFIED | postdenial-* |
 | F03a | 诊断详情接入现有原媒体任务人工核对 | VERIFIED | entry-* |
-| F03b | Studio同源ready资产人工确认恢复 | 实现及范围内回归通过，待提交后验收 | poststudio-*及studio-* |
+| F03b | Studio同源ready资产人工确认恢复 | VERIFIED | poststudio-*及studio-* |
 | F03c | 视觉身份同源ready资产人工恢复 | 待后续独立处理；外部结果归属继续暂停 | 既有领域工作项 |
 | F04 | direct生成中的候选正文增量预览 | VERIFIED（direct预览范围） | postpreview-*及preview-* |
 
@@ -46,3 +46,5 @@ F03b覆盖未确认、缺ready、错误request/workflow、旧attempt、job/media
 F03b保留所有失败。红测确认旧入口Unknown Studio control fields。首次实现测试缺Owner账号前置，补齐局部夹具；下一次测试将幂等回执的_replay标记与原JSON整串比较，改为核对原id/revision/result和单次workflow计数。首个浏览器回归使用旧HEAD的OpenAPI导致新路由不匹配，私有测试运行器现允许显式叠加本工单当前OpenAPI后通过。客户端测试首次因sandbox拒绝tsx本机IPC失败，工具审批后相同命令48项通过。重新生成客户端时发现F04新事件原先只写到生成产物，现同步generate.mjs源模板，确保再生成保留candidate_preview，生产事件语义未变。
 
 F03b沿用既有Studio兼容规则，旧ready资产空quality verdict允许恢复，已记录拒绝/重试结论继续拒绝。恢复确认用于归属核对，未将其标成质量通过。没有同源本地ready或需要外部结果接管的情况继续暂停，外部归属、导入与补生成规则仍需Owner决定。真实图片内容/ComfyUI与真实Temporal服务验收仍保留，本轮只包含控制数据、SDK Activity harness及真实数据库/正式入口测试。
+
+F03b提交a6b92eb7后37项Core整组102.796秒、前端34项通过，无SKIP，AEL原Studio工作项已completed。外部接管/无ready继续暂停，父T05及全链状态不改为完成。

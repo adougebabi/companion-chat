@@ -1,0 +1,142 @@
+SOURCE_HEAD a6b92eb73bed8d9772de5e7f1e2ef8d26d0cf0a5
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^(TestStudio.*|TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset|TestStudioAndVisualIdentityKeepAmbiguousMediaPaused|TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob)$ -v -timeout=600s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob
+    m2_ambiguous_image_submit_test.go:115: child phase=lost_response pid=24978 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:185: phase=lost_response actual_error=media_submission_ambiguous: Post "http://127.0.0.1:61251/prompt": EOF
+        --- PASS: TestImageAmbiguousSubmitChild (0.05s)
+        PASS
+    m2_ambiguous_image_submit_test.go:120: child phase=resume pid=24980 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:185: phase=resume actual_error=media_submission_ambiguous
+        --- PASS: TestImageAmbiguousSubmitChild (0.01s)
+        PASS
+--- PASS: TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob (2.81s)
+=== RUN   TestStudioAndVisualIdentityKeepAmbiguousMediaPaused
+--- PASS: TestStudioAndVisualIdentityKeepAmbiguousMediaPaused (2.61s)
+=== RUN   TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset
+--- PASS: TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset (2.68s)
+=== RUN   TestStudioApplyPersistsChoicesAndObservedRevision
+--- PASS: TestStudioApplyPersistsChoicesAndObservedRevision (0.00s)
+=== RUN   TestStudioCopyArchiveRestoreRetainsPublicationAndProtectsRuntimeReferences
+--- PASS: TestStudioCopyArchiveRestoreRetainsPublicationAndProtectsRuntimeReferences (2.65s)
+=== RUN   TestStudioCatalogueFiltersBeforePagesAndReadsExactPublication
+--- PASS: TestStudioCatalogueFiltersBeforePagesAndReadsExactPublication (2.49s)
+=== RUN   TestStudioFoundationPatchKeepsExplicitValuesAndStablePaths
+--- PASS: TestStudioFoundationPatchKeepsExplicitValuesAndStablePaths (0.00s)
+=== RUN   TestStudioFoundationProposalAcceptAndReplayPreserveEffectiveLife
+--- PASS: TestStudioFoundationProposalAcceptAndReplayPreserveEffectiveLife (2.82s)
+=== RUN   TestStudioTextPreparationDoesNotCreateInitializationCredential
+--- PASS: TestStudioTextPreparationDoesNotCreateInitializationCredential (2.57s)
+=== RUN   TestStudioReusableDefinitionDropsActorBackgroundIntoReview
+--- PASS: TestStudioReusableDefinitionDropsActorBackgroundIntoReview (2.64s)
+=== RUN   TestStudioAssistantCanCompleteIncompleteEventDraftWithoutInventingMissingReferences
+--- PASS: TestStudioAssistantCanCompleteIncompleteEventDraftWithoutInventingMissingReferences (0.00s)
+=== RUN   TestStudioProposalRequiresVerifiedFrozenReferences
+--- PASS: TestStudioProposalRequiresVerifiedFrozenReferences (0.00s)
+=== RUN   TestStudioLateModelOutputCannotReportCompletionAfterTerminalFailure
+--- PASS: TestStudioLateModelOutputCannotReportCompletionAfterTerminalFailure (3.04s)
+=== RUN   TestStudioOutputRejectsMalformedDefinitionsAndEmptyPreview
+--- PASS: TestStudioOutputRejectsMalformedDefinitionsAndEmptyPreview (0.00s)
+=== RUN   TestStudioFrozenJobReplayRecoveryDiscardAndMaterialIsolation
+--- PASS: TestStudioFrozenJobReplayRecoveryDiscardAndMaterialIsolation (2.84s)
+=== RUN   TestStudioReviewedReadyRecoveryPreservesOriginalAttempt
+--- PASS: TestStudioReviewedReadyRecoveryPreservesOriginalAttempt (3.00s)
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unreviewed
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-job
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-media
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/old-attempt
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/missing-ready
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-request
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-workflow
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-reject
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-retry
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-legacy
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/active
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/paused
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/cancel-requested
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/discarded
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unbound-attempt
+--- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState (34.70s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unreviewed (3.04s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-job (2.66s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-media (2.91s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/old-attempt (2.16s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/missing-ready (1.97s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-request (2.11s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-workflow (2.03s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-reject (1.81s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-retry (2.09s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-legacy (2.25s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/active (2.36s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/paused (2.33s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/cancel-requested (2.20s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/discarded (2.46s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unbound-attempt (2.32s)
+=== RUN   TestStudioReviewedReadyRecoveryLegacyAndExecutionLock
+--- PASS: TestStudioReviewedReadyRecoveryLegacyAndExecutionLock (2.00s)
+=== RUN   TestStudioReviewedReadyRecoveryConcurrentCommands
+--- PASS: TestStudioReviewedReadyRecoveryConcurrentCommands (2.11s)
+=== RUN   TestStudioReviewedReadyRecoveryPreservesLateQualityFailure
+=== RUN   TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/reject
+=== RUN   TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/retry
+=== RUN   TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/retry_accepted
+--- PASS: TestStudioReviewedReadyRecoveryPreservesLateQualityFailure (6.65s)
+    --- PASS: TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/reject (2.16s)
+    --- PASS: TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/retry (2.24s)
+    --- PASS: TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/retry_accepted (2.25s)
+=== RUN   TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished
+=== RUN   TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished/false
+=== RUN   TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished/true
+--- PASS: TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished (3.33s)
+    --- PASS: TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished/false (1.91s)
+    --- PASS: TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished/true (1.42s)
+=== RUN   TestStudioReviewedReadyRecoveryRejectsStaleActivity
+2026/11/14 01:14:24 DEBUG RecordActivityTaskHeartbeat ActivityID 0
+2026/11/14 01:14:24 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType func1 Attempt 1 Error media_execution_workflow_stale
+--- PASS: TestStudioReviewedReadyRecoveryRejectsStaleActivity (2.03s)
+=== RUN   TestStudioMediaReadyRecoveryAuthorizationAndExplicitMaterialRetention
+--- PASS: TestStudioMediaReadyRecoveryAuthorizationAndExplicitMaterialRetention (1.40s)
+=== RUN   TestStudioMediaConceptNeverBorrowedTaskActorOrCurrentLife
+--- PASS: TestStudioMediaConceptNeverBorrowedTaskActorOrCurrentLife (0.00s)
+=== RUN   TestStudioReadyNonPassingCandidateIsNotPromotedDuringRecovery
+--- PASS: TestStudioReadyNonPassingCandidateIsNotPromotedDuringRecovery (1.00s)
+=== RUN   TestStudioPostgresAutomaticRetryKeepsFrozenModel
+--- PASS: TestStudioPostgresAutomaticRetryKeepsFrozenModel (2.43s)
+=== RUN   TestStudioPostgresLegacyRunningWithoutSnapshotFailsExplicitly
+--- PASS: TestStudioPostgresLegacyRunningWithoutSnapshotFailsExplicitly (2.16s)
+=== RUN   TestStudioPostgresExplicitRetryCanSelectNewModel
+--- PASS: TestStudioPostgresExplicitRetryCanSelectNewModel (2.27s)
+=== RUN   TestStudioPostgresMediaPlanningAutomaticRetryKeepsFrozenModel
+--- PASS: TestStudioPostgresMediaPlanningAutomaticRetryKeepsFrozenModel (2.60s)
+=== RUN   TestStudioSnapshotsReachTaskOwnedRequestsWithoutSecrets
+=== RUN   TestStudioSnapshotsReachTaskOwnedRequestsWithoutSecrets/assistant
+=== RUN   TestStudioSnapshotsReachTaskOwnedRequestsWithoutSecrets/text_preview
+=== RUN   TestStudioSnapshotsReachTaskOwnedRequestsWithoutSecrets/initialization
+=== RUN   TestStudioSnapshotsReachTaskOwnedRequestsWithoutSecrets/media_subject_parse
+--- PASS: TestStudioSnapshotsReachTaskOwnedRequestsWithoutSecrets (0.01s)
+    --- PASS: TestStudioSnapshotsReachTaskOwnedRequestsWithoutSecrets/assistant (0.00s)
+    --- PASS: TestStudioSnapshotsReachTaskOwnedRequestsWithoutSecrets/text_preview (0.00s)
+    --- PASS: TestStudioSnapshotsReachTaskOwnedRequestsWithoutSecrets/initialization (0.00s)
+    --- PASS: TestStudioSnapshotsReachTaskOwnedRequestsWithoutSecrets/media_subject_parse (0.00s)
+=== RUN   TestStudioOutfitMediaNormalizationRetainsVerifiedGarmentSemantics
+--- PASS: TestStudioOutfitMediaNormalizationRetainsVerifiedGarmentSemantics (0.00s)
+=== RUN   TestStudioAutomaticRetryOnlyRetriesTransientFailures
+--- PASS: TestStudioAutomaticRetryOnlyRetriesTransientFailures (0.00s)
+=== RUN   TestStudioTimeoutCreatesNewAttemptsWithBackoffThenExhausts
+--- PASS: TestStudioTimeoutCreatesNewAttemptsWithBackoffThenExhausts (2.33s)
+=== RUN   TestStudioAutomaticRetryReusesValidatedStageAndPreservesDiscard
+--- PASS: TestStudioAutomaticRetryReusesValidatedStageAndPreservesDiscard (2.28s)
+=== RUN   TestStudioTemplateActivationRenamesProfilesAndCompiledPortrait
+--- PASS: TestStudioTemplateActivationRenamesProfilesAndCompiledPortrait (2.25s)
+=== RUN   TestStudioVisualStyleApplyPreservesEffectiveStateAndTracksOverrides
+--- PASS: TestStudioVisualStyleApplyPreservesEffectiveStateAndTracksOverrides (2.24s)
+=== RUN   TestStudioSlotDeclarationsFollowTheSelectedSnapshot
+--- PASS: TestStudioSlotDeclarationsFollowTheSelectedSnapshot (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	102.796s
+
+EXIT_CODE 0

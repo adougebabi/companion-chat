@@ -16,17 +16,83 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
-  "status": "open",
-  "candidate": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "3a901de8d36d64055dd7bbb1b68b7b259260ba3345b5e12d18c8af832bbf9f71",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-12T16:21:06.553194Z",
-  "updated": "2026-11-12T16:21:06.554073Z",
-  "completed": null,
+  "updated": "2026-11-13T17:16:23.601705Z",
+  "completed": "2026-11-13T17:16:23.601579Z",
   "feedback": [],
   "history": {
-    "attempts": null,
-    "checks": null
+    "attempts": [
+      {
+        "id": "AT-7fc0746ba375fe753a43",
+        "unit": "define",
+        "executor": "codex-postm4-studio-ready",
+        "input_version": "31cf2e321d3c7feb6a727ed5f87231652e2e7270ad11daf8a007588709e19723",
+        "candidate_version": "cc3c0e0b7c9960319cfd2c6b915b8745f99e5354cfe0e98c203f7c1c52e55bc4",
+        "started": "2026-11-13T16:50:50.699706Z",
+        "ended": "2026-11-13T16:53:16.980788Z",
+        "status": "pass",
+        "reason": "本单元仅支持Owner人工确认当前原attempt的同源本地ready资产后恢复，保留Studio领域、质量结论、暂停和不自动重提政策。外部图片接管/无ready重提继续暂停并记录未确定规则。"
+      },
+      {
+        "id": "AT-c3715b804b5f245b1434",
+        "unit": "analysis",
+        "executor": "codex-postm4-studio-ready",
+        "input_version": "6027879aedcbdbec0c1b19af850d517844f4b16ad94561f84a5207582fd80b7d",
+        "candidate_version": "6027879aedcbdbec0c1b19af850d517844f4b16ad94561f84a5207582fd80b7d",
+        "started": "2026-11-13T16:54:18.427171Z",
+        "ended": "2026-11-13T16:54:18.786833Z",
+        "status": "pass",
+        "reason": "新增独立resume-reviewed命令，围栏job/media revision与latest attempt，要求精确同源ready且原媒体workflow结束，保留原job/attempt/media/provider与质量。仅调度已有结果结算，新恢复workflow同步attempt绑定，旧回调失效；Owner明确确认和持久幂等，外部结果无法证明继续暂停。"
+      },
+      {
+        "id": "AT-8cc70604a7ae18b7528c",
+        "unit": "execute",
+        "executor": "codex-postm4-studio-ready",
+        "input_version": "6027879aedcbdbec0c1b19af850d517844f4b16ad94561f84a5207582fd80b7d",
+        "candidate_version": "3a901de8d36d64055dd7bbb1b68b7b259260ba3345b5e12d18c8af832bbf9f71",
+        "started": "2026-11-13T16:54:27.520602Z",
+        "ended": "2026-11-13T17:13:01.041324Z",
+        "status": "pass",
+        "reason": "提交a6b92eb7。同源ready原attempt人工恢复正式入口及前端确认/持久未知回执完成。37项Core顶层、87项browser、34项Studio前端、48项client通过，无SKIP；质量拒绝、迟到身份、discard竞争与原结果幂等保持。实际IAB正式StudioJobs确认UI核对。无ready/外部归属不明保持暂停，真实媒体和Temporal服务验收保留。"
+      },
+      {
+        "id": "AT-c4a158285dcf939630f7",
+        "unit": "check:manual-recovery-scenario",
+        "executor": "codex-postm4-studio-ready",
+        "input_version": "3a901de8d36d64055dd7bbb1b68b7b259260ba3345b5e12d18c8af832bbf9f71",
+        "candidate_version": "3a901de8d36d64055dd7bbb1b68b7b259260ba3345b5e12d18c8af832bbf9f71",
+        "started": "2026-11-13T17:16:19.316769Z",
+        "ended": "2026-11-13T17:16:19.359767Z",
+        "status": "pass",
+        "reason": "a6b92eb7干净提交后37项Core整组回归102.796秒通过，前端34项通过，无SKIP。当前原attempt同源ready人工恢复、权限CAS质量/active/paused/丢弃竞争、旧回调与SDK旧Activity身份、重复/并发命令保持。真实IAB正式StudioJobs已核验明确确认入口，已受理丢回执跨重挂载原身份回放通过。浏览器87项和client48项通过，真实媒体/Temporal服务未验收，外部结果与无ready保持暂停。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "manual-recovery-scenario",
+        "result": "pass",
+        "source": "scenario:codex-postm4-studio-ready",
+        "config_hash": "001c7cfa808fa3d53ca5e8bc3a3c0069308edff39fe4832bd15af8f19d4b320d",
+        "at": "2026-11-13T17:16:19.359521Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/studio_jobs.go": "7af79c67a5373ccee8326e5ca4136c6a60da9d558ebae9ed4e4f5ccc3123ea05",
+          "apps/core-go/internal/core/studio_media.go": "e6aa90388f43be2b5a6244edcbcd6597f1c0c2b6046b401aafdca3e35fca107a",
+          "apps/core-go/internal/core/studio_media_reviewed_recovery.go": "038810cbd43d4b1f3c35cf5ea9f395711980757d1c15759f66749d4885420ee4",
+          "apps/core-go/internal/core/studio_media_reviewed_recovery_test.go": "1d1b9ccaf16a2d2522abd7f08b1b47a084939d0fb688e3d4ca30c78b6c0f37ee",
+          "apps/web/src/react-app/shared/StudioJobs.tsx": "df0cb12d370cd88eb097cceda26989f5e82cafef443511228fad871380702c8c",
+          "apps/web/src/react-app/views/StudioJobs.jsx": "4987191ab0844cf5fb53c3eda6254d82ba32e81c4a97715df9e1b48f078dd63e",
+          "docs/verification/post-m4-fixes-evidence/poststudio-browser-current-contract.log": "20ee825e6bee5c727af185224bd6d3ab13d38066194cff87d7aba76343d4f246",
+          "docs/verification/post-m4-fixes-evidence/poststudio-ready-reviewed.log": "9c16735d61c5cd1ca3a2099bc6a00b7f8ed21a52f02018d16c28ab1e9a03aa0b",
+          "docs/verification/post-m4-fixes-evidence/poststudio-regression.log": "805cbdd2f4153ad49bf5d51d36ebdc4f493f21f4887af1f187129ae69bfcd18e",
+          "docs/verification/post-m4-fixes-evidence/studio-web-reviewed.log": "4b653bd61ef908a5b2d1ef5035c5205e50b41a59d721d0766581a1a36f314cde",
+          "docs/verification/post-m4-fixes-progress-20261113.md": "fac3b1348b1071f41c25707c191f8888e0a7e305e9fbd1847b125a66aa48dfff"
+        }
+      }
+    ]
   }
 }
