@@ -1,0 +1,24 @@
+SOURCE_HEAD 9a11ec65a473bb0823586a7f320435aa64e87a7b
+OVERLAYS apps/core-go/internal/core/agent_model_routing_test.go,apps/core-go/internal/core/media_capture_plan.go,apps/core-go/internal/core/media_prompt_branches.go,apps/core-go/internal/core/task_prompt_sources_test.go
+COMMAND go test ./internal/core -count=1 -run ^(TestM1Replayed.*|TestM1ClosedWindow.*|TestM1RepeatedQueryBatchKeepsReplyOpportunity)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM1ReplayedUnauthorizedCallIDStopsWithoutDuplicateReceipt
+--- PASS: TestM1ReplayedUnauthorizedCallIDStopsWithoutDuplicateReceipt (1.35s)
+=== RUN   TestM1ReplayedUnauthorizedCallIDIgnoringReplyWindowStops
+--- PASS: TestM1ReplayedUnauthorizedCallIDIgnoringReplyWindowStops (3.84s)
+=== RUN   TestM1ReplayedClosedWindowReceiptStops
+--- PASS: TestM1ReplayedClosedWindowReceiptStops (3.15s)
+=== RUN   TestM1ClosedWindowSameBatchCountsAsOneResponse
+--- PASS: TestM1ClosedWindowSameBatchCountsAsOneResponse (1.37s)
+=== RUN   TestM1ReplayedDenialRestartsAfterRealAction
+--- PASS: TestM1ReplayedDenialRestartsAfterRealAction (0.00s)
+=== RUN   TestM1ClosedWindowRoundsResetAfterRealProgress
+--- PASS: TestM1ClosedWindowRoundsResetAfterRealProgress (0.00s)
+=== RUN   TestM1ReplayedDenialResetsAfterSameBatchRealAction
+--- PASS: TestM1ReplayedDenialResetsAfterSameBatchRealAction (1.50s)
+=== RUN   TestM1RepeatedQueryBatchKeepsReplyOpportunity
+--- PASS: TestM1RepeatedQueryBatchKeepsReplyOpportunity (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	11.939s
+
+EXIT_CODE 0
