@@ -39,6 +39,11 @@ func TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles(t *testing.T) {
 	}
 	// A second real activity remains pending across the global profile clock.
 	insertGoalBoundaryMessage(t, f)
+	// Keep the new activity revision, but let its independent quiet window
+	// elapse so only the global evaluation clock can reject either profile.
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_agent_cadence SET last_activity_at=now()-interval '31 minutes' WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
 	frozen := first
 	frozen.Protocol = goalEvaluationToolProtocol
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET status='retry',claimed_at=NULL,available_at=now(),snapshot=$2 WHERE id=$1`, id, jsonBytes(frozen)); err != nil {

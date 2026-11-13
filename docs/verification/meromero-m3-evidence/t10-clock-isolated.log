@@ -1,0 +1,10 @@
+SOURCE_HEAD 4f9d6abaff7017621b665b21207646c7602f16cb
+OVERLAYS apps/core-go/internal/core/goal_agent_cadence_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles
+--- PASS: TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles (1.39s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.181s
+
+EXIT_CODE 0

@@ -71,3 +71,7 @@ M3-04 提交后 `b0d47d683b12127d7a3cd62702c2c3811f99ee08`，`t09-inflight-postc
 `t10-affected.log` 扩展到 24 个直接使用受影响夹具的测试时发现 6 个首次准入夹具缺口，`t10-affected-baseline.log` 在同环境干净源码复现。补齐这些场景的显式时间前置后，`t10-affected-corrected.log` 保留 memo 用例的后续失败。该用例过去期待重复来源跳过 model 后仍返回 memo 选择结果，而当前生产规则先返回 `awaiting_new_activity`。测试现在分别验证原 duplicate_source_delivery 提前静默，以及另一次正式 `tool_evaluation` 内部机会实际进入 durable memo 选择且仍不重跑模型，原请求理由保留。生产行为未修改。
 
 `t10-affected-final.log` 24 个顶层测试全部通过、退出码 0、无 SKIP。真实隔离 PostgreSQL 下保持 Goal 原 criteria，实际获取与穿着/使用分离、染发不改发长、真实接受和关系 revision、依赖、已完成/撤回/批次/失败重试与 memo 都有实际断言。Provider 为受控夹具，媒体最终 workflow 是文本装配检查，无真实生图或外部购买。本节点恢复原领域保护证据，不能代表 T10 完整矩阵或真实模型通过。
+
+独立复核发现跨 profile 时钟分支仍会同时命中新活动静默窗，原通过不能独立证明全局 evaluation clock。已保留真实 activity revision，将该活动静默时间提前至 31 分钟前，仅留下未来 evaluation_next_at，`t10-clock-isolated.log` 定向通过、退出码 0、无 SKIP。原一秒边界与未来 available_at 断言继续保留。
+
+用户已明确选择：完全无法解析来源的旧记忆暂停自动注入，保留记录，待 Owner 重新确认来源后恢复。当前 T10 节点收口后恢复原 T09 实施该策略。此前待确认状态保留为当时事实。
