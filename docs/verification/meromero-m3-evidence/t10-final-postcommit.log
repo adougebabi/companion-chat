@@ -1,5 +1,5 @@
 SOURCE_HEAD 27159e40c5b89fd6f15519938fae1de114bf29ab
-OVERLAYS 
+OVERLAYS
 COMMAND go test ./internal/core -count=1 -run ^Test(GoalEvaluationGhostStageFailsBeforeDomainCommit|GoalSubmissionRecoveryPersistenceHandledCycleAndReplay|GoalAgentCadenceEvaluationPendingFrozenAndProfiles|MutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision|GoalEvaluationSummaryWithoutNativeSubmissionCannotComplete|GoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires)$ -v -timeout=180s
 DATABASE task-owned isolated PostgreSQL
 === RUN   TestGoalAgentCadenceEvaluationPendingFrozenAndProfiles
