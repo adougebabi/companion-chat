@@ -112,6 +112,79 @@ export default function VisualWorkspace({ model: m }) {
       storageKey: prefix + ":" + key,
     };
   }
+  function submissionRecoveryContext(row, stage) {
+    const source = row?.session, recovery = source?.submission_recovery;
+    const media = recovery?.stages?.find((item) => item.stage === stage && item.ready === true);
+    if (!source || recovery?.status !== "available" || !media || !Number.isSafeInteger(media.revision)) return null;
+    return {
+      sessionId: source.id, stage, attempt: source.current_attempt,
+      visualRevision: row.current_revision, mediaRevision: media.revision,
+      mediaIntentId: media.media_intent_id, workflowId: recovery.workflow_id,
+      sourceRunId: recovery.source_run_id, workflowRevision: recovery.workflow_revision,
+    };
+  }
+  function recoverSubmission(event, stage, restored) {
+    m.assertWritable();
+    const context = restored || submissionRecoveryContext(visual, stage);
+    if (!context) return;
+    trigger.current = event?.currentTarget;
+    const operation = "submission:" + context.sessionId + ":" + context.attempt + ":" + context.stage;
+    const contextKey = prefix + ":submission-context:" + context.sessionId + ":" + context.attempt + ":" + context.stage;
+    try { studioDraftStorage().setItem(contextKey, JSON.stringify(context)); }
+    catch (cause) { setError(errorMessage(cause)); return; }
+    setAction({
+      ...base(operation),
+      title: context.stage === "candidate" ? "核对后恢复候选图" : "核对后恢复设定图",
+      description: "确认原任务同源图片的归属后，恢复已有结果并请求原暂停工作流继续。图片质量结论和后续评审继续保留。",
+      submitLabel: "确认核对并恢复原任务",
+      preAdmissionConflicts: ["visual_submission_recovery_stale", "media_submission_review_required", "media_execution_active", "visual_submission_quality_required"],
+      initial: {context, submissionReviewed: false, reason: ""},
+      validate: (draft) => {
+        requiredText(draft.reason, "核对说明", 1000);
+        if (!draft.submissionReviewed) throw Error("请明确确认已人工核对原生成任务与同源图片。");
+        if (draft.unavailable) throw Error("原会话当前无法恢复，请保留原记录并核对当前任务。");
+      },
+      build: (draft) => ({sessionId: draft.context.sessionId, mediaIntentId: draft.context.mediaIntentId, request: {
+        stage: draft.context.stage, expectedAttempt: draft.context.attempt,
+        expectedVisualRevision: draft.context.visualRevision,
+        expectedMediaRevision: draft.context.mediaRevision,
+        workflowId: draft.context.workflowId, sourceRunId: draft.context.sourceRunId,
+        expectedWorkflowRevision: draft.context.workflowRevision,
+        submissionReviewed: true, reason: draft.reason.trim(),
+      }}),
+      execute: async (value, key) => {
+        m.assertWritable();
+        const result = await client.resumeReviewedVisualSubmission(fid, value.sessionId, {...value.request, idempotencyKey: key});
+        if (result?.fluctlight_id !== fid || result.session_id !== value.sessionId || result.stage !== value.request.stage ||
+          result.workflow_id !== value.request.workflowId || result.source_run_id !== value.request.sourceRunId ||
+          result.media_intent_id !== value.mediaIntentId || result.asset_id !== "asset_" + value.mediaIntentId ||
+          result.status !== "resume_requested" || result.media_status !== "completed" || typeof result.command_id !== "string" || !result.command_id)
+          throw Error("原图片恢复回执尚未完整核对，请保留原提交身份。");
+        return result;
+      },
+      readLatest: readIdentity,
+      adoptLatest: (draft, row) => {
+        const latest = submissionRecoveryContext(row, context.stage);
+        const sameSource = latest?.sessionId === context.sessionId && latest?.attempt === context.attempt && latest?.mediaIntentId === context.mediaIntentId;
+        return {...draft, context: sameSource ? latest : draft.context, unavailable: !sameSource, submissionReviewed: false};
+      },
+      onSaved: async () => {
+        const fresh = await readIdentity();
+        if (m.live()) {
+          identityRef.current.adopt({items: [fresh], next_cursor: ""});
+          studioDraftStorage().removeItem(contextKey);
+          setNotice("原图片结果已核对，原工作流恢复请求已发送；实际进度以原任务后续状态为准。");
+          await timeline.load();
+        }
+      },
+      fields: (draft, edit) => <div className="r-form-stack">
+        <WorkspaceInfo>第{draft.context.attempt}次尝试 · {draft.context.stage === "candidate" ? "候选图" : "角色设定图"}。恢复受理后仍需核对原工作流进度。</WorkspaceInfo>
+        {draft.unavailable && <WorkspaceInfo>原会话或图片已变化，请核对当前任务。</WorkspaceInfo>}
+        <label><input type="checkbox" checked={draft.submissionReviewed === true} onChange={(event) => edit({submissionReviewed: event.target.checked})}/> 我已人工核对原生成任务与同源图片</label>
+        <label className="replica-field"><span>核对说明</span><Textarea aria-label="核对说明" value={draft.reason || ""} maxLength={1000} onChange={(event) => edit({reason: event.target.value})}/></label>
+      </div>,
+    });
+  }
   function editBrief(event) {
     if (!definition) return;
     m.assertWritable();
@@ -658,6 +731,18 @@ export default function VisualWorkspace({ model: m }) {
       ),
     });
   }
+  let submissionRecovery = [], submissionRecoveryError = "";
+  try {
+    const storage = studioDraftStorage();
+    submissionRecovery = Object.keys(storage)
+      .filter((key) => key.startsWith(prefix + ":submission-context:"))
+      .map((key) => JSON.parse(storage.getItem(key)))
+      .filter((row) => typeof row?.sessionId === "string" && ["candidate", "character_sheet"].includes(row.stage) &&
+        Number.isSafeInteger(row.attempt) && row.attempt > 0 && Number.isSafeInteger(row.visualRevision) &&
+        Number.isSafeInteger(row.mediaRevision) && typeof row.mediaIntentId === "string" && typeof row.workflowId === "string" &&
+        typeof row.sourceRunId === "string" && Number.isSafeInteger(row.workflowRevision))
+      .filter((row) => [":draft", ":command", ":command:outcome"].some((suffix) => storage.getItem(prefix + ":submission:" + row.sessionId + ":" + row.attempt + ":" + row.stage + suffix)));
+  } catch { submissionRecoveryError = "原图片核对记录暂不可读取，请保留原记录后重新读取。"; }
   let reviewRecovery = [];
   let generatedReviewRecovery = [];
   try {
@@ -692,6 +777,11 @@ export default function VisualWorkspace({ model: m }) {
       <MediaReader source={brief} label="视觉定义" />
       {error && <p role="alert">{error}</p>}
       {notice && <WorkspaceInfo>{notice}</WorkspaceInfo>}
+      {submissionRecoveryError && <WorkspaceInfo>{submissionRecoveryError}</WorkspaceInfo>}
+      {submissionRecovery.map((row) => <WorkspaceInfo key={row.sessionId + row.attempt + row.stage}>
+        原图片核对的提交或回执仍保留。
+        <Button variant="outline" disabled={m.readOnly} onClick={(event) => recoverSubmission(event, row.stage, row)}>继续核对第{row.attempt}次{row.stage === "candidate" ? "候选图" : "设定图"}恢复</Button>
+      </WorkspaceInfo>)}
       {reviewRecovery.map((row) => (
         <WorkspaceInfo key={row.sessionId + ":" + row.attempt}>
           原人工评审的输入或回执仍保留。
@@ -807,6 +897,7 @@ export default function VisualWorkspace({ model: m }) {
                 : "待读取"}
             </Badge>
           </div>
+          {!m.readOnly && session?.candidate_submission_uncertain && submissionRecoveryContext(visual, "candidate") && <Button variant="outline" onClick={(event) => recoverSubmission(event, "candidate")}>核对后恢复已有候选图</Button>}
           {candidate ? (
             <MediaById id={candidate} model={m} className="r-identity-image" />
           ) : (
@@ -953,6 +1044,7 @@ export default function VisualWorkspace({ model: m }) {
               : "尚未读到完成的角色设定图。"}
           </p>
         )}
+        {!m.readOnly && session?.character_sheet_submission_uncertain && submissionRecoveryContext(visual, "character_sheet") && <Button variant="outline" onClick={(event) => recoverSubmission(event, "character_sheet")}>核对后恢复已有设定图</Button>}
         <Disclosure title="规范来源、渲染约束与完整会话">
           <pre className="replica-source-record">
             {JSON.stringify(visual || {}, null, 2)}

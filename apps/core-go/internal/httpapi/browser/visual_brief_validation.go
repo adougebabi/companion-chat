@@ -54,3 +54,7 @@ func validManualVisualReview(body map[string]any) bool {
 	}
 	return decision == "regenerate" && (strings.TrimSpace(stringValue(body["feedback"])) != "" || strings.TrimSpace(stringValue(body["summary"])) != "" || len(array(body["observations"])) > 0 || len(array(body["missingSections"])) > 0)
 }
+
+func validVisualSubmissionRecovery(body map[string]any) bool {
+	return onlyKeys(body, "stage", "expectedAttempt", "expectedVisualRevision", "expectedMediaRevision", "workflowId", "sourceRunId", "expectedWorkflowRevision", "submissionReviewed", "reason", "idempotencyKey") && (body["stage"] == "candidate" || body["stage"] == "character_sheet") && validateInteger(body["expectedAttempt"], 1) && validateInteger(body["expectedVisualRevision"], 0) && validateInteger(body["expectedMediaRevision"], 0) && validateString(body["workflowId"], 1, 256) && validateString(body["sourceRunId"], 1, 256) && validateInteger(body["expectedWorkflowRevision"], 1) && body["submissionReviewed"] == true && validateString(body["reason"], 1, 1000) && validateString(body["idempotencyKey"], 1, 256)
+}

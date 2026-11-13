@@ -1028,3 +1028,50 @@ test("uncertain generated avatar is shown as paused for manual review", async ()
     await f.dispose();
   }
 });
+
+for (const stage of ['candidate', 'character_sheet']) test(`visual ${stage} reviewed ready recovery preserves original RPC identity across remount`, async () => {
+  const api = mediaFixture(), visual = api.state().visual, writes = [];
+  const session = visual.session, attempt = session.current_attempt;
+  session.status = stage === 'candidate' ? 'running' : 'character_sheet_pending';
+  session.candidate_submission_uncertain = stage === 'candidate';
+  session.character_sheet_submission_uncertain = stage === 'character_sheet';
+  if (stage === 'candidate') session.attempts.find(row => row.attempt_number === attempt).candidate_asset_id = null;
+  session.submission_recovery = {status: 'available', workflow_id: 'original-visual-workflow', source_run_id: 'original-visual-run', workflow_revision: 4, stages: [{stage, media_intent_id: 'original-media', revision: 3, ready: true}]};
+  const intercept = async ({url, method, body}) => {
+    if (method === 'POST' && url.pathname.endsWith('/resume-reviewed')) {
+      writes.push(clone(body));
+      session.candidate_submission_uncertain = false;
+      session.character_sheet_submission_uncertain = false;
+      if (writes.length === 1) return Response.json({code: 'visual_submission_resume_unconfirmed'}, {status: 503});
+      return Response.json({fluctlight_id: 'A', session_id: session.id, stage, media_intent_id: 'original-media', asset_id: 'asset_original-media', workflow_id: 'original-visual-workflow', source_run_id: 'original-visual-run', media_status: 'completed', status: 'resume_requested', command_id: 'original-resume-command'});
+    }
+  };
+  let f = await fixture({api, tab: 'identity', intercept});
+  try {
+    const trigger = stage === 'candidate' ? '核对后恢复已有候选图' : '核对后恢复已有设定图';
+    await f.v.click(button(f.v.host, trigger));
+    await f.v.input(dialog().querySelector('[aria-label="核对说明"]'), '已核对原任务及同源就绪图片');
+    await f.v.click(button(dialog(), '确认核对并恢复原任务'));
+    assert.equal(writes.length, 0);
+    assert.match(dialog().textContent, /请明确确认已人工核对/);
+    await f.v.click(dialog().querySelector('input[type=checkbox]'));
+    await f.v.click(button(dialog(), '确认核对并恢复原任务'));
+    assert.equal(writes.length, 1);
+    assert.equal(writes[0].submissionReviewed, true);
+    assert.equal(writes[0].expectedAttempt, attempt);
+    assert.equal(writes[0].expectedVisualRevision, visual.current_revision);
+    assert.equal(writes[0].expectedMediaRevision, 3);
+    assert.equal(writes[0].sourceRunId, 'original-visual-run');
+    assert.equal(writes[0].expectedWorkflowRevision, 4);
+    await f.dispose();
+    f = await fixture({api, tab: 'identity', intercept, retainStorage: true});
+    const recoveryLabel = `继续核对第${attempt}次${stage === 'candidate' ? '候选图' : '设定图'}恢复`;
+    assert.ok(button(f.v.host, recoveryLabel));
+    await f.v.click(button(f.v.host, recoveryLabel));
+    await f.v.click(button(dialog(), '核对或重试原提交'));
+    assert.equal(writes.length, 2);
+    assert.deepEqual(writes[1], writes[0]);
+    assert.match(f.v.host.textContent, /原工作流恢复请求已发送/);
+    assert.equal(session.current_attempt, attempt);
+  } finally { await f.dispose(); }
+});

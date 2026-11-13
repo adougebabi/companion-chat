@@ -165,6 +165,13 @@ func (a *App) OwnerVisualIdentity(ctx context.Context, owner, fid string) (map[s
 		}
 		view["candidate_submission_uncertain"] = candidateUncertain
 		view["character_sheet_submission_uncertain"] = sheetUncertain
+		if candidateUncertain || sheetUncertain {
+			recovery, err := a.readVisualSubmissionRecovery(ctx, owner, fid, snapshot.ActiveSessionID)
+			if err != nil {
+				return nil, err
+			}
+			view["submission_recovery"] = recovery
+		}
 		result["session"] = view
 	}
 	return result, nil

@@ -1,0 +1,16 @@
+SOURCE_HEAD 10d797c47f5eeba43ed546ae56d8db125b0a1ba9
+OVERLAYS apps/core-go/internal/core/owner_visual_submission_recovery.go,apps/core-go/internal/core/owner_visual_submission_recovery_test.go,apps/core-go/internal/core/media.go,apps/core-go/internal/core/owner_surface_read.go,apps/core-go/internal/core/owner_surface.go,apps/core-go/internal/core/visual_brief.go
+COMMAND go test ./internal/core -count=1 -run ^TestVisualSubmissionReviewedReady -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow
+=== RUN   TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/candidate
+=== RUN   TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/character_sheet
+--- PASS: TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow (4.16s)
+    --- PASS: TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/candidate (2.22s)
+    --- PASS: TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/character_sheet (1.94s)
+=== RUN   TestVisualSubmissionReviewedReadyKeepsUnknownResumeIdentity
+--- PASS: TestVisualSubmissionReviewedReadyKeepsUnknownResumeIdentity (2.08s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	7.100s
+
+EXIT_CODE 0

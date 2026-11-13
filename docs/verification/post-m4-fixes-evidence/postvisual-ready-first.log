@@ -1,0 +1,20 @@
+SOURCE_HEAD 10d797c47f5eeba43ed546ae56d8db125b0a1ba9
+OVERLAYS apps/core-go/internal/core/owner_visual_submission_recovery.go,apps/core-go/internal/core/owner_visual_submission_recovery_test.go,apps/core-go/internal/core/media.go,apps/core-go/internal/core/owner_surface_read.go,apps/core-go/internal/core/visual_brief.go
+COMMAND go test ./internal/core -count=1 -run ^TestVisualSubmissionReviewedReady -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow
+=== RUN   TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/candidate
+    owner_visual_submission_recovery_test.go:91: map[] 原视觉工作流或版本已变化，请重新读取。
+=== RUN   TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/character_sheet
+    owner_visual_submission_recovery_test.go:91: map[] 原视觉工作流或版本已变化，请重新读取。
+--- FAIL: TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow (3.54s)
+    --- FAIL: TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/candidate (1.77s)
+    --- FAIL: TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/character_sheet (1.78s)
+=== RUN   TestVisualSubmissionReviewedReadyKeepsUnknownResumeIdentity
+    owner_visual_submission_recovery_test.go:135: 原视觉工作流或版本已变化，请重新读取。
+--- FAIL: TestVisualSubmissionReviewedReadyKeepsUnknownResumeIdentity (2.06s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.293s
+FAIL
+
+EXIT_CODE 1

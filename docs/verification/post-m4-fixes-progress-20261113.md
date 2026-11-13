@@ -8,7 +8,7 @@
 | F02 | 同ID无权限/关闭窗口回执跨轮重放有界 | VERIFIED | postdenial-* |
 | F03a | 诊断详情接入现有原媒体任务人工核对 | VERIFIED | entry-* |
 | F03b | Studio同源ready资产人工确认恢复 | VERIFIED | poststudio-*及studio-* |
-| F03c | 视觉身份同源ready资产人工恢复 | 待后续独立处理；外部结果归属继续暂停 | 既有领域工作项 |
+| F03c | 视觉身份同源ready资产人工恢复 | 实现及范围内验证通过，待提交后验收 | postvisual-*及visual-* |
 | F04 | direct生成中的候选正文增量预览 | VERIFIED（direct预览范围） | postpreview-*及preview-* |
 
 F01修正当前用例配置，保留r5夹具fact_only模式；使用允许显式回退的503；在数据库独立配置generic_llm备用模型，保留原Writer冻结值。原输出、穿着、次数、未授权重执行及最终模型元数据断言保留。只改此用例，生产回退策略diff 0。红测与第一轮只修两前置仍失败的日志全部保留。
@@ -48,3 +48,15 @@ F03b保留所有失败。红测确认旧入口Unknown Studio control fields。�
 F03b沿用既有Studio兼容规则，旧ready资产空quality verdict允许恢复，已记录拒绝/重试结论继续拒绝。恢复确认用于归属核对，未将其标成质量通过。没有同源本地ready或需要外部结果接管的情况继续暂停，外部归属、导入与补生成规则仍需Owner决定。真实图片内容/ComfyUI与真实Temporal服务验收仍保留，本轮只包含控制数据、SDK Activity harness及真实数据库/正式入口测试。
 
 F03b提交a6b92eb7后37项Core整组102.796秒、前端34项通过，无SKIP，AEL原Studio工作项已completed。外部接管/无ready继续暂停，父T05及全链状态不改为完成。
+
+F03c增加视觉会话resume-reviewed正式领域命令及公开浏览器/客户端/React入口。仅处理当前active session/current attempt的候选图或设定图，对Owner、visual/media/原workflow revision与原Run建立围栏，核对asset_<原intent>的fluctlight scope、owner、provider request、media workflow、ready及非空SHA。原媒体workflow仍active或持有执行锁时拒绝。原视觉workflow必须仍可在当前Run resume；终态、不存在或Runtime不可用时保持暂停，不创建替代视觉工作流。
+
+F03c复用既有markMediaIntentCompleted的事务正文，抽出同义markMediaIntentCompletedTx，使已有ready结果、衍生图审核/ActionOutcome、Owner审计和幂等回执在一次事务提交。图片结算后用现有OwnerWorkflowCommand向原Run发送同一持久resume命令；RPC未知统一503并保留原身份。已确认sent的命令只回读；未确认时会核对current session/attempt/visual revision，原来源已被替代时停止继续发信号。迟到旧media失败因completed状态围栏不能逆转结算。归属核对继续保留原质量结论，设定图仍进入现有awaiting_review，未将人工核对标为质量通过。历史没有derived review的分支沿用现有完成逻辑并明确保持无review记录。
+
+F03c原入口红测失败。首个实现回归因局部夹具将workflow状态更新后的实际revision假定为1而失败，按数据库回读当前revision后候选/设定图及未知RPC重放通过。新增Owner、执行锁、旧attempt/visual/media/workflow版本与Run、终态原Run、无ready、错误request/workflow、质量reject/retry/retry_accepted、旧非法prompt、来源替代、原运行在本地提交后切换、历史无评审及同身份并发回放测试通过。同身份并发只有一个持久control command和一个受控resume效果；未知RPC重试保持相同原Run与command ID。
+
+F03c独立静态审查未发现功能性缺陷；指出的额外质量、历史无review、并发及本地提交后Run变化覆盖已补齐。前端两种stage均覆盖明确勾选、缺确认零写入、已结算但RPC回执丢失后remount原输入/原key回放。媒体/Studio前端整组58项通过，浏览器边界全包88项通过，client48项、Web/client typecheck、产品build通过。实际IAB加载正式VisualWorkspace和产品CSS，核验原候选暂停、同源ready恢复入口、人工确认checkbox和说明表单，使用合成数据且未提交真实命令；截图未提交Git，临时服务器已停止。
+
+F03c较大Core回归64项顶层通过、1项既有头像手工审核失败、2项真实模型门禁SKIP，整条命令退出1，不能计为全绿。相同环境与输入对起始10d797c4和当前代码单跑TestGeneratedAvatarRealMediaHTTPWaitsForManualReview，均为media_model_snapshot_failure: media_model_snapshot_invalid，且发生在媒体完成事务之前。沿用既有avatar-manual-review-snapshot-baseline-failure工单，本项未修复该非阻断基线问题。两个真实用例TestVisualIdentityLiveE2EPreflight、TestVisualIdentityAgentReviewsRealObjectImageAndSavesCanonical保留未验收。提交后将明确选择其余已执行的相关场景复验，并保留本次完整失败/跳过日志。
+
+F03c验证使用真实隔离PostgreSQL及正式Core入口，RPC来自受控WorkflowRuntime探针；未声称真实Temporal原Run已完成或真实图像/模型验收通过。无本地同源ready、无法证明外部结果、原workflow已终结或未知恢复结果已跨新session/Run时继续暂停核对。T05/T06、M1～M4与全链状态不据此改为完成。

@@ -131,6 +131,9 @@ func (a *App) DispatchOwnerSurface(ctx context.Context, method, path string, que
 			return a.studioCatalogCommand(ctx, owner, parts[2], parts[3], body)
 		}
 	}
+	if method == "POST" && len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "visual-sessions" && parts[4] == "resume-reviewed" {
+		return a.resumeReviewedVisualSubmission(ctx, owner, parts[1], parts[3], body)
+	}
 	if op, ok := matchSurface(method, surfaceParts(path)); ok && op.name == "visual_manual_review" {
 		return a.dispatchOwnerVisualReview(ctx, method, path, query, owner, body)
 	}

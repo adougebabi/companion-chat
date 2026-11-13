@@ -1960,6 +1960,9 @@ func matchSurface(method string, parts []string) (surfaceCall, bool) {
 	case len(parts) == 6 && parts[0] == "fluctlights" && parts[2] == "inventory" && parts[3] == "items" && parts[5] == "history" && method == "GET":
 		call.name, call.fid, call.a, call.read = "inventory_history", parts[1], parts[4], true
 
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "visual-sessions" && parts[4] == "resume-reviewed" && method == "POST":
+		call.name, call.fid, call.a = "visual_submission_recovery", parts[1], parts[3]
+
 	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "visual-sessions" && parts[4] == "review" && method == "POST":
 		call.name, call.fid, call.a = "visual_manual_review", parts[1], parts[3]
 

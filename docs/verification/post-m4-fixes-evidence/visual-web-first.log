@@ -1,0 +1,12 @@
+✔ visual candidate shows uncertain renderer submission as paused (190.905333ms)
+✔ visual character_sheet shows uncertain renderer submission as paused (107.519042ms)
+✔ visual candidate reviewed ready recovery preserves original RPC identity across remount (492.08825ms)
+✔ visual character_sheet reviewed ready recovery preserves original RPC identity across remount (462.038041ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3070.856208

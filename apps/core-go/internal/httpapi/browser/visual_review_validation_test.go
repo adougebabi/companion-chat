@@ -34,3 +34,26 @@ func TestManualVisualReviewAcceptsDecisionOnlyAndRequiresEvidenceForRegeneration
 		t.Fatal("supplied scores still require validation")
 	}
 }
+
+func TestVisualSubmissionRecoveryRequiresReviewAndOriginalRun(t *testing.T) {
+	body := map[string]any{"stage": "candidate", "expectedAttempt": float64(1), "expectedVisualRevision": float64(0), "expectedMediaRevision": float64(0), "workflowId": "original", "sourceRunId": "original-run", "expectedWorkflowRevision": float64(1), "submissionReviewed": true, "reason": "Owner verified original image", "idempotencyKey": "reviewed"}
+	if !validVisualSubmissionRecovery(body) {
+		t.Fatal("valid recovery rejected")
+	}
+	mapped := surfaceCommandBody("/api/fluctlights/A/visual-sessions/S/resume-reviewed", body)
+	if mapped["submission_reviewed"] != true || mapped["source_run_id"] != "original-run" || mapped["expected_workflow_revision"] != float64(1) {
+		t.Fatal(mapped)
+	}
+	for _, key := range []string{"expectedAttempt", "expectedVisualRevision", "expectedMediaRevision", "workflowId", "sourceRunId", "expectedWorkflowRevision", "submissionReviewed"} {
+		value := body[key]
+		delete(body, key)
+		if validVisualSubmissionRecovery(body) {
+			t.Fatal("missing recovery fence admitted", key)
+		}
+		body[key] = value
+	}
+	body["submissionReviewed"] = false
+	if validVisualSubmissionRecovery(body) {
+		t.Fatal("unreviewed result admitted")
+	}
+}

@@ -1,0 +1,20 @@
+SOURCE_HEAD 10d797c47f5eeba43ed546ae56d8db125b0a1ba9
+OVERLAYS apps/core-go/internal/core/owner_visual_submission_recovery_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestVisualSubmissionReviewedReady -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow
+=== RUN   TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/candidate
+    owner_visual_submission_recovery_test.go:87: map[]
+=== RUN   TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/character_sheet
+    owner_visual_submission_recovery_test.go:87: map[]
+--- FAIL: TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow (4.59s)
+    --- FAIL: TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/candidate (2.33s)
+    --- FAIL: TestVisualSubmissionReviewedReadyRestoresOriginalWorkflow/character_sheet (2.25s)
+=== RUN   TestVisualSubmissionReviewedReadyKeepsUnknownResumeIdentity
+    owner_visual_submission_recovery_test.go:135: Owner surface is unavailable
+--- FAIL: TestVisualSubmissionReviewedReadyKeepsUnknownResumeIdentity (2.20s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	7.536s
+FAIL
+
+EXIT_CODE 1

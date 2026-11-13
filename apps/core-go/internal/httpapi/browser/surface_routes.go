@@ -94,6 +94,7 @@ var surfaceRoutes = []surfaceRoute{
 	{http.MethodDelete, "/api/fluctlights/:fluctlightId/inventory/items/:itemId"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/inventory/items/:itemId/history"},
 	{http.MethodPost, "/api/fluctlights/:fluctlightId/visual-sessions/:sessionId/review"},
+	{http.MethodPost, "/api/fluctlights/:fluctlightId/visual-sessions/:sessionId/resume-reviewed"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/visual-identity/timeline"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/visual-brief"},
 	{http.MethodPut, "/api/fluctlights/:fluctlightId/visual-brief"},
@@ -344,7 +345,11 @@ func (s *Server) dispatchSurface(response http.ResponseWriter, request *http.Req
 			writeError(response, 400, "invalid_request", "Invalid visual generation request")
 			return
 		}
-		if strings.Contains(request.URL.Path, "/visual-sessions/") && !validManualVisualReview(parsed) {
+		if strings.Contains(request.URL.Path, "/visual-sessions/") && strings.HasSuffix(request.URL.Path, "/resume-reviewed") && !validVisualSubmissionRecovery(parsed) {
+			writeError(response, 400, "invalid_request", "Invalid visual submission recovery")
+			return
+		}
+		if strings.Contains(request.URL.Path, "/visual-sessions/") && strings.HasSuffix(request.URL.Path, "/review") && !validManualVisualReview(parsed) {
 			writeError(response, 400, "invalid_request", "Invalid manual visual review")
 			return
 		}

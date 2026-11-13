@@ -1,0 +1,10 @@
+SOURCE_HEAD 10d797c47f5eeba43ed546ae56d8db125b0a1ba9
+OVERLAYS apps/core-go/internal/core/owner_visual_submission_recovery.go,apps/core-go/internal/core/owner_visual_submission_recovery_test.go,apps/core-go/internal/core/media.go,apps/core-go/internal/core/owner_surface_read.go,apps/core-go/internal/core/owner_surface.go,apps/core-go/internal/core/visual_brief.go
+COMMAND go test ./internal/core -count=1 -run ^TestVisualSubmissionReviewedReadyConcurrentReplayHasOneResumeEffect$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestVisualSubmissionReviewedReadyConcurrentReplayHasOneResumeEffect
+--- PASS: TestVisualSubmissionReviewedReadyConcurrentReplayHasOneResumeEffect (2.54s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.492s
+
+EXIT_CODE 0

@@ -1,0 +1,12 @@
+SOURCE_HEAD 10d797c47f5eeba43ed546ae56d8db125b0a1ba9
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^TestGeneratedAvatarRealMediaHTTPWaitsForManualReview$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestGeneratedAvatarRealMediaHTTPWaitsForManualReview
+    generated_avatar_test.go:453: avatar media execution: map[string]interface {}(nil) uploaded=false err=media prompt generation failed: media_model_snapshot_failure: media_model_snapshot_invalid
+--- FAIL: TestGeneratedAvatarRealMediaHTTPWaitsForManualReview (1.48s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.133s
+FAIL
+
+EXIT_CODE 1
