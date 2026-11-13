@@ -1,0 +1,21 @@
+SOURCE_HEAD 43cb0753cb7aee092e3feb322227dd783797e1b1
+OVERLAYS apps/core-go/internal/httpapi/diagnostic_debug_access_integration_test.go,apps/core-go/internal/httpapi/model_management_react_integration_test.go
+COMMAND go test ./internal/httpapi -count=1 -run TestModelManagementReactHTTPPersistenceAndRuntime|TestDiagnosticDebugReadBrowserAndInternalHTTP -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestDiagnosticDebugReadBrowserAndInternalHTTP
+=== RUN   TestDiagnosticDebugReadBrowserAndInternalHTTP/readonly_replay_source_reads_preserve_attempts_and_business_state
+--- PASS: TestDiagnosticDebugReadBrowserAndInternalHTTP (2.21s)
+    --- PASS: TestDiagnosticDebugReadBrowserAndInternalHTTP/readonly_replay_source_reads_preserve_attempts_and_business_state (0.02s)
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:123: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass
+    model_management_react_integration_test.go:129: M4_UI_PHASE set RELOADED_EFFECTIVE_SOURCE 生效来源：任务变体覆盖；模型：m4-override；能力兼容性尚未验证。
+        
+    model_management_react_integration_test.go:137: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-override contract=pass
+    model_management_react_integration_test.go:129: M4_UI_PHASE clear RELOADED_EFFECTIVE_SOURCE 生效来源：默认用途；模型：m4-primary；能力兼容性尚未验证。
+        
+    model_management_react_integration_test.go:137: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass
+--- PASS: TestModelManagementReactHTTPPersistenceAndRuntime (7.61s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi	10.394s
+
+EXIT_CODE 0

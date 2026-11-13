@@ -1,0 +1,10 @@
+SOURCE_HEAD 43cb0753cb7aee092e3feb322227dd783797e1b1
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run TestDiagnosticRetentionDefaultsPrunePrivateRecordsAndPreserveRecovery -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestDiagnosticRetentionDefaultsPrunePrivateRecordsAndPreserveRecovery
+--- PASS: TestDiagnosticRetentionDefaultsPrunePrivateRecordsAndPreserveRecovery (1.99s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.709s
+
+EXIT_CODE 0

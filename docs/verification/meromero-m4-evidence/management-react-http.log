@@ -1,0 +1,15 @@
+SOURCE_HEAD 43cb0753cb7aee092e3feb322227dd783797e1b1
+OVERLAYS apps/core-go/internal/httpapi/diagnostic_debug_access_integration_test.go,apps/core-go/internal/httpapi/model_management_react_integration_test.go
+COMMAND go test ./internal/httpapi -count=1 -run TestModelManagementReactHTTPPersistenceAndRuntime|TestDiagnosticDebugReadBrowserAndInternalHTTP -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestDiagnosticDebugReadBrowserAndInternalHTTP
+    diagnostic_debug_access_integration_test.go:95: context canceled
+--- FAIL: TestDiagnosticDebugReadBrowserAndInternalHTTP (1.93s)
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:61: context canceled
+--- FAIL: TestModelManagementReactHTTPPersistenceAndRuntime (2.13s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi	4.639s
+FAIL
+
+EXIT_CODE 1

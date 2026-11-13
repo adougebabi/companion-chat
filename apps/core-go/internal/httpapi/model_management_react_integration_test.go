@@ -1,0 +1,143 @@
+package httpapi
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"sync"
+	"testing"
+
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
+)
+
+func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
+	webRoot := os.Getenv("FLUCTLIGHT_M4_WEB_ROOT")
+	if webRoot == "" {
+		t.Skip("FLUCTLIGHT_M4_WEB_ROOT must select the matching Web source with installed dependencies")
+	}
+	ctx, repo, server := m4IsolatedHTTPFixture(t)
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.actors(id,actor_type,status) VALUES('m4-reflection','fluctlight','active'); INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance) VALUES('m4-reflection','human-1','blank_slate','active','{"personality_system":{"active_profile_id":"default"}}','{}','{}','{}','{}','{}')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_inner_states(fluctlight_id,revision,pad,mood,momentum,regulation,drives,conflicts,last_updated_at) VALUES('m4-reflection',0,'{"pleasure":0,"arousal":0,"dominance":0}','{"label":"neutral","intensity":0}','{"value":0,"trend":0}','{"stress":0,"stability":0}','[]','[]',now()); INSERT INTO public.fluctlight_affect_profiles(fluctlight_id) VALUES('m4-reflection')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_profile_habits(fluctlight_id,profile_id,revision,habits_json,source_kind,source_ref) VALUES('m4-reflection','default',0,'[]','initialization','m4-fixture')`); err != nil {
+		t.Fatal(err)
+	}
+	var mu sync.Mutex
+	var models []string
+	proposal := map[string]any{"schema_version": "fluctlight.reflection-proposal.v2", "summary": "Controlled management fixture", "emotional_summary": map[string]any{"dominant_patterns": []any{}, "triggers": []any{}, "recovery_patterns": []any{}, "conflicts": []any{}, "evidence_refs": []any{}}}
+	for _, key := range []string{"active_memory_candidates", "memory_candidates", "relationship_observations", "goal_candidates", "intention_candidates", "affect_recalibration_candidates", "drive_candidates", "preference_candidates", "trigger_candidates", "developing_self_candidates", "personality_evolution_candidates", "behavior_policy_evolution_candidates"} {
+		proposal[key] = []any{}
+	}
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/v1/models" {
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []any{map[string]any{"id": "m4-primary"}, map[string]any{"id": "m4-override"}}})
+			return
+		}
+		if r.URL.Path != "/v1/chat/completions" {
+			http.NotFound(w, r)
+			return
+		}
+		var request map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+			http.Error(w, "invalid fixture request", 400)
+			return
+		}
+		model, _ := request["model"].(string)
+		mu.Lock()
+		models = append(models, model)
+		mu.Unlock()
+		response := proposal
+		format, _ := request["response_format"].(map[string]any)
+		schema, _ := format["json_schema"].(map[string]any)
+		if schema["name"] == "persona_compilation_response" {
+			response = map[string]any{"portrait_text": "Synthetic fixture preserves the selected personality and its established habits."}
+		}
+		content, _ := json.Marshal(response)
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": "m4-controlled", "model": model, "choices": []any{map[string]any{"index": 0, "finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": string(content)}}}})
+	}))
+	defer provider.Close()
+	app, err := core.NewApp(repo, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "service-key", "http://127.0.0.1:1", "us-east-1", "fixture", "fixture", "fixture", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.Provider.HTTP = provider.Client()
+	server.app = app
+	versions := func() any {
+		settings, err := app.ReadSettings(ctx, "human-1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return settings["versions"]
+	}
+	if err := app.ConfigureProviderEndpoint(ctx, "human-1", map[string]any{"endpoint_id": "m4-local", "kind": "openai_compatible", "base_url": provider.URL + "/v1", "secret_purpose": "m4-no-secret", "expected_versions": versions(), "idempotency_key": "m4-local-endpoint"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, role := range []string{"generic_llm", "conversation_reply"} {
+		if err := app.ConfigureProviderRole(ctx, "human-1", map[string]any{"role": role, "endpoint_id": "m4-local", "model_id": "m4-primary", "timeout_seconds": 30, "expected_versions": versions(), "idempotency_key": "m4-default-" + role}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	compiled, err := app.BackfillWorkingPersonas(ctx, "human-1", []string{"m4-reflection"}, false, true)
+	if err != nil || len(compiled) != 1 || compiled[0].Status == "failed" {
+		t.Fatal("isolated working persona setup", compiled, err)
+	}
+	browser := httptest.NewServer(server.Handler())
+	defer browser.Close()
+	run := func(expected string) {
+		t.Helper()
+		projection, err := app.BuildContextProjectionFor(ctx, core.ContextProjectionRequest{
+			AuthorizationActorID: "human-1", SpeakerActorID: "human-1", FluctlightID: "m4-reflection",
+			MemoryOperation: core.MemoryForReflection, MemoryConversationMode: core.MemoryConversationGlobalOnly,
+		})
+		if err != nil {
+			t.Fatal("formal reflection context", err)
+		}
+		mu.Lock()
+		before := len(models)
+		mu.Unlock()
+		result, err := app.RunReflectionProposalTask(ctx, core.ReflectionProposalTaskInput{
+			Projection: projection,
+			Evidence:   []map[string]any{{"sequence": 1, "event_type": "conversation.turn", "payload": map[string]any{"text": "Review a synthetic release plan."}}},
+		})
+		if err != nil {
+			t.Fatal("formal reflection task", err)
+		}
+		encoded, err := json.Marshal(result.Completion.Structured)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := core.DecodeReflectionProposalV2(encoded); err != nil {
+			t.Fatal("reflection output contract", err)
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if len(models) != before+1 || models[before] != expected {
+			t.Fatal("runtime request model", models, expected)
+		}
+		t.Logf("M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=%s contract=pass config_versions=%v", models[before], versions())
+	}
+	run("m4-primary")
+	for _, phase := range []string{"set", "clear"} {
+		command := exec.CommandContext(ctx, "node", filepath.Join(webRoot, "test", "management-http-scenario.mjs"), phase)
+		command.Dir = webRoot
+		command.Env = append(os.Environ(), "FLUCTLIGHT_M4_HTTP_BASE="+browser.URL)
+		output, err := command.CombinedOutput()
+		t.Log(string(output))
+		if err != nil {
+			t.Fatal("React/real HTTP scenario", phase, err)
+		}
+		expected := "m4-override"
+		if phase == "clear" {
+			expected = "m4-primary"
+		}
+		run(expected)
+	}
+}

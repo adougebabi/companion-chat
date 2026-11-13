@@ -5,7 +5,8 @@
 | 单元 | 原始条目 | 唯一目标 | 状态 | 证据 |
 |---|---|---|---|---|
 | M4-01 | T11 14.3 开发调试权限 | 原始诊断读取和全文搜索需要 Operator 显式开启及 Owner 身份 | VERIFIED | 本目录 meromero-m4-evidence/debug-* |
-| M4-03 | T11 14.3 诊断留存 | 证明已有周期清理删除过期/超量诊断并保留业务恢复 | IMPLEMENTED，待提交后复验 | diagnostic_retention_integration_test.go |
+| M4-04 | T11 页面→运行消费 | 模型 variant 页面保存、重载与正式 reflection 请求消费及撤销恢复 | IMPLEMENTED，待提交后复验 | management-react-http-twice.log |
+| M4-03 | T11 14.3 诊断留存 | 证明已有周期清理删除过期/超量诊断并保留业务恢复 | VERIFIED | diagnostic_retention_integration_test.go |
 | M4-02 | T11 14.4 默认只读重放 | 在单个已存 correlation 范围内逐条回放记录，保留失败和分页缺口 | VERIFIED | 正式调用详情及现有 diagnostic-records GET |
 
 ## M4-01
@@ -53,3 +54,15 @@ M4-02 收口于提交 `0c0e259b8a9f300ed936ef31d49bbf7b8e954bb0`。提交后 HTT
 原文没有要求新增默认关闭原始采集的政策。本项复用 Worker 已有每 15 分钟清理、30 天和每表最新 10,000 行目标，补验收，不增加 capture 开关、迁移或另一套存储。
 
 隔离 PostgreSQL 中四类诊断表分别写入 10,002 条合成记录，默认 PruneDiagnostics 删除 8 条过期/超量数据，各表剩余 10,000 条，再次清理删除 0。agent_runs 的整行 JSON 在清理前后完全相同，业务恢复 Trace 保留。`retention.log` 退出 0，无 SKIP。实际验证为清理函数和持久化结果，Worker 的 15 分钟接线来自代码核查，未等待真实长周期。两次清理之间可暂时超过目标行数，不能宣称数据库始终有硬上限。原始采集与读取授权是独立事项，此处未改为新政策。
+
+M4-03 提交 `43cb0753` 后同一隔离库验收通过，退出 0，无 SKIP，见 `retention-postcommit.log`。
+
+M4-04 IMPLEMENTED，待提交后复验，对应 T11 页面配置→回读→下一次正式任务消费。复用真实 React 管理页、BrowserClient、正式 HTTP 与 PostgreSQL。Provider 是透明受控响应，合成 session 只属于测试，不计入真实模型或原生浏览器 E2E。
+
+### M4-04 实现与失败保留
+
+测试专用 React 场景使用正式 ManagementPage、BrowserClient 及 configuration provider，经真实回环 HTTP 服务保存 variant 覆盖、重新挂载页面回读，再由正式 BuildContextProjectionFor / RunReflectionProposalTask 请求受控 Provider 并 DecodeReflectionProposalV2 校验。撤销覆盖后重复页面回读与正式任务，观察默认模型恢复。本测试不改业务模型、Prompt、参数或生产配置。
+
+初始夹具提取时 context 被提前取消；之后手工投影缺少身份和 reference index，改为正式上下文构建后发现 affect/profile habits/compiled persona 等初始化前置缺失。按现有生产前置补齐合成记录并用正式 BackfillWorkingPersonas 准备人格。最后一次失败已完成页面保存/重载，但正式 configuration facade 的通知计时器使子进程未退出，90秒被测试 context 结束。测试跟踪并清理该计时器后完整场景通过。所有失败分别保存在 `management-react-http*.log`，未使用跳过或放宽原合同。
+
+首次完整通过 `management-react-http-timer.log`，退出 0、无 SKIP。后续在两个新隔离数据库、全新页面进程中按相同输入重复两次，全部通过，退出 0，无 SKIP。`management-react-http-twice.log` 记录各阶段正式请求模型、页面来源回读与配置版本。Provider 模型标识为 m4-primary/m4-override 的合成服务，session 解析器与 CSRF 传输为测试夹具。该结果属于 React+真实HTTP/数据库+受控Provider 跨层集成，不是本机真实模型或原生浏览器 E2E。

@@ -1,0 +1,16 @@
+SOURCE_HEAD 43cb0753cb7aee092e3feb322227dd783797e1b1
+OVERLAYS apps/core-go/internal/httpapi/diagnostic_debug_access_integration_test.go,apps/core-go/internal/httpapi/model_management_react_integration_test.go
+COMMAND go test ./internal/httpapi -count=1 -run TestModelManagementReactHTTPPersistenceAndRuntime|TestDiagnosticDebugReadBrowserAndInternalHTTP -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestDiagnosticDebugReadBrowserAndInternalHTTP
+=== RUN   TestDiagnosticDebugReadBrowserAndInternalHTTP/readonly_replay_source_reads_preserve_attempts_and_business_state
+--- PASS: TestDiagnosticDebugReadBrowserAndInternalHTTP (1.90s)
+    --- PASS: TestDiagnosticDebugReadBrowserAndInternalHTTP/readonly_replay_source_reads_preserve_attempts_and_business_state (0.01s)
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:100: formal reflection task context_reference_index_schema_invalid
+--- FAIL: TestModelManagementReactHTTPPersistenceAndRuntime (1.92s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi	4.519s
+FAIL
+
+EXIT_CODE 1

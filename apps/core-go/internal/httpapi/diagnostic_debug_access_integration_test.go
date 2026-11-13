@@ -19,13 +19,14 @@ import (
 
 // Uses a fresh migrated PostgreSQL database and the real browser/Core handlers.
 // The session resolver is controlled. No Provider, Temporal or media request runs.
-func TestDiagnosticDebugReadBrowserAndInternalHTTP(t *testing.T) {
+func m4IsolatedHTTPFixture(t *testing.T) (context.Context, *core.PostgresRepository, *Server) {
+	t.Helper()
 	databaseURL := os.Getenv("GO_CORE_TEST_DATABASE_URL")
 	if databaseURL == "" {
 		t.Skip("GO_CORE_TEST_DATABASE_URL required for the disposable PostgreSQL fixture")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 	config, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
 		t.Fatal(err)
@@ -81,12 +82,18 @@ func TestDiagnosticDebugReadBrowserAndInternalHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := pool.Exec(ctx, `INSERT INTO public.diagnostic_events(id,event_type,severity,correlation_id,payload) VALUES('debug-http-event','debug.fixture','info','debug-http','{"text":"SYNTHETIC_HTTP_PRIVATE"}')`); err != nil {
-		t.Fatal(err)
-	}
 	server := New(conversationSessionRepository{PostgresRepository: repo}, "service-key", nil)
 	server.app = &core.App{DB: repo}
 	server.SetBrowserBoundary("http://fluctlight.local", false)
+	return ctx, repo, server
+}
+
+func TestDiagnosticDebugReadBrowserAndInternalHTTP(t *testing.T) {
+	ctx, repo, server := m4IsolatedHTTPFixture(t)
+	pool := repo.Pool()
+	if _, err := pool.Exec(ctx, `INSERT INTO public.diagnostic_events(id,event_type,severity,correlation_id,payload) VALUES('debug-http-event','debug.fixture','info','debug-http','{"text":"SYNTHETIC_HTTP_PRIVATE"}')`); err != nil {
+		t.Fatal(err)
+	}
 	handler := server.Handler()
 	request := func(path string) *httptest.ResponseRecorder {
 		t.Helper()
