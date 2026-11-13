@@ -1,6 +1,7 @@
 // Presentation-only guards for historical records whose stored text contains
-// model wrappers or leaked private prompts. Stored text stays unchanged; the
-// raw record is still available through the technical details disclosures.
+// model wrappers or leaked private prompts. Stored text stays unchanged, but
+// every visible layer (including folded technical records and their download)
+// shows the cleaned projection, never the wrapped original.
 import {replyBodyText} from './reply-body.mjs';
 
 // Private chat protocol / persona context that must never reach a summary.
