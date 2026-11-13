@@ -2,10 +2,10 @@ package core
 
 import (
 	"fmt"
+	"net/http"
 	"slices"
 	"strings"
 	"testing"
-	"time"
 
 	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
@@ -64,13 +64,21 @@ func TestR6PrivateChatDiscoveryWearReceiptAndWriter(t *testing.T) {
 				router := newFakeProviderRouter()
 				ctx, repo, app, owner, self, conversation := r5MomentFixture(t, "r6-chat-"+scenario, router)
 				if scenario == "wear_unavailable_fallback_repair" {
-					config := defaultConversationReplySettings()
+					config, _, err := app.conversationReplySettings(ctx)
+					if err != nil {
+						t.Fatal(err)
+					}
 					config.FailurePolicy = "legacy_fallback"
 					config.RetryLimit = 0
 					if _, err := repo.Pool().Exec(ctx, `UPDATE public.runtime_settings SET value_json=$2 WHERE key=$1`, conversationReplySettingKey, jsonString(config)); err != nil {
 						t.Fatal(err)
 					}
-					ctx = withFrozenProviderAssignment(ctx, "generic_llm", providerAssignment{Role: "generic_llm", BaseURL: "http://controlled.invalid", ModelID: "r7-fallback", Timeout: 3 * time.Second})
+					// A frozen assignment is scoped to one task. Configure the
+					// fallback independently so the fixture retains its Writer binding.
+					if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy)
+ SELECT 'generic_llm',provider_endpoint_id,'r7-fallback',required_capabilities,token_budget,timeout_seconds,retry_policy FROM public.model_roles WHERE role='conversation_reply'`); err != nil {
+						t.Fatal(err)
+					}
 				}
 				var revision int
 				if err := repo.Pool().QueryRow(ctx, `SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1`, self).Scan(&revision); err != nil {
@@ -99,7 +107,7 @@ func TestR6PrivateChatDiscoveryWearReceiptAndWriter(t *testing.T) {
 						return fakeProviderResult{Structured: map[string]any{"consistent": valid, "reason": "根据实际未生效回执检查正文"}}
 					}
 					if scenario == "wear_unavailable_fallback_repair" && payload["model"] == "r5-writer" {
-						return fakeProviderResult{Status: 400}
+						return fakeProviderResult{Status: http.StatusServiceUnavailable}
 					}
 					if payload["model"] == "r5-writer" || payload["model"] == "r7-fallback" {
 						writers++

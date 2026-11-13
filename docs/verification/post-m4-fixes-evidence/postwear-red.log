@@ -1,0 +1,31 @@
+SOURCE_HEAD a01fb8fc9dd3a85624f7df0932e6fd23714da2d6
+OVERLAYS 
+COMMAND go test ./internal/core -count=1 -run ^TestR6PrivateChatDiscoveryWearReceiptAndWriter$/wear_unavailable_fallback_repair -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=false
+2026/11/13 23:36:20 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:36:20 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:36:20 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:36:20 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+    r6_chat_wear_test.go:147: unexpected additional cognition request
+    r6_chat_wear_test.go:205: native chat chain failed { map[] map[]    } adk_run: [NodeRunError] provider request failed: failed to create chat completion: Post "http://turn.invalid/chat/completions": provider HTTP 400: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel]
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=true
+2026/11/13 23:36:22 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:36:22 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:36:22 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:36:22 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+    r6_chat_wear_test.go:147: unexpected additional cognition request
+    r6_chat_wear_test.go:205: native chat chain failed { map[] map[]    } adk_run: [NodeRunError] provider request failed: Post "http://turn.invalid/chat/completions": provider HTTP 400: {"choices":[{"finish_reason":"stop","message":{"content":"","role":"assistant","tool_calls":[]}}]}
+        ------------------------
+        node path: [node_1, ChatModel]
+--- FAIL: TestR6PrivateChatDiscoveryWearReceiptAndWriter (5.59s)
+    --- FAIL: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=false (3.23s)
+    --- FAIL: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=true (2.36s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.411s
+FAIL
+
+EXIT_CODE 1

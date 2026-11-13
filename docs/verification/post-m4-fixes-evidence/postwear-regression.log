@@ -1,0 +1,167 @@
+SOURCE_HEAD a01fb8fc9dd3a85624f7df0932e6fd23714da2d6
+OVERLAYS apps/core-go/internal/core/r6_chat_wear_test.go
+COMMAND go test ./internal/core -count=1 -run ^(TestR6PrivateChatDiscoveryWearReceiptAndWriter|TestReply.*Fallback.*|TestReplyBadRequestDoesNotInvokeExplicitFallback)$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/normal/stream=false
+2026/11/13 23:45:15 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:15 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:15 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:15 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/after_moment/stream=false
+2026/11/13 23:45:16 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 23:45:17 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:17 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:17 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:17 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/same_batch/stream=false
+2026/11/13 23:45:19 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:19 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:19 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:19 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/reply_first_batch/stream=false
+2026/11/13 23:45:21 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:21 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:21 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:21 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable/stream=false
+2026/11/13 23:45:24 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:24 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:24 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:24 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/13 23:45:24 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/same_batch_unavailable/stream=false
+2026/11/13 23:45:25 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:25 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:25 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:25 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/13 23:45:25 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_bad_reply/stream=false
+2026/11/13 23:45:27 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:27 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:27 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:27 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/13 23:45:27 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_repair/stream=false
+2026/11/13 23:45:29 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:29 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:29 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:30 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/13 23:45:30 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=false
+2026/11/13 23:45:32 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:32 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:32 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:32 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/13 23:45:32 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_check_error/stream=false
+2026/11/13 23:45:35 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:35 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:36 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:36 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/13 23:45:36 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/refusal/stream=false
+2026/11/13 23:45:38 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/normal/stream=true
+2026/11/13 23:45:40 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:40 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:40 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:40 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/after_moment/stream=true
+2026/11/13 23:45:42 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 23:45:42 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:42 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:43 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:43 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/same_batch/stream=true
+2026/11/13 23:45:45 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:45 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:45 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=7 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:45 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/reply_first_batch/stream=true
+2026/11/13 23:45:47 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:47 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:47 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:47 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable/stream=true
+2026/11/13 23:45:49 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:49 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:49 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:49 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/13 23:45:49 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/same_batch_unavailable/stream=true
+2026/11/13 23:45:51 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:51 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:51 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:51 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/13 23:45:51 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_bad_reply/stream=true
+2026/11/13 23:45:52 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:52 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:52 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:52 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/13 23:45:53 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_repair/stream=true
+2026/11/13 23:45:55 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:55 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:55 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:55 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/13 23:45:55 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=true
+2026/11/13 23:45:58 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:58 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:58 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:45:58 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/13 23:45:58 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_check_error/stream=true
+2026/11/13 23:46:01 INFO capability lifecycle capability=capability.catalog call_id=r6-directory type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:46:01 INFO capability lifecycle capability=capability.catalog call_id=r6-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:46:01 INFO capability lifecycle capability=wardrobe.inspect call_id=r6-inspect type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/13 23:46:01 WARN tool.call.handled capability=wardrobe.wear call_id=r6-chat-wear warning_code=wardrobe_item_unavailable disposition=awaiting_state effect_applied=false
+2026/11/13 23:46:01 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+=== RUN   TestR6PrivateChatDiscoveryWearReceiptAndWriter/refusal/stream=true
+2026/11/13 23:46:03 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:r6-chat metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter (50.91s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/normal/stream=false (2.19s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/after_moment/stream=false (1.91s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/same_batch/stream=false (2.66s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/reply_first_batch/stream=false (2.10s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable/stream=false (2.33s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/same_batch_unavailable/stream=false (1.57s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_bad_reply/stream=false (1.56s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_repair/stream=false (2.87s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=false (3.42s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_check_error/stream=false (2.49s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/refusal/stream=false (2.42s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/normal/stream=true (2.38s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/after_moment/stream=true (2.12s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/same_batch/stream=true (2.67s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/reply_first_batch/stream=true (1.62s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable/stream=true (1.94s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/same_batch_unavailable/stream=true (2.35s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_bad_reply/stream=true (1.44s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_repair/stream=true (2.58s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=true (3.39s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_check_error/stream=true (2.52s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/refusal/stream=true (2.37s)
+=== RUN   TestReplyFallbackRequiresExplicitPolicyAndRecordsActualMode
+2026/11/13 23:46:04 WARN Go Core diagnostic persistence failed component=event stage=create correlation_id=reply-fallback:3c3c578bee57406bfc5a7d4b6246f16b error_type=*errors.errorString safe_cause=diagnostics_unavailable event_type=reply.style.diagnosed
+--- PASS: TestReplyFallbackRequiresExplicitPolicyAndRecordsActualMode (0.03s)
+=== RUN   TestReplyRefusalAndFailedMediaClaimNeverInvokeFallbackModel
+=== RUN   TestReplyRefusalAndFailedMediaClaimNeverInvokeFallbackModel/refusal
+=== RUN   TestReplyRefusalAndFailedMediaClaimNeverInvokeFallbackModel/unfulfilled_media_claim
+--- PASS: TestReplyRefusalAndFailedMediaClaimNeverInvokeFallbackModel (0.02s)
+    --- PASS: TestReplyRefusalAndFailedMediaClaimNeverInvokeFallbackModel/refusal (0.01s)
+    --- PASS: TestReplyRefusalAndFailedMediaClaimNeverInvokeFallbackModel/unfulfilled_media_claim (0.01s)
+=== RUN   TestReplyBadRequestDoesNotInvokeExplicitFallback
+--- PASS: TestReplyBadRequestDoesNotInvokeExplicitFallback (0.01s)
+=== RUN   TestReplyPhysicalModelTimeoutMayUseExplicitFallback
+--- PASS: TestReplyPhysicalModelTimeoutMayUseExplicitFallback (0.04s)
+=== RUN   TestReplyOverallDeadlineNeverInvokesFallback
+--- PASS: TestReplyOverallDeadlineNeverInvokesFallback (0.03s)
+=== RUN   TestReplyBusinessFailuresNeverQualifyForFallback
+--- PASS: TestReplyBusinessFailuresNeverQualifyForFallback (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	51.877s
+
+EXIT_CODE 0
