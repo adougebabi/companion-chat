@@ -1,0 +1,42 @@
+✔ Studio directory reads nine actual resource types, searches and keeps archived collection separate (360.635625ms)
+✔ r34c Studio read count includes drafts and labels publication and archive counts (97.914292ms)
+✔ Studio empty directory and failed initial read are distinct and recover via original GET (244.404667ms)
+✔ Studio saves typed edits using the opaque draft version and publishes an exact immutable saved version (292.978291ms)
+✔ Studio new save checkpoints the actual identity and canonical name before navigation (243.250292ms)
+✔ Studio apply freezes the exact publication and generic accepted receipt does not require a fabricated target kind (311.99825ms)
+✔ Studio version history reads immutable content, while independent copies stay unpublished (281.194375ms)
+✔ sandbox freezes current working input, observes actual jobs and adopts suggestions only after explicit review (265.21475ms)
+✔ acknowledged sandbox readback failure survives remount and recovers with GET only while preserving newer composer text (336.234791ms)
+✔ late sandbox acceptance after unmount retains its pointer (188.603542ms)
+✔ legacy directory recovery replays the original localStorage identity and body (216.2805ms)
+✔ raw JSON edits cannot be silently replaced by an assistant proposal, including edits made while confirmation is open (290.526875ms)
+✔ event scope changes remove only the invalid place reference while preserving unknown extensions (210.035958ms)
+✔ an Owner purge prevents a late accepted sandbox task from recreating another Owners recovery pointer (191.537916ms)
+✔ a late independent-copy acknowledgement after unmount preserves its actual copied identity (185.085084ms)
+✔ copying a historical publication uses its exact immutable definition and restores dialog source focus on cancel (368.019792ms)
+✔ sandbox text materials retain their original job and release only the resource association (463.062167ms)
+✔ Studio real editor applies linked world and result navigation retains original role (301.322958ms)
+✔ Studio shows an uncertain new renderer submission as paused (255.649292ms)
+✔ Studio shows an uncertain legacy renderer submission as paused (263.897792ms)
+✔ Studio reviews only the current ready image and replays an uncertain recovery after remount (531.937ms)
+✔ late assistant completion displays a separate suggestion and preserves newer form edits until explicit adoption (2.713667ms)
+✔ late accepted job after disposal and Owner storage cleanup cannot repaint or recreate the previous Owner draft (2.342791ms)
+✔ preview initializes a full resource draft and preserves an existing CAS baseline and local edits (0.6655ms)
+✔ needs_input never exposes an adoption action or mutates the working draft (0.636917ms)
+✔ background observation preserves older task pages, composer node and selection, and pauses while hidden (0.933417ms)
+✔ image request freezes selected retained reference and keeps image choices out of text submissions (0.655958ms)
+✔ image pending state shows actual workflow evidence and only ready result exposes image and explicit material save (0.729875ms)
+✔ unconfigured image failure shows actionable status without fabricated image or save action (0.545583ms)
+✔ lost image acceptance replays original reference and key while newer reference choices remain a separate draft (0.869625ms)
+✔ an explicit reference choice freezes actual grant identity and revision into an image task (0.496833ms)
+✔ parent redraw during copy retains accepted result pointer and the new component reads the actual copy (3.910458ms)
+✔ archive response after parent redraw refreshes through server readback in the current component (1.044125ms)
+✔ Owner change during an accepted operation cannot recreate old result pointers (0.574708ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 34
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7670.411541

@@ -142,6 +142,9 @@ func (a *App) DispatchStudioJobSurface(ctx context.Context, method, path string,
 	if containsPermanentHarm(body) {
 		return nil, harmError()
 	}
+	if p[2] == "jobs" && len(p) == 5 && p[4] == "resume-reviewed" {
+		return a.resumeReviewedStudioMedia(ctx, owner, p[3], body)
+	}
 	ctx = context.WithValue(ctx, ownerCommandAuditActionKey{}, "studio_job")
 	return a.worldCommand(ctx, owner, "", method+":"+path, body, func(ctx context.Context, tx pgx.Tx) (map[string]any, error) {
 		if p[2] == "jobs" && len(p) == 3 {
@@ -315,7 +318,7 @@ func (a *App) StudioJob(ctx context.Context, owner, id string) (map[string]any, 
 	if err != nil {
 		return nil, err
 	}
-	media, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT jsonb_build_object('id',i.id,'status',i.status,'submission_uncertain',i.status='submission_unknown' OR (i.status='failed' AND i.renderer_submission_started AND COALESCE(i.provider_job_id,'')=''),'workflow_id',i.workflow_id,'provider_job_id',i.provider_job_id,'quality_verdict',i.quality_verdict,'workflows',COALESCE((SELECT jsonb_agg(jsonb_build_object('intent_id',w.intent_id,'workflow_id',w.workflow_id,'status',w.status,'error_code',CASE WHEN w.last_error IS NULL THEN NULL WHEN w.last_error='workflow_status_unavailable' THEN 'workflow_status_unavailable' ELSE 'workflow_execution_failed' END) ORDER BY w.created_at) FROM public.platform_workflow_intents w WHERE w.intent_type='media.generation' AND w.payload->>'intent_id'=i.id),'[]'::jsonb)) FROM public.media_intents i WHERE i.studio_job_id=$1 AND i.studio_owner_actor_id=$2`, id, owner)
+	media, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT jsonb_build_object('id',i.id,'status',i.status,'revision',i.revision,'review_ready',EXISTS(SELECT 1 FROM public.media_assets a WHERE a.id='asset_'||i.id AND a.status='ready' AND a.media_scope='studio' AND a.studio_job_id=i.studio_job_id AND a.studio_owner_actor_id=i.studio_owner_actor_id AND a.provider_request_id=i.provider_request_id AND a.workflow_id=i.workflow_id) AND COALESCE(i.quality_verdict,'') NOT IN ('retry','retry_accepted','reject'),'submission_uncertain',i.status='submission_unknown' OR (i.status='failed' AND i.renderer_submission_started AND COALESCE(i.provider_job_id,'')=''),'workflow_id',i.workflow_id,'provider_job_id',i.provider_job_id,'quality_verdict',i.quality_verdict,'workflows',COALESCE((SELECT jsonb_agg(jsonb_build_object('intent_id',w.intent_id,'workflow_id',w.workflow_id,'status',w.status,'error_code',CASE WHEN w.last_error IS NULL THEN NULL WHEN w.last_error='workflow_status_unavailable' THEN 'workflow_status_unavailable' ELSE 'workflow_execution_failed' END) ORDER BY w.created_at) FROM public.platform_workflow_intents w WHERE w.intent_type='media.generation' AND w.payload->>'intent_id'=i.id),'[]'::jsonb)) FROM public.media_intents i WHERE i.studio_job_id=$1 AND i.studio_owner_actor_id=$2`, id, owner)
 	if err != nil {
 		return nil, err
 	}

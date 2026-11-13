@@ -120,3 +120,27 @@ func TestStudioCatalogueCommandsHaveClosedCASBodies(t *testing.T) {
 		t.Fatal("copy accepted life target")
 	}
 }
+
+func TestStudioReviewedMediaRequiresExplicitAcknowledgementAndFences(t *testing.T) {
+	path := "/api/studio/jobs/original/resume-reviewed"
+	body := map[string]any{"expectedRevision": float64(1), "expectedAttempt": float64(1), "expectedMediaRevision": float64(0), "submissionReviewed": true, "reason": "Owner verified original image", "idempotencyKey": "reviewed"}
+	if !validStudioJobBody(path, body) {
+		t.Fatal("valid reviewed recovery rejected")
+	}
+	mapped := surfaceCommandBody(path, body)
+	if mapped["submission_reviewed"] != true || mapped["expected_media_revision"] != float64(0) || mapped["expected_attempt"] != float64(1) {
+		t.Fatal(mapped)
+	}
+	for _, key := range []string{"expectedRevision", "expectedAttempt", "expectedMediaRevision", "submissionReviewed"} {
+		value := body[key]
+		delete(body, key)
+		if validStudioJobBody(path, body) {
+			t.Fatal("missing fence admitted", key)
+		}
+		body[key] = value
+	}
+	body["submissionReviewed"] = false
+	if validStudioJobBody(path, body) {
+		t.Fatal("unreviewed recovery admitted")
+	}
+}

@@ -1,0 +1,24 @@
+$ tsx --test test/*.test.ts
+node:net:1918
+      const error = new UVExceptionWithHostPort(rval, 'listen', address, port);
+                    ^
+
+Error: listen EPERM: operation not permitted /var/folders/gv/hlfcpzxj63b3813yxlrkqv6r0000gn/T/tsx-501/23160.pipe
+    at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2119:5)
+    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/node_modules/.pnpm/tsx@4.20.5/node_modules/tsx/dist/cli.mjs:53:31537
+    at new Promise (<anonymous>)
+    at createIpcServer (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/node_modules/.pnpm/tsx@4.20.5/node_modules/tsx/dist/cli.mjs:53:31515)
+    at async file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/node_modules/.pnpm/tsx@4.20.5/node_modules/tsx/dist/cli.mjs:55:459 {
+  code: 'EPERM',
+  errno: -1,
+  syscall: 'listen',
+  address: '/var/folders/gv/hlfcpzxj63b3813yxlrkqv6r0000gn/T/tsx-501/23160.pipe',
+  port: -1
+}
+
+Node.js v24.12.0
+/Users/vinson/Documents/project/个人/local-ai-companion/packages/browser-client:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @fluctlight/browser-client@0.1.0 test: `tsx --test test/*.test.ts`
+Exit status 1

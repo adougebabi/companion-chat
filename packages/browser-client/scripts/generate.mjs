@@ -95,7 +95,7 @@ export type BrowserMessage = BrowserConversationMessage;
 export type BrowserVisualIdentityTimelineEvent = { session_id: string; attempt_id?: string; stage: string; status: string; summary: string; asset_ids: string[]; metadata: Record<string, unknown>; correlation_id: string; occurred_at: string };
 export type BrowserVisualIdentity = { schema_version: string; id: string; fluctlight_id: string; status: string; current_revision: number; identity_snapshot: Record<string, unknown>; renderer_constraints: Record<string, unknown>; canonical_asset_id?: string; character_sheet_asset_id?: string; adapter_version: string; active_session_id?: string; timeline: BrowserVisualIdentityTimelineEvent[] };
 export type BrowserConversationPage = { conversation: BrowserConversation; participants: BrowserParticipant[]; messages: BrowserMessage[]; nextBeforeSequence?: number | null };
-export type BrowserTurnEvent = { type: "token" | "message" | "media" | "completed" | "error" | "heartbeat"; turnId: string; sequence: number; payload: Record<string, unknown> };
+export type BrowserTurnEvent = { type: "token" | "candidate_preview" | "message" | "media" | "completed" | "error" | "heartbeat"; turnId: string; sequence: number; payload: Record<string, unknown> };
 
 const lifecycleDiagnosticsQuery = (options: BrowserLifecycleDiagnosticsFilter, defaultLimit: number): string => {
   const query = new URLSearchParams({ limit: String(options.limit ?? defaultLimit) });

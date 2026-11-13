@@ -1,0 +1,12 @@
+SOURCE_HEAD e2aa5be69055f1995a90c56c6170ca40c341b09e
+OVERLAYS apps/core-go/internal/core/studio_media_reviewed_recovery_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestStudioReviewedReadyRecovery -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestStudioReviewedReadyRecoveryPreservesOriginalAttempt
+    studio_media_reviewed_recovery_test.go:52: Unknown Studio control fields
+--- FAIL: TestStudioReviewedReadyRecoveryPreservesOriginalAttempt (2.59s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.456s
+FAIL
+
+EXIT_CODE 1

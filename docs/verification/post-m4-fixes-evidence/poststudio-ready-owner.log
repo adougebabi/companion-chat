@@ -1,0 +1,12 @@
+SOURCE_HEAD e2aa5be69055f1995a90c56c6170ca40c341b09e
+OVERLAYS apps/core-go/internal/core/studio_media_reviewed_recovery.go,apps/core-go/internal/core/studio_media_reviewed_recovery_test.go,apps/core-go/internal/core/studio_jobs.go,apps/core-go/internal/core/studio_media.go
+COMMAND go test ./internal/core -count=1 -run ^TestStudioReviewedReadyRecovery -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestStudioReviewedReadyRecoveryPreservesOriginalAttempt
+    studio_media_reviewed_recovery_test.go:62: map[_replay:true audit_id:audit_world_2b90a32bf2b313dd737cd9fe96dd2649 created_at:2026-11-13T16:58:17.709902+00:00 error_code:<nil> id:studio_job_fdd5dd4404bfb4db4846f883db7c5721 kind:image_preview latest_attempt:1 owner_actor_id:tool-owner-studio-review-success resource_id:res_c6b5477172b6e1de975979655554dee9 resource_revision:1 result:map[media_intent_id:studio_media_d5a8942ef51ef4e7bdb233f013e2e01a workflow_id:studio-media-review:studio_media_review_b9be220d7013dc3b8e21bfde541d467f] revision:2 snapshot:map[allowed_references:[] body:map[description:fictional empty room] instruction:empty fictional room name:隔离场景 owner_actor_id:tool-owner-studio-review-success resource_id:res_c6b5477172b6e1de975979655554dee9 resource_kind:place resource_revision:1] source_digest:58769ef46df0f87d62cba4316bd3358a status:running updated_at:2026-11-13T16:58:17.742404+00:00] <nil>
+--- FAIL: TestStudioReviewedReadyRecoveryPreservesOriginalAttempt (2.37s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.100s
+FAIL
+
+EXIT_CODE 1

@@ -1,0 +1,46 @@
+SOURCE_HEAD e2aa5be69055f1995a90c56c6170ca40c341b09e
+OVERLAYS apps/core-go/internal/core/studio_media_reviewed_recovery.go,apps/core-go/internal/core/studio_media_reviewed_recovery_test.go,apps/core-go/internal/core/studio_jobs.go,apps/core-go/internal/core/studio_media.go
+COMMAND go test ./internal/core -count=1 -run ^TestStudioReviewedReadyRecovery -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestStudioReviewedReadyRecoveryPreservesOriginalAttempt
+--- PASS: TestStudioReviewedReadyRecoveryPreservesOriginalAttempt (2.36s)
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unreviewed
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-job
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-media
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/old-attempt
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/missing-ready
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-request
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-workflow
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-reject
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-retry
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-legacy
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/active
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/paused
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/cancel-requested
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/discarded
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unbound-attempt
+--- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState (32.93s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unreviewed (2.42s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-job (2.38s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-media (2.14s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/old-attempt (2.29s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/missing-ready (2.32s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-request (2.21s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-workflow (2.19s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-reject (1.19s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-retry (1.93s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-legacy (2.25s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/active (2.21s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/paused (2.23s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/cancel-requested (2.07s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/discarded (2.70s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unbound-attempt (2.39s)
+=== RUN   TestStudioReviewedReadyRecoveryLegacyAndExecutionLock
+--- PASS: TestStudioReviewedReadyRecoveryLegacyAndExecutionLock (1.84s)
+=== RUN   TestStudioReviewedReadyRecoveryConcurrentCommands
+--- PASS: TestStudioReviewedReadyRecoveryConcurrentCommands (2.15s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	39.992s
+
+EXIT_CODE 0

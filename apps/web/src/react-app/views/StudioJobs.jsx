@@ -294,6 +294,7 @@ export default function StudioJobsView({ model: m }) {
               <h3>生成任务已暂停</h3>
               <p>生成服务可能已接单，请人工核对原任务；系统不会自动再次提交。</p>
               <Button variant="outline" disabled={reading} onClick={() => void m.observe()}>读取原任务进度</Button>
+              {m.reviewableMedia ? <Button variant="outline" disabled={busy || reading || !!pending || !!m.receipt} onClick={() => void m.operate("resume-reviewed")}>核对后恢复已有图片</Button> : <p>尚未找到可核对的同源就绪图片，请保持暂停。</p>}
               <Button variant="outline" disabled={busy || !!pending || !!m.receipt} onClick={() => void m.operate("discard")}>核对后丢弃此任务</Button>
             </div>
           ) : running ? (

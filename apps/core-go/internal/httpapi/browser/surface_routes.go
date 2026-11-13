@@ -60,6 +60,7 @@ var surfaceRoutes = []surfaceRoute{
 	{http.MethodPost, "/api/studio/jobs"},
 	{http.MethodGet, "/api/studio/jobs/:jobId"},
 	{http.MethodPost, "/api/studio/jobs/:jobId/retry"},
+	{http.MethodPost, "/api/studio/jobs/:jobId/resume-reviewed"},
 	{http.MethodPost, "/api/studio/jobs/:jobId/discard"},
 	{http.MethodPost, "/api/studio/jobs/:jobId/save-material"},
 	{http.MethodGet, "/api/studio/materials"},

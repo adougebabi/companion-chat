@@ -52,6 +52,7 @@ func browserV3RouteCases() []browserRouteCase {
 		{name: "listStudioJobs", method: "GET", path: "/api/studio/jobs"},
 		{name: "createStudioJob", method: "POST", path: "/api/studio/jobs", body: `{"resourceId":"resource-1","resourceRevision":1,"kind":"assistant","name":"Quiet reading room","body":{"description":"A room with a reading table"},"instruction":"Suggest a complete place definition","reason":"Owner draft assistance","idempotencyKey":"studio-job"}`},
 		{name: "studioJob", method: "GET", path: "/api/studio/jobs/job-1"},
+		{name: "resumeReviewedStudioMedia", method: "POST", path: "/api/studio/jobs/job-1/resume-reviewed", body: `{"expectedRevision":1,"expectedAttempt":1,"expectedMediaRevision":0,"submissionReviewed":true,"reason":"Owner verified original asset","idempotencyKey":"reviewed-command"}`},
 		{name: "retryStudioJob", method: "POST", path: "/api/studio/jobs/job-1/retry", body: `{"expectedRevision":1,"reason":"Owner contract regression","idempotencyKey":"fixture-command"}`},
 		{name: "discardStudioJob", method: "POST", path: "/api/studio/jobs/job-1/discard", body: `{"expectedRevision":1,"reason":"Owner contract regression","idempotencyKey":"fixture-command"}`},
 		{name: "saveStudioMaterial", method: "POST", path: "/api/studio/jobs/job-1/save-material", body: `{"expectedRevision":1,"reason":"Owner contract regression","idempotencyKey":"fixture-command"}`},

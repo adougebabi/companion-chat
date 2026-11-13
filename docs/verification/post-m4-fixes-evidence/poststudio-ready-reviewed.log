@@ -1,0 +1,64 @@
+SOURCE_HEAD e2aa5be69055f1995a90c56c6170ca40c341b09e
+OVERLAYS apps/core-go/internal/core/studio_media_reviewed_recovery.go,apps/core-go/internal/core/studio_media_reviewed_recovery_test.go,apps/core-go/internal/core/studio_jobs.go,apps/core-go/internal/core/studio_media.go
+COMMAND go test ./internal/core -count=1 -run ^TestStudioReviewedReadyRecovery -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestStudioReviewedReadyRecoveryPreservesOriginalAttempt
+--- PASS: TestStudioReviewedReadyRecoveryPreservesOriginalAttempt (0.99s)
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unreviewed
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-job
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-media
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/old-attempt
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/missing-ready
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-request
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-workflow
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-reject
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-retry
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-legacy
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/active
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/paused
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/cancel-requested
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/discarded
+=== RUN   TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unbound-attempt
+--- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState (29.76s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unreviewed (2.13s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-job (1.10s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/stale-media (2.18s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/old-attempt (2.02s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/missing-ready (2.27s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-request (2.13s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/wrong-workflow (2.07s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-reject (2.05s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-retry (1.35s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/quality-legacy (2.15s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/active (2.27s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/paused (2.25s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/cancel-requested (1.91s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/discarded (1.76s)
+    --- PASS: TestStudioReviewedReadyRecoveryRejectsUnverifiedOrStaleState/unbound-attempt (2.11s)
+=== RUN   TestStudioReviewedReadyRecoveryLegacyAndExecutionLock
+--- PASS: TestStudioReviewedReadyRecoveryLegacyAndExecutionLock (3.04s)
+=== RUN   TestStudioReviewedReadyRecoveryConcurrentCommands
+--- PASS: TestStudioReviewedReadyRecoveryConcurrentCommands (2.34s)
+=== RUN   TestStudioReviewedReadyRecoveryPreservesLateQualityFailure
+=== RUN   TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/reject
+=== RUN   TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/retry
+=== RUN   TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/retry_accepted
+--- PASS: TestStudioReviewedReadyRecoveryPreservesLateQualityFailure (6.42s)
+    --- PASS: TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/reject (2.00s)
+    --- PASS: TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/retry (2.18s)
+    --- PASS: TestStudioReviewedReadyRecoveryPreservesLateQualityFailure/retry_accepted (2.23s)
+=== RUN   TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished
+=== RUN   TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished/false
+=== RUN   TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished/true
+--- PASS: TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished (3.17s)
+    --- PASS: TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished/false (1.79s)
+    --- PASS: TestStudioReviewedReadyRecoveryDiscardCannotBeRepublished/true (1.38s)
+=== RUN   TestStudioReviewedReadyRecoveryRejectsStaleActivity
+2026/11/14 01:09:11 DEBUG RecordActivityTaskHeartbeat ActivityID 0
+2026/11/14 01:09:11 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType func1 Attempt 1 Error media_execution_workflow_stale
+--- PASS: TestStudioReviewedReadyRecoveryRejectsStaleActivity (1.48s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	47.937s
+
+EXIT_CODE 0

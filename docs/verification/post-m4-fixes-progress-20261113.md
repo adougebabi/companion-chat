@@ -7,7 +7,8 @@
 | F01 | 确认并修复换衣失败后的显式技术回退及纠错场景 | VERIFIED | post-m4-fixes-evidence/postwear-* |
 | F02 | 同ID无权限/关闭窗口回执跨轮重放有界 | VERIFIED | postdenial-* |
 | F03a | 诊断详情接入现有原媒体任务人工核对 | VERIFIED | entry-* |
-| F03b | Studio/视觉身份原结果领域恢复 | 待后续独立处理，外部结果归属规则需Owner | 既有领域工作项 |
+| F03b | Studio同源ready资产人工确认恢复 | 实现及范围内回归通过，待提交后验收 | poststudio-*及studio-* |
+| F03c | 视觉身份同源ready资产人工恢复 | 待后续独立处理；外部结果归属继续暂停 | 既有领域工作项 |
 | F04 | direct生成中的候选正文增量预览 | VERIFIED（direct预览范围） | postpreview-*及preview-* |
 
 F01修正当前用例配置，保留r5夹具fact_only模式；使用允许显式回退的503；在数据库独立配置generic_llm备用模型，保留原Writer冻结值。原输出、穿着、次数、未授权重执行及最终模型元数据断言保留。只改此用例，生产回退策略diff 0。红测与第一轮只修两前置仍失败的日志全部保留。
@@ -37,3 +38,11 @@ F04失败记录均保留。首次前端typecheck发现nullable narrowing，已�
 F04当前预览适用direct。fact_only继续可选且保持原行为，本轮未为Writer新增预览。真实模型速度、自然回复体验与真实媒体生成仍按Owner授权保留未验收。以上受控Provider结果不计为真实模型验收，亦不代表T04/T06或全链完成。
 
 F04提交42653f8c后干净源码Core/边界回归149.736秒通过，前端60项通过，无SKIP。首次submit因组成清单知识源变化被拒绝，已审阅实际变更并重新index/context，当前候选assess已completed。未改变业务代码来处理管理限制。
+
+F03b为Studio增加resume-reviewed正式领域命令及浏览器/客户端/React原任务入口。事务核对Owner、job/media revision、current attempt、原workflow，复用media-intent执行锁，原媒体workflow仍active/paused/cancel_requested时拒绝。只有asset_<原intent>的Studio scope、Owner/job、provider request和原workflow全部同源且ready，质量结论不是retry/retry_accepted/reject时可恢复。保留job/attempt/media/provider request与生成围栏，仅为已有结果新建恢复媒体workflow并同步原attempt绑定，记录人工核对审计。ProcessMediaIntent使用reviewed_ready的已有ready分支结算，Studio完成分支纳入该状态。旧workflow迟到回调不能结算新身份。未自动查询或重新提交生成请求，未增加外部ID/图片导入。
+
+F03b覆盖未确认、缺ready、错误request/workflow、旧attempt、job/media版本变化、质量拒绝、active/paused/cancel_requested、丢弃、Owner、执行锁、旧failed提交围栏、重复/并发命令。独立静态审查未发现阻断实现问题，并指出四处覆盖缺口，已追加恢复与discard/settlement竞争、admission后质量变更、SDK TestActivity错误workflow身份拒绝、已受理但丢回执后React重挂载原身份重放。Core目标与Studio整组通过，浏览器边界全包通过，前端Studio34项、客户端48项通过，无SKIP；Web/client typecheck和产品build通过。IAB使用合成数据加载正式StudioJobs和产品CSS，已查看待人工核对状态、仅同源ready入口及明确人工核对确认对话框，未提交真实操作。截图只在工具会话查看，临时服务已停止。
+
+F03b保留所有失败。红测确认旧入口Unknown Studio control fields。首次实现测试缺Owner账号前置，补齐局部夹具；下一次测试将幂等回执的_replay标记与原JSON整串比较，改为核对原id/revision/result和单次workflow计数。首个浏览器回归使用旧HEAD的OpenAPI导致新路由不匹配，私有测试运行器现允许显式叠加本工单当前OpenAPI后通过。客户端测试首次因sandbox拒绝tsx本机IPC失败，工具审批后相同命令48项通过。重新生成客户端时发现F04新事件原先只写到生成产物，现同步generate.mjs源模板，确保再生成保留candidate_preview，生产事件语义未变。
+
+F03b沿用既有Studio兼容规则，旧ready资产空quality verdict允许恢复，已记录拒绝/重试结论继续拒绝。恢复确认用于归属核对，未将其标成质量通过。没有同源本地ready或需要外部结果接管的情况继续暂停，外部归属、导入与补生成规则仍需Owner决定。真实图片内容/ComfyUI与真实Temporal服务验收仍保留，本轮只包含控制数据、SDK Activity harness及真实数据库/正式入口测试。

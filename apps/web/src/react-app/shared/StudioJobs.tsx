@@ -150,6 +150,7 @@ export default function StudioJobs({
       persistentCommand({
         key: slot + ":command",
         storage: studioDraftStorage,
+        preAdmissionConflicts: ["revision_conflict", "studio_media_review_stale", "media_submission_review_required", "studio_media_execution_active", "media_quality_rejected", "media_quality_legacy_review_required", "media_quality_retry_exhausted"],
         execute: async (value: any, key: string) => {
           if (!live()) throw Error("会话或资源范围已切换");
           let result: any;
@@ -166,6 +167,13 @@ export default function StudioJobs({
             };
             if (value.op === "retry")
               result = await service.retryJob(value.id, body);
+            else if (value.op === "resume-reviewed")
+              result = await service.resumeReviewedMedia(value.id, {
+                ...body,
+                expectedAttempt: value.expectedAttempt,
+                expectedMediaRevision: value.expectedMediaRevision,
+                submissionReviewed: true,
+              });
             else if (value.op === "discard")
               result = await service.discardJob(value.id, body);
             else if (value.op === "save-material")
@@ -276,7 +284,7 @@ export default function StudioJobs({
       if (
         pointer.sourceId !== resource.id ||
         typeof pointer.id !== "string" ||
-        !["create", "retry", "discard", "save-material"].includes(
+        !["create", "retry", "resume-reviewed", "discard", "save-material"].includes(
           pointer.operation,
         )
       )
@@ -453,6 +461,21 @@ export default function StudioJobs({
   }
   async function operate(op: string) {
     if (!job || busy) return;
+    if (op === "resume-reviewed") {
+      if (!reviewableMedia) return;
+      const selected = copy(job), media = copy(reviewableMedia);
+      if (!(await confirm({
+        title: "核对后恢复已有图片",
+        text: "请先人工核对原生成任务与已保存图片。确认后只恢复当前原尝试的同源就绪结果，保留原质量结论。",
+        okText: "已人工核对，恢复已有图片",
+      })) || !live() || currentJob.current?.id !== selected.id) return;
+      return submit({
+        op, id: selected.id, revision: selected.revision,
+        expectedAttempt: selected.latest_attempt,
+        expectedMediaRevision: media.revision,
+        reason: "所有者已人工核对原任务及同源就绪图片",
+      });
+    }
     const selected = copy(job),
       reason =
         op === "retry"
@@ -565,6 +588,12 @@ export default function StudioJobs({
       value: selectedReference,
       label: "已恢复的原参考，请刷新核对状态",
     });
+  const currentAttempt = job?.attempts?.find((attempt: any) => attempt.attempt === job.latest_attempt);
+  const reviewableMedia = job?.kind === "image_preview" && ["running", "failed"].includes(job.status)
+    ? job.media_requests?.find((media: any) => media.id === currentAttempt?.output?.media_intent_id &&
+      media.workflow_id === currentAttempt?.output?.workflow_id && media.submission_uncertain === true &&
+      media.review_ready === true && Number.isSafeInteger(media.revision) && media.revision >= 0)
+    : null;
   return (
     <StudioJobsView
       model={{
@@ -594,6 +623,7 @@ export default function StudioJobs({
         submit,
         create,
         operate,
+        reviewableMedia,
         adoptProposal,
         out,
         proposal,

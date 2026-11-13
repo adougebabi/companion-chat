@@ -13,6 +13,9 @@ func validStudioJobBody(path string, b map[string]any) bool {
 		_, ok := b["body"].(map[string]any)
 		return onlyKeys(b, "resourceId", "resourceRevision", "kind", "name", "body", "instruction", "reason", "idempotencyKey", "referenceAsset", "purpose", "resourceVersion") && validStudioPreparation(b) && validStudioReference(b) && ok && validateString(b["resourceId"], 1, 128) && validateInteger(b["resourceRevision"], 1) && (b["kind"] == "assistant" || b["kind"] == "text_preview" || b["kind"] == "image_preview") && validateString(b["name"], 1, 200) && validateString(b["instruction"], 1, 4000) && validateString(b["reason"], 1, 1000) && validateString(b["idempotencyKey"], 1, 256)
 	}
+	if strings.HasPrefix(path, "/api/studio/jobs/") && strings.HasSuffix(path, "/resume-reviewed") {
+		return onlyKeys(b, "expectedRevision", "expectedAttempt", "expectedMediaRevision", "submissionReviewed", "reason", "idempotencyKey") && validateInteger(b["expectedRevision"], 1) && validateInteger(b["expectedAttempt"], 1) && validateInteger(b["expectedMediaRevision"], 0) && b["submissionReviewed"] == true && validateString(b["reason"], 1, 1000) && validateString(b["idempotencyKey"], 1, 256)
+	}
 	if strings.HasPrefix(path, "/api/studio/jobs/") || strings.HasPrefix(path, "/api/studio/materials/") {
 		return onlyKeys(b, "expectedRevision", "reason", "idempotencyKey") && validateInteger(b["expectedRevision"], 1) && validateString(b["reason"], 1, 1000) && validateString(b["idempotencyKey"], 1, 256)
 	}

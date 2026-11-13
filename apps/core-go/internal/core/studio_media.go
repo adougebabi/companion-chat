@@ -291,7 +291,7 @@ func (a *App) settleStudioMedia(ctx context.Context, intent mediaIntent, success
 		if ready {
 			mediaStatus = "completed"
 		}
-		if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET status=$2,revision=revision+1 WHERE id=$1 AND workflow_id=$3 AND status IN ('pending','running','failed','completed')`, intent.ID, mediaStatus, intent.WorkflowID); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET status=$2,revision=revision+1 WHERE id=$1 AND workflow_id=$3 AND status IN ('pending','running','failed','reviewed_ready','completed')`, intent.ID, mediaStatus, intent.WorkflowID); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE public.studio_job_attempts SET status=$2,output=$3,error_code=$4,finished_at=now() WHERE id=$1 AND status='running'`, aid, status, jsonBytes(output), failure); err != nil {

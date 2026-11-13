@@ -1,0 +1,11 @@
+✔ Studio shows an uncertain new renderer submission as paused (364.657542ms)
+✔ Studio shows an uncertain legacy renderer submission as paused (285.266208ms)
+✔ Studio reviews only the current ready image and replays an uncertain recovery with the same identity (411.34225ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2984.260959

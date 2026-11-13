@@ -1,4 +1,4 @@
-import type { BrowserStudioJob, BrowserStudioJobBody, BrowserStudioJobCommandBody, BrowserStudioJobPage, BrowserStudioMaterialPage, BrowserStudioMaterialReceipt } from "./index.js";
+import type { BrowserStudioReviewedMediaBody, BrowserStudioJob, BrowserStudioJobBody, BrowserStudioJobCommandBody, BrowserStudioJobPage, BrowserStudioMaterialPage, BrowserStudioMaterialReceipt } from "./index.js";
 import type { BrowserPersonaSwitchRequest, BrowserPersonaSwitchResult } from "./index.js";
 // 摇光浏览器契约 v0.1（uploads/fluctlight-backend-contract.md）。
 // 响应字段 snake_case。JSON 写操作把幂等键放在请求体 idempotencyKey（Q1 待裁决：
@@ -475,6 +475,7 @@ export const v3ContractMethods = {
   async studioJob(this: object,id:string):Promise<BrowserStudioJob>{ return clientOf(this).json(`/api/studio/jobs/${encodeURIComponent(id)}`) as Promise<BrowserStudioJob>; },
   async listStudioJobs(this:object,options:{resource_id?:string;cursor?:string}={}):Promise<BrowserStudioJobPage>{ return clientOf(this).json(`/api/studio/jobs${q(options)}`) as Promise<BrowserStudioJobPage>; },
   async listStudioMaterials(this:object,options:{resource_id?:string;cursor?:string;released?:boolean}={}):Promise<BrowserStudioMaterialPage>{ return clientOf(this).json(`/api/studio/materials${q(options)}`) as Promise<BrowserStudioMaterialPage>; },
+  async resumeReviewedStudioMedia(this:object,id:string,body:BrowserStudioReviewedMediaBody):Promise<BrowserStudioJob>{return clientOf(this).json(`/api/studio/jobs/${encodeURIComponent(id)}/resume-reviewed`,{method:'POST',body}) as Promise<BrowserStudioJob>;},
   async retryStudioJob(this:object,id:string,body:BrowserStudioJobCommandBody):Promise<BrowserStudioJob>{return clientOf(this).json(`/api/studio/jobs/${encodeURIComponent(id)}/retry`,{method:'POST',body}) as Promise<BrowserStudioJob>;},
   async discardStudioJob(this:object,id:string,body:BrowserStudioJobCommandBody):Promise<BrowserStudioJob>{return clientOf(this).json(`/api/studio/jobs/${encodeURIComponent(id)}/discard`,{method:'POST',body}) as Promise<BrowserStudioJob>;},
   async saveStudioMaterial(this:object,id:string,body:BrowserStudioJobCommandBody):Promise<BrowserStudioMaterialReceipt>{return clientOf(this).json(`/api/studio/jobs/${encodeURIComponent(id)}/save-material`,{method:'POST',body}) as Promise<BrowserStudioMaterialReceipt>;},
@@ -633,6 +634,7 @@ declare module "./index.ts" {
     studioJob(id:string):Promise<BrowserStudioJob>;
     listStudioJobs(options?:{resource_id?:string;cursor?:string}):Promise<BrowserStudioJobPage>;
     listStudioMaterials(options?:{resource_id?:string;cursor?:string;released?:boolean}):Promise<BrowserStudioMaterialPage>;
+    resumeReviewedStudioMedia(id:string,body:BrowserStudioReviewedMediaBody):Promise<BrowserStudioJob>;
     retryStudioJob(id:string,body:BrowserStudioJobCommandBody):Promise<BrowserStudioJob>;
     discardStudioJob(id:string,body:BrowserStudioJobCommandBody):Promise<BrowserStudioJob>;
     saveStudioMaterial(id:string,body:BrowserStudioJobCommandBody):Promise<BrowserStudioMaterialReceipt>;

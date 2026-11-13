@@ -1,5 +1,5 @@
 import {apiOrigin} from '../../runtime-config';
-import {BrowserClient,type StudioResource,type StudioResourceQuery,type StudioCopyBody,type StudioCatalogCommand,type ApplyPreviewResponse,type ApplyResourceBody,type BrowserStudioJobBody,type BrowserStudioJobCommandBody} from '@fluctlight/browser-client';
+import {BrowserClient,type StudioResource,type StudioResourceQuery,type StudioCopyBody,type StudioCatalogCommand,type ApplyPreviewResponse,type ApplyResourceBody,type BrowserStudioJobBody,type BrowserStudioJobCommandBody,type BrowserStudioReviewedMediaBody} from '@fluctlight/browser-client';
 // Existing renderer service boundary.
 import {configureDomainService} from '../proto/services.js';
 // Existing renderer read boundary.
@@ -15,7 +15,8 @@ export function installStudioProvider(client:BrowserClient){
   job:(id:string)=>client.studioJob(id),
   jobs:(options:{resource_id?:string;cursor?:string}={})=>client.listStudioJobs(options),
   materials:(options:{resource_id?:string;cursor?:string;released?:boolean}={})=>client.listStudioMaterials(options),
-  retryJob:(id:string,body:BrowserStudioJobCommandBody)=>client.retryStudioJob(id,body),
+  resumeReviewedMedia:(id:string,body:BrowserStudioReviewedMediaBody)=>client.resumeReviewedStudioMedia(id,body),
+ retryJob:(id:string,body:BrowserStudioJobCommandBody)=>client.retryStudioJob(id,body),
   discardJob:(id:string,body:BrowserStudioJobCommandBody)=>client.discardStudioJob(id,body),
   saveMaterial:(id:string,body:BrowserStudioJobCommandBody)=>client.saveStudioMaterial(id,body),
   list:(options:StudioResourceQuery={})=>client.listStudioResources(options),

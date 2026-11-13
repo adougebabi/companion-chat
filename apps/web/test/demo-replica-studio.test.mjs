@@ -784,3 +784,66 @@ for (const legacy of [false, true]) test(`Studio shows an uncertain ${legacy ? "
     await f.dispose();
   }
 });
+
+test('Studio reviews only the current ready image and replays an uncertain recovery after remount', async () => {
+  const api = studioFixture(), resource = api.resources.get('studio-world'), writes = [];
+  let reviewJob, savedRecovery;
+  const options = {
+    api, Component: Jobs,
+    props: {resource, initialKind: 'image_preview', readDraft: () => ({name: '隔离场景', body: {background: '空房间'}})},
+    intercept: async ({url, method, body}) => {
+      if (reviewJob && method === 'GET' && url.pathname === '/api/studio/jobs/' + reviewJob.id) return Response.json(reviewJob);
+      if (method === 'POST' && url.pathname.endsWith('/resume-reviewed')) {
+        writes.push(structuredClone(body));
+        if (writes.length === 1) {
+          reviewJob.revision++;
+          reviewJob.submission_uncertain = false;
+          reviewJob.error_code = null;
+          reviewJob.attempts[0].output.workflow_id = 'reviewed-workflow';
+          Object.assign(reviewJob.media_requests[0], {status: 'reviewed_ready', submission_uncertain: false, workflow_id: 'reviewed-workflow', revision: 4});
+          savedRecovery = structuredClone(reviewJob);
+          return Response.json({code: 'controlled_lost_receipt'}, {status: 503});
+        }
+        return Response.json(savedRecovery);
+      }
+    },
+  };
+  let f = await fixture(options);
+  try {
+    await f.v.input(f.v.host.querySelector('[aria-label="创作请求"]'), '生成隔离场景');
+    await f.v.click(button(f.v.host, '开始创作'));
+    reviewJob = [...api.jobs.values()][0];
+    Object.assign(reviewJob, {
+      kind: 'image_preview', status: 'running', revision: 8, latest_attempt: 1,
+      error_code: 'media_submission_ambiguous', submission_uncertain: true,
+      attempts: [{id: 'original-attempt', attempt: 1, status: 'running', output: {media_intent_id: 'original-media', workflow_id: 'original-workflow'}}],
+      media_requests: [{id: 'original-media', workflow_id: 'original-workflow', status: 'submission_unknown', submission_uncertain: true, revision: 3, review_ready: false}],
+    });
+    await f.v.click(button(f.v.host, '刷新任务状态'));
+    assert.equal(button(f.v.host, '核对后恢复已有图片'), undefined);
+    reviewJob.media_requests[0].review_ready = true;
+    await f.v.click(button(f.v.host, '刷新任务状态'));
+    await f.v.click(button(f.v.host, '核对后恢复已有图片'));
+    let confirmation = document.querySelector('[role=alertdialog]');
+    assert.match(confirmation.textContent, /原质量结论/);
+    await f.v.click(button(confirmation, '取消'));
+    assert.equal(writes.length, 0);
+    await f.v.click(button(f.v.host, '核对后恢复已有图片'));
+    confirmation = document.querySelector('[role=alertdialog]');
+    await f.v.click(button(confirmation, '已人工核对，恢复已有图片'));
+    assert.equal(writes.length, 1);
+    assert.equal(writes[0].expectedRevision, 8);
+    assert.equal(writes[0].expectedAttempt, 1);
+    assert.equal(writes[0].expectedMediaRevision, 3);
+    assert.equal(writes[0].submissionReviewed, true);
+    assert.ok(writes[0].idempotencyKey);
+    await f.dispose();
+    f = await fixture({...options, retainStorage: true});
+    assert.ok(button(f.v.host, '重试原任务提交'));
+    await f.v.click(button(f.v.host, '重试原任务提交'));
+    assert.equal(writes.length, 2);
+    assert.deepEqual(writes[1], writes[0]);
+    assert.equal(button(f.v.host, '核对后恢复已有图片'), undefined);
+    assert.equal(reviewJob.latest_attempt, 1);
+  } finally { await f.dispose(); }
+});
