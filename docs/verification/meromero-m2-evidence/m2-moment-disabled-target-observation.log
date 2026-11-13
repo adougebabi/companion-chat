@@ -1,0 +1,11 @@
+SOURCE_HEAD 023cdf520a9fdd42ed57101afa2779914d8bf407
+TEST temporary observational fixture
+COMMAND go test ./internal/core -count=1 -run ^TestM2ObserveMomentDisabledImageTarget$ -v -timeout=90s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM2ObserveMomentDisabledImageTarget
+    m2_moment_disable_observation_test.go:38: moment_disabled=true image_enabled=true existing_replay=true new_moment_status=accepted new_moment_error=<nil> conversation_status=accepted conversation_error=<nil> intent_count=3
+--- PASS: TestM2ObserveMomentDisabledImageTarget (2.52s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.192s
+
+EXIT_CODE 0

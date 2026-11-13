@@ -1,0 +1,42 @@
+package core
+
+import "testing"
+
+func TestM2ObserveMomentDisabledImageTarget(t *testing.T) {
+	ctx, repo, app, owner, fid, conversation := setupDirectPublicationToolTest(t, "m2-disabled-target-observation")
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'fixture','fixture')`, owner); err != nil {
+		t.Fatal(err)
+	}
+	moment := "m2-observed-moment"
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.moments(id,owner_fluctlight_id,author_actor_id,text,visibility,status,media_asset_ids) VALUES($1,$2,$2,'isolated fixture','participants','visible','[]')`, moment, fid); err != nil {
+		t.Fatal(err)
+	}
+	req := ToolExecutionRequest{CapabilityName: "media.image.generate", OperationID: "before-disable", AuthorizationActorID: owner, FluctlightID: fid, ConversationID: conversation, TargetKind: "moment", TargetRef: moment, Arguments: jsonBytes(map[string]any{"intent": "窗外风景", "media_plan": mediaTestPlan("landscape", "none", "no", "unknown"), "delivery_target": "current_moment"})}
+	first, err := app.ExecuteTool(ctx, req)
+	if err != nil || first.Result.Status != "accepted" {
+		t.Fatalf("initial admission status=%s err=%v", first.Result.Status, err)
+	}
+	_, err = app.UpdateSettings(ctx, owner, map[string]any{"values": map[string]any{domainPluginsSettingKey: map[string]any{"image": true, "moment": false}}, "expected_versions": map[string]any{}, "idempotency_key": "disable-moment"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	replay, err := app.ExecuteTool(ctx, req)
+	if err != nil || !replay.Replayed {
+		t.Fatalf("existing replay=%v err=%v", replay.Replayed, err)
+	}
+	req.OperationID = "after-disable-new-moment-target"
+	newMoment, momentErr := app.ExecuteTool(ctx, req)
+	req.OperationID = "after-disable-new-conversation-target"
+	req.TargetKind = "conversation"
+	req.TargetRef = conversation
+	req.Arguments = jsonBytes(map[string]any{"intent": "窗外风景", "media_plan": mediaTestPlan("landscape", "none", "no", "unknown")})
+	newConversation, chatErr := app.ExecuteTool(ctx, req)
+	var total int
+	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$1`, fid).Scan(&total); err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("moment_disabled=true image_enabled=true existing_replay=%t new_moment_status=%s new_moment_error=%v conversation_status=%s conversation_error=%v intent_count=%d", replay.Replayed, newMoment.Result.Status, momentErr, newConversation.Result.Status, chatErr, total)
+	if chatErr != nil || newConversation.Result.Status != "accepted" {
+		t.Fatal("conversation Image control did not run")
+	}
+}

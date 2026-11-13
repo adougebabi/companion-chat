@@ -78,3 +78,10 @@ Provider 和渲染服务均为受控替身；M2-02 的真实模型失败、真�
 输出字段的额外收紧；但连续处理这些 Moment 细分项，使执行重心偏离了 M2 的
 默认主链与插件完整链路优先级。后续先处理依赖已满足的主链/插件原验收，
 非阻断性的任务外问题仍只登记，不以局部通过代替里程碑验收。
+
+补充观察：Moment 停用、Image 启用时，隔离库中已有图片任务可重放；新 Image
+请求仍可选择已有 Moment 为交付目标，普通会话图片也可受理，未实际生成。
+“停用 Moment 是否允许新图片修改已有动态”需结合既有业务语义核对，登记
+AEL `image-targets-disabled-moment-review`，暂不修改该行为。证据见
+`meromero-m2-evidence/m2-moment-disabled-target-observation.log`，隔离测试输入
+保存在同名 `.go.txt` 中，未加入常规测试集。
