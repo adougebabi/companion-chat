@@ -487,7 +487,7 @@
     },
     {
       "path": "docs/verification/meromero-m2-evidence/t03-appearance-review.md",
-      "hash": "76c87a167fe78c28bf9bfd4f37f911ab215ebc1eaee2513e025c729883fbccef",
+      "hash": "702320f38490f9b758f7e89c94c4ca3d4f0523b68348f8f35f57f0560b56b049",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -501,7 +501,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/verification/meromero-m2-evidence/t03-appearance-review.md",
-        "hash": "76c87a167fe78c28bf9bfd4f37f911ab215ebc1eaee2513e025c729883fbccef",
+        "hash": "702320f38490f9b758f7e89c94c4ca3d4f0523b68348f8f35f57f0560b56b049",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
