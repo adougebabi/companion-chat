@@ -1,0 +1,31 @@
+{
+  "id": "meromero-m2-18-direct-claim-recovery",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "437d72ecaa386ec4331beff279ab2d3f42bcd35fb9566df7e2215524c040ab85",
+  "completed": "2026-11-13T02:22:37.549001Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "direct-claim-recovery",
+      "result": "pass",
+      "source": "scenario:codex-m2-18",
+      "config_hash": "25c19b93f45ac203a26bb1f435604f2e9441adae6fe9bf6267ed46ff621a5b52",
+      "at": "2026-11-13T02:22:30.125041Z",
+      "artifact_hashes": {
+        "apps/core-go/internal/core/agent_result_adapter.go": "e1cdde43e132ad53091bb6500ce152e9dc4cd3310eed1871f894d5ec6a85ee48",
+        "apps/core-go/internal/core/cognition.go": "2507741e982a5bd1a164516d93df216a059c5d81e7c83a8bf6842d1b57fb2955",
+        "apps/core-go/internal/core/conversation_deadline.go": "619078a48a94f92cd12de30143dfccf0958f8597929d851ee4b96b3d07b403a1",
+        "apps/core-go/internal/core/m2_direct_claim_recovery_test.go": "374548e45243464e4c698812fade9aa68dab7a8ba40b59219f924c03ba3749ea",
+        "apps/core-go/internal/core/private_reply_run.go": "11ff6b444d66d49d9e76328c4ca9dfc8c4edd967d00d888e6bf2eaaad6ee3d7c",
+        "docs/verification/meromero-m2-evidence/m2-18-failure-history.log": "a8a613d70aeaf13000be2ce751642c02c69449171d5a643aa46ebe3689325991",
+        "docs/verification/meromero-m2-evidence/m2-18-final-regression.log": "6f5242832943cfbcc932309b7cc6ff5a6fafe59618e7df28f3e892d1053cd435",
+        "docs/verification/meromero-m2-evidence/m2-18-postcommit.log": "37bc940cd4f8ef39def2778c655716a5b91c8318e0a532353346032e958bfd48",
+        "docs/verification/meromero-m2-evidence/m2-18-review.md": "80251caddca7a110f008c7f0d02262d0858d2122e9756899963bdee47169c2bb",
+        "docs/verification/meromero-m2-evidence/m2-18-working-tree.log": "c90ef86e66c0edc489b2070c836873380d18fbd04fcb1b31d70b109a8b8f02ee"
+      }
+    }
+  ]
+}

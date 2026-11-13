@@ -17,13 +17,13 @@
     "approved": false
   },
   "current_step": "verify",
-  "status": "open",
-  "candidate": "c3fa516c593087d226885e9004a8e72eb02276049f0775a0e52688de99721667",
+  "status": "completed",
+  "candidate": "437d72ecaa386ec4331beff279ab2d3f42bcd35fb9566df7e2215524c040ab85",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-13T01:16:13.613729Z",
-  "updated": "2026-11-13T02:16:10.588889Z",
-  "completed": null,
+  "updated": "2026-11-13T02:22:37.549201Z",
+  "completed": "2026-11-13T02:22:37.549001Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -70,8 +70,50 @@
         "ended": "2026-11-13T02:15:58.390347Z",
         "status": "pass",
         "reason": "提交 71fb07bd：隔离库先复现重复图片任务及旧领取并发写入；修复接管、部分动作、fact_only 草稿与领取权栅栏，干净候选 23 个顶层相关用例及含原有草稿工作区用例通过，无 SKIP。提交后仍须正式验证；受控 Provider 不代表真实模型或完整自动恢复。"
+      },
+      {
+        "id": "AT-d805d2b7922681aa9e19",
+        "unit": "execute",
+        "executor": "codex-m2-18-evidence",
+        "input_version": "437d72ecaa386ec4331beff279ab2d3f42bcd35fb9566df7e2215524c040ab85",
+        "candidate_version": "437d72ecaa386ec4331beff279ab2d3f42bcd35fb9566df7e2215524c040ab85",
+        "started": "2026-11-13T02:20:29.679378Z",
+        "ended": "2026-11-13T02:20:30.11346Z",
+        "status": "pass",
+        "reason": "代码提交 71fb07bd 后的干净源码验证已通过；16a6f31e 仅保存验证日志，不改变生产源码。由于证据文件加入导致候选变化，重新生成候选并复验。"
+      },
+      {
+        "id": "AT-094ae2a9c6cf70348af0",
+        "unit": "check:direct-claim-recovery",
+        "executor": "codex-m2-18",
+        "input_version": "437d72ecaa386ec4331beff279ab2d3f42bcd35fb9566df7e2215524c040ab85",
+        "candidate_version": "437d72ecaa386ec4331beff279ab2d3f42bcd35fb9566df7e2215524c040ab85",
+        "started": "2026-11-13T02:22:30.038519Z",
+        "ended": "2026-11-13T02:22:30.12543Z",
+        "status": "pass",
+        "reason": "代码提交 71fb07bd；仅增加证据的 16a6f31e 干净源码再次运行 8 个顶层用例，包含真实测试进程中断、流式及 Worker 防重、领取权竞态与 fact_only 草稿，退出 0、无 SKIP。提交前 23 项相关回归及含原有草稿的工作区场景通过；未验证真实模型或完整自动续写。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "direct-claim-recovery",
+        "result": "pass",
+        "source": "scenario:codex-m2-18",
+        "config_hash": "25c19b93f45ac203a26bb1f435604f2e9441adae6fe9bf6267ed46ff621a5b52",
+        "at": "2026-11-13T02:22:30.125041Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/agent_result_adapter.go": "e1cdde43e132ad53091bb6500ce152e9dc4cd3310eed1871f894d5ec6a85ee48",
+          "apps/core-go/internal/core/cognition.go": "2507741e982a5bd1a164516d93df216a059c5d81e7c83a8bf6842d1b57fb2955",
+          "apps/core-go/internal/core/conversation_deadline.go": "619078a48a94f92cd12de30143dfccf0958f8597929d851ee4b96b3d07b403a1",
+          "apps/core-go/internal/core/m2_direct_claim_recovery_test.go": "374548e45243464e4c698812fade9aa68dab7a8ba40b59219f924c03ba3749ea",
+          "apps/core-go/internal/core/private_reply_run.go": "11ff6b444d66d49d9e76328c4ca9dfc8c4edd967d00d888e6bf2eaaad6ee3d7c",
+          "docs/verification/meromero-m2-evidence/m2-18-failure-history.log": "a8a613d70aeaf13000be2ce751642c02c69449171d5a643aa46ebe3689325991",
+          "docs/verification/meromero-m2-evidence/m2-18-final-regression.log": "6f5242832943cfbcc932309b7cc6ff5a6fafe59618e7df28f3e892d1053cd435",
+          "docs/verification/meromero-m2-evidence/m2-18-postcommit.log": "37bc940cd4f8ef39def2778c655716a5b91c8318e0a532353346032e958bfd48",
+          "docs/verification/meromero-m2-evidence/m2-18-review.md": "80251caddca7a110f008c7f0d02262d0858d2122e9756899963bdee47169c2bb",
+          "docs/verification/meromero-m2-evidence/m2-18-working-tree.log": "c90ef86e66c0edc489b2070c836873380d18fbd04fcb1b31d70b109a8b8f02ee"
+        }
+      }
+    ]
   }
 }
