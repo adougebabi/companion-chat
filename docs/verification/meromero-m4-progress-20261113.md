@@ -95,6 +95,14 @@ M4-06 提交 9f55287b 后，两次新隔离数据库、新页面进程的同一�
 
 ## M4-07 表达审核页面到新 direct 请求
 
-状态 IMPLEMENTED，待提交后复验。真实 ExpressionLearningPanel / createSelfProvider / BrowserClient 经隔离 HTTP 开启学习与参考，从正式 AcceptTurn 的合成 Owner 消息提取候选、审核并设置触发词。重新挂载回读“使用中”后，正式 HandleTurn 的实际请求包含候选。页面停用并重新挂载回读“已停用”后，新 HandleTurn 请求不再含 expression_suggestions。两次均正常发布，已有单主 direct 合同通过；模型响应为受控原生 ToolCall，不代表真实模型自主模仿。
+状态 VERIFIED。真实 ExpressionLearningPanel / createSelfProvider / BrowserClient 经隔离 HTTP 开启学习与参考，从正式 AcceptTurn 的合成 Owner 消息提取候选、审核并设置触发词。重新挂载回读“使用中”后，正式 HandleTurn 的实际请求包含候选。页面停用并重新挂载回读“已停用”后，新 HandleTurn 请求不再含 expression_suggestions。两次均正常发布，已有单主 direct 合同通过；模型响应为受控原生 ToolCall，不代表真实模型自主模仿。
 
 保留首轮 Go 复合字面量语法错误（测试未真正运行），修正后表单测试错误假设了 aria-label，按正式 label/htmlFor 读取字段。之后受控响应使用 Core capability 名 conversation.reply，实际物理请求公布的是 conversation_reply，导致原生最终合同失败；观察实际请求工具名后改按已公布 wire 名回复。两次失败及只读观察记录分别保存在 expression-management-http*.log。未修改正式工具 schema、校验或生产路由。完整场景在 expression-management-http-wire1.log 退出 0、无 SKIP。
+
+M4-07 提交 ef40fe59 后两次新隔离库及全新页面进程的同一场景均通过，退出 0，无 SKIP，见 expression-management-postcommit.log。
+
+## M4-08 记忆纠错页面到新请求
+
+状态 IMPLEMENTED，待提交后复验。正式 AcceptTurn 的合成 Owner 发言为初始来源，RecordMemory 创建 revision 0。真实 MemoryPage / BrowserClient 经 HTTP 提交 CAS 纠错，页面读回 revision 1、有效当前来源、旧版来源，重新挂载后同样可读。正式新 HandleTurn 请求出现 M4_MEMORY_CORRECTED，正式 memory.recall 当前长期记忆包含纠错内容、排除旧长期断言。原消息数据库逐字回读一致。
+
+首轮把“某次检索必须同时选中原始发言”额外作为保留条件，该次中文 intent=听雨 在既有 simple FTS 中没有选出该发言。当前记忆纠错、新请求注入、旧版来源和原消息保留均已通过。此额外假设不属于 T11 管理或 memory.recall 的每次选取合同，因此原发言保留按既有原文逐字与旧版来源断言核验，召回选取仍如实记录 false。原始失败样本 memory-management-http.log 保留，检索和采样规则未改；未把该次检索写成召回了旧发言。完整范围在 memory-management-http-retention1.log 退出 0、无 SKIP。该场景是 Owner 人工纠错加受控 Provider，自动自然语言纠错及真实模型语义仍待验。

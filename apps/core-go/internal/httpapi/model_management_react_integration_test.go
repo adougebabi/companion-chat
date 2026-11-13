@@ -262,4 +262,78 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 		}
 	})
 
+	t.Run("memory correction page sources and next request", func(t *testing.T) {
+		const original = "M4_MEMORY_ORIGINAL 用户喜欢听雨声。"
+		accepted, err := app.AcceptTurn(ctx, "human-1", "m4-conversation", map[string]any{"fluctlight_id": "m4-reflection", "text": original, "turn_id": "m4-memory-source", "idempotency_key": "m4-memory-source", "attachment_refs": []any{}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		sourceID, _ := accepted.UserMessage["id"].(string)
+		created, err := app.RecordMemory(ctx, "m4-reflection", "human-1", map[string]any{"type": "semantic", "content": original, "actor_refs": []any{"human-1"}, "conversation_id": "m4-conversation", "event_refs": []any{}, "evidence_refs": []any{"message:" + sourceID}, "personality_perspectives": []any{}, "confidence": 0.9, "importance": 0.9, "visibility": "private", "idempotency_key": "m4-memory-create"})
+		if err != nil {
+			t.Fatal("formal memory creation", err)
+		}
+		command := exec.CommandContext(ctx, "node", filepath.Join(webRoot, "test", "memory-management-http-scenario.mjs"))
+		command.Dir = webRoot
+		command.Env = append(os.Environ(), "FLUCTLIGHT_M4_HTTP_BASE="+browser.URL)
+		output, err := command.CombinedOutput()
+		t.Log(string(output))
+		if err != nil {
+			t.Fatal("memory management page", err)
+		}
+		mu.Lock()
+		before := len(chatRequests)
+		mu.Unlock()
+		if _, err := app.HandleTurn(ctx, "human-1", "m4-conversation", map[string]any{"fluctlight_id": "m4-reflection", "text": "记忆里关于听雨的内容是什么？", "turn_id": "m4-memory-after-correction", "idempotency_key": "m4-memory-after-correction", "attachment_refs": []any{}}); err != nil {
+			t.Fatal("formal memory-consuming turn", err)
+		}
+		mu.Lock()
+		count := len(chatRequests)
+		wire := ""
+		if count > before {
+			wire = chatRequests[before]
+		}
+		mu.Unlock()
+		if count != before+1 || !strings.Contains(wire, "M4_MEMORY_CORRECTED") {
+			t.Fatal("new request did not consume corrected memory", count, before)
+		}
+		receipt, err := app.ExecuteTool(ctx, core.ToolExecutionRequest{CapabilityName: "memory.recall", OperationID: "m4-memory-recall", AuthorizationActorID: "human-1", SubjectActorID: "human-1", FluctlightID: "m4-reflection", ConversationID: "m4-conversation", Surface: core.CapabilitySurfaceConversation, Arguments: json.RawMessage(`{"intent":"听雨"}`)})
+		if err != nil || receipt.Result.Status != "completed" {
+			t.Fatal("formal recall", receipt, err)
+		}
+		var recalled struct {
+			Items []struct {
+				SourceKind string `json:"source_kind"`
+				Content    string `json:"content"`
+			}
+		}
+		encoded, err := json.Marshal(receipt.Result.Output)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal(encoded, &recalled); err != nil {
+			t.Fatal(err)
+		}
+		corrected, historical := false, false
+		for _, item := range recalled.Items {
+			if item.SourceKind == "long_term_memory" {
+				if strings.Contains(item.Content, "M4_MEMORY_ORIGINAL") {
+					t.Fatal("old statement remained a current memory", item)
+				}
+				corrected = corrected || strings.Contains(item.Content, "M4_MEMORY_CORRECTED")
+			}
+			if item.SourceKind == "conversation_record" && strings.Contains(item.Content, "M4_MEMORY_ORIGINAL") {
+				historical = true
+			}
+		}
+		if !corrected {
+			t.Fatal("recall lost the current corrected memory")
+		}
+		var sourceText string
+		if err := repo.Pool().QueryRow(ctx, `SELECT text FROM public.conversation_messages WHERE id=$1`, sourceID).Scan(&sourceText); err != nil || sourceText != original {
+			t.Fatal("correction changed the original message", sourceText, err)
+		}
+		t.Logf("M4_MEMORY_RUNTIME id=%s corrected_in_new_request=true current_memory_corrected=true historical_statement_retained=true historical_statement_selected_for_this_query=%t", created["id"], historical)
+	})
+
 }
