@@ -164,8 +164,8 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 		}
 		t.Logf("M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=%s contract=pass config_versions=%v", models[before], versions())
 	}
-	if manifest := os.Getenv("FLUCTLIGHT_M4_NATIVE_MANIFEST"); manifest != "" {
-		runM4NativeManagementFixture(t, ctx, server, webRoot, manifest, run)
+	if manifest := os.Getenv("FLUCTLIGHT_M4_NATIVE_MANIFEST"); manifest != "" && os.Getenv("FLUCTLIGHT_M4_NATIVE_REPLAY") == "" {
+		runM4NativeManagementFixture(t, ctx, server, webRoot, manifest, run, "")
 		return
 	}
 	browser := httptest.NewServer(server.Handler())
@@ -342,24 +342,25 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 		t.Logf("M4_MEMORY_RUNTIME id=%s corrected_in_new_request=true current_memory_corrected=true historical_statement_retained=true historical_statement_selected_for_this_query=%t", created["id"], historical)
 	})
 
-	t.Run("stored formal run readonly replay over HTTP", func(t *testing.T) {
-		if replayCorrelation == "" || replayMessageID == "" {
-			t.Fatal("formal turn did not expose its persisted correlation and publication", replayCorrelation, replayMessageID)
-		}
-		snapshot := func() string {
-			t.Helper()
-			var result string
-			if err := repo.Pool().QueryRow(ctx, `SELECT jsonb_build_object(
+	snapshot := func(t *testing.T) string {
+		t.Helper()
+		var result string
+		if err := repo.Pool().QueryRow(ctx, `SELECT jsonb_build_object(
     'tools',(SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) FROM public.tool_executions t),
     'messages',(SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) FROM public.conversation_messages t),
     'moments',(SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) FROM public.moments t),
     'media',(SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) FROM public.media_intents t),
     'workflow_commands',(SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) FROM public.workflow_control_commands t))::text`).Scan(&result); err != nil {
-				t.Fatal(err)
-			}
-			return result
+			t.Fatal(err)
 		}
-		before := snapshot()
+		return result
+	}
+	t.Run("stored formal run readonly replay over HTTP", func(t *testing.T) {
+		if replayCorrelation == "" || replayMessageID == "" {
+			t.Fatal("formal turn did not expose its persisted correlation and publication", replayCorrelation, replayMessageID)
+		}
+
+		before := snapshot(t)
 		mu.Lock()
 		providerBefore := len(models)
 		mu.Unlock()
@@ -374,10 +375,25 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 		mu.Lock()
 		providerAfter := len(models)
 		mu.Unlock()
-		if providerAfter != providerBefore || snapshot() != before {
+		if providerAfter != providerBefore || snapshot(t) != before {
 			t.Fatal("readonly playback changed Provider calls or business records", providerBefore, providerAfter)
 		}
 		t.Logf("M4_REPLAY_NO_EFFECTS correlation=%s published_message=%s provider_calls_delta=0 full_business_rows_equal=true", replayCorrelation, replayMessageID)
 	})
+
+	if manifest := os.Getenv("FLUCTLIGHT_M4_NATIVE_MANIFEST"); manifest != "" && os.Getenv("FLUCTLIGHT_M4_NATIVE_REPLAY") == "1" {
+		before := snapshot(t)
+		mu.Lock()
+		providerBefore := len(models)
+		mu.Unlock()
+		runM4NativeManagementFixture(t, ctx, server, webRoot, manifest, run, replayCorrelation)
+		mu.Lock()
+		providerAfter := len(models)
+		mu.Unlock()
+		if providerBefore != providerAfter || snapshot(t) != before {
+			t.Fatal("native replay changed inference or business records")
+		}
+		t.Log("M4_NATIVE_REPLAY provider_calls_delta=0 full_business_rows_equal=true")
+	}
 
 }

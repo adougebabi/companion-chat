@@ -45,6 +45,7 @@ try {
     await view.click(more);
     await wait(()=>!view.host.textContent.includes('正在读取来源'));
   }
+  while(!button('上一条记录').disabled)await view.click(button('上一条记录'));
   const seen=new Set();
   let model=false,tool=false,publication=false,configuration=false,slots=false;
   for(;;){

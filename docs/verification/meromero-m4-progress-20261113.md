@@ -111,6 +111,10 @@ M4-08 提交 7daa1863 后两次新隔离库、新页面进程的同一完整场�
 
 ## M4-09 正式运行记录的只读回放
 
-状态 IMPLEMENTED，待提交后复验。专用管理夹具在启动时显式授予 Operator 调试读取，使用刚完成的正式 direct 回合返回的 correlation 和已提交消息 ID。真实 DiagnosticReplayPanel / diagnostics provider / BrowserClient 从正式 HTTP 读取九类来源，共 13 条已存记录。逐条回放核实实际模型、完整存储 prompt/response、physical_attempt 的有效绑定版本与 Prompt Slots、工具事件以及正式消息引用。
+状态 VERIFIED。专用管理夹具在启动时显式授予 Operator 调试读取，使用刚完成的正式 direct 回合返回的 correlation 和已提交消息 ID。真实 DiagnosticReplayPanel / diagnostics provider / BrowserClient 从正式 HTTP 读取九类来源，共 13 条已存记录。逐条回放核实实际模型、完整存储 prompt/response、physical_attempt 的有效绑定版本与 Prompt Slots、工具事件以及正式消息引用。
 
 回放全部 9 次请求为 diagnostic-records GET，模型调用数增加 0。tool_executions、conversation_messages、moments、media_intents、workflow_control_commands 的完整 JSON 行集在前后相等。证据 replay-stored-run-http.log 退出 0、无 SKIP。该证据补充前序只读源测试的行数断言，当前检查覆盖了已有行内容。Provider 和身份仍为合成测试夹具。该回放范围为同一 correlation 下实际已存记录，跨异步关联的缺失输入继续按页面说明核对。
+
+M4-09 提交 356e1702 后两次新隔离库与新页面进程均通过，退出 0、无 SKIP。replay-stored-run-postcommit.log。旧 AEL 租约续租返回 STALE_TOKEN，已在代码分批提交、测试退出及探子结束后恢复同一任务并领取新执行租约，技术验收与原父任务验收保持独立。
+
+M4-09 提交 356e1702 后两次独立场景通过，replay-stored-run-postcommit.log 退出 0、无 SKIP。随后生产 Web 构建在 IAB 原生浏览器打开本回合详情和只读回放，逐条查看对话回合、Agent、实际模型、physical_attempt、工具各阶段和运行终止，共 13 条。回放结束时模型调用增加 0、完整业务行集相等，replay-native-ui.log 退出 0、无 SKIP。截图 /private/tmp/fluctlight-m4-native-replay.jpg 保留仓库外。测试遍历显式回到首条再逐条前进，覆盖各来源异步加载时初始选中位置可能不同的情况；页面的稳定选中行为继续保留。

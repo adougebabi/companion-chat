@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -18,7 +19,7 @@ type m4NativeRequest struct {
 // This opt-in, loopback-only fixture serves the actual production Web build.
 // The three trigger requests execute the same typed reflection acceptance as
 // the automated React scenario. All data and Provider responses are synthetic.
-func runM4NativeManagementFixture(t *testing.T, parent context.Context, server *Server, webRoot, manifest string, run func(string)) {
+func runM4NativeManagementFixture(t *testing.T, parent context.Context, server *Server, webRoot, manifest string, run func(string), replayCorrelation string) {
 	t.Helper()
 	ctx, cancel := context.WithCancel(parent)
 	browser := httptest.NewUnstartedServer(nil)
@@ -37,7 +38,11 @@ func runM4NativeManagementFixture(t *testing.T, parent context.Context, server *
 		case "/__m4/start":
 			http.SetCookie(w, &http.Cookie{Name: "fluctlight_session", Value: "session", Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode})
 			http.SetCookie(w, &http.Cookie{Name: "fluctlight_csrf", Value: "csrf", Path: "/", SameSite: http.SameSiteLaxMode})
-			http.Redirect(w, r, "/#/diag", http.StatusSeeOther)
+			target := "/#/diag"
+			if replayCorrelation != "" {
+				target += "?view=calls&correlationId=" + url.QueryEscape(replayCorrelation)
+			}
+			http.Redirect(w, r, target, http.StatusSeeOther)
 		case "/__m4/run", "/__m4/finish":
 			if r.Method != http.MethodPost {
 				w.WriteHeader(http.StatusMethodNotAllowed)
@@ -70,7 +75,11 @@ func runM4NativeManagementFixture(t *testing.T, parent context.Context, server *
 		}
 	})
 	browser.Start()
-	encoded, err := json.Marshal(map[string]any{"base_url": base, "start_url": base + "/__m4/start", "data": "disposable PostgreSQL; synthetic session and Provider", "phases": []string{"initial", "override", "restored"}})
+	expectedPhases := []string{"initial", "override", "restored"}
+	if replayCorrelation != "" {
+		expectedPhases = nil
+	}
+	encoded, err := json.Marshal(map[string]any{"base_url": base, "start_url": base + "/__m4/start", "data": "disposable PostgreSQL; synthetic session and Provider", "phases": expectedPhases, "replay_correlation": replayCorrelation})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +87,6 @@ func runM4NativeManagementFixture(t *testing.T, parent context.Context, server *
 		t.Fatal(err)
 	}
 	t.Log("M4_NATIVE_READY", manifest)
-	expectedPhases := []string{"initial", "override", "restored"}
 	index := 0
 	for {
 		select {
