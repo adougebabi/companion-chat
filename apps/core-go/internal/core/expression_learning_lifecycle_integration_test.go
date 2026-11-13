@@ -25,7 +25,7 @@ func TestExpressionCandidateEnableUseAndDisableAcrossNewTurns(t *testing.T) {
 		t.Fatal(err)
 	}
 	persistConversationReplyMode(t, ctx, repo, "direct")
-	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.relationships(id,owner_fluctlight_id,target_actor_id,role,metrics,revision) VALUES('expression-relationship',$1,$2,'{"label":"friend"}','{}',1)`, fid, owner); err != nil {
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.relationships(id,owner_fluctlight_id,target_actor_id,role,metrics,revision) VALUES('expression-relationship',$1,$2,'{"label":"friend","addressing":{"preferred":"CURRENT_ACCEPTED_ADDRESS","self_reference":"CURRENT_ACCEPTED_SELF"}}','{}',1)`, fid, owner); err != nil {
 		t.Fatal(err)
 	}
 	var personaBefore, relationBefore string
@@ -70,6 +70,15 @@ func TestExpressionCandidateEnableUseAndDisableAcrossNewTurns(t *testing.T) {
 		t.Fatalf("main Agent requests=%d", len(requests))
 	}
 	for index, payload := range requests {
+		wire := jsonString(payload["messages"])
+		for _, required := range []string{"CURRENT_ACCEPTED_ADDRESS", "CURRENT_ACCEPTED_SELF"} {
+			if !strings.Contains(wire, required) {
+				t.Errorf("main request %d lost authoritative addressing %s", index, required)
+			}
+		}
+		if index == 0 && !strings.Contains(wire, "称呼须结合当前对象的真实关系、已有称呼和当前人格自主选择") {
+			t.Error("expression-bearing request lost relationship choice rule")
+		}
 		var suggestions []string
 		for _, raw := range arrayValue(payload["messages"]) {
 			message := mapValue(raw)

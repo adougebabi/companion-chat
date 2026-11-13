@@ -70,7 +70,7 @@ func factOnlyContextFacts(projection ContextProjection, cognition bool) factOnly
 			continue
 		}
 		item := factOnlyFields(row, "summary", "trend", "emotional_association")
-		item["role"] = factOnlyFields(mapValue(row["role"]), "label", "category", "secondary", "preferred_addressing", "self_reference")
+		item["role"] = factOnlyFields(mapValue(row["role"]), "label", "category", "secondary", "addressing", "preferred_addressing", "self_reference")
 		item["target_actor"] = factOnlyActor(actorRefForID(projection.Actors, stringValue(row["target_actor_id"])))
 		item["source_kind"] = "relationship_record"
 		item["certainty"] = "记录状态；历史摘要和后台待核验均不自动改写现实关系。"

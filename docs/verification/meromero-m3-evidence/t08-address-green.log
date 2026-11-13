@@ -1,0 +1,46 @@
+SOURCE_HEAD d4965a7ba798885e7a5a2fb1927c500f5b55121f
+OVERLAYS apps/core-go/internal/core/expression_relationship_context_test.go,apps/core-go/internal/core/fact_only_context_views.go,apps/core-go/internal/core/expression_learning_use.go,apps/core-go/internal/core/expression_learning_lifecycle_integration_test.go
+COMMAND go test ./internal/core -count=1 -run ^Test(ExpressionContextKeepsCurrentProfileRelationshipAddressing|ExpressionCandidateEnableUseAndDisableAcrossNewTurns|FactOnlyProductionActorShapeKeepsRecipientRelationship|NormalizeRelationshipRole|ExpressionLearning) -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestExpressionCandidateEnableUseAndDisableAcrossNewTurns
+--- PASS: TestExpressionCandidateEnableUseAndDisableAcrossNewTurns (2.70s)
+=== RUN   TestExpressionLearningOwnerSourceReviewAndRevocation
+--- PASS: TestExpressionLearningOwnerSourceReviewAndRevocation (2.30s)
+=== RUN   TestExpressionLearningOwnerSurfaceRoutes
+--- PASS: TestExpressionLearningOwnerSurfaceRoutes (2.61s)
+=== RUN   TestExpressionLearningPhysicalRequestAndSourceBinding
+--- PASS: TestExpressionLearningPhysicalRequestAndSourceBinding (0.00s)
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/english_instruction_override
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/instruction_in_situation
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/foreign_ref
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/empty_situation
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/duplicate
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/chinese_instruction_override
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/wrong_source
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/invented_excerpt
+=== RUN   TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/empty_excerpt
+--- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/english_instruction_override (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/instruction_in_situation (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/foreign_ref (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/empty_situation (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/duplicate (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/chinese_instruction_override (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/wrong_source (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/invented_excerpt (0.00s)
+    --- PASS: TestExpressionLearningRejectsForeignAlteredAndDuplicateSources/empty_excerpt (0.00s)
+=== RUN   TestExpressionLearningRejectsInvalidSourcesBeforeProvider
+--- PASS: TestExpressionLearningRejectsInvalidSourcesBeforeProvider (0.00s)
+=== RUN   TestExpressionContextKeepsCurrentProfileRelationshipAddressing
+--- PASS: TestExpressionContextKeepsCurrentProfileRelationshipAddressing (0.00s)
+=== RUN   TestFactOnlyProductionActorShapeKeepsRecipientRelationship
+--- PASS: TestFactOnlyProductionActorShapeKeepsRecipientRelationship (0.00s)
+=== RUN   TestNormalizeRelationshipRole
+--- PASS: TestNormalizeRelationshipRole (0.00s)
+=== RUN   TestNormalizeRelationshipRoleAcceptsUnclassifiedLabel
+--- PASS: TestNormalizeRelationshipRoleAcceptsUnclassifiedLabel (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	8.306s
+
+EXIT_CODE 0

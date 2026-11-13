@@ -22,7 +22,7 @@
   "failure": "T08 部分完成：隔离 PostgreSQL 与受控 Provider 经实际消息受理、Owner 服务、候选提取/审核、direct 新轮请求和停用后新轮请求验证同一候选闭环；学习关闭与使用开启独立，核心人格和关系语义字段保持不变，普通对话互动计数照常增加。相关来源、在途停用及撤销回归通过。尚未完成：带关系含义称呼与真实关系/角色选择的可靠兼容性约束，用户消息内任意注入与日志内容的完整排除；真实 MeroMero 实际采用候选和真实浏览器至服务端整链未验收。任务外非阻断页面空态问题已登记 expression-panel-error-shows-empty，未调整。按用户授权先跳过未解决项继续后续任务。",
   "result": "",
   "created": "2026-11-10T08:34:31.014541Z",
-  "updated": "2026-11-11T16:42:48.088251Z",
+  "updated": "2026-11-13T04:49:21.131503Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -59,6 +59,17 @@
         "ended": "2026-11-11T16:42:43.933761Z",
         "status": "fail",
         "reason": "T08 部分完成：隔离 PostgreSQL 与受控 Provider 经实际消息受理、Owner 服务、候选提取/审核、direct 新轮请求和停用后新轮请求验证同一候选闭环；学习关闭与使用开启独立，核心人格和关系语义字段保持不变，普通对话互动计数照常增加。相关来源、在途停用及撤销回归通过。尚未完成：带关系含义称呼与真实关系/角色选择的可靠兼容性约束，用户消息内任意注入与日志内容的完整排除；真实 MeroMero 实际采用候选和真实浏览器至服务端整链未验收。任务外非阻断页面空态问题已登记 expression-panel-error-shows-empty，未调整。按用户授权先跳过未解决项继续后续任务。"
+      },
+      {
+        "id": "AT-d5a2589d48c9a306a62d",
+        "unit": "execute",
+        "executor": "codex-m3-t08-compatibility",
+        "input_version": "040d64644bd63f298d09686a85bf68aa68d2ed90876c2711d09d063aa5befe1f",
+        "candidate_version": "",
+        "started": "2026-11-13T04:49:20.94035Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
       }
     ],
     "checks": null

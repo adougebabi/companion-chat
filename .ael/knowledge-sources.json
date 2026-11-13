@@ -193,7 +193,7 @@
     },
     {
       "path": "docs/verification/meromero-first-ledger-20261109.md",
-      "hash": "cdf3e0e36ccdb66bdc766ef3d6fbb9766cd36ee188e1e2f68d2b5ce882bf5bb1",
+      "hash": "da8e27f7668809979ed890ae6ab999611ed1fa46732801de339c3336dbc8395d",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -207,7 +207,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/verification/meromero-first-ledger-20261109.md",
-        "hash": "cdf3e0e36ccdb66bdc766ef3d6fbb9766cd36ee188e1e2f68d2b5ce882bf5bb1",
+        "hash": "da8e27f7668809979ed890ae6ab999611ed1fa46732801de339c3336dbc8395d",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -591,6 +591,27 @@
       }
     },
     {
+      "path": "docs/verification/meromero-m3-progress-20261113.md",
+      "hash": "4563993e865fadc50fcc7f1d394dfd4dc1b61625c62719e93f0d758df91ba1cd",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/meromero-m3-progress-20261113.md",
+        "title": "meromero-m3-progress-20261113.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/meromero-m3-progress-20261113.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/meromero-m3-progress-20261113.md",
+        "hash": "4563993e865fadc50fcc7f1d394dfd4dc1b61625c62719e93f0d758df91ba1cd",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
       "path": "docs/verification/meromero-t03-context-isolation-20261111.md",
       "hash": "487737db96aaba184a31266e79c2203385de31ddca33b82363ee9650061fce4a",
       "action": "historical",
@@ -698,7 +719,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 31,
+    "historical": 32,
     "retired": 1
   }
 }

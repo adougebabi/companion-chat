@@ -1,0 +1,15 @@
+SOURCE_HEAD d4965a7ba798885e7a5a2fb1927c500f5b55121f
+OVERLAYS apps/core-go/internal/core/expression_relationship_context_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestExpressionContextKeepsCurrentProfileRelationshipAddressing$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestExpressionContextKeepsCurrentProfileRelationshipAddressing
+    expression_relationship_context_test.go:22: cognition=true missing authoritative addressing CURRENT_PROFILE_ADDRESS
+    expression_relationship_context_test.go:22: cognition=true missing authoritative addressing CURRENT_SELF_REFERENCE
+    expression_relationship_context_test.go:22: cognition=false missing authoritative addressing CURRENT_PROFILE_ADDRESS
+    expression_relationship_context_test.go:22: cognition=false missing authoritative addressing CURRENT_SELF_REFERENCE
+--- FAIL: TestExpressionContextKeepsCurrentProfileRelationshipAddressing (0.00s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.871s
+FAIL
+
+EXIT_CODE 1
