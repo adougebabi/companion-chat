@@ -44,7 +44,7 @@ M4-01 收口提交 `8ca56aa56abc9c7bd48ed7b71ab01f892e9df017`。下一单元按 
 - 首次 typecheck 因 useSyncExternalStore 快照类型 unknown 失败，补显式会话类型后通过，分别见 `replay-typecheck.log` / `replay-typecheck-fix1.log`。
 - 首轮 React 回放测试发现后续页插入较早记录时默认选中项漂移，`replay-web.log` 退出 1。按记录键固定首次选中后相同集合通过，`replay-web-fix1.log` 退出 0。补正式调用详情入口测试后 13 项通过，`replay-web-entry.log`，无 SKIP。
 - 真实 Browser HTTP/隔离 PostgreSQL 对九类 GET 的读取测试通过，三个相同 call_id 的 requested/failed/completed 均保留。tool_executions、conversation_messages、media_intents、workflow_control_commands 行数读取前后相等。`replay-http.log` 退出 0，无 SKIP。受控数据与 nil runtime，不代表真实模型/Temporal执行或端到端浏览器。
-- Web build 退出 0，生产图扫描通过。保留既有大于 500kB chunk 警告，无本单元打包优化。`replay-build.log`。
+- Web build 退出 0，生产图扫描通过。构建报告包含大于 500kB 的 chunk 体积警告，归属尚未比较。`replay-build.log`。
 - 独立只读复核未发现指定范围阻断，复核者 React 13 项通过。四用户草稿保持原 SHA-256。
 
 M4-02 收口于提交 `0c0e259b8a9f300ed936ef31d49bbf7b8e954bb0`。提交后 HTTP/Browser/配置包及 API 编译退出 0，React 13 项退出 0，无 SKIP，typecheck 退出 0。证据为 `replay-*-postcommit.log`。
@@ -103,6 +103,14 @@ M4-07 提交 ef40fe59 后两次新隔离库及全新页面进程的同一场景�
 
 ## M4-08 记忆纠错页面到新请求
 
-状态 IMPLEMENTED，待提交后复验。正式 AcceptTurn 的合成 Owner 发言为初始来源，RecordMemory 创建 revision 0。真实 MemoryPage / BrowserClient 经 HTTP 提交 CAS 纠错，页面读回 revision 1、有效当前来源、旧版来源，重新挂载后同样可读。正式新 HandleTurn 请求出现 M4_MEMORY_CORRECTED，正式 memory.recall 当前长期记忆包含纠错内容、排除旧长期断言。原消息数据库逐字回读一致。
+状态 VERIFIED。正式 AcceptTurn 的合成 Owner 发言为初始来源，RecordMemory 创建 revision 0。真实 MemoryPage / BrowserClient 经 HTTP 提交 CAS 纠错，页面读回 revision 1、有效当前来源、旧版来源，重新挂载后同样可读。正式新 HandleTurn 请求出现 M4_MEMORY_CORRECTED，正式 memory.recall 当前长期记忆包含纠错内容、排除旧长期断言。原消息数据库逐字回读一致。
 
 首轮把“某次检索必须同时选中原始发言”额外作为保留条件，该次中文 intent=听雨 在既有 simple FTS 中没有选出该发言。当前记忆纠错、新请求注入、旧版来源和原消息保留均已通过。此额外假设不属于 T11 管理或 memory.recall 的每次选取合同，因此原发言保留按既有原文逐字与旧版来源断言核验，召回选取仍如实记录 false。原始失败样本 memory-management-http.log 保留，检索和采样规则未改；未把该次检索写成召回了旧发言。完整范围在 memory-management-http-retention1.log 退出 0、无 SKIP。该场景是 Owner 人工纠错加受控 Provider，自动自然语言纠错及真实模型语义仍待验。
+
+M4-08 提交 7daa1863 后两次新隔离库、新页面进程的同一完整场景均通过，退出 0、无 SKIP。memory-management-postcommit.log 保留该次查询未选中旧发言的 false 值。
+
+## M4-09 正式运行记录的只读回放
+
+状态 IMPLEMENTED，待提交后复验。专用管理夹具在启动时显式授予 Operator 调试读取，使用刚完成的正式 direct 回合返回的 correlation 和已提交消息 ID。真实 DiagnosticReplayPanel / diagnostics provider / BrowserClient 从正式 HTTP 读取九类来源，共 13 条已存记录。逐条回放核实实际模型、完整存储 prompt/response、physical_attempt 的有效绑定版本与 Prompt Slots、工具事件以及正式消息引用。
+
+回放全部 9 次请求为 diagnostic-records GET，模型调用数增加 0。tool_executions、conversation_messages、moments、media_intents、workflow_control_commands 的完整 JSON 行集在前后相等。证据 replay-stored-run-http.log 退出 0、无 SKIP。该证据补充前序只读源测试的行数断言，当前检查覆盖了已有行内容。Provider 和身份仍为合成测试夹具。该回放范围为同一 correlation 下实际已存记录，跨异步关联的缺失输入继续按页面说明核对。

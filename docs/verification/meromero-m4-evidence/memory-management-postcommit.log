@@ -1,0 +1,102 @@
+SOURCE_HEAD 7daa1863e0d71bc6ec320388ff7bfbfdc88a8d67
+OVERLAYS 
+COMMAND go test ./internal/httpapi -count=2 -run ^TestModelManagementReactHTTPPersistenceAndRuntime$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:170: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+    model_management_react_integration_test.go:176: M4_UI_PHASE set RELOADED_EFFECTIVE_SOURCE 生效来源：任务变体覆盖；模型：m4-override；能力兼容性尚未验证。
+        
+    model_management_react_integration_test.go:184: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-override contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:1 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+    model_management_react_integration_test.go:176: M4_UI_PHASE clear RELOADED_EFFECTIVE_SOURCE 生效来源：默认用途；模型：m4-primary；能力兼容性尚未验证。
+        
+    model_management_react_integration_test.go:184: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:2 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption
+    model_management_react_integration_test.go:195: M4_UI_PLUGINS plugins-off RELOADED { image: false, moment: false } VERSION 1
+        
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:215: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:2 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 plugins.domains:1 working_persona_budget:1]
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption
+    model_management_react_integration_test.go:216: M4_PLUGIN_RUNTIME phase=plugins-off Moment=failed Image=domain_plugin_disabled other_reflection_contract=pass
+    model_management_react_integration_test.go:195: M4_UI_PLUGINS moment-only RELOADED { image: false, moment: true } VERSION 2
+        
+2026/11/13 18:48:06 INFO reply.evidence.reconciled correlation_id=tool-operation:m4-moment-only metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:215: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:2 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 plugins.domains:2 working_persona_budget:1]
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption
+    model_management_react_integration_test.go:216: M4_PLUGIN_RUNTIME phase=moment-only Moment=completed Image=domain_plugin_disabled other_reflection_contract=pass
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime/expression_review_page_and_next_direct_request
+    model_management_react_integration_test.go:236: M4_EXPRESSION_UI enable RELOADED_STATUS 使用中
+        
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:79: M4_PROVIDER_TOOLS schema=<nil> names=[conversation_reply moment_publish capability_catalog]
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime/expression_review_page_and_next_direct_request
+    model_management_react_integration_test.go:261: M4_EXPRESSION_RUNTIME phase=enable suggestions=true formal_direct_contract=pass
+    model_management_react_integration_test.go:236: M4_EXPRESSION_UI disable RELOADED_STATUS 已停用
+        
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:79: M4_PROVIDER_TOOLS schema=<nil> names=[conversation_reply moment_publish capability_catalog]
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime/expression_review_page_and_next_direct_request
+    model_management_react_integration_test.go:261: M4_EXPRESSION_RUNTIME phase=disable suggestions=false formal_direct_contract=pass
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime/memory_correction_page_sources_and_next_request
+    model_management_react_integration_test.go:280: M4_MEMORY_UI corrected_revision=1 reloaded=true current_and_historical_sources_read=true
+        
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:79: M4_PROVIDER_TOOLS schema=<nil> names=[conversation_reply moment_publish capability_catalog]
+2026/11/13 18:48:12 INFO capability lifecycle capability=memory.recall call_id=direct_call_a9994ae1ca8e3edcf1db18895686e007 type=query surface=conversation required_context=[memory_scope] duration_ms=4 status=completed retryable=false intent_present=false intent_runes=0
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime/memory_correction_page_sources_and_next_request
+    model_management_react_integration_test.go:336: M4_MEMORY_RUNTIME id=memory_ddc05f21a4ba487e10b1b4ee9abc1616 corrected_in_new_request=true current_memory_corrected=true historical_statement_retained=true historical_statement_selected_for_this_query=false
+--- PASS: TestModelManagementReactHTTPPersistenceAndRuntime (18.02s)
+    --- PASS: TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption (4.26s)
+    --- PASS: TestModelManagementReactHTTPPersistenceAndRuntime/expression_review_page_and_next_direct_request (3.73s)
+    --- PASS: TestModelManagementReactHTTPPersistenceAndRuntime/memory_correction_page_sources_and_next_request (2.24s)
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:170: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+    model_management_react_integration_test.go:176: M4_UI_PHASE set RELOADED_EFFECTIVE_SOURCE 生效来源：任务变体覆盖；模型：m4-override；能力兼容性尚未验证。
+        
+    model_management_react_integration_test.go:184: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-override contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:1 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+    model_management_react_integration_test.go:176: M4_UI_PHASE clear RELOADED_EFFECTIVE_SOURCE 生效来源：默认用途；模型：m4-primary；能力兼容性尚未验证。
+        
+    model_management_react_integration_test.go:184: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:2 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 working_persona_budget:1]
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption
+    model_management_react_integration_test.go:195: M4_UI_PLUGINS plugins-off RELOADED { image: false, moment: false } VERSION 1
+        
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:215: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:2 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 plugins.domains:1 working_persona_budget:1]
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption
+    model_management_react_integration_test.go:216: M4_PLUGIN_RUNTIME phase=plugins-off Moment=failed Image=domain_plugin_disabled other_reflection_contract=pass
+    model_management_react_integration_test.go:195: M4_UI_PLUGINS moment-only RELOADED { image: false, moment: true } VERSION 2
+        
+2026/11/13 18:48:24 INFO reply.evidence.reconciled correlation_id=tool-operation:m4-moment-only metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:215: M4_FORMAL reflection/reflection_proposal_v2 actual_request_model=m4-primary contract=pass config_versions=map[binding:agent:reflection:reflection_proposal_v2:2 binding:conversation_reply:1 binding:generic_llm:1 endpoint:m4-local:1 llm.queue:1 plugins.domains:2 working_persona_budget:1]
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption
+    model_management_react_integration_test.go:216: M4_PLUGIN_RUNTIME phase=moment-only Moment=completed Image=domain_plugin_disabled other_reflection_contract=pass
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime/expression_review_page_and_next_direct_request
+    model_management_react_integration_test.go:236: M4_EXPRESSION_UI enable RELOADED_STATUS 使用中
+        
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:79: M4_PROVIDER_TOOLS schema=<nil> names=[conversation_reply moment_publish capability_catalog]
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime/expression_review_page_and_next_direct_request
+    model_management_react_integration_test.go:261: M4_EXPRESSION_RUNTIME phase=enable suggestions=true formal_direct_contract=pass
+    model_management_react_integration_test.go:236: M4_EXPRESSION_UI disable RELOADED_STATUS 已停用
+        
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:79: M4_PROVIDER_TOOLS schema=<nil> names=[conversation_reply moment_publish capability_catalog]
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime/expression_review_page_and_next_direct_request
+    model_management_react_integration_test.go:261: M4_EXPRESSION_RUNTIME phase=disable suggestions=false formal_direct_contract=pass
+=== RUN   TestModelManagementReactHTTPPersistenceAndRuntime/memory_correction_page_sources_and_next_request
+    model_management_react_integration_test.go:280: M4_MEMORY_UI corrected_revision=1 reloaded=true current_and_historical_sources_read=true
+        
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime
+    model_management_react_integration_test.go:79: M4_PROVIDER_TOOLS schema=<nil> names=[conversation_reply moment_publish capability_catalog]
+2026/11/13 18:48:30 INFO capability lifecycle capability=memory.recall call_id=direct_call_a9994ae1ca8e3edcf1db18895686e007 type=query surface=conversation required_context=[memory_scope] duration_ms=4 status=completed retryable=false intent_present=false intent_runes=0
+=== NAME  TestModelManagementReactHTTPPersistenceAndRuntime/memory_correction_page_sources_and_next_request
+    model_management_react_integration_test.go:336: M4_MEMORY_RUNTIME id=memory_ddc05f21a4ba487e10b1b4ee9abc1616 corrected_in_new_request=true current_memory_corrected=true historical_statement_retained=true historical_statement_selected_for_this_query=false
+--- PASS: TestModelManagementReactHTTPPersistenceAndRuntime (17.90s)
+    --- PASS: TestModelManagementReactHTTPPersistenceAndRuntime/plugin_settings_page_persistence_and_Tool_consumption (4.31s)
+    --- PASS: TestModelManagementReactHTTPPersistenceAndRuntime/expression_review_page_and_next_direct_request (3.88s)
+    --- PASS: TestModelManagementReactHTTPPersistenceAndRuntime/memory_correction_page_sources_and_next_request (2.25s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi	36.678s
+
+EXIT_CODE 0

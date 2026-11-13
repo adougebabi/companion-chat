@@ -34,6 +34,7 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 	var mu sync.Mutex
 	var models []string
 	var chatRequests []string
+	var replayCorrelation, replayMessageID string
 	proposal := map[string]any{"schema_version": "fluctlight.reflection-proposal.v2", "summary": "Controlled management fixture", "emotional_summary": map[string]any{"dominant_patterns": []any{}, "triggers": []any{}, "recovery_patterns": []any{}, "conflicts": []any{}, "evidence_refs": []any{}}}
 	for _, key := range []string{"active_memory_candidates", "memory_candidates", "relationship_observations", "goal_candidates", "intention_candidates", "affect_recalibration_candidates", "drive_candidates", "preference_candidates", "trigger_candidates", "developing_self_candidates", "personality_evolution_candidates", "behavior_policy_evolution_candidates"} {
 		proposal[key] = []any{}
@@ -107,6 +108,8 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// This dedicated management fixture explicitly grants Operator debug reads.
+	app.DiagnosticDebugReadEnabled = true
 	app.Provider.HTTP = provider.Client()
 	server.app = app
 	versions := func() any {
@@ -284,9 +287,12 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 		mu.Lock()
 		before := len(chatRequests)
 		mu.Unlock()
-		if _, err := app.HandleTurn(ctx, "human-1", "m4-conversation", map[string]any{"fluctlight_id": "m4-reflection", "text": "记忆里关于听雨的内容是什么？", "turn_id": "m4-memory-after-correction", "idempotency_key": "m4-memory-after-correction", "attachment_refs": []any{}}); err != nil {
+		turn, err := app.HandleTurn(ctx, "human-1", "m4-conversation", map[string]any{"fluctlight_id": "m4-reflection", "text": "记忆里关于听雨的内容是什么？", "turn_id": "m4-memory-after-correction", "idempotency_key": "m4-memory-after-correction", "attachment_refs": []any{}})
+		if err != nil {
 			t.Fatal("formal memory-consuming turn", err)
 		}
+		replayCorrelation = turn.CorrelationID
+		replayMessageID, _ = turn.Assistant["id"].(string)
 		mu.Lock()
 		count := len(chatRequests)
 		wire := ""
@@ -334,6 +340,44 @@ func TestModelManagementReactHTTPPersistenceAndRuntime(t *testing.T) {
 			t.Fatal("correction changed the original message", sourceText, err)
 		}
 		t.Logf("M4_MEMORY_RUNTIME id=%s corrected_in_new_request=true current_memory_corrected=true historical_statement_retained=true historical_statement_selected_for_this_query=%t", created["id"], historical)
+	})
+
+	t.Run("stored formal run readonly replay over HTTP", func(t *testing.T) {
+		if replayCorrelation == "" || replayMessageID == "" {
+			t.Fatal("formal turn did not expose its persisted correlation and publication", replayCorrelation, replayMessageID)
+		}
+		snapshot := func() string {
+			t.Helper()
+			var result string
+			if err := repo.Pool().QueryRow(ctx, `SELECT jsonb_build_object(
+    'tools',(SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) FROM public.tool_executions t),
+    'messages',(SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) FROM public.conversation_messages t),
+    'moments',(SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) FROM public.moments t),
+    'media',(SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) FROM public.media_intents t),
+    'workflow_commands',(SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) FROM public.workflow_control_commands t))::text`).Scan(&result); err != nil {
+				t.Fatal(err)
+			}
+			return result
+		}
+		before := snapshot()
+		mu.Lock()
+		providerBefore := len(models)
+		mu.Unlock()
+		command := exec.CommandContext(ctx, "node", filepath.Join(webRoot, "test", "replay-management-http-scenario.mjs"))
+		command.Dir = webRoot
+		command.Env = append(os.Environ(), "FLUCTLIGHT_M4_HTTP_BASE="+browser.URL, "FLUCTLIGHT_M4_REPLAY_CORRELATION="+replayCorrelation, "FLUCTLIGHT_M4_REPLAY_MESSAGE="+replayMessageID)
+		output, err := command.CombinedOutput()
+		t.Log(string(output))
+		if err != nil {
+			t.Fatal("real stored run playback", err)
+		}
+		mu.Lock()
+		providerAfter := len(models)
+		mu.Unlock()
+		if providerAfter != providerBefore || snapshot() != before {
+			t.Fatal("readonly playback changed Provider calls or business records", providerBefore, providerAfter)
+		}
+		t.Logf("M4_REPLAY_NO_EFFECTS correlation=%s published_message=%s provider_calls_delta=0 full_business_rows_equal=true", replayCorrelation, replayMessageID)
 	})
 
 }
