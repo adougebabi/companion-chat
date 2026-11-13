@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "T10 部分完成：隔离 PostgreSQL 与受控 Provider 抽样通过 Goal 上限/空集/原成功条件、预置完成目标的旧愿望导入与规划重复保护、Owner 暂停保护、衣柜借还/穿着、失败购物、人格切换/接管、当前外貌、视觉候选、初始化、Actor/NPC 隔离、世界事件准入、Studio 和日记阶段。Goal 关系明确接受、只输出摘要、获取及染发后最终 Goal 评估四组场景失败，起始提交独立源码复现相同失败；多项为 evaluation_cadence，根因未知，已登记 goal-evaluation-cadence-domain-failures，不在当前保护性回归中改动旧逻辑。真实模型/渲染和完整领域矩阵未验收。按用户授权保留未完成并继续 T11。",
+  "failure": "M3-05 Goal领域验收恢复局部VERIFIED。生产准入未改，修正隔离测试DB时间前置、实际模型调用和跨profile时钟独立性。干净4f9d6aba上112个M3相关核心顶层测试+1迁移通过，无SKIP；9f50332f跨profile加强测试单独通过。原四组领域失败、handoff及24个直接影响回归通过。父T10真实模型/真实渲染和完整领域矩阵仍未验收，不标完成。当前用户已明确T09旧来源隔离政策，转回该授权原节点实施。",
   "result": "",
   "created": "2026-11-10T08:34:31.183643Z",
-  "updated": "2026-11-13T05:16:07.902937Z",
+  "updated": "2026-11-13T05:34:02.059643Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -65,11 +65,11 @@
         "unit": "execute",
         "executor": "codex-m3-t10-domain",
         "input_version": "171782b411b0e541c9d92fd68b4b5956114f19b30e57e4af9e74eead58b405e8",
-        "candidate_version": "",
+        "candidate_version": "e5448d456ed2f3dddb76c95ab1f9589767ab5b5defaef1d415bd9bf86813eb75",
         "started": "2026-11-13T05:16:07.718869Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-13T05:33:49.503177Z",
+        "status": "blocked",
+        "reason": "M3-05 Goal领域验收恢复局部VERIFIED。生产准入未改，修正隔离测试DB时间前置、实际模型调用和跨profile时钟独立性。干净4f9d6aba上112个M3相关核心顶层测试+1迁移通过，无SKIP；9f50332f跨profile加强测试单独通过。原四组领域失败、handoff及24个直接影响回归通过。父T10真实模型/真实渲染和完整领域矩阵仍未验收，不标完成。当前用户已明确T09旧来源隔离政策，转回该授权原节点实施。"
       }
     ],
     "checks": null

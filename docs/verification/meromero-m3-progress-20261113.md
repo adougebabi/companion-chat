@@ -11,7 +11,7 @@
 | M3-03 可定位 legacy 摘要来源纠错屏障 | T09 旧来源及派生失效 | VERIFIED | 修复首次全 unknown 的摘要来源负向屏障，提交 `ae9023ce` 的干净源码复验 8 个核心顶层测试及 1 个迁移测试通过，退出码 0、无 SKIP。 |
 | M3-04 在途纠错发布保护证据 | T09 后续输入/在途请求 | VERIFIED | direct/Writer × revise/forget 四场景及正常发布/追发对照在提交 `b0d47d68` 的干净源码通过，3 个顶层测试、退出码 0、无 SKIP。沿用既有 generation fence，本节点仅增加测试。 |
 | T09 其他原验收 | 记忆治理 | PARTIAL | 完全不可解析来源、正确吸收纠错的重建、其余主链在途与锁序矩阵仍未验收。 |
-| M3-05 Goal 领域验收恢复 | T10 成功条件、日程/活动、衣柜和依赖保护 | IMPLEMENTED | 修正隔离测试的 DB 时间前置，原四组失败与 handoff 实际进入评估，24 个直接受影响顶层回归通过，等待提交后汇总复验。 |
+| M3-05 Goal 领域验收恢复 | T10 成功条件、日程/活动、衣柜和依赖保护 | VERIFIED | 修正隔离测试的 DB 时间前置，原四组失败与 handoff 实际进入评估，24 个直接受影响顶层回归通过，提交后 112 项 M3 汇总回归和独立迁移测试通过。跨人格时钟加强后单独复验通过。 |
 | T10 其他原验收 | 领域保护 | PARTIAL | 继承既有其他领域证据，真实模型、真实渲染及完整领域矩阵仍未验收。 |
 
 ## M3-01 实现与证据
@@ -75,3 +75,5 @@ M3-04 提交后 `b0d47d683b12127d7a3cd62702c2c3811f99ee08`，`t09-inflight-postc
 独立复核发现跨 profile 时钟分支仍会同时命中新活动静默窗，原通过不能独立证明全局 evaluation clock。已保留真实 activity revision，将该活动静默时间提前至 31 分钟前，仅留下未来 evaluation_next_at，`t10-clock-isolated.log` 定向通过、退出码 0、无 SKIP。原一秒边界与未来 available_at 断言继续保留。
 
 用户已明确选择：完全无法解析来源的旧记忆暂停自动注入，保留记录，待 Owner 重新确认来源后恢复。当前 T10 节点收口后恢复原 T09 实施该策略。此前待确认状态保留为当时事实。
+
+M3 汇总受检提交 `4f9d6abaff7017621b665b21207646c7602f16cb`，干净源码无 overlay，112 个明确选择的核心顶层测试通过，退出码 0、无 SKIP；同提交独立迁移测试 1 项通过。清单 `aggregate-test-selection.txt`、完整命令及结果 `aggregate-postcommit.log` / `aggregate-migration.log`。后续 `9f50332f6a3d07060f120b814a949e287a5a3a95` 仅加强跨人格 clock 测试的独立性，`t10-clock-postcommit.log` 干净提交单独复验通过。此轮汇总未运行需要私有录制的可选 wire replay，历史 SKIP 保留在 T08 日志。M3 和父 T07～T10 仍未标完成。
