@@ -121,3 +121,5 @@ M3-06 提交后 `a4b1bc8e25fc7ea89d56805f7994d3de85bc5df6`，无 overlay，`poli
 `t09-profile-self-green.log` 保留本轮 helper 将 RawMessage 误作 map 的编译错误。后续首次 restore 夹具没有 target revision，已经改为原有 rollback 入口并明确要求 `self_snapshot_source_changed`，避免以任意错误判通过。`t09-self-validated.log` 保留本轮错误地对 JSONB 重新编码后的 snapshot 做 byte-level token 重验造成的误拦截；改为复核可信持久快照中的稳定 scope/实体/修订与实际 Memory digest/liveness，签发索引在正式持久化前沿用原校验。
 
 `t09-self-jsonb-snapshot.log` 14 个顶层测试通过、退出码 0、无 SKIP。包含直接 Memory、summary→Memory 祖先、进程重建读取、Owner 来源标记/旧源回滚、晚到快照拒绝、独立 Owner 声明保留，以及 ActorFacts 时效/冲突/来源归属/画像和 Owner 管理历史回归。SelfClaim 业务代码完成，提交后复验待记录。人格 overlay 及历史跨窗口证据的相同 Memory 依赖仍属下一独立节点，父 T09 未标完成。
+
+M3-08 SelfClaim 来源传播在提交 `75f03c394606d308f8a407a5a51b6416de6e80c6` 干净源码复验 14 个顶层测试通过、退出码 0、无 SKIP，证据 `t09-self-postcommit.log`，该独立行为标 VERIFIED。下一独立行为为人格 overlay 当前及历史跨窗口 Memory 证据失效，父 T09 仍未标完成。
