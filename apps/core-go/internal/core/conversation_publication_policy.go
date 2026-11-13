@@ -52,13 +52,13 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 		return physicalModelRequestDecision{}, newCapabilityError("direct_media_reply_stalled", false, errors.New("direct_media_reply_stalled"))
 	}
 	if conversationLoopNeedsReply(ctx) {
-		if conversationClosedActionAttempts(adkContext.Trace) >= 2 {
+		if conversationClosedActionAttempts(adkContext.Trace, adkContext.Refresh) >= 2 || conversationNoProgressAttempts(ctx, 0, true) >= 5 {
 			return physicalModelRequestDecision{}, newCapabilityError("tool_progress_stalled", false, errors.New("tool_progress_stalled"))
 		}
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, AllowedToolNames: []string{conversationReplyCapabilityName}, DisableThinking: true}, nil
 	}
 	if queries := conversationLoadedQueryPhase(ctx); len(queries) > 0 {
-		if conversationClosedActionAttempts(adkContext.Trace) >= 2 {
+		if conversationClosedActionAttempts(adkContext.Trace, adkContext.Refresh) >= 2 {
 			return physicalModelRequestDecision{}, newCapabilityError("tool_progress_stalled", false, errors.New("tool_progress_stalled"))
 		}
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, AllowedToolNames: queries}, nil

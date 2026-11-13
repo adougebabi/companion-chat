@@ -1,0 +1,10 @@
+SOURCE_HEAD deb47727b43b58329ac6e834d192b8108b0e6eee
+OVERLAYS apps/core-go/internal/core/runtime_context_refresh.go,apps/core-go/internal/core/conversation_loop_progress.go,apps/core-go/internal/core/conversation_publication_policy.go,apps/core-go/internal/core/m1_replayed_denial_test.go,apps/core-go/internal/core/r9_progress_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestM1RepeatedQueryBatchKeepsReplyOpportunity$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM1RepeatedQueryBatchKeepsReplyOpportunity
+--- PASS: TestM1RepeatedQueryBatchKeepsReplyOpportunity (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.689s
+
+EXIT_CODE 0

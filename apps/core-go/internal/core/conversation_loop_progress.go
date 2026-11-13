@@ -16,23 +16,40 @@ func conversationLoopNeedsReply(ctx context.Context) bool {
 // response as feedback the model has already received. The next physical
 // request evaluates all results through conversationLoopNeedsReply.
 func conversationLoopNeedsReplyBeforeModelSequence(ctx context.Context, currentSequence uint64) bool {
+	return conversationNoProgressAttempts(ctx, currentSequence, false) >= 3
+}
+
+func conversationNoProgressAttempts(ctx context.Context, currentSequence uint64, physicalRoundsOnly bool) int {
 	bridge, ok := adkCapabilityContext(ctx)
 	if !ok || bridge.Trace == nil {
-		return false
+		return 0
 	}
 	invoker, ok := bridge.Invoker.(*appADKCapabilityInvoker)
 	if !ok || invoker.scopeRegistry == nil {
-		return false
+		return 0
 	}
 	invocations, results := bridge.Trace.Snapshot()
 	calls := map[string]CapabilityInvocation{}
 	for _, call := range invocations {
 		calls[call.CallID] = call
 	}
+	// Actual action progress invalidates earlier no-progress rounds, including
+	// denials that reused an older call ID after that action.
+	lastActionIndex := -1
+	var lastActionSequence uint64
+	for index, result := range results {
+		definition, installed := invoker.scopeRegistry.Definition(result.CapabilityName)
+		if installed && definition.Type == CapabilityTypeAction && (result.Status == "completed" || result.Status == "accepted") {
+			lastActionIndex = index
+			if identity, found := bridge.Trace.ModelIdentity(result.CallID); found && identity.ModelCallSequence > lastActionSequence {
+				lastActionSequence = identity.ModelCallSequence
+			}
+		}
+	}
 	seen := map[string]int{}
 	deniedRounds := map[string]map[string]bool{}
-	ready := false
-	for _, result := range results {
+	maximum := 0
+	for index, result := range results {
 		call, exists := calls[result.CallID]
 		if !exists {
 			continue
@@ -41,47 +58,53 @@ func conversationLoopNeedsReplyBeforeModelSequence(ctx context.Context, currentS
 		out := mapValue(result.Output)
 		noEffect := result.Status == "handled" && out["effect_applied"] == false
 		query := installed && definition.Type == CapabilityTypeQuery && result.Status == "completed" && result.CapabilityName != capabilityCatalogName && result.CapabilityName != capabilityDiscoverName
-		if query || noEffect {
-			arguments := decodeObject(call.Arguments)
-			unauthorized := noEffect && stringValue(out["warning_code"]) == "capability_not_authorized"
-			momentMediaRejected := noEffect && result.CapabilityName == "moment.publish" && (stringValue(out["warning_code"]) == "direct_media_delivery_unverified" || stringValue(out["warning_code"]) == "direct_media_delivery_stale" || stringValue(out["warning_code"]) == "moment_media_delivery_stale")
-			roundBounded := unauthorized || momentMediaRejected
-			if roundBounded {
-				if identity, ok := bridge.Trace.ModelIdentity(call.CallID); ok && currentSequence != 0 && identity.ModelCallSequence == currentSequence {
+		if !query && !noEffect {
+			continue
+		}
+		arguments := decodeObject(call.Arguments)
+		unauthorized := noEffect && stringValue(out["warning_code"]) == "capability_not_authorized"
+		momentMediaRejected := noEffect && result.CapabilityName == "moment.publish" && (stringValue(out["warning_code"]) == "direct_media_delivery_unverified" || stringValue(out["warning_code"]) == "direct_media_delivery_stale" || stringValue(out["warning_code"]) == "moment_media_delivery_stale")
+		roundBounded := unauthorized || momentMediaRejected
+		if physicalRoundsOnly && !roundBounded {
+			continue
+		}
+		if roundBounded {
+			arguments = nil
+		}
+		fingerprint := jsonString(map[string]any{"name": result.CapabilityName, "arguments": arguments, "status": result.Status, "output": result.Output})
+		if roundBounded {
+			sequences := conversationCallSequences(bridge.Trace, bridge.Refresh, call.CallID, result.CapabilityName)
+			if deniedRounds[fingerprint] == nil {
+				deniedRounds[fingerprint] = map[string]bool{}
+			}
+			if len(sequences) == 0 && index > lastActionIndex {
+				deniedRounds[fingerprint]["call:"+call.CallID] = true
+			}
+			for _, sequence := range sequences {
+				if sequence <= lastActionSequence || currentSequence != 0 && sequence >= currentSequence {
 					continue
 				}
-				// Changing arguments alone cannot validate an unauthorized call or
-				// turn an unsupported Moment media claim into a delivery.
-				arguments = nil
+				deniedRounds[fingerprint]["model:"+strconv.FormatUint(sequence, 10)] = true
 			}
-			fingerprint := jsonString(map[string]any{"name": result.CapabilityName, "arguments": arguments, "status": result.Status, "output": result.Output})
-			if roundBounded {
-				// Multiple calls returned by one physical model response have not
-				// yet received feedback and count as one attempt, not a loop.
-				round := "call:" + call.CallID
-				if identity, ok := bridge.Trace.ModelIdentity(call.CallID); ok && identity.ModelCallSequence != 0 {
-					round = "model:" + strconv.FormatUint(identity.ModelCallSequence, 10)
-				}
-				if deniedRounds[fingerprint] == nil {
-					deniedRounds[fingerprint] = map[string]bool{}
-				}
-				if !deniedRounds[fingerprint][round] {
-					deniedRounds[fingerprint][round] = true
-					seen[fingerprint]++
-				}
-			} else {
-				seen[fingerprint]++
-			}
-			if seen[fingerprint] >= 3 {
-				ready = true
-			}
-		} else if installed && definition.Type == CapabilityTypeAction && (result.Status == "completed" || result.Status == "accepted") {
-			seen = map[string]int{}
-			deniedRounds = map[string]map[string]bool{}
-			ready = false
+			seen[fingerprint] = len(deniedRounds[fingerprint])
+		} else if index > lastActionIndex {
+			seen[fingerprint]++
+		}
+		if seen[fingerprint] > maximum {
+			maximum = seen[fingerprint]
 		}
 	}
-	return ready
+	return maximum
+}
+
+func conversationCallSequences(trace *ADKCapabilityTrace, refresh *runtimeContextRefresh, callID, capabilityName string) []uint64 {
+	if sequences := refresh.modelToolCallSequences(callID, capabilityName); len(sequences) > 0 {
+		return sequences
+	}
+	if identity, found := trace.ModelIdentity(callID); found && identity.ModelCallSequence != 0 {
+		return []uint64{identity.ModelCallSequence}
+	}
+	return nil
 }
 
 // Repeated disclosure of an already selected read-only schema should lead to
@@ -128,16 +151,32 @@ func conversationLoadedQueryPhase(ctx context.Context) []string {
 	return nil
 }
 
-func conversationClosedActionAttempts(trace *ADKCapabilityTrace) int {
+func conversationClosedActionAttempts(trace *ADKCapabilityTrace, refresh *runtimeContextRefresh) int {
 	_, results := trace.Snapshot()
-	count := 0
-	for _, result := range results {
+	lastProgressIndex := -1
+	var lastProgressSequence uint64
+	for index, result := range results {
 		if (result.Status == "completed" || result.Status == "accepted") && result.CapabilityName != capabilityCatalogName && result.CapabilityName != capabilityDiscoverName {
-			count = 0
-		}
-		if mapValue(result.Output)["warning_code"] == "turn_action_window_closed" {
-			count++
+			lastProgressIndex = index
+			if identity, found := trace.ModelIdentity(result.CallID); found && identity.ModelCallSequence > lastProgressSequence {
+				lastProgressSequence = identity.ModelCallSequence
+			}
 		}
 	}
-	return count
+	rounds := map[string]bool{}
+	for index, result := range results {
+		if mapValue(result.Output)["warning_code"] != "turn_action_window_closed" {
+			continue
+		}
+		sequences := conversationCallSequences(trace, refresh, result.CallID, result.CapabilityName)
+		if len(sequences) == 0 && index > lastProgressIndex {
+			rounds["call:"+result.CallID] = true
+		}
+		for _, sequence := range sequences {
+			if sequence > lastProgressSequence {
+				rounds["model:"+strconv.FormatUint(sequence, 10)] = true
+			}
+		}
+	}
+	return len(rounds)
 }

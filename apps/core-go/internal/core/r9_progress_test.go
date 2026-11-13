@@ -49,11 +49,11 @@ func TestR9DiscoveryReadsBeforeReplyAndActualProgressReopensMedia(t *testing.T) 
 	for i := 0; i < 2; i++ {
 		appendResult("uninstalled", "handled", nil, map[string]any{"warning_code": "turn_action_window_closed", "effect_applied": false})
 	}
-	if conversationClosedActionAttempts(trace) != 2 {
+	if conversationClosedActionAttempts(trace, nil) != 2 {
 		t.Fatal("ignored phase not counted")
 	}
 	appendResult("wardrobe.inspect", "completed", nil, map[string]any{"items": []any{}})
-	if conversationClosedActionAttempts(trace) != 0 {
+	if conversationClosedActionAttempts(trace, nil) != 0 {
 		t.Fatal("actual progress did not reset rejected attempts")
 	}
 }

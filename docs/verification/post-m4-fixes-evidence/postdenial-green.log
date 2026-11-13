@@ -1,0 +1,15 @@
+SOURCE_HEAD deb47727b43b58329ac6e834d192b8108b0e6eee
+OVERLAYS apps/core-go/internal/core/runtime_context_refresh.go,apps/core-go/internal/core/conversation_loop_progress.go,apps/core-go/internal/core/conversation_publication_policy.go,apps/core-go/internal/core/m1_replayed_denial_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestM1(Replayed|ClosedWindow) -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core [build failed]
+FAIL
+# github.com/fluctlight/local-ai-companion/apps/core-go/internal/core [github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.test]
+internal/core/r9_progress_test.go:52:38: not enough arguments in call to conversationClosedActionAttempts
+	have (*ADKCapabilityTrace)
+	want (*ADKCapabilityTrace, *runtimeContextRefresh)
+internal/core/r9_progress_test.go:56:38: not enough arguments in call to conversationClosedActionAttempts
+	have (*ADKCapabilityTrace)
+	want (*ADKCapabilityTrace, *runtimeContextRefresh)
+
+EXIT_CODE 1

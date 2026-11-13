@@ -1,0 +1,26 @@
+{
+  "id": "reply-wear-fallback-correction-regression",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "d33f08c66530761f85c0efdb2dd010798ac4f3d878355a14f71dfb5c9d343090",
+  "completed": "2026-11-13T15:59:11.975492Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "wear-fallback-correction-scenario",
+      "result": "pass",
+      "source": "scenario:codex-postm4-wear",
+      "config_hash": "ccffdbd935c01d3e21d7af2efa1292961cce7ac373fdc8af0612d39ac6998376",
+      "at": "2026-11-13T15:59:07.773535Z",
+      "artifact_hashes": {
+        "apps/core-go/internal/core/r6_chat_wear_test.go": "11de753febf4350fb4b7f0d7461b4005daffdf9f380456a18603e833687b9d3b",
+        "apps/core-go/internal/core/reply_action_consistency.go": "d2c1ac5ac68353d321a8eb2ad11c5484946e34ec53b3ef4fce85a973d2ac9b14",
+        "apps/core-go/internal/core/reply_failure_policy.go": "8295c6eefdf11819b2869a100e8d36bbf454f8053b23c4a0b29e47bfd0339ffb",
+        "docs/verification/post-m4-fixes-evidence/postwear-postcommit.log": "a3a7294542ce097146c98a8deaf720e6af16054bb5b01186de5eb7be5bbc45f9",
+        "docs/verification/post-m4-fixes-evidence/postwear-workingtree.log": "7ebf7fb4dfc2b23e7e354ca3595e703753213dd4e2bed8c839e8eff82f017b64"
+      }
+    }
+  ]
+}

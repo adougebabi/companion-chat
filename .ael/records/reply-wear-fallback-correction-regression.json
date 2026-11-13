@@ -17,13 +17,13 @@
     "approved": false
   },
   "current_step": "verify",
-  "status": "open",
-  "candidate": "7c18eae023573af152a509396251dfdbef8df3ca3687f199a088a93cc950b9f6",
+  "status": "completed",
+  "candidate": "d33f08c66530761f85c0efdb2dd010798ac4f3d878355a14f71dfb5c9d343090",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-11T18:58:03.22456Z",
-  "updated": "2026-11-13T15:54:21.510786Z",
-  "completed": null,
+  "updated": "2026-11-13T15:59:11.975612Z",
+  "completed": "2026-11-13T15:59:11.975492Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -59,8 +59,45 @@
         "ended": "2026-11-13T15:54:16.273686Z",
         "status": "pass",
         "reason": "F01修复完成，三项过期前置已校正且原断言保留：读取已保存fact_only模式、503显式技术故障、独立generic_llm配置保留Writer冻结绑定。生产回退策略无改动。流式/非流式原两个失败通过，整组22场景及400/拒绝/媒体失败禁止fallback等7个顶层回归通过。提交eb7b48db，提交后同组复验通过。"
+      },
+      {
+        "id": "AT-628ef5dc6a000f254d82",
+        "unit": "execute",
+        "executor": "codex-postm4-wear-close",
+        "input_version": "d33f08c66530761f85c0efdb2dd010798ac4f3d878355a14f71dfb5c9d343090",
+        "candidate_version": "d33f08c66530761f85c0efdb2dd010798ac4f3d878355a14f71dfb5c9d343090",
+        "started": "2026-11-13T15:58:58.943661Z",
+        "ended": "2026-11-13T15:58:59.246645Z",
+        "status": "pass",
+        "reason": "F01修复完成，三项过期前置已校正且原断言保留：读取已保存fact_only模式、503显式技术故障、独立generic_llm配置保留Writer冻结绑定。生产回退策略无改动。流式/非流式原两个失败通过，整组22场景及400/拒绝/媒体失败禁止fallback等7个顶层回归通过。提交eb7b48db，提交后同组复验通过。"
+      },
+      {
+        "id": "AT-97b55f9c4e408102fe23",
+        "unit": "check:wear-fallback-correction-scenario",
+        "executor": "codex-postm4-wear",
+        "input_version": "d33f08c66530761f85c0efdb2dd010798ac4f3d878355a14f71dfb5c9d343090",
+        "candidate_version": "d33f08c66530761f85c0efdb2dd010798ac4f3d878355a14f71dfb5c9d343090",
+        "started": "2026-11-13T15:59:07.734421Z",
+        "ended": "2026-11-13T15:59:07.773793Z",
+        "status": "pass",
+        "reason": "提交eb7b48db干净源码7项顶层及22个私聊场景通过；流式/非流式两个原失败在正确503+保留fact_only+独立备用配置下通过，原发布、实际未换衣、2次Writer及r7-fallback元数据断言保留；400/拒绝/不一致不触发fallback原回归通过。四原稿只读覆盖目标两场景通过，无SKIP。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "wear-fallback-correction-scenario",
+        "result": "pass",
+        "source": "scenario:codex-postm4-wear",
+        "config_hash": "ccffdbd935c01d3e21d7af2efa1292961cce7ac373fdc8af0612d39ac6998376",
+        "at": "2026-11-13T15:59:07.773535Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/r6_chat_wear_test.go": "11de753febf4350fb4b7f0d7461b4005daffdf9f380456a18603e833687b9d3b",
+          "apps/core-go/internal/core/reply_action_consistency.go": "d2c1ac5ac68353d321a8eb2ad11c5484946e34ec53b3ef4fce85a973d2ac9b14",
+          "apps/core-go/internal/core/reply_failure_policy.go": "8295c6eefdf11819b2869a100e8d36bbf454f8053b23c4a0b29e47bfd0339ffb",
+          "docs/verification/post-m4-fixes-evidence/postwear-postcommit.log": "a3a7294542ce097146c98a8deaf720e6af16054bb5b01186de5eb7be5bbc45f9",
+          "docs/verification/post-m4-fixes-evidence/postwear-workingtree.log": "7ebf7fb4dfc2b23e7e354ca3595e703753213dd4e2bed8c839e8eff82f017b64"
+        }
+      }
+    ]
   }
 }

@@ -1,0 +1,22 @@
+SOURCE_HEAD deb47727b43b58329ac6e834d192b8108b0e6eee
+OVERLAYS apps/core-go/internal/core/runtime_context_refresh.go,apps/core-go/internal/core/conversation_loop_progress.go,apps/core-go/internal/core/conversation_publication_policy.go,apps/core-go/internal/core/m1_replayed_denial_test.go,apps/core-go/internal/core/r9_progress_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestM1(Replayed|ClosedWindow) -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestM1ReplayedUnauthorizedCallIDStopsWithoutDuplicateReceipt
+--- PASS: TestM1ReplayedUnauthorizedCallIDStopsWithoutDuplicateReceipt (2.35s)
+=== RUN   TestM1ReplayedUnauthorizedCallIDIgnoringReplyWindowStops
+--- PASS: TestM1ReplayedUnauthorizedCallIDIgnoringReplyWindowStops (2.38s)
+=== RUN   TestM1ReplayedClosedWindowReceiptStops
+--- PASS: TestM1ReplayedClosedWindowReceiptStops (2.47s)
+=== RUN   TestM1ClosedWindowSameBatchCountsAsOneResponse
+--- PASS: TestM1ClosedWindowSameBatchCountsAsOneResponse (2.10s)
+=== RUN   TestM1ReplayedDenialRestartsAfterRealAction
+--- PASS: TestM1ReplayedDenialRestartsAfterRealAction (0.00s)
+=== RUN   TestM1ClosedWindowRoundsResetAfterRealProgress
+--- PASS: TestM1ClosedWindowRoundsResetAfterRealProgress (0.00s)
+=== RUN   TestM1ReplayedDenialResetsAfterSameBatchRealAction
+--- PASS: TestM1ReplayedDenialResetsAfterSameBatchRealAction (2.45s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	12.516s
+
+EXIT_CODE 0

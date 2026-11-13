@@ -83,6 +83,23 @@ func (r *runtimeContextRefresh) replyNeedsFreshSchedule(sequence uint64, callID 
 	return blocked && code == "schedule_context_refresh_required"
 }
 
+// Occurrences describe delivery attempts, independently of the first execution
+// identity kept by ADKCapabilityTrace for durable receipt replay.
+func (r *runtimeContextRefresh) modelToolCallSequences(callID, capabilityName string) []uint64 {
+	if r == nil {
+		return nil
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var sequences []uint64
+	for sequence, calls := range r.batches {
+		if name, found := calls[callID]; found && capabilitycontract.CapabilityNamesMatch(name, capabilityName) {
+			sequences = append(sequences, sequence)
+		}
+	}
+	return sequences
+}
+
 func (r *runtimeContextRefresh) sameBatch(sequence uint64, callID string) (map[string]string, bool) {
 	if r == nil || sequence == 0 {
 		return nil, false
