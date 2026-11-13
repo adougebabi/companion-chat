@@ -18,11 +18,14 @@ func TestSummaryCorrectionGuardMigrationFromPreviousHeadAndRerun(t *testing.T) {
 	}
 	assertHead := func() {
 		t.Helper()
-		var head, functionBody, refreshBody string
+		var head, functionBody, refreshBody, correctionBody string
 		var preserved, actorPreserved bool
 		err := pool.QueryRow(ctx, `SELECT version_num FROM public.alembic_version`).Scan(&head)
 		if err == nil {
 			err = pool.QueryRow(ctx, `SELECT pg_get_functiondef('public.memory_source_is_live(text,text,integer,text)'::regprocedure),pg_get_functiondef('public.refresh_resident_memory_snapshot(text)'::regprocedure)`).Scan(&functionBody, &refreshBody)
+		}
+		if err == nil {
+			err = pool.QueryRow(ctx, `SELECT pg_get_functiondef(to_regprocedure($1))`, "public.summary_contains_corrected_memory_source(text,text,integer,integer)").Scan(&correctionBody)
 		}
 		if err == nil {
 			err = pool.QueryRow(ctx, `SELECT (value_json::jsonb->>'preserved')::boolean FROM public.runtime_settings WHERE key='test.summary_correction_0106'`).Scan(&preserved)
@@ -32,6 +35,9 @@ func TestSummaryCorrectionGuardMigrationFromPreviousHeadAndRerun(t *testing.T) {
 		}
 		if err != nil || head != Head || !preserved || !actorPreserved || !strings.Contains(functionBody, "summary_contains_corrected_memory_source") || !strings.Contains(refreshBody, "memory_has_corrected_summary_source") {
 			t.Fatalf("head=%q preserved=%v owner=%v liveness_guard=%v resident_guard=%v err=%v", head, preserved, actorPreserved, strings.Contains(functionBody, "summary_contains_corrected_memory_source"), strings.Contains(refreshBody, "memory_has_corrected_summary_source"), err)
+		}
+		if !strings.Contains(correctionBody, "source.source_kind='legacy'") || !strings.Contains(correctionBody, "source.status='unknown'") {
+			t.Fatal("migration lost the resolvable legacy summary correction fence")
 		}
 		var blocked bool
 		if err := pool.QueryRow(ctx, `SELECT public.summary_contains_corrected_memory_source('migration-0106-character','missing',1,2)`).Scan(&blocked); err != nil || blocked {

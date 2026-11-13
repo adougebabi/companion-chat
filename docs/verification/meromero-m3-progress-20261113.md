@@ -6,9 +6,11 @@
 |---|---|---|---|
 | M3-01 连续无事 WakeUp 退避 | T07 无事退避、新事件、Goal/日程义务、既有调度 | VERIFIED | 正式 ProcessWakeUp 结算按 20、40、60、60 分钟退避，首次触发保持十分钟。消息、新 native fact、手工触发重置，同 cycle 回放不累加。Redis 丢键和 supervisor 恢复遵循持久 due。实现提交 `6a96cef6` 的干净源码复验 33 个顶层测试通过，退出码 0、无 SKIP。 |
 | T07 其他原验收 | 主动/静默、并发和消息节奏 | PARTIAL | 继承已有消息及受控主动/静默证据。真实模型自主正反场景和其余多端流式矩阵仍未验收。 |
-| M3-02 权威称呼输入与自主选择约束 | T08 称呼受真实关系和角色选择约束 | VERIFIED | 修复 fact-only 关系投影遗漏正式 addressing，表达参考协议明确结合真实关系与当前人格选择。提交 `99dcd67f` 的干净源码 46 个顶层回归通过，无 SKIP；真实模型语义效果仍待验收。 |
+| M3-02 权威称呼输入与自主选择约束 | T08 称呼受真实关系和角色选择约束 | VERIFIED | 修复 fact-only 关系投影遗漏正式 addressing，表达参考协议明确结合真实关系与当前人格选择。提交 `99dcd67f` 的干净源码 46 个顶层回归通过，另有 1 项私有录制回放 SKIP；真实模型语义效果仍待验收。 |
 | T08 其他原验收 | 表达学习闭环 | PARTIAL | 继承候选启停闭环证据。任意注入/日志排除、真实模型关系称呼语义和 UI 到运行闭环尚未完成或未验收。 |
-| T09、T10 | 记忆治理及领域保护 | PARTIAL | 保留原台账缺口，尚未开始本轮修改。Goal cadence 基线失败仍未修复，不能宣称领域回归整套通过。 |
+| M3-03 可定位 legacy 摘要来源纠错屏障 | T09 旧来源及派生失效 | IMPLEMENTED | 修复首次全 unknown 的摘要来源负向屏障，8 个核心顶层测试及 1 个迁移测试通过，等待提交后复验。 |
+| T09 其他原验收 | 记忆治理 | PARTIAL | 完全不可解析来源、正确吸收纠错的重建、主链在途/锁序矩阵仍未验收。 |
+| T10 | 领域保护 | PARTIAL | 保留原基线失败，尚未开始本轮领域改动，不能宣称领域回归整套通过。 |
 
 ## M3-01 实现与证据
 
@@ -32,4 +34,16 @@ M3-01 的局部验证不能标记父 T07 或 M3 完成。下一节点按原 T08 
 
 `t08-address-green.log` 的 10 个顶层测试实际通过，退出码 0，无 SKIP。隔离 PostgreSQL 经正式 Owner 提取、启用、开关与停用入口，以及正式 HandleTurn 的物理请求，核对关系称呼与规则可见、停用不注入候选，核心人格及关系语义不被学习流程改写。当前人格与其他对象隔离另有纯视图回归。模型为受控 Provider，此证据证明运行输入完整性，尚不能证明真实模型对所有关系含义称呼做出正确判断。
 
-M3-02 提交后受检 `99dcd67f836478ebeb3be5e90cf678db9f3aa86d`，无源码覆盖，46 个顶层测试通过、退出码 0、无 SKIP。包含表达撤销、在途停用/ABA、direct 与 fact-only/Writer 及原始历史保留回归。证据 `t08-postcommit.log`。父 T08 保持 PARTIAL。
+M3-02 提交后受检 `99dcd67f836478ebeb3be5e90cf678db9f3aa86d`，无源码覆盖，46 个顶层测试通过、退出码 0；另有 1 项 SKIP。包含表达撤销、在途停用/ABA、direct 与 fact-only/Writer 及原始历史保留回归。证据 `t08-postcommit.log`。父 T08 保持 PARTIAL。
+
+更正 M3-02 提交后扩展回归统计：`TestFactOnlyActualActorWireReplay` 缺少显式私有录制输入而 SKIP，未用于本节点验收。实际为 46 个顶层 PASS、1 个 SKIP、0 个 FAIL。此前提交和 AEL 摘要中的“无 SKIP”统计有误，保留原日志并以此更正。该私有回放与本节点新增关系视图和正式候选启停测试独立。
+
+## M3-03 可定位 legacy 摘要来源的负向纠错屏障
+
+`t09-legacy-red.log` 在原提交加新增用例上真实复现：首次来源全部 `legacy/unknown`，没有任何早期 typed binding，Owner 修订后旧 runtime summary 仍可读。正式修复在既有 `summaryCorrectionGuardSQL` 中，仅将同 owner/conversation 可解析的 `conversation_summary:<id>` 引用用于负向纠错屏障。派生 Memory 在读取中同样检测仍被当前 snapshot 保留的 legacy summary 引用。原 typed liveness、来源状态、fingerprint 和历史正文均未被改写。既有迁移 Apply 每次重装这些函数，本节点沿用该机制，没有新增数据回填。
+
+`t09-legacy-green.log` 初轮 6 个顶层回归通过。扩展派生读取与迁移重跑时出现两项局部测试错误，保留在 `t09-legacy-expanded.log`、`t09-migration.log`。派生 fixture 错误地假定创建 revision 为 1，已改为使用正式创建回执中的真实 revision；迁移测试把已删除函数 OID 常量缓存，已改为参数化 `to_regprocedure` 在每次查询重新解析。没有修改生产逻辑迎合这两项测试错误。
+
+修正后 `t09-legacy-corrected.log` 的 8 个顶层核心测试、`t09-migration-corrected.log` 的 1 个迁移测试均退出码 0，无 SKIP。覆盖旧摘要、派生记忆、原始历史保留、其他 owner/conversation/时间窗、已知 typed/legacy-confirm 路径、daily 模型前后纠错、resident 及迁移升级/重跑数据保全。独立只读审阅未发现确定阻断问题。
+
+本节点保留未知属性，不将解析出 ID 的旧来源提升为真实支持证据。无法解析的 opaque 来源和首次全 unknown 的 `memory:<id>` 链仍未解决，正确吸收纠错后的摘要重建及主链 in-flight/锁序尚未验收。父 T09 不能因此标完成。

@@ -11,11 +11,25 @@ import (
 const summaryCorrectionGuardSQL = `
 CREATE OR REPLACE FUNCTION public.summary_contains_corrected_memory_source(p_owner text,p_conversation text,p_from integer,p_to integer)
 RETURNS boolean LANGUAGE sql STABLE AS $summary_correction$
- WITH RECURSIVE sources(kind,id,revision) AS (
-  SELECT source.source_kind,source.source_id,source.source_revision
+ WITH RECURSIVE links(memory_id,memory_revision,kind,id,revision) AS (
+  SELECT source.memory_id,source.memory_revision,source.source_kind,source.source_id,source.source_revision
+  FROM public.memory_source_links source
+  JOIN public.memories memory ON memory.id=source.memory_id AND memory.owner_fluctlight_id=p_owner
+  WHERE source.status IN ('valid','invalid')
+  UNION ALL
+  -- A resolvable legacy summary ref is sufficient for a negative correction
+  -- fence. It does not acquire a typed fingerprint or become live evidence.
+  SELECT source.memory_id,source.memory_revision,'conversation_summary',episode.id,episode.revision
+  FROM public.memory_source_links source
+  JOIN public.memories memory ON memory.id=source.memory_id AND memory.owner_fluctlight_id=p_owner
+  JOIN public.conversation_summaries episode ON source.source_ref='conversation_summary:'||episode.id
+    AND episode.owner_fluctlight_id=p_owner AND episode.conversation_id=p_conversation
+  WHERE source.source_kind='legacy' AND source.status='unknown'
+ ), sources(kind,id,revision) AS (
+  SELECT source.kind,source.id,source.revision
   FROM public.memories memory
   JOIN public.memory_revisions correction ON correction.memory_id=memory.id
-  JOIN public.memory_source_links source ON source.memory_id=correction.memory_id AND source.memory_revision<=correction.base_revision
+  JOIN links source ON source.memory_id=correction.memory_id AND source.memory_revision<=correction.base_revision
   WHERE memory.owner_fluctlight_id=p_owner AND correction.revision>correction.base_revision
     AND correction.operation IN ('revise','merge','supersede','deprecate','forget','rollback')
     -- Replacing a daily rollup after its raw messages changed is not an
@@ -25,13 +39,11 @@ RETURNS boolean LANGUAGE sql STABLE AS $summary_correction$
       AND COALESCE(correction.proposal_id,'') LIKE 'conversation_daily:%'
       AND correction.semantic_reason='same-conversation local-day episode consolidation'
       AND EXISTS (SELECT 1 FROM public.conversation_daily_memories daily WHERE daily.memory_id=memory.id))
-    AND source.status IN ('valid','invalid')
   UNION
-  SELECT parent.source_kind,parent.source_id,parent.source_revision
+  SELECT parent.kind,parent.id,parent.revision
   FROM sources child
   JOIN public.memories memory ON child.kind='memory' AND memory.id=child.id AND memory.owner_fluctlight_id=p_owner
-  JOIN public.memory_source_links parent ON parent.memory_id=child.id AND parent.memory_revision<=child.revision
-  WHERE parent.status IN ('valid','invalid')
+  JOIN links parent ON parent.memory_id=child.id AND parent.memory_revision<=child.revision
  )
  SELECT EXISTS (
   SELECT 1 FROM sources source
@@ -74,11 +86,28 @@ RETURNS boolean LANGUAGE sql STABLE AS $memory_corrected_summary$
   FROM ancestry child
   JOIN LATERAL public.memory_retained_typed_sources(child.id,child.revision) parent ON parent.source_kind='memory'
   JOIN public.memories linked ON linked.id=parent.source_id AND linked.owner_fluctlight_id=p_owner
+ ), summary_sources(id) AS (
+  SELECT source.source_id
+  FROM ancestry child
+  JOIN LATERAL public.memory_retained_typed_sources(child.id,child.revision) source ON source.source_kind='conversation_summary'
+  UNION
+  SELECT episode.id
+  FROM ancestry child
+  JOIN public.memory_revisions snapshot ON snapshot.memory_id=child.id AND snapshot.revision=child.revision
+  JOIN public.memory_source_links source ON source.memory_id=child.id AND source.memory_revision<=child.revision
+  JOIN public.conversation_summaries episode ON source.source_ref='conversation_summary:'||episode.id
+    AND episode.owner_fluctlight_id=p_owner
+  WHERE source.source_kind='legacy' AND source.status='unknown'
+    AND snapshot.evidence_refs ? source.source_ref
+    AND NOT EXISTS (
+     SELECT 1 FROM public.memory_revisions changed
+     WHERE changed.memory_id=child.id AND changed.revision>source.memory_revision AND changed.revision<=child.revision
+       AND (changed.operation<>'confirm' OR NOT (changed.evidence_refs ? source.source_ref))
+    )
  )
  SELECT EXISTS (
-  SELECT 1 FROM ancestry child
-  JOIN LATERAL public.memory_retained_typed_sources(child.id,child.revision) source ON source.source_kind='conversation_summary'
-  JOIN public.conversation_summaries episode ON episode.id=source.source_id AND episode.owner_fluctlight_id=p_owner
+  SELECT 1 FROM summary_sources source
+  JOIN public.conversation_summaries episode ON episode.id=source.id AND episode.owner_fluctlight_id=p_owner
   WHERE public.summary_contains_corrected_memory_source(p_owner,episode.conversation_id,episode.from_sequence,episode.to_sequence)
  );
 $memory_corrected_summary$;

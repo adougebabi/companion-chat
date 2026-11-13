@@ -1,0 +1,12 @@
+SOURCE_HEAD 75f0bc64bec319126297f066fbd59b0d0e2830a1
+OVERLAYS apps/core-go/internal/migrations/summary_correction_guard.go,apps/core-go/internal/migrations/summary_correction_guard_postgres_test.go
+COMMAND go test ./internal/migrations -count=1 -run ^TestSummaryCorrectionGuardMigrationFromPreviousHeadAndRerun$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestSummaryCorrectionGuardMigrationFromPreviousHeadAndRerun
+    summary_correction_guard_postgres_test.go:72: head="0117_media_submission_guard" preserved=false owner=false liveness_guard=true resident_guard=true err=can't scan into dest[0] (col: pg_get_functiondef): cannot scan NULL into *string
+--- FAIL: TestSummaryCorrectionGuardMigrationFromPreviousHeadAndRerun (3.43s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	3.743s
+FAIL
+
+EXIT_CODE 1

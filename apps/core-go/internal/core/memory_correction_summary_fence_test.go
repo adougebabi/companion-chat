@@ -14,10 +14,12 @@ func TestOwnerMemoryCorrectionFencesOldSummarySources(t *testing.T) {
 		confirm      bool
 		legacy       bool
 		legacyParent bool
-	}{{"message:summary-message-1", false, false, false}, {"fact:summary-source-fact", false, false, false}, {"summary-source-fact", false, false, false}, {"sequence:1", false, false, false}, {"conversation_summary:summary-old", false, false, false}, {"memory:base", false, false, false}, {"conversation_summary:summary-old", true, false, false}, {"memory:base", true, false, false}, {"conversation_summary:summary-old", true, true, false}, {"memory:base", true, true, false}, {"memory:base", false, false, true}} {
+	}{{"message:summary-message-1", false, false, false}, {"fact:summary-source-fact", false, false, false}, {"summary-source-fact", false, false, false}, {"sequence:1", false, false, false}, {"conversation_summary:summary-old", false, false, false}, {"memory:base", false, false, false}, {"conversation_summary:summary-old", true, false, false}, {"memory:base", true, false, false}, {"conversation_summary:summary-old", true, true, false}, {"memory:base", true, true, false}, {"memory:base", false, false, true}, {"conversation_summary:summary-old", false, true, false}} {
 		name := test.sourceRef
 		if test.legacyParent {
 			name += "/legacy-parent"
+		} else if test.legacy && !test.confirm {
+			name += "/legacy-first"
 		} else if test.legacy {
 			name += "/legacy-confirm"
 		} else if test.confirm {
@@ -106,7 +108,33 @@ func TestOwnerMemoryCorrectionFencesOldSummarySources(t *testing.T) {
 			if err != nil || len(before.Items) != 1 {
 				t.Fatalf("baseline runtime summary unavailable: %#v %v", before, err)
 			}
+			var legacyDerivedID string
+			var legacyDerivedRevision int
 			zero := created.Revision
+			if test.legacy && !test.confirm {
+				derived := command
+				derived.IdempotencyKey = "summary-legacy-derived"
+				derived.Semantic = &MemorySemanticInput{Type: "semantic", Content: "旧摘要的派生结论", Confidence: 0.8, Importance: 0.8}
+				derived.RequestDigest = memoryCommandDigest(derived)
+				derivedResult := applyMemoryLifecycleTestCommand(t, ctx, app, derived)
+				legacyDerivedID, legacyDerivedRevision = derivedResult.MemoryID, derivedResult.Revision
+				// Reconstruct a migrated source with no earlier typed binding.
+				if _, err := repo.Pool().Exec(ctx, `UPDATE public.memory_source_links SET source_kind='legacy',source_id=NULL,source_revision=NULL,source_fingerprint=NULL,status='unknown' WHERE memory_id=$1 AND source_ref=$2`, created.MemoryID, sourceRef); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := repo.Pool().Exec(ctx, `UPDATE public.memories SET provenance_status='legacy_unknown' WHERE id=$1`, created.MemoryID); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := repo.Pool().Exec(ctx, `UPDATE public.memory_source_links SET source_kind='legacy',source_id=NULL,source_revision=NULL,source_fingerprint=NULL,status='unknown' WHERE memory_id=$1`, legacyDerivedID); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := repo.Pool().Exec(ctx, `UPDATE public.memories SET provenance_status='legacy_unknown' WHERE id=$1`, legacyDerivedID); err != nil {
+					t.Fatal(err)
+				}
+				if valid, err := memorySourcesStillValid(ctx, repo.Pool(), legacyDerivedID, legacyDerivedRevision, "legacy_unknown"); err != nil || !valid {
+					t.Fatalf("uncorrected legacy summary was rejected: valid=%t err=%v", valid, err)
+				}
+			}
 			if test.confirm {
 				row, err := app.readOwnedMemoryAuthorityRow(ctx, owner, created.MemoryID)
 				if err != nil {
@@ -136,6 +164,16 @@ func TestOwnerMemoryCorrectionFencesOldSummarySources(t *testing.T) {
 			}
 			if _, err := app.ReviseMemory(ctx, owner, created.MemoryID, "更正后的结论", &zero, []any{"owner-confirmation"}); err != nil {
 				t.Fatal(err)
+			}
+			if legacyDerivedID != "" {
+				if valid, err := memorySourcesStillValid(ctx, repo.Pool(), legacyDerivedID, legacyDerivedRevision, "legacy_unknown"); err != nil || valid {
+					t.Fatalf("legacy derived memory bypassed correction: valid=%t err=%v", valid, err)
+				}
+				for _, scope := range []struct{ owner, conversation string }{{"other-owner", conversation}, {fid, "other-conversation"}} {
+					if blocked, err := summaryContainsCorrectedMemorySource(ctx, repo.Pool(), scope.owner, scope.conversation, 1, 2); err != nil || blocked {
+						t.Fatalf("legacy correction escaped scope: blocked=%t err=%v", blocked, err)
+					}
+				}
 			}
 			runtime, err := app.retrieveRuntimeSummary(ctx, query, nil)
 			if err != nil || len(runtime.Items) != 0 || len(runtime.Trace.Selections) != 1 || runtime.Trace.Selections[0].Reason != "source_memory_corrected" {

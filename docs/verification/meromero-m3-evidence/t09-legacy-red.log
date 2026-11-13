@@ -1,0 +1,16 @@
+SOURCE_HEAD 75f0bc64bec319126297f066fbd59b0d0e2830a1
+OVERLAYS apps/core-go/internal/core/memory_correction_summary_fence_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestOwnerMemoryCorrectionFencesOldSummarySources$/conversation_summary:summary-old/legacy-first$ -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old
+=== RUN   TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/legacy-first
+    memory_correction_summary_fence_test.go:153: corrected source remained in runtime summary: core.ConversationSummaryRetrievalResult{Items:[]map[string]interface {}{map[string]interface {}{"from_sequence":1, "required":true, "revision":1, "source_message_refs":[]string{}, "summary":"旧累计结论", "summary_id":"runtime_summary_dbd2a1ad0d3551f556265d8b3827681e", "summary_semantics":"bounded cumulative summary; original history retained", "to_sequence":2}}, Trace:core.ConversationSummaryRetrievalTrace{CandidateCount:1, SelectedCount:1, Budget:2048, BudgetUsed:5, Selections:[]core.ConversationSummarySelectionTrace(nil)}} <nil>
+--- FAIL: TestOwnerMemoryCorrectionFencesOldSummarySources (5.68s)
+    --- PASS: TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old (2.78s)
+    --- FAIL: TestOwnerMemoryCorrectionFencesOldSummarySources/conversation_summary:summary-old/legacy-first (2.90s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.402s
+FAIL
+
+EXIT_CODE 1

@@ -22,7 +22,7 @@
   "failure": "T09 部分完成：memory.recall 原始会话结果保留消息类型、时间及实际发言主体，使用本轮已授权的当前说话者/Owner/自身与会话内稳定匿名标签，不暴露数据库 ID；隔离 PostgreSQL 验证多主体、其他 Fluctlight、原生工具续轮、跨会话隔离和纠错检索。另以真实消息受理与 Owner 纠错验证买票玩笑：保留两次原话、旧购票判断不再作为记忆事实返回、购买状态未知。仍未完成：ReplaceEvidence 纠错后旧摘要不能可靠进入可证明吸收纠正的重建；完全未知来源的传播、在途请求及摘要与代次锁顺序未完整解决；真实 Temporal 和真实模型仍未验收。按用户授权卡壳先跳过，保留 execute 待修复并继续 T10。",
   "result": "",
   "created": "2026-11-10T08:34:31.100173Z",
-  "updated": "2026-11-11T17:12:44.863389Z",
+  "updated": "2026-11-13T05:00:12.791908Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -59,6 +59,17 @@
         "ended": "2026-11-11T17:12:40.020684Z",
         "status": "fail",
         "reason": "T09 部分完成：memory.recall 原始会话结果保留消息类型、时间及实际发言主体，使用本轮已授权的当前说话者/Owner/自身与会话内稳定匿名标签，不暴露数据库 ID；隔离 PostgreSQL 验证多主体、其他 Fluctlight、原生工具续轮、跨会话隔离和纠错检索。另以真实消息受理与 Owner 纠错验证买票玩笑：保留两次原话、旧购票判断不再作为记忆事实返回、购买状态未知。仍未完成：ReplaceEvidence 纠错后旧摘要不能可靠进入可证明吸收纠正的重建；完全未知来源的传播、在途请求及摘要与代次锁顺序未完整解决；真实 Temporal 和真实模型仍未验收。按用户授权卡壳先跳过，保留 execute 待修复并继续 T10。"
+      },
+      {
+        "id": "AT-ae5ec4d70e45bab8edcd",
+        "unit": "execute",
+        "executor": "codex-m3-t09-provenance",
+        "input_version": "721772336aaed658563cf4ea7ba769c7068e8ccb5eead24c91e1ccbcf767a1d7",
+        "candidate_version": "",
+        "started": "2026-11-13T05:00:12.612516Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
       }
     ],
     "checks": null
