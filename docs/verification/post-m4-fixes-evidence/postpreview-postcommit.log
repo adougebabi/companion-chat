@@ -1,0 +1,293 @@
+SOURCE_HEAD 42653f8c4998224637e46d75a6fd19b906265b50
+OVERLAYS 
+COMMAND go test ./internal/core ./internal/httpapi/browser -count=1 -run ^(TestCandidatePreview.*|TestDurable.*|TestExplicitCancel.*|TestProviderFailureExposesRetryableTurnAndReusesUserMessage|TestConversationNativePublicationCorrectionPhysicalRequests|TestDirectMedia.*|TestM1Replayed.*)$ -v -timeout=600s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestCandidatePreviewJSONPrefix
+--- PASS: TestCandidatePreviewJSONPrefix (0.00s)
+=== RUN   TestCandidatePreviewObserverOnlyNativeReplyAndReplacesPhysicalCandidate
+--- PASS: TestCandidatePreviewObserverOnlyNativeReplyAndReplacesPhysicalCandidate (0.00s)
+=== RUN   TestCandidatePreviewFencesClaimsAndTerminalStates
+--- PASS: TestCandidatePreviewFencesClaimsAndTerminalStates (2.89s)
+=== RUN   TestCandidatePreviewDurableWorkerEmitsBeforeCommit
+--- PASS: TestCandidatePreviewDurableWorkerEmitsBeforeCommit (2.83s)
+=== RUN   TestCandidatePreviewCannotBypassDeliveryPublicationCheck
+2026/11/14 00:47:13 WARN tool.call.handled capability=conversation.reply call_id=preview-unsupported-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:47:13 WARN tool.call.handled capability=conversation.reply call_id=preview-unsupported-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:47:13 WARN tool.call.handled capability=conversation.reply call_id=preview-unsupported-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:47:13 WARN tool.call.handled capability=conversation.reply call_id=preview-unsupported-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:47:13 WARN tool.call.handled capability=conversation.reply call_id=preview-unsupported-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:47:13 WARN tool.call.handled capability=conversation.reply call_id=preview-unsupported-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestCandidatePreviewCannotBypassDeliveryPublicationCheck (2.80s)
+=== RUN   TestConversationNativePublicationCorrectionPhysicalRequests
+=== RUN   TestConversationNativePublicationCorrectionPhysicalRequests/stream=false/reply
+=== RUN   TestConversationNativePublicationCorrectionPhysicalRequests/stream=false/ignored
+=== RUN   TestConversationNativePublicationCorrectionPhysicalRequests/stream=false/wrong_tool
+=== RUN   TestConversationNativePublicationCorrectionPhysicalRequests/stream=false/multiple_tools
+=== RUN   TestConversationNativePublicationCorrectionPhysicalRequests/stream=false/rejected_receipt
+=== RUN   TestConversationNativePublicationCorrectionPhysicalRequests/stream=false/corrected_receipt
+=== RUN   TestConversationNativePublicationCorrectionPhysicalRequests/stream=true/reply
+=== RUN   TestConversationNativePublicationCorrectionPhysicalRequests/stream=true/ignored
+=== RUN   TestConversationNativePublicationCorrectionPhysicalRequests/stream=true/wrong_tool
+=== RUN   TestConversationNativePublicationCorrectionPhysicalRequests/stream=true/multiple_tools
+=== RUN   TestConversationNativePublicationCorrectionPhysicalRequests/stream=true/rejected_receipt
+=== RUN   TestConversationNativePublicationCorrectionPhysicalRequests/stream=true/corrected_receipt
+--- PASS: TestConversationNativePublicationCorrectionPhysicalRequests (0.05s)
+    --- PASS: TestConversationNativePublicationCorrectionPhysicalRequests/stream=false/reply (0.01s)
+    --- PASS: TestConversationNativePublicationCorrectionPhysicalRequests/stream=false/ignored (0.00s)
+    --- PASS: TestConversationNativePublicationCorrectionPhysicalRequests/stream=false/wrong_tool (0.00s)
+    --- PASS: TestConversationNativePublicationCorrectionPhysicalRequests/stream=false/multiple_tools (0.00s)
+    --- PASS: TestConversationNativePublicationCorrectionPhysicalRequests/stream=false/rejected_receipt (0.00s)
+    --- PASS: TestConversationNativePublicationCorrectionPhysicalRequests/stream=false/corrected_receipt (0.00s)
+    --- PASS: TestConversationNativePublicationCorrectionPhysicalRequests/stream=true/reply (0.00s)
+    --- PASS: TestConversationNativePublicationCorrectionPhysicalRequests/stream=true/ignored (0.00s)
+    --- PASS: TestConversationNativePublicationCorrectionPhysicalRequests/stream=true/wrong_tool (0.00s)
+    --- PASS: TestConversationNativePublicationCorrectionPhysicalRequests/stream=true/multiple_tools (0.00s)
+    --- PASS: TestConversationNativePublicationCorrectionPhysicalRequests/stream=true/rejected_receipt (0.00s)
+    --- PASS: TestConversationNativePublicationCorrectionPhysicalRequests/stream=true/corrected_receipt (0.00s)
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_false
+=== RUN   TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_true
+--- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted (5.86s)
+    --- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_false (3.06s)
+    --- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_true (2.79s)
+=== RUN   TestDirectMediaBatchRecognizesRepeatedCallID
+--- PASS: TestDirectMediaBatchRecognizesRepeatedCallID (0.00s)
+=== RUN   TestDirectMediaBatchStallCountsRoundsAndResetsOnResult
+--- PASS: TestDirectMediaBatchStallCountsRoundsAndResetsOnResult (0.00s)
+=== RUN   TestDirectMediaAndReplyRepeatedBatchStops
+--- PASS: TestDirectMediaAndReplyRepeatedBatchStops (3.09s)
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/discuss_photo
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/user_sent_photo
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/user_sent_photo_variant
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_occurrence
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_tradition
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_question
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_photo_feeling
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivery_question
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/deny
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/cannot_send
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_misreads_denial
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/deny_with_completion_words
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/future
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/tonight
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/conditional_future
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_misreads_future
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/history_match
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/single_character_history_subject
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/unrelated_history
+2026/11/14 00:48:03 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:04 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:04 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:04 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:04 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:04 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/generic_subject_attack
+2026/11/14 00:48:06 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:06 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:06 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:06 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:06 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:06 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/generic_quote_attack
+2026/11/14 00:48:09 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:09 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:09 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:09 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:09 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:09 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/shared_location_attack
+2026/11/14 00:48:11 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:11 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:11 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:11 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:11 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:11 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/multi_subject_attack
+2026/11/14 00:48:14 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:14 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:14 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:14 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:14 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:14 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/short_quote_cannot_borrow_other_subject
+2026/11/14 00:48:16 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:16 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:16 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:16 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:16 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:16 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/no_delivery
+2026/11/14 00:48:19 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:19 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:19 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:19 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:19 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:19 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_identifies_posted_to_chat
+2026/11/14 00:48:22 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:22 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:22 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:22 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:22 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:22 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/implicit_photo_in_current_input
+2026/11/14 00:48:24 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:24 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:24 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:24 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:24 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:24 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/negated_surprise
+2026/11/14 00:48:27 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:27 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:27 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:27 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:27 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:27 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_omitted_obvious_claim
+2026/11/14 00:48:30 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:30 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:30 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:30 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:30 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:30 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivered_word
+2026/11/14 00:48:33 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:33 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:33 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:33 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:33 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:33 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivered_synonym
+2026/11/14 00:48:35 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:35 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:35 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:35 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:35 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:35 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/attached_english
+2026/11/14 00:48:38 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:38 WARN tool.call.handled capability=conversation.reply call_id=reply-1 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:38 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:38 WARN tool.call.handled capability=conversation.reply call_id=reply-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:38 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:48:38 WARN tool.call.handled capability=conversation.reply call_id=reply-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies (75.74s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary (2.84s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/discuss_photo (2.46s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/user_sent_photo (1.88s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/user_sent_photo_variant (1.89s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_occurrence (1.77s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_tradition (1.66s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_question (2.24s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/ordinary_photo_feeling (2.04s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivery_question (2.22s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/deny (1.24s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/cannot_send (2.23s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_misreads_denial (2.37s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/deny_with_completion_words (2.14s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/future (1.97s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/tonight (1.96s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/conditional_future (1.62s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_misreads_future (1.89s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/history_match (2.01s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/single_character_history_subject (2.46s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/unrelated_history (2.29s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/generic_subject_attack (2.34s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/generic_quote_attack (2.87s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/shared_location_attack (2.66s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/multi_subject_attack (2.28s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/short_quote_cannot_borrow_other_subject (2.74s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/no_delivery (2.89s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_identifies_posted_to_chat (2.39s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/implicit_photo_in_current_input (2.64s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/negated_surprise (2.78s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/extractor_omitted_obvious_claim (2.77s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivered_word (2.76s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/delivered_synonym (2.67s)
+    --- PASS: TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies/attached_english (2.76s)
+=== RUN   TestDirectMediaCompletionGuardDoesNotTreatDenialAsConfirmation
+--- PASS: TestDirectMediaCompletionGuardDoesNotTreatDenialAsConfirmation (0.00s)
+=== RUN   TestDirectMediaClaimRetryBoundSurvivesInterleavedToolResults
+--- PASS: TestDirectMediaClaimRetryBoundSurvivesInterleavedToolResults (0.00s)
+=== RUN   TestDirectMediaDeliveryDuringReplyPreservesEffectForNextTurn
+2026/11/14 00:48:41 INFO capability lifecycle capability=capability.catalog call_id=race-load-image type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMediaDeliveryDuringReplyPreservesEffectForNextTurn (2.78s)
+=== RUN   TestDirectMediaDeliveryEvidenceRequiresScopedCommittedAttachment
+--- PASS: TestDirectMediaDeliveryEvidenceRequiresScopedCommittedAttachment (2.52s)
+=== RUN   TestDirectMediaDeliveryEvidenceDoesNotInventTimeForLateAttachment
+--- PASS: TestDirectMediaDeliveryEvidenceDoesNotInventTimeForLateAttachment (2.28s)
+=== RUN   TestDirectMediaDeliveryEvidenceLocksTheCommittedRows
+--- PASS: TestDirectMediaDeliveryEvidenceLocksTheCommittedRows (2.76s)
+=== RUN   TestDirectMediaDeliveryEvidenceRequiresPublishedDraftAndMatchingMessage
+--- PASS: TestDirectMediaDeliveryEvidenceRequiresPublishedDraftAndMatchingMessage (2.23s)
+=== RUN   TestDirectMediaDeliveryEvidenceDoesNotTreatUserMessageAsOutgoing
+--- PASS: TestDirectMediaDeliveryEvidenceDoesNotTreatUserMessageAsOutgoing (1.43s)
+=== RUN   TestDirectMediaDeliveryEvidenceDoesNotWaitBehindMediaIntentLock
+--- PASS: TestDirectMediaDeliveryEvidenceDoesNotWaitBehindMediaIntentLock (2.06s)
+=== RUN   TestDurableTurnDiagnosticsUseTheSameInboxStatusAsChat
+--- PASS: TestDurableTurnDiagnosticsUseTheSameInboxStatusAsChat (2.24s)
+=== RUN   TestDurableBrowserObserverDisconnectDoesNotCancelWorker
+--- PASS: TestDurableBrowserObserverDisconnectDoesNotCancelWorker (2.46s)
+=== RUN   TestDurableObserverEmitsWorkerCommittedReplyAndTerminal
+--- PASS: TestDurableObserverEmitsWorkerCommittedReplyAndTerminal (2.58s)
+=== RUN   TestDurableObserverReceivesDirectMainReply
+--- PASS: TestDurableObserverReceivesDirectMainReply (2.57s)
+=== RUN   TestExplicitCancelIsRetryableWithoutDuplicateUserMessage
+--- PASS: TestExplicitCancelIsRetryableWithoutDuplicateUserMessage (2.11s)
+=== RUN   TestProviderFailureExposesRetryableTurnAndReusesUserMessage
+--- PASS: TestProviderFailureExposesRetryableTurnAndReusesUserMessage (1.65s)
+=== RUN   TestExplicitCancelStopsRunningProviderAndFencesLateReply
+--- PASS: TestExplicitCancelStopsRunningProviderAndFencesLateReply (2.45s)
+=== RUN   TestM1ReplayedUnauthorizedCallIDStopsWithoutDuplicateReceipt
+--- PASS: TestM1ReplayedUnauthorizedCallIDStopsWithoutDuplicateReceipt (2.37s)
+=== RUN   TestM1ReplayedUnauthorizedCallIDIgnoringReplyWindowStops
+--- PASS: TestM1ReplayedUnauthorizedCallIDIgnoringReplyWindowStops (2.35s)
+=== RUN   TestM1ReplayedClosedWindowReceiptStops
+--- PASS: TestM1ReplayedClosedWindowReceiptStops (2.43s)
+=== RUN   TestM1ReplayedDenialRestartsAfterRealAction
+--- PASS: TestM1ReplayedDenialRestartsAfterRealAction (0.00s)
+=== RUN   TestM1ReplayedDenialResetsAfterSameBatchRealAction
+--- PASS: TestM1ReplayedDenialResetsAfterSameBatchRealAction (2.37s)
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/ordinary
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/matching_delivery
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/matching_full_quote
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/additional_unsupported_claim
+2026/11/14 00:49:27 WARN tool.call.handled capability=conversation.reply call_id=context-additional_unsupported_claim-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:49:27 WARN tool.call.handled capability=conversation.reply call_id=context-additional_unsupported_claim-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:49:27 WARN tool.call.handled capability=conversation.reply call_id=context-additional_unsupported_claim-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:49:27 WARN tool.call.handled capability=conversation.reply call_id=context-additional_unsupported_claim-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:49:27 WARN tool.call.handled capability=conversation.reply call_id=context-additional_unsupported_claim-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:49:27 WARN tool.call.handled capability=conversation.reply call_id=context-additional_unsupported_claim-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/unrelated_delivery
+2026/11/14 00:49:29 WARN tool.call.handled capability=conversation.reply call_id=context-unrelated_delivery-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:49:29 WARN tool.call.handled capability=conversation.reply call_id=context-unrelated_delivery-2 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:49:29 WARN tool.call.handled capability=conversation.reply call_id=context-unrelated_delivery-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:49:29 WARN tool.call.handled capability=conversation.reply call_id=context-unrelated_delivery-3 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:49:29 WARN tool.call.handled capability=conversation.reply call_id=context-unrelated_delivery-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/14 00:49:29 WARN tool.call.handled capability=conversation.reply call_id=context-unrelated_delivery-4 warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+--- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery (9.34s)
+    --- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/ordinary (1.93s)
+    --- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/matching_delivery (1.68s)
+    --- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/matching_full_quote (1.46s)
+    --- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/additional_unsupported_claim (2.52s)
+    --- PASS: TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery/unrelated_delivery (1.76s)
+=== RUN   TestDirectMediaContextPrefilterIgnoresOlderUnrelatedTopic
+--- PASS: TestDirectMediaContextPrefilterIgnoresOlderUnrelatedTopic (0.00s)
+=== RUN   TestDurableTimedTurnReplaysAcceptedSenderTime
+=== RUN   TestDurableTimedTurnReplaysAcceptedSenderTime/fresh_inbox
+=== RUN   TestDurableTimedTurnReplaysAcceptedSenderTime/existing_inbox_without_time
+--- PASS: TestDurableTimedTurnReplaysAcceptedSenderTime (4.69s)
+    --- PASS: TestDurableTimedTurnReplaysAcceptedSenderTime/fresh_inbox (2.40s)
+    --- PASS: TestDurableTimedTurnReplaysAcceptedSenderTime/existing_inbox_without_time (2.29s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	149.736s
+=== RUN   TestCandidatePreviewBoundaryIsUnverifiedTextOnly
+--- PASS: TestCandidatePreviewBoundaryIsUnverifiedTextOnly (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser	0.569s
+
+EXIT_CODE 0

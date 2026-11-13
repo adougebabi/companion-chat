@@ -16,17 +16,86 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
-  "status": "open",
-  "candidate": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "31cf2e321d3c7feb6a727ed5f87231652e2e7270ad11daf8a007588709e19723",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-11T14:47:32.612512Z",
-  "updated": "2026-11-11T14:47:32.612523Z",
-  "completed": null,
+  "updated": "2026-11-13T16:50:46.189034Z",
+  "completed": "2026-11-13T16:50:46.188875Z",
   "feedback": [],
   "history": {
-    "attempts": null,
-    "checks": null
+    "attempts": [
+      {
+        "id": "AT-870ed180af823689f703",
+        "unit": "define",
+        "executor": "codex-postm4-preview",
+        "input_version": "44d8aa2b5dcb6bea0065b363469f67c80c561577d5b1405bbd36d4535f2a5e3f",
+        "candidate_version": "44d8aa2b5dcb6bea0065b363469f67c80c561577d5b1405bbd36d4535f2a5e3f",
+        "started": "2026-11-13T16:29:34.226466Z",
+        "ended": "2026-11-13T16:31:04.277181Z",
+        "status": "pass",
+        "reason": "范围为现有durable聊天候选预览。正式消息继续只来自已提交结果，预览独立状态标为未核验，无附件或完成语义。无需Owner新增业务决策。"
+      },
+      {
+        "id": "AT-fd2e1367f8e97e842fec",
+        "unit": "analysis",
+        "executor": "codex-postm4-preview",
+        "input_version": "44d8aa2b5dcb6bea0065b363469f67c80c561577d5b1405bbd36d4535f2a5e3f",
+        "candidate_version": "44d8aa2b5dcb6bea0065b363469f67c80c561577d5b1405bbd36d4535f2a5e3f",
+        "started": "2026-11-13T16:31:18.690778Z",
+        "ended": "2026-11-13T16:31:18.977292Z",
+        "status": "pass",
+        "reason": "复用共享Redis临时快照按inbox与claim owner隔离；Worker开启现有原生流，仅抽取direct conversation.reply顶层text，推理和decision不转发。新物理调用替换旧候选，终态/正式消息/失效清除；Redis不可用维持正式持久链。现有fact_only行为保持并单独记录预览适用范围。受控Provider、隔离DB与前端原入口验证。"
+      },
+      {
+        "id": "AT-8cd2beceee62f74069ba",
+        "unit": "execute",
+        "executor": "codex-postm4-preview",
+        "input_version": "44d8aa2b5dcb6bea0065b363469f67c80c561577d5b1405bbd36d4535f2a5e3f",
+        "candidate_version": "31cf2e321d3c7feb6a727ed5f87231652e2e7270ad11daf8a007588709e19723",
+        "started": "2026-11-13T16:31:27.491697Z",
+        "ended": "2026-11-13T16:49:41.985487Z",
+        "status": "pass",
+        "reason": "提交42653f8c，direct使用现有正式Stream与跨进程临时cache，预览独立于正式message。受控Worker增量先于正式commit，断开/重连同候选、claim隔离、发布拒绝场景通过。35项Core/边界顶层、86项边界全包、60项web测试及typecheck/build通过，无SKIP。IAB实际ChatPage纯文本未核验标识核对。fact_only行为保留，无Writer预览，真实模型验收保留。"
+      },
+      {
+        "id": "AT-0f932c3b9206adc65c1c",
+        "unit": "check:durable-live-stream-scenario",
+        "executor": "codex-postm4-preview",
+        "input_version": "31cf2e321d3c7feb6a727ed5f87231652e2e7270ad11daf8a007588709e19723",
+        "candidate_version": "31cf2e321d3c7feb6a727ed5f87231652e2e7270ad11daf8a007588709e19723",
+        "started": "2026-11-13T16:50:38.127817Z",
+        "ended": "2026-11-13T16:50:38.21893Z",
+        "status": "pass",
+        "reason": "42653f8c干净源码提交后Core/边界回归149.736秒通过，Web60场景通过，无SKIP。受控SSE Worker生成中候选可见、正式消息0条，断开重连同候选且Worker独立继续。开启预览仍拒绝无依据照片完成声明；claim更换及旧epoch/迟到cancel不串流，断流在延迟history读取前清除。IAB真实ChatPage已核验未核验标识和纯文本。fact_only未增加Writer预览，真实Provider体验按Owner授权保留。知识源变化已审阅并重新索引context后生成当前候选。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "durable-live-stream-scenario",
+        "result": "pass",
+        "source": "scenario:codex-postm4-preview",
+        "config_hash": "ba1dd6534fed5e7fdbd96a479adf3e21cc648aad40b460666dc2add1ab9cbcd7",
+        "at": "2026-11-13T16:50:38.218684Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/cognition_agent.go": "af6ab03c0372f081be61978948f4d2cd3aaa9f1b137a591d5531f2a809b571c4",
+          "apps/core-go/internal/core/conversation_candidate_preview.go": "7472c509f43d755c3eb643c9b1fc204cfc6825e97b52051ab468f25b5b3376a4",
+          "apps/core-go/internal/core/conversation_candidate_preview_test.go": "0459e8f767a8cbc24c2c034fd6df6d0f1db8886d835d698952167992cd09320b",
+          "apps/core-go/internal/core/durable_turn.go": "5c1f37538064a818363c5d046ba6b43094eea74393397ba95186fe325efd9176",
+          "apps/core-go/internal/core/eino_model_runtime.go": "6995775a7aaf1c62a9bd2918c03e4b7d8621f2dee9e3e8ee5fb6a4ac8a24a7b3",
+          "apps/core-go/internal/httpapi/browser/ndjson.go": "f7a9d913ceb99674c3457aa6697fb66162a800954959fb2bbb23fe0413613fdd",
+          "apps/web/src/react-app/pages/ChatPage.tsx": "56c22fef4265912db954cbe16865991aa82c7ee89e6210ca4b53a6d44bc69bc3",
+          "apps/web/src/state/conversation.ts": "b54d91e63dd80d03dc02c821076eb18be239e6089f94f719a1c4f125105c575c",
+          "docs/verification/post-m4-fixes-evidence/postpreview-browser-all.log": "2e13e6ddcb3cbc371a94a2446ca747f43df034ff518f637f66663e0279fc8c1a",
+          "docs/verification/post-m4-fixes-evidence/postpreview-core-regression.log": "385d4778a6a81ea7ccfb11f2450cb2b150c5b76b86ac6e4e289c9a98e958d951",
+          "docs/verification/post-m4-fixes-evidence/postpreview-publication.log": "396c6399323661d5fe4c3a4d0b87a3275058ded55690d7ca57ca86140c83bc4d",
+          "docs/verification/post-m4-fixes-evidence/postpreview-reconnect.log": "98525739870c56fa9f990afa8d357111da343fd2ba3223ac15dc160de9c0a6a6",
+          "docs/verification/post-m4-fixes-evidence/preview-web-races.log": "9e91c2333eb07976acc3517a00f50cdc647c0a862fc6ca84d8292dc213a03b80",
+          "docs/verification/post-m4-fixes-progress-20261113.md": "74ec84b1399b6c25626b35fc741c8d0a6a3f30efa48439f34042614b499f8971"
+        }
+      }
+    ]
   }
 }

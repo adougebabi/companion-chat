@@ -8,7 +8,7 @@
 | F02 | 同ID无权限/关闭窗口回执跨轮重放有界 | VERIFIED | postdenial-* |
 | F03a | 诊断详情接入现有原媒体任务人工核对 | VERIFIED | entry-* |
 | F03b | Studio/视觉身份原结果领域恢复 | 待后续独立处理，外部结果归属规则需Owner | 既有领域工作项 |
-| F04 | direct生成中的候选正文增量预览 | 实现及范围内回归通过，待提交后验收 | postpreview-*及preview-* |
+| F04 | direct生成中的候选正文增量预览 | VERIFIED（direct预览范围） | postpreview-*及preview-* |
 
 F01修正当前用例配置，保留r5夹具fact_only模式；使用允许显式回退的503；在数据库独立配置generic_llm备用模型，保留原Writer冻结值。原输出、穿着、次数、未授权重执行及最终模型元数据断言保留。只改此用例，生产回退策略diff 0。红测与第一轮只修两前置仍失败的日志全部保留。
 
@@ -35,3 +35,5 @@ F04隔离DB、测试专用miniredis与受控原生SSE实测：Worker未结束、
 F04失败记录均保留。首次前端typecheck发现nullable narrowing，已修正；首次Core测试的工具wire名误写为双下划线，按源码单下划线修正测试后5项通过。独立静态审查发现断流清理晚于补偿读取，用延迟history回归复现后修正。延迟夹具首次通过替换global fetch未生效，因为client已捕获fetch引用；改为测试局部控制Response.json后准确复现并通过，未改共享夹具。真实IAB在仅loopback受控页面加载正式ChatPage和产品CSS，截图核对独立“生成预览·尚未核验”及字面<img>文本，未产生附件。截图只在工具会话查看，未提交图片，临时服务已停止。
 
 F04当前预览适用direct。fact_only继续可选且保持原行为，本轮未为Writer新增预览。真实模型速度、自然回复体验与真实媒体生成仍按Owner授权保留未验收。以上受控Provider结果不计为真实模型验收，亦不代表T04/T06或全链完成。
+
+F04提交42653f8c后干净源码Core/边界回归149.736秒通过，前端60项通过，无SKIP。首次submit因组成清单知识源变化被拒绝，已审阅实际变更并重新index/context，当前候选assess已completed。未改变业务代码来处理管理限制。
