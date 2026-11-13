@@ -4,6 +4,7 @@ import {useState} from 'react';
 import {MoreHorizontal} from 'lucide-react';
 import {recordedCallValue,callValueLabel,callDurationLabel,callStageLabel,callPurpose} from '@/approved-ui/task-model-call-presentation.mjs';
 import '../../styles/replica-diagnostic-calls.css';
+import DiagnosticReplayPanel from './DiagnosticReplayPanel';
 
 /** The exact stored wire value, without parsing or flattening provider structures. */
 export function StoredCallValue({value,missing}:{value:unknown;missing:string}){
@@ -12,6 +13,7 @@ export function StoredCallValue({value,missing}:{value:unknown;missing:string}){
 }
 export default function ModelCallDetails({record,onRecover,onOpenMedia,technicalTarget}:{record:any;onRecover?:()=>unknown;onOpenMedia?:(id:string)=>unknown;technicalTarget?:HTMLElement|null}){
  const [sourceOpen,setSourceOpen]=useState(false);
+ const [replayOpen,setReplayOpen]=useState(false);
  const call=record._record?.data||{},media=record._record?.kind==='media-prompts',present=(v:unknown)=>v!==undefined&&v!==null&&v!=='';
  const attributes=[['模型',callValueLabel(recordedCallValue(call,'model_id'),record.model||'模型未记录')],['用途',callPurpose(call,record.label||'用途未记录').label],['耗时',callDurationLabel(call,{includeSource:false})]];
  for(const [key,label] of [['sequence','调用序号'],['round_count','所属运行调用数'],['stage','调用阶段']])if(present(recordedCallValue(call,key)))attributes.push([label,key==='stage'?callStageLabel(call):callValueLabel(recordedCallValue(call,key),'未记录')]);
@@ -22,6 +24,8 @@ export default function ModelCallDetails({record,onRecover,onOpenMedia,technical
   <section className="replica-model-call-field"><h3>返回内容</h3><StoredCallValue value={call.response} missing="此调用未记录 Response（响应）。"/></section>
   {media&&<section className="replica-model-call-field" data-testid="media-call-details"><h3>媒体生成记录</h3>{['provider_prompt','negative_prompt','parameters','workflow_id','result'].filter(key=>Object.hasOwn(call,key)).map(key=><section key={key}><h4>{({provider_prompt:'服务请求',negative_prompt:'负面提示词',parameters:'生成参数',workflow_id:'工作流',result:'输出'})[key]}</h4><StoredCallValue value={call[key]} missing="尚未记录"/></section>)}{call.result?.asset_id&&onOpenMedia&&<Button variant="outline" onClick={()=>onOpenMedia(call.result.asset_id)}>查看已记录素材</Button>}</section>}
   {onRecover&&<Button variant="outline" className="replica-model-call-recovery" data-testid="diag-drawer-retry" onClick={onRecover}>查看原任务与恢复</Button>}
+  {typeof call.correlation_id==='string'&&call.correlation_id.trim()&&<Button variant="outline" aria-expanded={replayOpen} onClick={()=>setReplayOpen(value=>!value)}>{replayOpen?'收起只读回放':'只读回放此运行'}</Button>}
+  {replayOpen&&typeof call.correlation_id==='string'&&call.correlation_id.trim()&&<DiagnosticReplayPanel correlationId={call.correlation_id}/>}
   {technicalTarget?createPortal(<Button variant="ghost" size="icon" aria-label="技术详情与关联标识" aria-expanded={sourceOpen} onClick={()=>setSourceOpen(value=>!value)}><MoreHorizontal size={16}/></Button>,technicalTarget):<Button variant="ghost" size="sm" aria-expanded={sourceOpen} onClick={()=>setSourceOpen(value=>!value)}>技术详情与关联标识</Button>}
   {sourceOpen&&<section><h3>技术详情与关联标识</h3><StoredCallValue value={record._record} missing="完整来源未记录"/></section>}
  </div>;

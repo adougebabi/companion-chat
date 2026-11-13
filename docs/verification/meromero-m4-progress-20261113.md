@@ -5,6 +5,7 @@
 | 单元 | 原始条目 | 唯一目标 | 状态 | 证据 |
 |---|---|---|---|---|
 | M4-01 | T11 14.3 开发调试权限 | 原始诊断读取和全文搜索需要 Operator 显式开启及 Owner 身份 | VERIFIED | 本目录 meromero-m4-evidence/debug-* |
+| M4-02 | T11 14.4 默认只读重放 | 在单个已存 correlation 范围内逐条回放记录，保留失败和分页缺口 | IMPLEMENTED，待提交后复验 | 正式调用详情及现有 diagnostic-records GET |
 
 ## M4-01
 
@@ -29,3 +30,17 @@ Core 检查覆盖原始 records 列表/详情、旧 events/model/media/lifecycle
 本单元只收口原始诊断的读取授权。诊断写入/留存、完整 Trace 关联、通用隔离重放及全部真实页面到运行消费仍属于 T11 待办。既有正文凭据脱敏只覆盖已定义格式，保留原限制。M4 与父 T11/T12 保持未完成。普通聊天模型、Prompt、采样和工具合同未修改。
 
 M4-01 收口提交 `8ca56aa56abc9c7bd48ed7b71ab01f892e9df017`。下一单元按 T11 补齐调试数据写入/留存边界或只读重放，以当前正式路径核实后选定。
+
+## M4-02
+
+本单元复用现有带调试授权的正式诊断 GET。调用详情可打开只读记录回放，按时间与来源/引用显示事件、物理模型、Agent result.Trace、回合、工作流链接、媒体、异步及决策记录。全部来源分别分页，时间相同不宣称精确执行顺序。各来源保持自己的创建成员快照，状态为读时值。保留读取错误和后续页提示，缺少输入/回执/发布证据不能推定完成。
+
+该单元是已存记录的逐条查看。重新执行模型、工具、媒体恢复与工作流控制不属于回放行为。跨异步关联完整性、未存输入恢复和隔离重新推理仍待 T11 总验收。诊断写入涉及 Provider、工具事件与 Kev 直写，已定位为独立待办，本单元不修改其业务恢复账本。
+
+### M4-02 已执行与失败
+
+- 首次 typecheck 因 useSyncExternalStore 快照类型 unknown 失败，补显式会话类型后通过，分别见 `replay-typecheck.log` / `replay-typecheck-fix1.log`。
+- 首轮 React 回放测试发现后续页插入较早记录时默认选中项漂移，`replay-web.log` 退出 1。按记录键固定首次选中后相同集合通过，`replay-web-fix1.log` 退出 0。补正式调用详情入口测试后 13 项通过，`replay-web-entry.log`，无 SKIP。
+- 真实 Browser HTTP/隔离 PostgreSQL 对九类 GET 的读取测试通过，三个相同 call_id 的 requested/failed/completed 均保留。tool_executions、conversation_messages、media_intents、workflow_control_commands 行数读取前后相等。`replay-http.log` 退出 0，无 SKIP。受控数据与 nil runtime，不代表真实模型/Temporal执行或端到端浏览器。
+- Web build 退出 0，生产图扫描通过。保留既有大于 500kB chunk 警告，无本单元打包优化。`replay-build.log`。
+- 独立只读复核未发现指定范围阻断，复核者 React 13 项通过。四用户草稿保持原 SHA-256。

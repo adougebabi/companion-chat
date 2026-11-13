@@ -1,0 +1,12 @@
+SOURCE_HEAD 0e31826350cb11cb140611c49dbcea5a4cdbac33
+OVERLAYS apps/core-go/internal/httpapi/diagnostic_debug_access_integration_test.go
+COMMAND go test ./internal/httpapi -count=1 -run TestDiagnosticDebugReadBrowserAndInternalHTTP -v -timeout=180s
+DATABASE task-owned isolated PostgreSQL
+=== RUN   TestDiagnosticDebugReadBrowserAndInternalHTTP
+=== RUN   TestDiagnosticDebugReadBrowserAndInternalHTTP/readonly_replay_source_reads_preserve_attempts_and_business_state
+--- PASS: TestDiagnosticDebugReadBrowserAndInternalHTTP (1.63s)
+    --- PASS: TestDiagnosticDebugReadBrowserAndInternalHTTP/readonly_replay_source_reads_preserve_attempts_and_business_state (0.01s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi	2.456s
+
+EXIT_CODE 0

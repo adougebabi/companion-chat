@@ -147,4 +147,41 @@ func TestDiagnosticDebugReadBrowserAndInternalHTTP(t *testing.T) {
 	if export.Code != http.StatusOK || strings.Contains(export.Body.String(), "SYNTHETIC_HTTP_PRIVATE") || !strings.Contains(export.Body.String(), `"complete":true`) {
 		t.Fatal("metadata export", export.Code, export.Body.String())
 	}
+	t.Run("readonly replay source reads preserve attempts and business state", func(t *testing.T) {
+		server.app.DiagnosticDebugReadEnabled = true
+		if _, err := pool.Exec(ctx, `INSERT INTO public.diagnostic_events(id,event_type,severity,correlation_id,payload) VALUES
+   ('replay-request','adk.tool.requested','info','replay-http','{"call_id":"same-tool","status":"requested"}'),
+   ('replay-failed','adk.tool.result','error','replay-http','{"call_id":"same-tool","status":"failed"}'),
+   ('replay-succeeded','adk.tool.result','info','replay-http','{"call_id":"same-tool","status":"completed"}')`); err != nil {
+			t.Fatal(err)
+		}
+		counts := func() []int64 {
+			t.Helper()
+			var tools, messages, media, commands int64
+			if err := pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM public.tool_executions),(SELECT count(*) FROM public.conversation_messages),(SELECT count(*) FROM public.media_intents),(SELECT count(*) FROM public.workflow_control_commands)`).Scan(&tools, &messages, &media, &commands); err != nil {
+				t.Fatal(err)
+			}
+			return []int64{tools, messages, media, commands}
+		}
+		before := fmt.Sprint(counts())
+		for _, kind := range []string{"events", "model-runs", "agent-runs", "turns", "links", "media-prompts", "workflow-intents", "media-recoveries", "kev"} {
+			response := request("/api/diagnostic-records/" + kind + "?correlationId=replay-http&limit=30")
+			if response.Code != http.StatusOK {
+				t.Fatalf("replay source %s: %d %s", kind, response.Code, response.Body.String())
+			}
+			if kind == "events" {
+				var result map[string]any
+				if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+					t.Fatal(err)
+				}
+				if len(result["items"].([]any)) != 3 || result["next_cursor"] != "" || result["snapshot"] == "" || !strings.Contains(response.Body.String(), "failed") || !strings.Contains(response.Body.String(), "completed") {
+					t.Fatal("replay lost separate stored attempts", response.Body.String())
+				}
+			}
+		}
+		if after := fmt.Sprint(counts()); after != before {
+			t.Fatal("readonly source traversal changed business state", before, after)
+		}
+	})
+
 }

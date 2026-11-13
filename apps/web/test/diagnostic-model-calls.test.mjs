@@ -43,3 +43,23 @@ test('disabled debug reading explains operator authorization and cannot look lik
   assert.equal(document.querySelector('[role=dialog]'),null);
  }finally{await v.dispose();}
 });
+
+test('formal call detail opens and closes readonly replay through diagnostic GET facade',async()=>{
+ const reads=[];
+ const w=workspace(async(kind,query)=>{
+  reads.push({kind,...query});
+  if(query.limit===30)return {items:kind==='events'?[{ref:'tool-failed',kind,occurred_at:'2026-11-13T00:00:00Z',data:{event_type:'adk.tool.result',status:'failed'}}]:[],next_cursor:'',snapshot:'fixture-snapshot'};
+  return {items:kind==='model-runs'?[row('replay-entry',{correlation_id:'formal-parent'})]:[],next_cursor:''};
+ });
+ const v=await mount(w);
+ try{
+  await v.click(v.host.querySelector('[data-testid=diag-open-replay-entry]'));
+  const dialog=document.querySelector('[role=dialog]');
+  await v.click(button(dialog,'只读回放此运行'));
+  assert.match(dialog.querySelector('[data-testid=replay-record]').textContent,/tool-failed/);
+  assert.equal(reads.filter(read=>read.limit===30).length,9);
+  assert.ok(reads.filter(read=>read.limit===30).every(read=>read.correlationId==='formal-parent'));
+  await v.click(button(dialog,'收起只读回放'));
+  assert.equal(dialog.querySelector('[data-testid=diagnostic-replay]'),null);
+ }finally{await v.dispose();}
+});

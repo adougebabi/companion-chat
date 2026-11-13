@@ -1,0 +1,21 @@
+✔ primary list stays compact and call dialog owns raw values, Close and source focus (1663.188125ms)
+✔ main pagination retries the exact opaque cursor and correlation while retaining confirmed data (231.989917ms)
+✔ initial call read failure never looks empty or missing wire fields; retry can reveal actual empty data (183.961208ms)
+✔ correlation switch clears selection and rejects late original pagination (315.604958ms)
+✔ Owner switch retires unresolved main records and selected sources (212.482958ms)
+✔ disabled debug reading explains operator authorization and cannot look like an empty call list (159.963417ms)
+✔ formal call detail opens and closes readonly replay through diagnostic GET facade (259.505166ms)
+✔ readonly playback retains failed and successful attempts and separate tool phases without writes (203.911708ms)
+✔ pagination failure keeps confirmed records and retries the exact opaque cursor (143.787291ms)
+✔ missing content, absent time and empty sources keep their actual storage meanings (59.029583ms)
+✔ owner and correlation changes discard unresolved previous scope results (162.884917ms)
+✔ snapshot change and nonadvancing cursor retain earlier evidence and explicit incompleteness (172.666375ms)
+✔ permission denial stays explicit across every source (59.017833ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3478.082208

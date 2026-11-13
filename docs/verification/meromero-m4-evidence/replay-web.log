@@ -1,0 +1,44 @@
+✔ primary list stays compact and call dialog owns raw values, Close and source focus (1581.781125ms)
+✔ main pagination retries the exact opaque cursor and correlation while retaining confirmed data (230.498625ms)
+✔ initial call read failure never looks empty or missing wire fields; retry can reveal actual empty data (180.748334ms)
+✔ correlation switch clears selection and rejects late original pagination (312.295ms)
+✔ Owner switch retires unresolved main records and selected sources (209.871667ms)
+✔ disabled debug reading explains operator authorization and cannot look like an empty call list (154.099792ms)
+✔ readonly playback retains failed and successful attempts and separate tool phases without writes (202.403625ms)
+✖ pagination failure keeps confirmed records and retries the exact opaque cursor (116.923167ms)
+✔ missing content, absent time and empty sources keep their actual storage meanings (60.629417ms)
+✔ owner and correlation changes discard unresolved previous scope results (163.876416ms)
+✔ snapshot change and nonadvancing cursor retain earlier evidence and explicit incompleteness (172.8675ms)
+✔ permission denial stays explicit across every source (62.285542ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 11
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3204.229208
+
+✖ failing tests:
+
+test at test/diagnostic-replay.test.mjs:47:1
+✖ pagination failure keeps confirmed records and retries the exact opaque cursor (116.923167ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /retained/. Input:
+  
+  '事件与工具 · 已记录2026-11-13T01:00:00Z{\n' +
+    '  "ref": "earlier",\n' +
+    '  "kind": "events",\n' +
+    '  "occurred_at": "2026-11-13T01:00:00Z",\n' +
+    '  "data": {}\n' +
+    '}'
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/diagnostic-replay.test.mjs:63:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '事件与工具 · 已记录2026-11-13T01:00:00Z{\n  "ref": "earlier",\n  "kind": "events",\n  "occurred_at": "2026-11-13T01:00:00Z",\n  "data": {}\n}',
+    expected: /retained/,
+    operator: 'match',
+    diff: 'simple'
+  }

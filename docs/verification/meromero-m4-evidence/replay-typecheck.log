@@ -1,0 +1,5 @@
+$ tsc --noEmit
+src/react-app/shared/DiagnosticReplayPanel.tsx(26,19): error TS2571: Object is of type 'unknown'.
+/Users/vinson/Documents/project/个人/local-ai-companion/apps/web:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @fluctlight/web@0.1.0 typecheck: `tsc --noEmit`
+Exit status 2
