@@ -456,8 +456,10 @@ func (a *App) mediaStructuredCall(ctx context.Context, stage, instruction string
 	traceSlots := mediaStructuredSourceSlots(packet)
 	if id, _ := ctx.Value(mediaPromptSourceIntentKey{}).(string); strings.TrimSpace(id) != "" {
 		for index := range traceSlots {
-			if traceSlots[index].SlotID == "media_intent" {
-				traceSlots[index].Source = "frozen_media_intent"
+			if traceSlots[index].SlotID == "media_intent" || traceSlots[index].SlotID == "media_previous_prompt" || traceSlots[index].SlotID == "media_quality_feedback" {
+				if traceSlots[index].SlotID == "media_intent" {
+					traceSlots[index].Source = "frozen_media_intent"
+				}
 				traceSlots[index].SourceRefs = taskOptionalSourceRef("media_intent", id)
 			}
 		}
@@ -487,6 +489,8 @@ func mediaStructuredSourceSlots(packet map[string]any) []PromptSlotTrace {
 		{"media_subject_data", "caller_media_packet", "authorized_visible_subjects", []string{"allowed_subject_data", "other_subjects", "studio_definition_source"}},
 		{"media_reference_assets", "caller_media_packet", "explicit_allowed_reference", []string{"allowed_reference_assets", "reference_provenance"}},
 		{"media_dimensions", "caller_media_packet", "selected_image_dimensions", []string{"image_dimensions"}},
+		{"media_previous_prompt", "prior_media_provider_prompt", "quality_retry_previous_prompt", []string{"previous_provider_prompt"}},
+		{"media_quality_feedback", "media_quality_review", "quality_retry_feedback", []string{"quality_feedback"}},
 		{"media_validation_feedback", "core_validation", "structured_output_repair", []string{"validation_error"}},
 	} {
 		for _, key := range group.keys {

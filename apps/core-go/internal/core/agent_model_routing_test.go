@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"reflect"
 	"strings"
@@ -140,6 +141,85 @@ func TestMediaNormalizationCorrectionKeepsFrozenAssignment(t *testing.T) {
 	result, err := app.runBranchedMediaPrompt(ctx, MediaPromptTaskInput{}, concept)
 	if err != nil || result.RepairCount != 1 || !reflect.DeepEqual(models, []string{"frozen-normalizer", "frozen-normalizer"}) {
 		t.Fatalf("normalization correction lost its frozen model: models=%v repairs=%d err=%v", models, result.RepairCount, err)
+	}
+}
+
+func TestMediaNormalizationQualityRetryCarriesRealFeedback(t *testing.T) {
+	concept := mediaPreparedConcept(t, "本人在卧室里的自拍", mediaTestPlan("person", "present", "yes", "full"), mediaTestContext("CURRENT"))
+	concept["human_count"] = 1
+	feedback := map[string]any{"verdict": "retry", "violations": []any{map[string]any{"code": "capture_mismatch", "detail": "手机入镜"}}, "observed_facts": map[string]any{"capture_matches": false}, "retry_guidance": "保留卧室并移出手机"}
+	for _, test := range []struct {
+		name         string
+		intent       mediaIntent
+		wantFeedback map[string]any
+		wantPrevious bool
+		repair       bool
+	}{
+		{"initial", mediaIntent{ProviderPrompt: "stale prompt", QualityRetryFeedback: feedback}, nil, false, false},
+		{"review feedback", mediaIntent{ProviderPrompt: "上一轮真实提示词", QualityRetryCount: 1, QualityRetryFeedback: feedback}, feedback, true, true},
+		{"legacy guidance", mediaIntent{ProviderPrompt: "上一轮真实提示词", QualityRetryCount: 1, QualityRetryGuidance: "保留原画面"}, map[string]any{"retry_guidance": "保留原画面"}, true, false},
+		{"missing feedback", mediaIntent{QualityRetryCount: 1}, nil, false, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			valid := mediaTestOutput(concept)
+			invalid := cloneMap(valid)
+			invalid["declared_human_count"] = 0
+			var packets []map[string]any
+			var models []string
+			var systems []string
+			router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+				models = append(models, stringValue(payload["model"]))
+				for _, raw := range arrayValue(payload["messages"]) {
+					message := mapValue(raw)
+					if message["role"] == "system" {
+						systems = append(systems, stringValue(message["content"]))
+					}
+					if message["role"] != "user" {
+						continue
+					}
+					var packet map[string]any
+					if json.Unmarshal([]byte(stringValue(message["content"])), &packet) == nil && packet["intent"] != nil {
+						packets = append(packets, packet)
+					}
+				}
+				if test.repair && len(models) == 1 {
+					return fakeProviderResult{Structured: invalid}
+				}
+				return fakeProviderResult{Structured: valid}
+			})
+			app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+			ctx := withFrozenProviderAssignment(context.Background(), "media_prompt", providerAssignment{Role: "generic_llm", BaseURL: "http://controlled.invalid", ModelID: "frozen-normalizer", Timeout: time.Second})
+			before := jsonString(concept)
+			result, err := app.runBranchedMediaPrompt(ctx, MediaPromptTaskInput{Intent: test.intent}, concept)
+			wantRequests := 1
+			if test.repair {
+				wantRequests = 2
+			}
+			if err != nil || len(packets) != wantRequests || len(models) != wantRequests || result.RepairCount != wantRequests-1 {
+				t.Fatalf("retry requests=%d models=%v repairs=%d err=%v", len(packets), models, result.RepairCount, err)
+			}
+			for index, packet := range packets {
+				if models[index] != "frozen-normalizer" || packet["intent"] != concept["intent"] || jsonString(packet["media_capture_plan"]) != jsonString(concept["media_capture_plan"]) {
+					t.Fatalf("frozen intent, plan or model changed: %#v", packet)
+				}
+				actualFeedback, hasFeedback := packet["quality_feedback"]
+				if hasFeedback != (test.wantFeedback != nil) || hasFeedback && jsonString(actualFeedback) != jsonString(test.wantFeedback) || (packet["previous_provider_prompt"] != nil) != test.wantPrevious {
+					t.Fatalf("quality retry inputs changed: %#v", packet)
+				}
+				if (strings.Contains(systems[index], mediaNormalizationRetryInstruction)) != (test.intent.QualityRetryCount > 0) {
+					t.Fatalf("quality retry protocol misplaced: %s", systems[index])
+				}
+				if test.wantPrevious && packet["previous_provider_prompt"] != test.intent.ProviderPrompt {
+					t.Fatalf("previous prompt changed: %#v", packet)
+				}
+				if (packet["validation_error"] != nil) != (index > 0) {
+					t.Fatalf("repair feedback misplaced: %#v", packet)
+				}
+			}
+			if jsonString(concept) != before {
+				t.Fatal("normalization mutated the frozen concept")
+			}
+		})
 	}
 }
 

@@ -92,6 +92,13 @@ func TestMediaStructuredSlotsReflectOnlySuppliedPacketFields(t *testing.T) {
 	if !seen["media_intent"] || !seen["media_constraints"] || !seen["media_capture_plan"] || !seen["media_validation_feedback"] || seen["media_subject_data"] || seen["media_reference_assets"] || seen["media_quality_feedback"] {
 		t.Fatalf("media source slots do not reflect the supplied packet: %#v", slots)
 	}
+	seen = map[PromptSlotID]bool{}
+	for _, slot := range mediaStructuredSourceSlots(map[string]any{"previous_provider_prompt": "prior", "quality_feedback": map[string]any{"verdict": "retry"}}) {
+		seen[slot.SlotID] = true
+	}
+	if !seen["media_previous_prompt"] || !seen["media_quality_feedback"] {
+		t.Fatalf("quality retry sources were not declared: %#v", seen)
+	}
 }
 
 func TestDeclaredStableAndCurrentSlotsKeepSeparatePositions(t *testing.T) {
