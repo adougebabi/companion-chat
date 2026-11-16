@@ -48,13 +48,15 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  portalContainer,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left";
   showCloseButton?: boolean;
+  portalContainer?: React.ComponentProps<typeof SheetPrimitive.Portal>["container"];
 }) {
   return (
-    <SheetPortal>
+    <SheetPortal container={portalContainer}>
       <SheetOverlay />
       <SheetPrimitive.Content
         data-slot="sheet-content"
