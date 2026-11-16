@@ -8,7 +8,7 @@ import {JsonDetails} from './records.js';
 
 // Independent read-only panels retain their own cursor and response epoch.
 // A filter/scope change calls reload({reset:true}); it never edits domain data.
-export function mountCursorRecords(box,{read,render,alive=()=>true,bind=()=>{},label='记录',empty='尚无记录',scope=null,errorFallback='暂时无法读取记录，请重新尝试。',onError=()=>{}}={}) {
+export function mountCursorRecords(box,{read,render,alive=()=>true,bind=()=>{},label='记录',empty='尚无记录',scope=null,errorFallback='暂时无法读取记录，请重新尝试。',onError=()=>{},renderFailure=null}={}) {
   const key=()=>scope?JSON.stringify([get('session')?.actorId,typeof scope==='function'?scope():scope]):'';
   const restored=key()?readingViews.get(key()):null;const cursors=restored?[...restored.cursors]:[''];let at=restored?.at||0,epoch=0,disposed=false,viewKey=key(),lastPage=restored?.page||null,lastAt=restored?.at||0;
   const remember=()=>{if(viewKey){readingViews.set(viewKey,{cursors:[...cursors],at:lastAt,page:lastPage});if(readingViews.size>40)readingViews.delete(readingViews.keys().next().value);}};
@@ -24,7 +24,7 @@ export function mountCursorRecords(box,{read,render,alive=()=>true,bind=()=>{},l
       if(!current()||version!==epoch)return;
       if(lastPage){at=lastAt;paint(lastPage);}else box.innerHTML='';
       onError(error);
-      box.querySelector('[data-panel-failure]')?.remove();box.insertAdjacentHTML('beforeend',`<div data-panel-failure><p data-domain-ui="alert" class="banner err" role="alert">${esc(errorMessage(error,errorFallback))}</p>${JsonDetails(feedbackDiagnostic(error),'技术详情')}<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-panel-retry>重新读取</button></div>`);
+      box.querySelector('[data-panel-failure]')?.remove();box.insertAdjacentHTML('beforeend',renderFailure?renderFailure(error):`<div data-panel-failure><p data-domain-ui="alert" class="banner err" role="alert">${esc(errorMessage(error,errorFallback))}</p>${JsonDetails(feedbackDiagnostic(error),'技术详情')}<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-panel-retry>重新读取</button></div>`);
       box.querySelector('[data-panel-retry]').onclick=()=>{at=requestedAt;void load();};
     }
   }
