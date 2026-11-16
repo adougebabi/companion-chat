@@ -814,7 +814,7 @@ export default function VisualWorkspace({ model: m }) {
           <Button disabled={m.readOnly} onClick={(event) => reviewGenerated(event, row)}>查看并审核{row.kind === "avatar" ? "头像" : "角色设定图"}</Button>
         </Surface>
       ))}
-      <div className="r-toolbar">
+      <div className="r-toolbar r-identity-header">
         <div className="r-grow">
           <h2 className="r-inline-title">同一个人，越来越清晰</h2>
           <p className="r-muted">规范参考、候选与评审，各自留下真实记录。</p>
