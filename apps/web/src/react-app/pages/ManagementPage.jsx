@@ -492,7 +492,7 @@ function createManagementPageController(props, context, lifecycle) {
     const projected = [];
     for (const [index, result] of [models, media].entries()) {
       if (result.status === "rejected") {
-        const pageState=diagnosticPages.value[index?"媒体调用":"模型调用"];pageState.loading=false;pageState.error=errorMessage(result.reason);
+        const pageState=diagnosticPages.value[index?"媒体调用":"模型调用"];pageState.loading=false;pageState.error=errorMessage(result.reason);pageState.failure=feedbackDiagnostic(result.reason);
         projected.push(...records.value.filter(record=>record.kind===(index?"媒体调用":"模型调用")));
         continue;
       }
@@ -509,7 +509,7 @@ function createManagementPageController(props, context, lifecycle) {
     if(!state.ready&&state.error){await loadDiagnostics();return;}if(state.loading||!cursor)return;state.loading=true;state.error='';
     const current=()=>live()&&token===diagnosticEpoch&&correlationId===diagnosticCorrelation.value;
     try{const page=await diagnostics.page(selectedKind==='模型调用'?'model-runs':'media-prompts',{limit:20,cursor,...(correlationId?{correlationId}:{}),...diagnosticQueryFilter.value});if(!current())return;const seen=new Set(records.value.filter(record=>record.kind===selectedKind).map(record=>record.id));records.value=[...records.value,...page.items.filter(record=>!seen.has(record.ref)).map(record=>diagnosticProjection(record,selectedKind==='媒体调用'?1:0,characters.value))];state.cursor=page.next_cursor||'';}
-    catch(cause){if(current())state.error=errorMessage(cause);}finally{if(current())state.loading=false;}
+    catch(cause){if(current()){state.error=errorMessage(cause);state.failure=feedbackDiagnostic(cause);}}finally{if(current())state.loading=false;}
   }
   function searchHistory(){diagnosticQuery.value=historySearch.value.trim();diagnosticQueryFilter.value=callPurposeSearchQuery(historySearch.value);selectedId.value=null;records.value=[];clear();for(const state of Object.values(diagnosticPages.value))Object.assign(state,{loading:true,ready:false,error:'',cursor:''});return loadDiagnostics();}
   function diagnosticRouteChanged(){const value=new URLSearchParams((globalThis.location?.hash||'').split('?')[1]||'').get('correlationId')||'';if(value===diagnosticCorrelation.value)return;diagnosticCorrelation.value=value;historySearch.value='';diagnosticQuery.value='';diagnosticQueryFilter.value={};selectedId.value=null;reference.value='';referenceEpoch++;referenceDetailEpoch++;referenceRecord.value=null;for(const section of referenceSections.value)Object.assign(section,{rows:[],nextCursor:'',loading:false,error:'',failedMore:false});records.value=[];clear();for(const state of Object.values(diagnosticPages.value))Object.assign(state,{loading:true,ready:false,error:'',cursor:''});void loadDiagnostics();}

@@ -31,7 +31,7 @@ export function feedbackDiagnostic(cause){
 export function errorMessage(error, fallback='操作未完成，请稍后重试。') {
  const text=String(error?.message ?? error ?? ''), code=String(error?.code ?? '');
  const source=code+' '+text;
- if(code==='diagnostic_debug_read_disabled')return '完整诊断读取未启用。请由服务管理员开启 FLUCTLIGHT_DIAGNOSTIC_DEBUG_READ 后重启 API，再重新读取。';
+ if(/diagnostic_debug_read_disabled|FLUCTLIGHT_DIAGNOSTIC_DEBUG_READ/.test(source))return '完整诊断未开启，请联系管理员。';
  if(/persona_preparation_failed/.test(source))return '人格资料准备失败，暂时无法聊天。请继续准备人格，完成后再发送；当前输入会保留。';
  if(/persona_preparation_pending/.test(source))return '人格资料正在准备，完成后即可聊天。当前输入会保留，请稍后重新读取准备状态。';
  if(/vision_disabled/.test(source))return '视觉理解未启用；候选图片已保存，尚未经视觉检验。请到设置开启视觉理解并选择独立视觉模型，或提交人工评审。';

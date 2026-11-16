@@ -1,9 +1,10 @@
-import {errorMessage} from '../../domain-presentation.mjs';
+import {errorMessage,feedbackDiagnostic} from '../../domain-presentation.mjs';
 import {get,subscribe} from '../store.js';
 const readingViews=new Map();
 subscribe(()=>{if(!get('session'))readingViews.clear();});
 import { CursorPager,bindCursorPager } from './cursor-pager.js';
 import { esc } from './controls.js';
+import {JsonDetails} from './records.js';
 
 // Independent read-only panels retain their own cursor and response epoch.
 // A filter/scope change calls reload({reset:true}); it never edits domain data.
@@ -23,7 +24,7 @@ export function mountCursorRecords(box,{read,render,alive=()=>true,bind=()=>{},l
       if(!current()||version!==epoch)return;
       if(lastPage){at=lastAt;paint(lastPage);}else box.innerHTML='';
       onError(error);
-      box.querySelector('[data-panel-failure]')?.remove();box.insertAdjacentHTML('beforeend',`<div data-panel-failure><p data-domain-ui="alert" class="banner err" role="alert">${esc(errorMessage(error,errorFallback))}</p><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-panel-retry>重新读取</button></div>`);
+      box.querySelector('[data-panel-failure]')?.remove();box.insertAdjacentHTML('beforeend',`<div data-panel-failure><p data-domain-ui="alert" class="banner err" role="alert">${esc(errorMessage(error,errorFallback))}</p>${JsonDetails(feedbackDiagnostic(error),'技术详情')}<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-panel-retry>重新读取</button></div>`);
       box.querySelector('[data-panel-retry]').onclick=()=>{at=requestedAt;void load();};
     }
   }

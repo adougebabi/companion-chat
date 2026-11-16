@@ -426,7 +426,7 @@ export function ManagementPageView({ view: view }) {
             <Surface as="section" className="replica-model-calls-surface">
               <header className="replica-model-calls-heading"><h2>{view.kind.value==='媒体调用'?'最近的媒体调用':'最近的模型调用'}</h2><p>记录包含用途、耗时与可展开的请求结果。</p></header>
               {view.diagnosticPages.value[view.kind.value].ready&&<DiagnosticRecords view={{...view,selectRecord:(record,trigger)=>{recordTrigger.current=trigger;view.selectRecord(record);}}}/>}
-              <CursorControls label="调用" append={{hasContent:view.rows.value.length>0,loading:view.diagnosticPages.value[view.kind.value].loading,hasMore:!!view.diagnosticPages.value[view.kind.value].cursor,loadMore:view.loadMoreDiagnostics,error:view.diagnosticPages.value[view.kind.value].error,retry:view.loadMoreDiagnostics}}/>
+              <CursorControls label="调用" append={{hasContent:view.rows.value.length>0,loading:view.diagnosticPages.value[view.kind.value].loading,hasMore:!!view.diagnosticPages.value[view.kind.value].cursor,loadMore:view.loadMoreDiagnostics,error:view.diagnosticPages.value[view.kind.value].error,failure:view.diagnosticPages.value[view.kind.value].failure,retry:view.loadMoreDiagnostics}}/>
             </Surface>
             <Collapsible className="replica-model-calls-secondary">
               <CollapsibleTrigger asChild><ActionButton type="button" variant="ghost">筛选与更多运行记录</ActionButton></CollapsibleTrigger>

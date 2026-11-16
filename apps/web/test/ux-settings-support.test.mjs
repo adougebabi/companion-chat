@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {URL as NodeURL} from 'node:url';
+import {feedbackDiagnostic} from '../src/v3/domain-presentation.mjs';
+import {JsonDetails} from '../src/v3/proto/components/records.js';
 import {configurationTestSummary,beijingFilterInput,diagnosticTimeFilter} from '../src/v3/configuration-feedback.mjs';
 
 const source=name=>readFileSync(new NodeURL(`../src/v3/proto/components/${name}.js`,import.meta.url),'utf8').replace(/^import .*;\s*$/gm,'').replace(/^export /gm,'');
@@ -28,7 +30,7 @@ test('diagnostic filters convert ordinary Beijing time and reject rollover or ma
 });
 test('initial cursor failure removes loading and can retry, later failure retains the last successful page',async()=>{
  let fail=true;const host=box(),message=()=> '读取失败，请重试';
- const mount=Function('get','subscribe','CursorPager','bindCursorPager','esc','errorMessage',source('cursor-records')+'\nreturn mountCursorRecords;')(()=>({actorId:'owner'}),()=>{},()=>'',()=>{},String,message);
+ const mount=Function('get','subscribe','CursorPager','bindCursorPager','esc','errorMessage','feedbackDiagnostic','JsonDetails',source('cursor-records')+'\nreturn mountCursorRecords;')(()=>({actorId:'owner'}),()=>{},()=>'',()=>{},String,message,feedbackDiagnostic,JsonDetails);
  const panel=mount(host,{read:async()=>{if(fail)throw Error('request_failed');return {items:['成功记录']};},render:String});
  await settle();assert.doesNotMatch(host.innerHTML,/正在读取/);assert.match(host.innerHTML,/读取失败/);
  fail=false;host.querySelector('[data-panel-retry]').onclick();await settle();assert.match(host.innerHTML,/成功记录/);

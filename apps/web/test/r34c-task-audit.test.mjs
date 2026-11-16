@@ -67,7 +67,7 @@ test('R34C late pending-source results cannot leak across Owner changes',async()
  const w={state,subscribe:fn=>subscribe(state,fn),getSnapshot:()=>snapshot(state),navigatePath(){},services:{operationsClient:{pending:async()=>state.session.actorId==='r34c-old-owner'?oldPage:{groups:[{kind:'failed_task',status:'ok',count:0,items:[],next_cursor:''}]}},diagnosticsClient:{page:async()=>({items:[],next_cursor:''})}}};
  const v=await mountReact(vite,Host,{workspace:w,props:{view:{openTaskDiagnostics(){}}}});
  try{
-  assert.equal(v.host.querySelector('[data-task-status-group=attention] strong').textContent,'—');assert.doesNotMatch(v.host.textContent,/暂时没有运行任务/);
+  assert.equal(v.host.querySelector('[data-task-status-group=attention] strong').textContent,'暂不可用');assert.doesNotMatch(v.host.textContent,/暂时没有运行任务/);
   await act(async()=>state.session.actorId='r34c-new-owner');await v.flush();
   await act(async()=>resolveOld({groups:[{kind:'failed_task',status:'ok',count:1,items:[{id:'request:old',source_id:'old',title:'前一所有者的事项',status:'failed',href:'#/diag/request/old'}],next_cursor:''}]}));await v.flush();
   assert.doesNotMatch(v.host.textContent,/前一所有者的事项/);assert.equal(v.host.querySelector('[data-task-status-group=attention] strong').textContent,'0');

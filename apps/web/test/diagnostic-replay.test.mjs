@@ -114,7 +114,8 @@ test('permission denial stays explicit across every source',async()=>{
   const view=await mount(w);
   try {
     assert.match(view.host.textContent,/9 个来源读取失败/);
-    assert.match(view.host.textContent,/FLUCTLIGHT_DIAGNOSTIC_DEBUG_READ/);
+    assert.match(view.host.textContent,/完整诊断未开启，请联系管理员/);
+    assert.doesNotMatch(view.host.textContent,/FLUCTLIGHT_DIAGNOSTIC_DEBUG_READ|重启 API/);
     assert.equal(view.host.querySelector('[data-testid=replay-record]'),null);
     assert.doesNotMatch(view.host.textContent,/没有可回放记录/);
     assert.deepEqual(w.writes,[]);

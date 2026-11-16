@@ -37,8 +37,8 @@ test('Owner switch retires unresolved main records and selected sources',async()
 test('disabled debug reading explains operator authorization and cannot look like an empty call list',async()=>{
  const v=await mount(workspace(async()=>{throw Object.assign(new Error('diagnostic_debug_read_disabled'),{code:'diagnostic_debug_read_disabled',status:403});}));
  try{
-  assert.match(v.host.textContent,/完整诊断读取未启用/);
-  assert.match(v.host.textContent,/FLUCTLIGHT_DIAGNOSTIC_DEBUG_READ/);
+  assert.equal((v.host.textContent.match(/完整诊断未开启，请联系管理员。/g)||[]).length,1);
+  assert.doesNotMatch(v.host.textContent,/FLUCTLIGHT_DIAGNOSTIC_DEBUG_READ|diagnostic_debug_read_disabled|重启 API/);
   assert.doesNotMatch(v.host.textContent,/当前还没有这类调用记录/);
   assert.equal(document.querySelector('[role=dialog]'),null);
  }finally{await v.dispose();}
