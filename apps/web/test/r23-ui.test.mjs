@@ -38,9 +38,9 @@ test('P1-3 leaving a pending chat then failing preflight keeps retry usable and 
  try{
   assert.match(v.host.textContent,/正在读取对话/);assert.equal(v.host.querySelector('.replica-chat-empty'),null);await v.dispose();assert.equal(s.loading,false);
   provider.client.session=async()=>{throw Error('会话前置读取失败');};v=await mountReact(vite,Chat,{workspace:w,props:{preview:false,onGo(){}}});
-  assert.match(v.host.textContent,/会话前置读取失败/);assert.doesNotMatch(v.host.textContent,/正在读取对话/);assert.equal(button(v.host,'重新读取对话').disabled,false);assert.equal(v.host.querySelector('.replica-chat-empty'),null);
+  assert.match(v.host.textContent,/暂时无法读取对话/);assert.doesNotMatch(v.host.textContent,/正在读取对话/);assert.equal(button(v.host,'重新读取').disabled,false);assert.equal(v.host.querySelector('.replica-chat-empty'),null);
   provider.client.session=async()=>({authenticated:true,actorId:'r23-chat'});BrowserClient.prototype.directConversation=async()=>conversationPage('A');BrowserClient.prototype.messages=async()=>({messages:[],nextBeforeSequence:null});
-  await v.click(button(v.host,'重新读取对话'));assert.ok(v.host.querySelector('.replica-chat-empty'));assert.doesNotMatch(v.host.textContent,/正在读取对话|会话前置读取失败/);
+  await v.click(button(v.host,'重新读取'));assert.ok(v.host.querySelector('.replica-chat-empty'));assert.doesNotMatch(v.host.textContent,/正在读取对话|会话前置读取失败/);
   pending.resolve(conversationPage('obsolete'));await v.flush();assert.equal(s.conversation.id,'previous');
  }finally{await v.dispose();BrowserClient.prototype.directConversation=original;provider.client.session=originalSession;provider.client.listFluctlights=originalList;BrowserClient.prototype.messages=originalMessages;s.$reset();}
 });

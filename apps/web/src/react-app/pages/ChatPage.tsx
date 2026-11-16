@@ -11,6 +11,8 @@ import WorkspacePageHeader from '../shared/WorkspacePageHeader';
 import WorkspaceMomentArt from '../shared/WorkspaceMomentArt';
 import WearingSummary from '../shared/WearingSummary';
 import {nextScheduleItem} from '@/approved-ui/presentation.mjs';
+import {readErrorCause,serviceUnavailableNotice,settingsHref} from '@/approved-ui/service-unavailable.mjs';
+import {Alert,AlertTitle,AlertDescription} from '@/components/ui/alert';
 import {currentReadError} from '@/approved-ui/read-feedback.mjs';
 import ConversationHistory from '../shared/ConversationHistory';
 import {Surface} from '../controls';
@@ -91,6 +93,10 @@ export default function ChatPage({
   const [historyOpen,setHistoryOpen]=useState(false);
   const [promptOffer,setPromptOffer]=useState('');
   const [readFailure,setReadFailure]=useState(''),[readLoading,setReadLoading]=useState(true);
+  const [readCause,setReadCause]=useState<ReturnType<typeof readErrorCause>|null>(null);
+  const conversationUnavailable=!!readCause;
+  const readNotice=readCause?serviceUnavailableNotice(readCause):null;
+  function failConversationRead(cause:unknown){setReadCause(readErrorCause(cause));setReadFailure('对话暂时无法读取。');}
   const draftRevision=useRef(0),submittedDraftRevision=useRef<number|null>(null);
   const editDraft=(value:string|((current:string)=>string))=>{draftRevision.current++;setDraft(value);};
   const latestDraft = useRef(draft);
@@ -139,9 +145,9 @@ export default function ChatPage({
       lastIdleRead = 0,
       lastSummaryRead = 0;
     const live = () => active && workspace.currentScope() === scope;
-    setReadLoading(true);setReadFailure('');
+    setReadLoading(true);setReadFailure('');setReadCause(null);
     void workspace.openConversation(character.id, live)
-      .catch((cause: unknown) => { if(live())setReadFailure(errorMessage(cause,'对话暂时无法读取。')); })
+      .catch((cause: unknown) => { if(live())failConversationRead(cause); })
       .finally(()=>{if(live())setReadLoading(false);});
     const timer = setInterval(async () => {
       if (!live() || document.hidden || polling) return;
@@ -149,7 +155,7 @@ export default function ChatPage({
       polling = true;
       try {
         if (store.hasPendingTurn || store.hasSettlingTurn)
-          await store.refreshActiveTurn(true);
+          await store.refreshActiveTurn(true).catch(cause=>{if(live())failConversationRead(cause);throw cause;});
         else if (
           !store.sending &&
           !composing.current &&
@@ -157,7 +163,7 @@ export default function ChatPage({
           Date.now() - lastIdleRead > 10000
         ) {
           lastIdleRead = Date.now();
-          await store.refreshActiveTurn(true);
+          await store.refreshActiveTurn(true).catch(cause=>{if(live())failConversationRead(cause);throw cause;});
           if (live() && Date.now() - lastSummaryRead > 30000) {
             lastSummaryRead = Date.now();
             await workspace.detail();
@@ -191,7 +197,7 @@ export default function ChatPage({
   async function send() {
     const submitted = latestDraft.current,
       text = submitted.trim(), revision = draftRevision.current;
-    if (!text || submittedDraftRevision.current === revision || sendBusy || readLoading || preparationBlocked || snapshot.fluctlightId!==character.id || !snapshot.conversation) return;
+    if (!text || submittedDraftRevision.current === revision || sendBusy || readLoading || conversationUnavailable || preparationBlocked || snapshot.fluctlightId!==character.id || !snapshot.conversation) return;
     submittedDraftRevision.current=revision;
     try { await store.send(text, false, null, () => {
       if (
@@ -244,8 +250,12 @@ export default function ChatPage({
   async function reread(){
     setReadLoading(true);setReadFailure('');
     const live=()=>pageActive.current&&workspace.currentScope()===scope;
-    try{if(!store.conversation||store.fluctlightId!==character.id)await workspace.openConversation(character.id,live);else await store.refreshActiveTurn(true);}
-    catch(cause){if(live())setReadFailure(errorMessage(cause,'对话暂时无法读取。'));}
+    try{
+      if(!store.conversation||store.fluctlightId!==character.id)await workspace.openConversation(character.id,live);
+      else await store.refreshActiveTurn(true);
+      if(live())setReadCause(null);
+    }
+    catch(cause){if(live())failConversationRead(cause);}
     finally{if(live())setReadLoading(false);}
   }
   const schedule = nextScheduleItem(character.schedule,now);
@@ -359,7 +369,18 @@ export default function ChatPage({
               )}
             </MessageContent></Message></MessageScrollerItem>
           )}
-          {error && !messageOwnsError && (
+          {readNotice && <MessageScrollerItem messageId="read-error">
+            <Alert data-testid="chat-read-error" className="min-w-0 gap-3 p-4">
+              <AlertTitle>{readNotice.kind==='model'?'聊天模型尚未配置或暂时不可用':'暂时无法读取对话'}</AlertTitle>
+              <AlertDescription>{readNotice.kind==='unknown'?'对话暂时无法读取，暂时无法确认具体原因。请到管理中心检查服务状态，或稍后重新读取。':readNotice.reason}</AlertDescription>
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
+                <Button asChild><a href={settingsHref('模型用途')}>去配置模型</a></Button>
+                <Button variant="outline" disabled={snapshot.loading||readLoading} onClick={()=>void reread()}>重新读取</Button>
+              </div>
+              <div><Button variant="link" asChild className="h-auto px-0"><a href={diagnosticHref} onClick={openDiagnostic}>查看本次运行 <ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/></a></Button></div>
+            </Alert>
+          </MessageScrollerItem>}
+          {error && !readNotice && !messageOwnsError && (
             <MessageScrollerItem messageId="error"><InlineFeedback role="alert">
               {error}<Button variant="outline" disabled={snapshot.loading||readLoading} onClick={()=>void reread()}>重新读取对话</Button>
               <Button variant="link" asChild>
@@ -377,7 +398,8 @@ export default function ChatPage({
           {promptOffer&&<div className="companion-prefill-note"><span>已保留你的草稿，还有一条来自其他页面的请求。</span><Button variant="link" onClick={()=>{editDraft(current=>current.trim()?current+'\n\n'+promptOffer:promptOffer);setPromptOffer('');}}>加入草稿</Button><Button variant="ghost" size="icon" aria-label="放下这条请求" onClick={()=>setPromptOffer('')}><XIcon size={12}/></Button></div>}
           <Textarea
             aria-label="聊天消息"
-            placeholder="说点什么，分享你的今天…"
+            disabled={readLoading || conversationUnavailable}
+            placeholder={conversationUnavailable?"对话暂不可用，请检查模型配置后重新读取":"说点什么，分享你的今天…"}
             value={draft}
             onChange={(event) => editDraft(event.target.value)}
             onCompositionStart={() => (composing.current = true)}
@@ -399,10 +421,10 @@ export default function ChatPage({
             }}
           />
           <div className="companion-composer-bottom">
-            <span>Enter 发送 <i/> Shift + Enter 换行</span>
+            <span>{conversationUnavailable?"对话恢复后才可发送，草稿已保留":<>Enter 发送 <i/> Shift + Enter 换行</>}</span>
             <Button
               className="touch-target"
-              disabled={!draft.trim() || sameDraftPending || sendBusy || readLoading || preparationBlocked || !snapshot.conversation || !!snapshot.recoveryStorageError}
+              disabled={!draft.trim() || sameDraftPending || sendBusy || readLoading || conversationUnavailable || preparationBlocked || !snapshot.conversation || !!snapshot.recoveryStorageError}
               onClick={() => void send()}
             >
               {canQueueFollowUp ? "追加消息" : snapshot.sending || store.hasPendingTurn ? "回应中" : store.hasSettlingTurn ? "等待结束" : "发送"}

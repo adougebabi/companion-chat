@@ -706,7 +706,7 @@ export const conversationDefinition = defineDomain({
     },
     async selectFluctlight(
       fluctlightId: string,
-      options: { loading?: boolean; current?: () => boolean } = {},
+      options: { loading?: boolean; current?: () => boolean; throwOnError?: boolean } = {},
     ) {
       if (options.current && !options.current()) return;
       if (!this.fluctlights.some((item) => item.id === fluctlightId)) {
@@ -757,14 +757,15 @@ export const conversationDefinition = defineDomain({
           // server's exact pending message is enough to order the follow-up.
           void this.sendQueuedTurn();
         }
-      } catch {
+      } catch (error) {
         if (
           selectionEpoch !== this.requestEpoch ||
           (options.current && !options.current())
         )
           return;
         this.clearActiveConversation();
-        this.error = "无法打开该 Fluctlight 的对话。";
+        this.error = "无法打开该角色的对话。";
+        if (options.throwOnError) throw error;
       } finally {
         if (this.selectionLoadingEpoch === selectionEpoch) {
           this.selectionLoadingEpoch = null;

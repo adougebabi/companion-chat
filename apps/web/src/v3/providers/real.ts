@@ -171,7 +171,7 @@ export async function openConversation(id: string, current:()=>boolean = ()=>tru
   if(!current())throw new DOMException('页面已离开','AbortError');
   store.fluctlights = fluctlights;
   if (!store.fluctlights.some(row => row.id === id)) throw new Error('当前角色不可用');
-  await store.selectFluctlight(id,{current});
+  await store.selectFluctlight(id,{current,throwOnError:true});
   if(!current())throw new DOMException('页面已离开','AbortError');
   if (store.fluctlightId !== id || !store.conversation) throw new Error(store.error || '读取会话失败');
   return store;
