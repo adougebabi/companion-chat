@@ -17,6 +17,7 @@ import WorkspaceInfo from "./WorkspaceInfo";
 import useWorkspaceRead from "./useWorkspaceRead";
 import useMediaFollow from "./useMediaFollow";
 import { MediaReader, MediaMore, MediaById } from "./MediaParts";
+import { EmptyState } from "./Presentation";
 import {
   briefFields,
   visualSessionState,
@@ -1059,7 +1060,17 @@ export default function VisualWorkspace({ model: m }) {
         title="视觉定义修订"
         description="每次实际保存的参考说明"
       >
-        <MediaReader source={history} label="定义修订" />
+        <MediaReader source={{
+          ...history,
+          error: history.error ? "暂时无法读取视觉定义修订，请重新读取。" : "",
+          failure: null,
+        }} label="定义修订" />
+        {history.ready && !history.busy && !history.error && !history.items.length && (
+          <EmptyState>
+            <h3>还没有保存过视觉定义</h3>
+            <p>保存视觉定义后，每次实际保存的参考说明会显示在这里。</p>
+          </EmptyState>
+        )}
         {history.items.map((row, index) => (
           <div className="r-timeline-entry" key={row.id || index}>
             <b>视觉定义 v{row.revision}</b>
