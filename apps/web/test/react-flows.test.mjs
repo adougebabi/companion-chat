@@ -149,10 +149,10 @@ test("React model settings save a task override and restore inheritance", async 
     await view.click(button("按 Agent 或任务变体覆盖",view.host));
     const trigger=view.host.querySelector('[aria-label="选择 Agent 模型任务"]');
     await view.click(trigger);
-    const option=[...document.querySelectorAll('[role="option"]')].find(node=>node.textContent.includes('reflection_proposal_v2'));
+    const option=[...document.querySelectorAll('[role="option"]')].find(node=>node.textContent.trim()==='记忆与自我反思');
     assert.ok(option,'task variant was not offered by the real React page');
     await view.click(option);
-    const row=()=>view.host.querySelector('section[aria-label="reflection · reflection_proposal_v2"]');
+    const row=()=>view.host.querySelector('section[aria-label="记忆与自我反思"]');
     assert.match(row().querySelector('[data-testid="agent-model-source"]').textContent,/任务变体覆盖.*special/);
     assert.ok(row().compareDocumentPosition(view.host.querySelector('section[aria-label="思考与通用分析"]')) & window.Node.DOCUMENT_POSITION_FOLLOWING);
     await view.input(row().querySelector('input[aria-label="模型标识"]'),'updated');

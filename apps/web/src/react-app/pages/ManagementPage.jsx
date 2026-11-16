@@ -1,3 +1,4 @@
+import {modelRouteLabel} from '@/approved-ui/model-route-presentation.mjs';
 import {configurationTestSummary} from '@/v3/configuration-feedback.mjs';
 
 import { useController, afterPaint } from "@/react-app/page";
@@ -108,7 +109,7 @@ function editableConfiguration(settings,endpoints,bindings,quiet){const value=fi
 function modelBindingRows(snapshot) {
   const roles = [
     ...Object.entries(roleNames).map(([role, name]) => ({role, name})),
-    ...(snapshot.agent_model_routes || []).filter(route => route.writable && route.key).map(route => ({role:route.key, name:route.agent_id + (route.variant ? ' · ' + route.variant : ' · 全任务'), route})),
+    ...(snapshot.agent_model_routes || []).filter(route => route.writable && route.key).map(route => ({role:route.key, name:modelRouteLabel(route), route})),
   ];
   return roles.map(({role, name, route}) => {
     const saved = snapshot.bindings.find(binding => binding.role === role);

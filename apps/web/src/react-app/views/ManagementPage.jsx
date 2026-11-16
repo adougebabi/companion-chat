@@ -1,3 +1,5 @@
+import {modelRouteGroups,modelRouteLabel} from '@/approved-ui/model-route-presentation.mjs';
+import {Select,SelectTrigger,SelectValue,SelectContent,SelectGroup,SelectLabel,SelectItem} from '@/components/ui/select';
 import SettingsSections from '../shared/SettingsSections';
 import DiagnosticsWorkspace from "@/react-app/shared/DiagnosticsWorkspace";
 import {useRef,useState,useEffect} from 'react';
@@ -197,12 +199,18 @@ export function ManagementPageView({ view: view }) {
                 <Disclosure className="management-block" title="按 Agent 或任务变体覆盖">
                   <p className="muted">未设置覆盖时使用展示的继承来源。保存后只影响新任务，视觉输入继续使用独立配置。</p>
                   <label>选择任务
-                    <ChoiceSelect aria-label="选择 Agent 模型任务" value={view.selectedAgentRoute.value} onChange={event=>view.selectedAgentRoute.value=event.target.value}>
-                      <option value="">请选择任务</option>
-                      {view.agentModelRoutes.value.filter(route=>route.writable&&route.key).map(route=><option key={route.key} value={route.key}>{route.agent_id}{route.variant?' · '+route.variant:' · 全任务'}</option>)}
-                    </ChoiceSelect>
+                    <Select value={view.selectedAgentRoute.value || 'unselected'} onValueChange={value=>view.selectedAgentRoute.value=value==='unselected'?'':value}>
+                      <SelectTrigger aria-label="选择 Agent 模型任务" className="w-full min-w-0"><SelectValue placeholder="请选择任务"/></SelectTrigger>
+                      <SelectContent position="popper" align="start" className="max-w-[calc(100vw-2rem)]">
+                        <SelectItem value="unselected">请选择任务</SelectItem>
+                        {modelRouteGroups(view.agentModelRoutes.value).map(group=><SelectGroup key={group.label}>
+                          <SelectLabel>{group.label}</SelectLabel>
+                          {group.options.map(option=><SelectItem key={option.key} value={option.key}>{option.label}</SelectItem>)}
+                        </SelectGroup>)}
+                      </SelectContent>
+                    </Select>
                   </label>
-                  {view.agentModelRoutes.value.some(route=>!route.writable)&&<Disclosure title="视觉任务的现有绑定">{view.agentModelRoutes.value.filter(route=>!route.writable).map(route=><p className="muted" key={route.agent_id}>{route.agent_id} · {route.model_id||'按阶段或视觉配置确定'} · {route.state==='unavailable'?'当前不可用':'能力待验证'}</p>)}</Disclosure>}
+                  {view.agentModelRoutes.value.some(route=>!route.writable)&&<Disclosure title="视觉任务的现有绑定">{view.agentModelRoutes.value.filter(route=>!route.writable).map(route=><p className="muted" key={route.agent_id}>{modelRouteLabel(route)} · 按阶段或视觉配置确定 · {route.state==='unavailable'?'当前不可用':'能力待验证'}</p>)}</Disclosure>}
                 </Disclosure>
                 <Fragment>
                   {listValues(view.bindings.value).filter(h=>!h.role.startsWith('agent:')||h.role===view.selectedAgentRoute.value).sort((a,b)=>Number(b.role.startsWith('agent:'))-Number(a.role.startsWith('agent:'))).map((h) => {
@@ -216,7 +224,7 @@ export function ManagementPageView({ view: view }) {
                       (h.topP != null && h.topP !== "");
                     return (
                       <section key={h.role} className="management-block replica-model-role" aria-label={h.name}>
-                        <div className="replica-role-heading"><h3>{h.name}</h3><p>{({generic_llm:'规划日程、理解描述、整理记忆',conversation_reply:'组织语言，回应每次对话',vision_understanding:'理解聊天中分享的照片',embedding:'检索已经保存的记忆'})[h.role]||'为这项任务选择已连接的模型服务。'}</p>{h._route&&<p data-testid="agent-model-source">生效来源：{({variant:'任务变体覆盖',agent:'Agent 覆盖',default:'默认用途',legacy:'旧用途绑定',unconfigured:'尚未配置'})[h._route.source]||h._route.source}；模型：{h._route.model_id||'未配置'}；{h._route.state==='unavailable'?'当前绑定不可用':h._route.state==='configured'?'能力兼容性尚未验证':'等待配置'}。</p>}{h._source&&h.role.startsWith('agent:')&&<ActionButton type="button" variant="outline" disabled={view.saving.value} onClick={()=>h.clearOverride=!h.clearOverride}>{h.clearOverride?'撤销恢复继承':'恢复继承'}</ActionButton>}{h.clearOverride&&<p role="status">已加入恢复继承的草稿，保存后生效。</p>}</div>
+                        <div className="replica-role-heading"><h3>{h.name}</h3><p>{({generic_llm:'规划日程、理解描述、整理记忆',conversation_reply:'组织语言，回应每次对话',vision_understanding:'理解聊天中分享的照片',embedding:'检索已经保存的记忆'})[h.role]||'为这项任务选择已连接的模型服务。'}</p>{h._route&&<p data-testid="agent-model-source">生效来源：{({variant:'任务变体覆盖',agent:'Agent 覆盖',default:'默认用途',legacy:'旧用途绑定',unconfigured:'尚未配置'})[h._route.source]||'来源待确认'}；模型：{h._route.model_id||'未配置'}；{h._route.state==='unavailable'?'当前绑定不可用':h._route.state==='configured'?'能力兼容性尚未验证':'等待配置'}。</p>}{h._source&&h.role.startsWith('agent:')&&<ActionButton type="button" variant="outline" disabled={view.saving.value} onClick={()=>h.clearOverride=!h.clearOverride}>{h.clearOverride?'撤销恢复继承':'恢复继承'}</ActionButton>}{h.clearOverride&&<p role="status">已加入恢复继承的草稿，保存后生效。</p>}</div>
                         <div className="form-grid">
                           <label>
                             {"模型服务"}

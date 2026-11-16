@@ -52,12 +52,12 @@ try {
         await wait(() => button('按 Agent 或任务变体覆盖'));
         await view.click(button('按 Agent 或任务变体覆盖'));
         await view.click(view.host.querySelector('[aria-label="选择 Agent 模型任务"]'));
-        await wait(() => [...document.querySelectorAll('[role=option]')].some(node => node.textContent.includes('reflection_proposal_v2')));
-        const option = [...document.querySelectorAll('[role=option]')].find(node => node.textContent.includes('reflection_proposal_v2'));
+        await wait(() => [...document.querySelectorAll('[role=option]')].some(node => node.textContent.trim()==='记忆与自我反思'));
+        const option = [...document.querySelectorAll('[role=option]')].find(node => node.textContent.trim()==='记忆与自我反思');
         assert.ok(option, 'registered reflection variant is missing');
         await view.click(option);
     };
-    const row = () => view.host.querySelector('section[aria-label="reflection · reflection_proposal_v2"]');
+    const row = () => view.host.querySelector('section[aria-label="记忆与自我反思"]');
     const source = () => row()?.querySelector('[data-testid=agent-model-source]')?.textContent || '';
     if (phase === 'plugins-off' || phase === 'moment-only') {
         view = await mountReact(vite, Management, { workspace: w });
