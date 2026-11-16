@@ -87,7 +87,7 @@ test('an unconfirmed cancellation stays visible while the original turn is still
   await f.view.click(f.button('停止本次生成'));await f.view.flush();
   const alert=f.view.host.querySelector('[role=alert]');assert.match(alert.textContent,/取消请求结果尚未确认，请刷新进度核对。原消息已保留。/);
   assert.ok(f.button('停止本次生成'));assert.equal(f.view.host.querySelectorAll('.companion-message.is-mine').length,1);assert.equal(f.button('重试原回应'),undefined);
-  await f.view.click(f.button('重新读取对话'));assert.deepEqual(f.calls.at(-1),['status',true]);assert.equal(f.store.messages[0].turnStatus,'running');
+  await f.view.click(f.button('重新读取'));assert.deepEqual(f.calls.at(-1),['status',true]);assert.equal(f.store.messages[0].turnStatus,'running');
  }finally{await f.dispose();}
 });
 test('React chat renders streaming deltas and replaces them with the committed reply without disturbing the draft',async()=>{

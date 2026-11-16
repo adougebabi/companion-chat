@@ -18,7 +18,7 @@ import ConversationHistory from '../shared/ConversationHistory';
 import {Surface} from '../controls';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import {SidebarProvider,Sidebar,SidebarContent} from '@/components/ui/sidebar';
-import {InlineFeedback,Feedback} from "@/react-app/shared/Presentation";
+import {Feedback} from "@/react-app/shared/Presentation";
 import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import ChatTurnFeedback from "../components/ChatTurnFeedback";
 import PersonaPreparationFeedback from '../shared/PersonaPreparationFeedback';
@@ -46,7 +46,6 @@ import {
   chatDiagnosticTurn,
   chatFailureText,
 } from "@/v3/chat-feedback.mjs";
-import {errorMessage} from '@/v3/domain-presentation.mjs';
 import { userInstant } from "@/v3/presentation-time.mjs";
 import {approvedRoute} from "@/approved-ui/routing.mjs";
 import DomainPage from "./DomainPage";
@@ -96,7 +95,7 @@ export default function ChatPage({
   const [readCause,setReadCause]=useState<ReturnType<typeof readErrorCause>|null>(null);
   const conversationUnavailable=!!readCause;
   const readNotice=readCause?serviceUnavailableNotice(readCause):null;
-  function failConversationRead(cause:unknown){setReadCause(readErrorCause(cause));setReadFailure('对话暂时无法读取。');}
+  function failConversationRead(cause:unknown){setReadCause(readErrorCause(cause));}
   const draftRevision=useRef(0),submittedDraftRevision=useRef<number|null>(null);
   const editDraft=(value:string|((current:string)=>string))=>{draftRevision.current++;setDraft(value);};
   const latestDraft = useRef(draft);
@@ -128,7 +127,7 @@ export default function ChatPage({
   const preparationBlocked=!!character.detail?.persona_preparation&&character.detail.persona_preparation.status!=='ready';
   useEffect(()=>{
     let active=true;
-    if(/persona_preparation_(?:failed|pending)/.test(snapshot.error||''))void workspace.detail().catch((cause:unknown)=>{if(active&&workspace.currentScope()===scope)setReadFailure(errorMessage(cause,'人格准备状态暂时无法读取。'));});
+    if(/persona_preparation_(?:failed|pending)/.test(snapshot.error||''))void workspace.detail().catch((cause:unknown)=>{if(active&&workspace.currentScope()===scope)failConversationRead(cause);});
     return()=>{active=false;};
   },[workspace,scope,snapshot.error]);
   useEffect(() => {
@@ -155,7 +154,7 @@ export default function ChatPage({
       polling = true;
       try {
         if (store.hasPendingTurn || store.hasSettlingTurn)
-          await store.refreshActiveTurn(true).catch(cause=>{if(live())failConversationRead(cause);throw cause;});
+          await store.refreshActiveTurn(true);
         else if (
           !store.sending &&
           !composing.current &&
@@ -163,7 +162,7 @@ export default function ChatPage({
           Date.now() - lastIdleRead > 10000
         ) {
           lastIdleRead = Date.now();
-          await store.refreshActiveTurn(true).catch(cause=>{if(live())failConversationRead(cause);throw cause;});
+          await store.refreshActiveTurn(true);
           if (live() && Date.now() - lastSummaryRead > 30000) {
             lastSummaryRead = Date.now();
             await workspace.detail();
@@ -172,7 +171,7 @@ export default function ChatPage({
         }
       } catch (error) {
         if (live())
-          setReadFailure(errorMessage(error,"读取失败"));
+          failConversationRead(error);
       } finally {
         polling = false;
       }
@@ -253,6 +252,8 @@ export default function ChatPage({
     try{
       if(!store.conversation||store.fluctlightId!==character.id)await workspace.openConversation(character.id,live);
       else await store.refreshActiveTurn(true);
+      if(live())await workspace.detail();
+      if(live())await workspace.loadWardrobe();
       if(live())setReadCause(null);
     }
     catch(cause){if(live())failConversationRead(cause);}
@@ -302,7 +303,7 @@ export default function ChatPage({
               <MessageScrollerContent className="replica-chat-messages">
 
                 {(snapshot.loading||readLoading)&&<MessageScrollerItem messageId="loading" role="status" aria-live="polite" data-feedback-kind="progress"><Spinner/>正在读取对话…</MessageScrollerItem>}
-                {!snapshot.loading&&!readLoading&&!messages.length&&!error&&!busy&&<MessageScrollerItem messageId="intro"><div className="replica-chat-empty"><LeafIcon size={24}/><p>从一句问候开始，让陪伴慢慢发生。</p></div></MessageScrollerItem>}
+                {!snapshot.loading&&!readLoading&&!messages.length&&!error&&!readNotice&&!busy&&<MessageScrollerItem messageId="intro"><div className="replica-chat-empty"><LeafIcon size={24}/><p>从一句问候开始，让陪伴慢慢发生。</p></div></MessageScrollerItem>}
           {messages.map((message,index) => {
             const mine = message.kind === "user",
               failed =
@@ -381,12 +382,12 @@ export default function ChatPage({
             </Alert>
           </MessageScrollerItem>}
           {error && !readNotice && !messageOwnsError && (
-            <MessageScrollerItem messageId="error"><InlineFeedback role="alert">
-              {error}<Button variant="outline" disabled={snapshot.loading||readLoading} onClick={()=>void reread()}>重新读取对话</Button>
+            <MessageScrollerItem messageId="error"><Feedback kind="error" actions={<>
+              <Button variant="outline" disabled={snapshot.loading||readLoading} onClick={()=>void reread()}>重新读取</Button>
               <Button variant="link" asChild>
                 <a href={diagnosticHref} onClick={openDiagnostic}>查看本次运行 <ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/></a>
               </Button>
-            </InlineFeedback></MessageScrollerItem>
+            </>}>{error}</Feedback></MessageScrollerItem>
           )}
               </MessageScrollerContent>
             </MessageScrollerViewport>

@@ -6,7 +6,7 @@ import {proxy,snapshot,subscribe} from 'valtio/vanilla';
 import {act,installDOM,mountReact} from './helpers/react-dom.mjs';
 import {settingsHref} from '../src/approved-ui/service-unavailable.mjs';
 
-const env=installDOM(),vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
+const env=installDOM(),vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),cacheDir:'/workspace/r24p2/tmp/vite-r24-chat-error',appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
 const load=path=>vite.ssrLoadModule('/src/'+path);
 const {BrowserClient}=await vite.ssrLoadModule('/@fs'+fileURLToPath(new URL('../../../packages/browser-client/src/index.ts',import.meta.url)));
 const provider=await load('v3/providers/real.ts'),{productConversation:store}=await load('state/conversation.ts'),{default:Chat}=await load('react-app/pages/ChatPage.tsx');
@@ -51,7 +51,7 @@ for(const [label,error,reason] of [
     // conversation must not leave either the button or Enter able to send.
     Object.defineProperty(store,'refreshActiveTurn',{configurable:true,value:async()=>{throw error;}});
     await act(async()=>{store.error='取消请求结果尚未确认，请刷新进度核对。原消息已保留。';});await v.flush();
-    await v.click(button(v,'重新读取对话'));
+    await v.click(button(v,'重新读取'));
     assert.ok(store.conversation);assert.equal(field.disabled,true);assert.equal(button(v,'发送').disabled,true);
     await act(async()=>field.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true})));assert.equal(sends,0);
     Object.defineProperty(store,'refreshActiveTurn',{configurable:true,value:async()=>{store.error='';}});
@@ -61,5 +61,61 @@ for(const [label,error,reason] of [
     provider.client.session=original.session;provider.client.listFluctlights=original.list;BrowserClient.prototype.directConversation=original.direct;
     Object.defineProperty(store,'refreshActiveTurn',{configurable:true,value:original.refresh});Object.defineProperty(store,'send',{configurable:true,value:original.send});
     store.$reset();
+  }
+});
+
+// Exercise the provider/controller with HTTP-shaped failures, including the
+// summary polling catch that previously only populated the legacy readFailure.
+for(const source of ['conversation','directory','messages','detail','wardrobe'])
+for(const missingModel of [false,true])
+test(`chat natural ${source} read: ${missingModel?'unconfigured model':'503'} uses the unified alert`,async()=>{
+  sessionStorage.clear();localStorage.clear();store.$reset();
+  const state=proxy({characters:[{id:'A',name:'雨禾',initial:'雨',schedule:[],wearing:{}}],errors:{},loading:{}});
+  const original={session:provider.client.session,list:provider.client.listFluctlights,direct:BrowserClient.prototype.directConversation,messages:BrowserClient.prototype.messages,interval:globalThis.setInterval,send:store.send};
+  let failed=true,poll,sends=0;
+  const reads=[];
+  const errorBody=missingModel?{code:'role_unconfigured',message:'provider role conversation_reply unavailable INTERNAL_KEY'}:{code:'request_failed',message:'Service Unavailable INTERNAL_KEY'};
+  const http=new BrowserClient('',async(path,options)=>{
+    assert.ok(!options?.method||options.method==='GET','only local mocked reads are permitted');
+    path=String(path);reads.push(path);
+    const at=path.includes('/messages')?'messages':path.includes('/conversation')?'conversation':path.includes('/directory')?'directory':path.includes('/wardrobe')?'wardrobe':'detail';
+    return failed&&at===source?Response.json(errorBody,{status:503}):Response.json(at==='directory'?[{id:'A',identity:{name:'雨禾'}}]:{conversation:{id:'C'},participants:[],messages:[],nextBeforeSequence:null});
+  });
+  provider.client.session=async()=>({authenticated:true,actorId:'chat-owner'});
+  provider.client.listFluctlights=()=>http.json('/directory');
+  BrowserClient.prototype.directConversation=function(id){return original.direct.call(http,id);};
+  BrowserClient.prototype.messages=function(...args){return original.messages.apply(http,args);};
+  Object.defineProperty(store,'send',{configurable:true,value:async()=>{sends++;}});
+  globalThis.setInterval=(callback,ms,...args)=>ms===2000?(poll=callback,original.interval(()=>{},ms)):original.interval(callback,ms,...args);
+  const w={state,subscribe:fn=>subscribe(state,fn),getSnapshot:()=>snapshot(state),current:{get value(){return state.characters[0];}},currentScope:()=> 'natural-A',conversation:()=>store,openConversation:provider.openConversation,clock:()=> '12:00',detail:()=>http.json('/detail'),loadWardrobe:()=>http.json('/wardrobe'),services:{}};
+  let v;
+  try{
+    v=await mountReact(vite,Chat,{workspace:w,props:{preview:false,onGo(){}}});
+    if(!['conversation','directory'].includes(source)){
+      assert.equal(v.host.querySelector('[data-testid=chat-read-error]'),null);
+      // Polling begins with an already loaded conversation and no snapshot error.
+      assert.ok(store.conversation);assert.equal(store.error,'');
+      await act(async()=>poll());await v.flush();
+    }
+    const alert=v.host.querySelector('[data-testid=chat-read-error]'),field=v.host.querySelector('textarea');
+    assert.ok(alert);assert.equal(alert.getAttribute('role'),'alert');
+    assert.match(alert.textContent,missingModel?/模型服务尚未配置或暂时不可用/:/后台服务暂时不可用/);
+    assert.ok([...alert.querySelectorAll('a')].some(a=>a.textContent==='去配置模型'&&a.hash===settingsHref('模型用途')));
+    assert.ok(button(v,'重新读取'));assert.equal(button(v,'重新读取对话'),undefined);
+    assert.doesNotMatch(v.host.textContent,/服务暂时无法连接，请稍后重新读取。|INTERNAL_KEY|conversation_reply|role_unconfigured|Service Unavailable/);
+    assert.equal(field.disabled,true);assert.equal(button(v,'发送').disabled,true);assert.match(v.host.textContent,/对话恢复后才可发送/);
+    assert.equal(v.host.querySelector('.replica-chat-empty'),null);
+    await act(async()=>field.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true})));
+    await v.click(button(v,'发送'));assert.equal(sends,0);
+    await v.click(button(v,'重新读取'));assert.ok(v.host.querySelector('[data-testid=chat-read-error]'),'a failed retry must keep the alert');
+    failed=false;await v.click(button(v,'重新读取'));
+    assert.equal(v.host.querySelector('[data-testid=chat-read-error]'),null);assert.equal(field.disabled,false);
+    assert.ok(reads.some(path=>path.includes(source==='directory'?'/directory':source==='messages'?'/messages':source==='conversation'?'/conversation':'/'+source)));
+  }finally{
+    if(v)await v.dispose();
+    globalThis.setInterval=original.interval;
+    provider.client.session=original.session;provider.client.listFluctlights=original.list;
+    BrowserClient.prototype.directConversation=original.direct;BrowserClient.prototype.messages=original.messages;
+    Object.defineProperty(store,'send',{configurable:true,value:original.send});store.$reset();
   }
 });
