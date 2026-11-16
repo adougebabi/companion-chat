@@ -1,0 +1,10 @@
+
+
+<!-- AEL:BEGIN -->
+AEL project (remote). Before any AEL command, first decide whether the user's goal is a project iteration, bug fix, or other engineering change to the project itself.
+For discussion, lookup, analysis, review, or review-only materials, even when saved to a file, work directly and communicate with the user; do not run AEL commands or create tasks or enter implementation/acceptance workflows for that request. Read relevant project files normally as needed.
+For an authorized engineering change, use $ael-work and resume a relevant existing task first. From the project root run `./ael doctor` and `./ael task list`; load exact task rules with `./ael context show --task <id>`. If the request later becomes an authorized engineering change, enter $ael-work before making that change.
+If the user explicitly requests an AEL command or an AEL task, follow that request. Use $ael-migrate-legacy only for reviewed legacy proposals.
+Do not treat historical imports as current constraints or verified checks.
+Before new Remote work, run `./ael session start --session <host-session-id> --runner <runner-id>` and read its returned frozen Skill path. Pass `--session <host-session-id>` on subsequent Remote commands. After context compaction, session resume, task switch, or uncertain progress, first run `./ael recovery check --session <host-session-id> --json`. Verify Server/project, current parent/leaf task, step, versions, accepted checks and latest blocker before continuing the unfinished item. Server records govern task identity and scope. Until online verification succeeds, limit work to read-only inspection and saving the scene. Bind a new session explicitly with `./ael recovery save --session <host-session-id> --runner <runner-id>` and refresh it after each verifiable unit.
+<!-- AEL:END -->

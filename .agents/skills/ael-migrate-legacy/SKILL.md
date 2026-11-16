@@ -3,7 +3,7 @@ name: ael-migrate-legacy
 description: 基于 AEL inventory 和 plan，按批次只读审阅 Trellis 旧资料的分类、冲突与状态歧义，生成可审阅 proposal；不直接改数据库或切换旧流程。
 ---
 
-从项目根目录使用仓库自带的 `./ael`。先读取 `./ael migrate scan --out REPORT` 与 `./ael migrate plan --inventory REPORT/inventory.json --out REPORT` 的产物。只选本次明确范围，优先活动任务及其引用，不一次注入全部历史。
+从项目根目录使用仓库自带的 `./ael`。脚本或 Agent 需要读取命令返回字段时追加 `--json`；报告文件仍按原有 JSON 格式写入。先读取 `./ael migrate scan --out REPORT` 与 `./ael migrate plan --inventory REPORT/inventory.json --out REPORT` 的产物。只选本次明确范围，优先活动任务及其引用，不一次注入全部历史。
 
 读取原文，区分 spec、decision、research、reference、任务定义和旧结果。可只读核对范围内代码/测试，不能顺便修业务。保留旧字段、来源哈希和关键引文。历史 completed 不代表当前通过，in_progress 不代表存在活跃新 Agent。未知完成时间必须保留未知。
 

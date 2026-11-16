@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": "AGENTS.md",
-      "hash": "47cc5df05c820de43bd2e97f398e770cb0386af958c3c6d92b53f88fb0ea345d",
+      "hash": "6b2c739b1765f4f56e0adc75db699fc974a36036ce35db74138891e0bb5b12b1",
       "action": "connected",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -17,9 +17,30 @@
         "tasks": null,
         "critical": true,
         "path": "AGENTS.md",
-        "hash": "47cc5df05c820de43bd2e97f398e770cb0386af958c3c6d92b53f88fb0ea345d",
+        "hash": "6b2c739b1765f4f56e0adc75db699fc974a36036ce35db74138891e0bb5b12b1",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "CLAUDE.md",
+      "hash": "3f99d246734a7143c894e3394c1fbbd2104629ee7580036d47a8be5a7d52535b",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:CLAUDE.md",
+        "title": "CLAUDE.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "CLAUDE.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "CLAUDE.md",
+        "hash": "3f99d246734a7143c894e3394c1fbbd2104629ee7580036d47a8be5a7d52535b",
+        "body": "",
+        "reason": "managed entry contains no project-specific rules"
       }
     },
     {
@@ -761,7 +782,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 34,
+    "historical": 35,
     "retired": 1
   }
 }
