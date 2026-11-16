@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'vite';
 import {fileURLToPath} from 'node:url';
+import {readFile} from 'node:fs/promises';
 import {proxy,snapshot,subscribe} from 'valtio/vanilla';
 import {act,installDOM,mountReact} from './helpers/react-dom.mjs';
 const env=installDOM();
-const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
+const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),envFile:false,cacheDir:'/workspace/r24p2/tmp/vite-schedule-sheet-tests',appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
 test.after(async()=>{await vite.close();env.restore();});
 const load=path=>vite.ssrLoadModule('/src/'+path);
 const {default:Domain}=await load('react-app/pages/DomainPage.tsx');
@@ -57,5 +58,49 @@ test('switching all settings tabs, closing and reopening preserves selection and
   await v.click([...v.host.querySelectorAll('button')].find(node=>node.textContent==='约定与日程设置'));
   assert.equal(document.querySelector('[role=tab][aria-selected=true]').textContent,'生活倾向');
   assert.equal(document.querySelector('[data-section=habits]').hidden,false);
+ }finally{await v.dispose();}
+});
+
+test('日程设置仅在窄屏保留四分之一视口作为遮罩，桌面沿用原有宽度',async()=>{
+ const css=await readFile(new URL('../src/styles/react.css',import.meta.url),'utf8');
+ assert.match(css,/\.product-sheet\s*\{\s*width: min\(540px, calc\(100vw - 16px\)\);\s*max-width: none;/);
+ assert.match(css,/@media \(width < 640px\)\s*\{\s*\.product-sheet\.schedule-settings-sheet\s*\{\s*width: 75vw;\s*\}\s*\}/);
+ const v=await mount('promises');
+ try{
+  const dialog=document.querySelector('[data-slot=sheet-content]');
+  assert.ok(dialog.classList.contains('schedule-settings-sheet'));
+  assert.ok(dialog.classList.contains('data-[side=right]:w-3/4'));
+  assert.equal(dialog.dataset.side,'right');
+ }finally{await v.dispose();}
+});
+
+for(const width of [390,1280])test(`${width}px 日程遮罩与 Sheet 同属 domain portal，覆盖视口且点击可关闭再打开`,async()=>{
+ const v=await mount('promises');
+ try{
+  Object.defineProperty(window,'innerWidth',{configurable:true,value:width});
+  Object.defineProperty(window,'innerHeight',{configurable:true,value:844});
+  const dialog=document.querySelector('[data-slot=sheet-content]');
+  const overlay=document.querySelector('[data-slot=sheet-overlay]');
+  assert.ok(overlay);
+  assert.ok(overlay.parentElement===dialog.parentElement, '遮罩与 Sheet 共用 portal 容器');
+  assert.ok(overlay.nextElementSibling===dialog, '遮罩紧邻 Sheet 内容');
+  assert.ok(v.host.querySelector('.domain-content').contains(overlay));
+  for(const name of ['fixed','inset-0','z-50'])assert.ok(overlay.classList.contains(name));
+  assert.equal(overlay.style.pointerEvents,'auto');
+  assert.equal(dialog.querySelector('[role=tab][aria-selected=true]').textContent,'约定');
+  assert.equal(dialog.querySelectorAll('[data-section]').length,5);
+  // Radix defers outside dismissal until the click after pointerdown.
+  await act(async()=>{
+   overlay.dispatchEvent(new window.MouseEvent('pointerdown',{bubbles:true,button:0,clientX:48,clientY:422}));
+   overlay.click();
+  });
+  await v.flush();
+  assert.ok(document.querySelector('[role=dialog]')===null);
+  assert.ok(document.querySelector('[data-slot=sheet-overlay]')===null);
+  await v.click([...v.host.querySelectorAll('button')].find(node=>node.textContent==='约定与日程设置'));
+  const reopened=document.querySelector('[role=dialog]');
+  assert.equal(reopened.querySelector('[role=tab][aria-selected=true]').textContent,'约定');
+  assert.equal(reopened.querySelector('[data-section=promises]').hidden,false);
+  assert.equal(reopened.querySelectorAll('[data-section]').length,5);
  }finally{await v.dispose();}
 });
