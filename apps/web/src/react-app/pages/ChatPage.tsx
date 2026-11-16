@@ -126,9 +126,8 @@ export default function ChatPage({
   const sameDraftPending = submittedDraftRevision.current === draftRevision.current;
   const preparationBlocked=!!character.detail?.persona_preparation&&character.detail.persona_preparation.status!=='ready';
   useEffect(()=>{
-    let active=true;
-    if(/persona_preparation_(?:failed|pending)/.test(snapshot.error||''))void workspace.detail().catch((cause:unknown)=>{if(active&&workspace.currentScope()===scope)failConversationRead(cause);});
-    return()=>{active=false;};
+    // The workspace records detail failures locally; they do not invalidate messages.
+    if(/persona_preparation_(?:failed|pending)/.test(snapshot.error||''))void workspace.detail().catch(()=>{});
   },[workspace,scope,snapshot.error]);
   useEffect(() => {
     try {
@@ -165,8 +164,8 @@ export default function ChatPage({
           await store.refreshActiveTurn(true);
           if (live() && Date.now() - lastSummaryRead > 30000) {
             lastSummaryRead = Date.now();
-            await workspace.detail();
-            if (live()) await workspace.loadWardrobe();
+            // Each reader owns its local error. Neither may lock the composer.
+            await Promise.allSettled([workspace.detail(),workspace.loadWardrobe()]);
           }
         }
       } catch (error) {
@@ -252,8 +251,6 @@ export default function ChatPage({
     try{
       if(!store.conversation||store.fluctlightId!==character.id)await workspace.openConversation(character.id,live);
       else await store.refreshActiveTurn(true);
-      if(live())await workspace.detail();
-      if(live())await workspace.loadWardrobe();
       if(live())setReadCause(null);
     }
     catch(cause){if(live())failConversationRead(cause);}
@@ -262,6 +259,7 @@ export default function ChatPage({
   const schedule = nextScheduleItem(character.schedule,now);
   const previewContent=<><Surface className="replica-moment-card">
     <div className="replica-section-heading"><h2>{character.name}的此刻</h2><Badge variant="outline">实时预览</Badge></div>
+    {currentReadError(workspace.state,'detail',scope)&&<Feedback kind="warning">角色资料暂未读全，可稍后再试。</Feedback>}
     <WorkspaceMomentArt/>
     <div className="companion-moment-copy"><span className="companion-moment-location"><MapPinIcon size={13}/>{character.location||'位置尚未记录'}</span><h3>{character.activity||'此刻活动尚未记录'}</h3><p>{character.mood||'心情尚未记录'}</p></div>
     <div className="companion-mini-section"><span>今天的穿着</span><WearingSummary character={character} error={currentReadError(workspace.state,'wardrobe',scope)} loading={workspace.state.loading.wardrobe}/><Button variant="link" onClick={()=>onGo('衣柜')}>去衣柜看看<ChevronRightIcon size={13}/></Button></div>

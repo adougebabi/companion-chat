@@ -1026,8 +1026,7 @@ export function createWorkspace({ observable = proxy } = {}) {
     resumeRequests();
     try {
       if (page === "聊天") {
-        await detail();
-        await loadWardrobe();
+        await Promise.allSettled([detail(), loadWardrobe()]);
       } else if (page === "此刻")
         await Promise.allSettled([loadLife({currentOnly:true}), loadWardrobe()]);
       else if (["日程", "目标", "日记", "记忆"].includes(page))

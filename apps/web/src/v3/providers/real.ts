@@ -167,11 +167,9 @@ export async function openConversation(id: string, current:()=>boolean = ()=>tru
   if(!current())throw new DOMException('页面已离开','AbortError');
   if (!session.authenticated || !session.actorId) throw new Error('请先登录');
   store.authenticated = true; store.authenticatedActorId = session.actorId;
-  const fluctlights = await client.listFluctlights();
-  if(!current())throw new DOMException('页面已离开','AbortError');
-  store.fluctlights = fluctlights;
-  if (!store.fluctlights.some(row => row.id === id)) throw new Error('当前角色不可用');
-  await store.selectFluctlight(id,{current,throwOnError:true});
+  // The authenticated conversation endpoint authorizes this read. Directory
+  // availability must not prevent an already selected character from chatting.
+  await store.selectFluctlight(id,{current,throwOnError:true,verifyDirectory:false});
   if(!current())throw new DOMException('页面已离开','AbortError');
   if (store.fluctlightId !== id || !store.conversation) throw new Error(store.error || '读取会话失败');
   return store;

@@ -65,10 +65,10 @@ for(const [label,error,reason] of [
 });
 
 // Exercise the provider/controller with HTTP-shaped failures, including the
-// summary polling catch that previously only populated the legacy readFailure.
+// message polling failures. Auxiliary failures must leave chatting available.
 for(const source of ['conversation','directory','messages','detail','wardrobe'])
 for(const missingModel of [false,true])
-test(`chat natural ${source} read: ${missingModel?'unconfigured model':'503'} uses the unified alert`,async()=>{
+test(`chat natural ${source} read: ${missingModel?'unconfigured model':'503'} ${['conversation','messages'].includes(source)?'uses the unified alert':'leaves chatting available'}`,async()=>{
   sessionStorage.clear();localStorage.clear();store.$reset();
   const state=proxy({characters:[{id:'A',name:'雨禾',initial:'雨',schedule:[],wearing:{}}],errors:{},loading:{}});
   const original={session:provider.client.session,list:provider.client.listFluctlights,direct:BrowserClient.prototype.directConversation,messages:BrowserClient.prototype.messages,interval:globalThis.setInterval,send:store.send};
@@ -98,6 +98,15 @@ test(`chat natural ${source} read: ${missingModel?'unconfigured model':'503'} us
       await act(async()=>poll());await v.flush();
     }
     const alert=v.host.querySelector('[data-testid=chat-read-error]'),field=v.host.querySelector('textarea');
+    if(['directory','detail','wardrobe'].includes(source)){
+      assert.equal(alert,null);assert.equal(field.disabled,false);
+      await v.input(field,'辅助读取失败时仍可聊天');assert.equal(button(v,'发送').disabled,false);
+      assert.ok(v.host.querySelector('.replica-chat-empty'));
+      assert.doesNotMatch(v.host.textContent,/INTERNAL_KEY|conversation_reply|role_unconfigured|Service Unavailable/);
+      if(source==='directory')assert.equal(reads.some(path=>new URL(path,'http://react.test').pathname==='/directory'),false);
+      else assert.ok(reads.some(path=>new URL(path,'http://react.test').pathname==='/'+source));
+      return;
+    }
     assert.ok(alert);assert.equal(alert.getAttribute('role'),'alert');
     assert.match(alert.textContent,missingModel?/模型服务尚未配置或暂时不可用/:/后台服务暂时不可用/);
     assert.ok([...alert.querySelectorAll('a')].some(a=>a.textContent==='去配置模型'&&a.hash===settingsHref('模型用途')));

@@ -706,10 +706,10 @@ export const conversationDefinition = defineDomain({
     },
     async selectFluctlight(
       fluctlightId: string,
-      options: { loading?: boolean; current?: () => boolean; throwOnError?: boolean } = {},
+      options: { loading?: boolean; current?: () => boolean; throwOnError?: boolean; verifyDirectory?: boolean } = {},
     ) {
       if (options.current && !options.current()) return;
-      if (!this.fluctlights.some((item) => item.id === fluctlightId)) {
+      if (options.verifyDirectory !== false && !this.fluctlights.some((item) => item.id === fluctlightId)) {
         this.error = "所选 Fluctlight 实例不可用。";
         return;
       }
