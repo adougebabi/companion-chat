@@ -1,6 +1,7 @@
 import {InlineFeedback} from "@/react-app/shared/Presentation";
 import {lazy} from 'react';
 import {createPortal} from 'react-dom';
+import RecordPageHeader from '../shared/RecordPageHeader';
 import LocalBackupsPanel from '../shared/LocalBackupsPanel';
 import {dataToolsClient} from '@/v3/proto/services.js';
 import DomainPrimitives from '../shared/DomainPrimitives';
@@ -24,7 +25,7 @@ import { refreshProduct } from '@/v3/providers/real';
 // Existing unique domain tools share this React workspace. They own no app,
 // router or stylesheet; their remaining custom controls are tracked separately.
 function DomainToolHost({route}: {route:any}) {
-  const w=useWorkspace(),host=useRef<HTMLDivElement>(null),[primitiveRoot,setPrimitiveRoot]=useState<HTMLElement|null>(null),[failure,setFailure]=useState(''),[revision,refresh]=useState(0);
+  const w=useWorkspace(),host=useRef<HTMLDivElement>(null),[primitiveRoot,setPrimitiveRoot]=useState<HTMLElement|null>(null),[failure,setFailure]=useState(''),[revision,refresh]=useState(0),[planningLoading,setPlanningLoading]=useState(true);
   const owner=w.state.session?.actorId;
   const [backupTarget,setBackupTarget]=useState<HTMLElement|null>(null);
   useEffect(()=>{
@@ -44,12 +45,15 @@ function DomainToolHost({route}: {route:any}) {
           : await render(target,context);
         if(!live()){cleanup?.();return;}
         dispose=cleanup;validation=installFieldValidation(target);setBackupTarget(target.querySelector<HTMLElement>('[data-local-backups]'));
-      }catch(cause){if(live())setFailure(errorMessage(cause,'这个功能暂时无法读取，请重试。'));}
+      }catch(cause){if(live()){setPlanningLoading(false);setFailure(route.feature.render==='renderRealGoalPlanning'?'目标规划暂时无法读取，请重新尝试。':errorMessage(cause,'这个功能暂时无法读取，请重试。'));}}
     }
+    const observePlanning=()=>setPlanningLoading(!!target.querySelector('[data-domain-ui="skeleton"]'));
+    const observer=new MutationObserver(observePlanning);
+    if(route.feature.render==='renderRealGoalPlanning')observer.observe(target,{childList:true,subtree:true});
     void open();
-    return()=>{active=false;dispose?.();validation?.();closeOverlays();if(w.state.pageHeading?.route===route.path&&w.state.pageHeading?.owner===owner)w.state.pageHeading=null;};
+    return()=>{observer.disconnect();active=false;dispose?.();validation?.();closeOverlays();if(w.state.pageHeading?.route===route.path&&w.state.pageHeading?.owner===owner)w.state.pageHeading=null;};
   },[w,owner,route,revision]);
-  return <section className={"approved-domain"+(route.path.startsWith("/data")?" replica-data-domain":"")} aria-label={route.feature.title} data-testid="domain-workspace">{failure&&<InlineFeedback  role="alert">{failure}<Button variant="outline" onClick={()=>refresh(value=>value+1)}>重新读取</Button></InlineFeedback>}<div className="domain-content" ref={host}/><DomainPrimitives root={primitiveRoot}/>{backupTarget&&createPortal(<LocalBackupsPanel key={owner} owner={owner} exportPack={()=>(dataToolsClient as {exportPack:()=>Promise<{pack:Record<string,unknown>}>}).exportPack()} onImport={pack=>{const input=backupTarget.closest('.replica-data-main')?.querySelector<HTMLTextAreaElement>('[data-input]');if(input){input.value=JSON.stringify(pack,null,2);input.dispatchEvent(new Event('input',{bubbles:true}));input.scrollIntoView({block:'center'});input.focus();}}}/>,backupTarget)}</section>;
+  return <section className={"approved-domain"+(route.path.startsWith("/data")?" replica-data-domain":"")} aria-label={route.feature.title} data-testid="domain-workspace">{route.feature.render==='renderRealGoalPlanning'&&<RecordPageHeader eyebrow="生活与目标" title="目标规划" description="查看规划策略、候选与来源，跟进已经受理的规划记录。" back={'/c/'+encodeURIComponent(route.fid)+'/life/goals'} backLabel="返回目标列表" read={{loading:planningLoading,reload:async()=>{const trigger=host.current?.querySelector<HTMLButtonElement>('[data-reload],[data-read-retry]');if(trigger)trigger.click();else refresh(value=>value+1);}}}/>}{failure&&<InlineFeedback  role="alert">{failure}<Button variant="outline" onClick={()=>refresh(value=>value+1)}>重新读取</Button></InlineFeedback>}<div className="domain-content" ref={host}/><DomainPrimitives root={primitiveRoot}/>{backupTarget&&createPortal(<LocalBackupsPanel key={owner} owner={owner} exportPack={()=>(dataToolsClient as {exportPack:()=>Promise<{pack:Record<string,unknown>}>}).exportPack()} onImport={pack=>{const input=backupTarget.closest('.replica-data-main')?.querySelector<HTMLTextAreaElement>('[data-input]');if(input){input.value=JSON.stringify(pack,null,2);input.dispatchEvent(new Event('input',{bubbles:true}));input.scrollIntoView({block:'center'});input.focus();}}}/>,backupTarget)}</section>;
 }
 
 export default function DomainPage({route}:{route:any}) {

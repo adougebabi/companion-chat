@@ -1,0 +1,11 @@
+.record-page-header { min-width: 0; }
+.record-page-header .replica-page-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  margin-bottom: 0;
+}
+.record-page-header .replica-page-actions { flex-shrink: 0; }
+.record-page-header .replica-page-actions button { width: 40px; height: 40px; }
+
+.approved-domain > .record-page-header { margin-bottom: 20px; }
