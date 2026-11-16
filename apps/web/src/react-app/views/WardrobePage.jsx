@@ -38,7 +38,50 @@ import WearingSummary from "../shared/WearingSummary";
 import ConfirmationFrame from "../shared/ConfirmationFrame";
 import JsonDetails from "../shared/JsonDetails";
 import LoadingState from "../shared/LoadingState";
-import { EmptyState, InlineFeedback } from "../shared/Presentation";
+import { EmptyState, Feedback, InlineFeedback } from "../shared/Presentation";
+import { currentReadError } from "@/approved-ui/read-feedback.mjs";
+import { serviceUnavailableNotice, settingsHref } from "@/approved-ui/service-unavailable.mjs";
+// Keep the page shell (header, tabs, filters) and explain a failed read inside the content area.
+function WardrobeReadNotice({ w, error, cause, ready }) {
+  const notice = serviceUnavailableNotice(cause, error),
+    retry = (
+      <Button
+        type="button"
+        variant="outline"
+        disabled={!!w.state.loading?.wardrobe}
+        onClick={() => void w.loadWardrobe().catch(() => {})}
+      >
+        重新读取
+      </Button>
+    ),
+    settings = (
+      <Button asChild variant={ready ? "ghost" : "default"}>
+        <a href={settingsHref(notice.configSection)}>前往管理中心</a>
+      </Button>
+    );
+  if (ready)
+    return (
+      <Feedback
+        kind="warning"
+        className="mb-4"
+        title="衣柜暂未更新"
+        actions={<>{retry}{settings}</>}
+      >
+        <p>{notice.reason}</p>
+        <p>上次确认的衣服和方案仍保留。</p>
+      </Feedback>
+    );
+  return (
+    <EmptyState variant="page" role="alert" data-testid="wardrobe-read-error">
+      <h3>衣柜暂时没有读到</h3>
+      <p>{notice.reason}</p>
+      <div className="flex flex-wrap justify-center gap-2">
+        {retry}
+        {settings}
+      </div>
+    </EmptyState>
+  );
+}
 const tabKeys = {
   全部衣服: "garments",
   方案库: "outfits",
@@ -153,6 +196,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
     fid = c.id,
     scope = w.currentScope(),
     ready = !!c._wardrobe,
+    readError = currentReadError(w.state, "wardrobe", scope),
     readonly = ["retired", "archived", "已退休", "已归档"].includes(c.status),
     formId = useId();
   const [search, setSearch] = useState(""),
@@ -278,8 +322,8 @@ export function WardrobePageView({ view, route, preparation = null }) {
     };
   }, [scope]);
   useEffect(() => {
-    if (archived) void readArchived();
-  }, [archived, c._wardrobe?.catalog?.revision]);
+    if (archived && ready) void readArchived();
+  }, [archived, ready, c._wardrobe?.catalog?.revision]);
   const clear = () => {
     setSearch("");
     view.type.value = "";
@@ -294,6 +338,14 @@ export function WardrobePageView({ view, route, preparation = null }) {
       "发送换装请求",
     );
   };
+  const readNotice = readError ? (
+    <WardrobeReadNotice
+      w={w}
+      error={readError}
+      cause={w.state.errorCauses?.wardrobe}
+      ready={ready}
+    />
+  ) : null;
   return (
     <div className="replica-resource replica-wardrobe replica-life">
       <WorkspacePageHeader
@@ -331,8 +383,8 @@ export function WardrobePageView({ view, route, preparation = null }) {
         <div>
           <span className="r-tiny-label">TODAY'S OUTFIT</span>
           <h3>今天穿着</h3>
-          <WearingSummary character={c} />
-          {preparation}
+          <WearingSummary character={c} error={readError} loading={w.state.loading.wardrobe} />
+          {(!readError || ready) && preparation}
         </div>
         <Badge variant="outline">
           {Array.isArray(worn) ? "当前穿着" : "待读取"}
@@ -396,6 +448,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
               已归档
             </label>
           </div>
+          {readNotice}
           {archiveBusy && <LoadingState label="正在读取已归档衣服…" />}
           {archiveError && (
             <InlineFeedback role="alert">
@@ -408,7 +461,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
               </Button>
             </InlineFeedback>
           )}
-          <div className="r-garment-grid garment-grid">
+          {ready && <div className="r-garment-grid garment-grid">
             {filtered.map((g) => (
               <Surface key={g.id} className="r-garment-card">
                 <Button
@@ -455,8 +508,8 @@ export function WardrobePageView({ view, route, preparation = null }) {
                 </div>
               </Surface>
             ))}
-          </div>
-          {ready && !w.state.errors.wardrobe &&
+          </div>}
+          {ready && !readError &&
             (!archived || archivedPage.ready) &&
             !filtered.length &&
             !archiveBusy &&
@@ -495,6 +548,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
             </div>
             <Button
               variant="ghost"
+              disabled={!ready || readonly}
               onClick={(event) => {
                 trigger.current = event.currentTarget;
                 setTagsOpen(true);
@@ -514,7 +568,8 @@ export function WardrobePageView({ view, route, preparation = null }) {
               搭配新方案
             </Button>
           </div>
-          <div className="r-outfit-grid">
+          {readNotice}
+          {ready && <div className="r-outfit-grid">
             {c.outfits
               .filter(
                 (o) =>
@@ -590,8 +645,8 @@ export function WardrobePageView({ view, route, preparation = null }) {
                   </div>
                 </Surface>
               ))}
-          </div>
-          {ready && !w.state.errors.wardrobe &&
+          </div>}
+          {ready && !readError &&
             !c.outfits.filter(
               (o) =>
                 activeTag === "all" ||
@@ -610,7 +665,8 @@ export function WardrobePageView({ view, route, preparation = null }) {
             )}
         </TabsContent>
         <TabsContent value="compose">
-          <div className="r-compose-layout">
+          {readNotice}
+          {ready && <div className="r-compose-layout">
             <Surface className="r-padded">
               <h2>挑选今天的灵感</h2>
               <p className="r-muted">每个部位选一件，配饰可以多选。</p>
@@ -772,7 +828,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
                 </Button>
               </form>
             </Surface>
-          </div>
+          </div>}
         </TabsContent>
       </Tabs>
       <WorkspaceDialog

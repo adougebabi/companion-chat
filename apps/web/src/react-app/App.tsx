@@ -253,7 +253,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     : page === "角色库" ? <LibraryPage/>
     : page === "初始化角色" ? <CharacterWizardPage key={route.path+"?"+route.query}/>
     : <BrowsePage key={page+":"+character.id} page={page}/>;
-  const reading=workspaceReadFeedback(state,(route.feature||['通知与待处理','日程','目标','日记','记忆','角色详情','世界','人物关系','动态','媒体'].includes(page))?'':page,workspace.currentScope());
+  const reading=workspaceReadFeedback(state,(route.feature||['通知与待处理','日程','目标','日记','记忆','角色详情','世界','人物关系','动态','媒体','衣柜'].includes(page))?'':page,workspace.currentScope());
   const pageReadErrors=page==='此刻'?reading.errors.filter(error=>error.key!=='schedule'):reading.errors;
   const readError=state.errors.directory||state.errors.session||'';
   const isLifeRoute=lifePages.includes(page)||route.path?.includes('/life/');

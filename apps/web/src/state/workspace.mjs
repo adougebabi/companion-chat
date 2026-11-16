@@ -33,6 +33,7 @@ import {
 import { persistentCommand } from "../v3/providers/persistent-command.mjs";
 import { randomId } from "../random-id.mjs";
 import { errorMessage } from "../v3/domain-presentation.mjs";
+import { readErrorCause } from "../approved-ui/service-unavailable.mjs";
 import { profileSnapshotFromDetail } from "../v3/proto/data/profile.js";
 import { scheduleProjection } from "../approved-ui/presentation.mjs";
 import { userInstant } from "../v3/presentation-time.mjs";
@@ -191,7 +192,7 @@ export function createWorkspace({ observable = proxy } = {}) {
     notificationCountError: "",
     pending: [],
     errors: {},
-    loading: {},readSuccesses:{},errorScopes:{},
+    loading: {},readSuccesses:{},errorScopes:{},errorCauses:{},
     toast: null,
     managementTab: "配置中心",
     managementSection: "",
@@ -238,7 +239,7 @@ export function createWorkspace({ observable = proxy } = {}) {
       state.notifications = [];
       state.pending = [];
       state.errors = {};
-      state.readSuccesses={};state.errorScopes={};
+      state.readSuccesses={};state.errorScopes={};state.errorCauses={};
       state.loading = {};
     }
     state.session = owner;
@@ -291,11 +292,11 @@ export function createWorkspace({ observable = proxy } = {}) {
     try {
       const result = await run(live);
       if (!live()) return;
-      delete state.errors[key];delete state.errorScopes[key];
+      delete state.errors[key];delete state.errorScopes[key];if(state.errorCauses)delete state.errorCauses[key];
       state.readSuccesses[readScope]??={};state.readSuccesses[readScope][key]=true;
       return result;
     } catch (error) {
-      if (live()){state.errors[key] = errorMessage(error);state.errorScopes[key]=readScope;}
+      if (live()){state.errors[key] = errorMessage(error);state.errorScopes[key]=readScope;(state.errorCauses??={})[key]=readErrorCause(error);}
       throw error;
     } finally {
       if (live()) state.loading[key] = false;

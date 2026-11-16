@@ -19,6 +19,7 @@ import { ActionButton, FieldInput, Disclosure } from "./controls";
 import { useWorkspace } from "./page";
 import { renderGarmentArt } from "./renderers/GarmentArt";
 import { selector } from "../state/view-model";
+import { currentReadError } from "@/approved-ui/read-feedback.mjs";
 
 const announcedOperations=new WeakMap<object,Set<string>>();
 
@@ -29,8 +30,12 @@ export function CurrentOutfit({ compact = false }: { compact?: boolean }) {
     loading: Record<string, boolean>;
   }>(w.subscribe, w.getSnapshot, w.getSnapshot);
   const character = w.current.value;
-  const status = state.errors.wardrobe
-    ? "穿着读取未完成，保留上次确认的记录。"
+  const confirmed = Array.isArray(character._wardrobe?.wearing?.worn_items);
+  const error = currentReadError(state, "wardrobe", w.currentScope());
+  const status = error
+    ? confirmed
+      ? "穿着读取未完成，保留上次确认的记录。"
+      : "暂未读取到穿着"
     : state.loading.wardrobe
       ? "正在读取实际穿着…"
       : "";
@@ -71,7 +76,7 @@ export function CurrentOutfit({ compact = false }: { compact?: boolean }) {
           {status}
         </OperationStatus>
       )}
-      <div className={compact ? "outfit-tags" : "outfit-lines"}>
+      {(!error || confirmed) && <div className={compact ? "outfit-tags" : "outfit-lines"}>
         {["外套", "上衣", "内衣", "内裤", "下衣", "袜子", "鞋子", "配饰"].map(
           (slot) => (
             <div key={slot}>
@@ -80,7 +85,7 @@ export function CurrentOutfit({ compact = false }: { compact?: boolean }) {
             </div>
           ),
         )}
-      </div>
+      </div>}
     </section>
   );
 }
