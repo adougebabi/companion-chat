@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuCheckboxItem} from '@/components/ui/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Surface, FieldInput, Textarea, Disclosure, Badge } from "../controls";
 import { useWorkspace } from "../page";
@@ -678,33 +677,22 @@ export default function DiaryPage() {
                   placeholder="在日记中寻找…"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                />{" "}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" aria-label="日记筛选" className="replica-diary-filter-menu">
-                      <StarIcon size={14} fill={favorite?'currentColor':'none'}/>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuCheckboxItem checked={favorite} onCheckedChange={value=>{pinned.current='';setFavorite(!!value);}}>
-                      只看收藏
-                    </DropdownMenuCheckboxItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="刷新日记"
-                  disabled={loading[tab === "shared" ? "shared" : kind]}
-                  onClick={() => {
-                    void loadList(tab === "shared" ? "shared" : kind);
-                    if (selectedId) void readEntry().catch(() => {});
-                    setWatchRefresh((v) => v + 1);
-                  }}
-                >
-                  <RefreshCwIcon size={15} />
-                </Button>
+                />
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="刷新日记"
+                className="replica-diary-refresh"
+                disabled={loading[tab === "shared" ? "shared" : kind]}
+                onClick={() => {
+                  void loadList(tab === "shared" ? "shared" : kind);
+                  if (selectedId) void readEntry().catch(() => {});
+                  setWatchRefresh((v) => v + 1);
+                }}
+              >
+                <RefreshCwIcon size={15} />
+              </Button>
             </div>
           )}
         </div>
