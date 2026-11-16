@@ -25,6 +25,7 @@ import {
 import { studioDraftStorage } from "@/v3/proto/components/studio-draft-storage.js";
 import { stateLabel, errorMessage } from "@/v3/domain-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
+import VisualIdentityRecord, { DownloadVisualRecord } from "./VisualIdentityRecord";
 export default function VisualWorkspace({ model: m }) {
   const fid = m.target,
     [action, setAction] = useState(null),
@@ -1014,9 +1015,7 @@ export default function VisualWorkspace({ model: m }) {
                 </Button>
               ))}
               <Disclosure title="完整视觉记录">
-                <pre className="replica-source-record">
-                  {JSON.stringify(row, null, 2)}
-                </pre>
+                <DownloadVisualRecord value={row}/>
               </Disclosure>
             </div>
           ))}
@@ -1045,11 +1044,7 @@ export default function VisualWorkspace({ model: m }) {
           </p>
         )}
         {!m.readOnly && session?.character_sheet_submission_uncertain && submissionRecoveryContext(visual, "character_sheet") && <Button variant="outline" onClick={(event) => recoverSubmission(event, "character_sheet")}>核对后恢复已有设定图</Button>}
-        <Disclosure title="规范来源、渲染约束与完整会话">
-          <pre className="replica-source-record">
-            {JSON.stringify(visual || {}, null, 2)}
-          </pre>
-        </Disclosure>
+        <VisualIdentityRecord value={visual}/>
       </Surface>
       {action && (
         <WorkspaceCommandDialog
@@ -1070,9 +1065,7 @@ export default function VisualWorkspace({ model: m }) {
             <b>视觉定义 v{row.revision}</b>
             <p>{row.reason}</p>
             <Disclosure title="此版本与前后变化">
-              <pre className="replica-source-record">
-                {JSON.stringify(row, null, 2)}
-              </pre>
+              <DownloadVisualRecord value={row}/>
             </Disclosure>
           </div>
         ))}
