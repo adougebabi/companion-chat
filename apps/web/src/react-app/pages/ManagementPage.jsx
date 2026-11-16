@@ -1,4 +1,5 @@
 import {modelRouteLabel} from '@/approved-ui/model-route-presentation.mjs';
+import {normalizeSettingsSection} from '@/approved-ui/settings-sections.mjs';
 import {configurationTestSummary} from '@/v3/configuration-feedback.mjs';
 
 import { useController, afterPaint } from "@/react-app/page";
@@ -345,6 +346,7 @@ function createManagementPageController(props, context, lifecycle) {
   ]);
   const sectionId = (value) => "config-" + value;
   const scrollTo = async (value, focus = true, reveal = false) => {
+    value=normalizeSettingsSection(value);
     currentSection.value=value;
     const node = document.getElementById(sectionId(value));
     const trigger = node?.querySelector("[data-slot=collapsible-trigger]");

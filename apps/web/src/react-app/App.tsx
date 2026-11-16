@@ -63,6 +63,7 @@ const StudioPage = lazy(() => import("./pages/StudioPage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 type Workspace = ReturnType<typeof createWorkspace>;
 type Route = {
+  redirectHash?: string;
   page?: string;
   fid?: string | null;
   removed?: boolean;
@@ -101,6 +102,9 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     workspace.getSnapshot,
   );
   const [route, setRoute] = useState<Route>(() => approvedRoute(location.hash));
+  useEffect(() => {
+    if (route.redirectHash) history.replaceState(history.state, '', route.redirectHash);
+  }, [route]);
   const {setOpenMobile:setMobileOpen,open:sidebarOpen,isMobile}=useSidebar();
   const [accountBusy,setAccountBusy]=useState(false);
   const navigationTrigger=useRef<HTMLButtonElement>(null);

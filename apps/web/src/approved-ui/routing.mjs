@@ -1,4 +1,5 @@
 import {featureRoute} from './feature-routes.mjs';
+import {legacySettingsSection} from './settings-sections.mjs';
 export const lifePages = [
   "此刻",
   "日程",
@@ -48,10 +49,11 @@ export function approvedRoute(hash) {
   const autonomy=/^\/c\/([^/]+)\/settings\/autonomy$/.exec(path);
   if(autonomy){path='/settings';query.set('fid',decodeURIComponent(autonomy[1]));query.set('section','角色自主与主动联系');}
   if(path.startsWith('/studio/media/'))path='/media/'+path.slice('/studio/media/'.length);
+  let redirectHash;
   if(path.startsWith('/settings/')){
-    const section=path.slice('/settings/'.length);
-    query.set('section',({models:'服务地址','reply-vision':'聊天回复','media-workflows':'图片（ComfyUI）',runtime:'角色自主与主动联系',outreach:'角色自主与主动联系',notifications:'通知',owner:'所有者与会话',capabilities:'能力与权限',kev:'高级'})[section]||section);
+    query.set('section',legacySettingsSection(path));
     path='/settings';
+    redirectHash='#/settings?'+query.toString();
   }
   if(path==='/auth')return {page:'登录',auth:true,path,query};
   if(path==='/media')return {page:'媒体',path,query,fid:null,global:true};
@@ -83,6 +85,7 @@ export function approvedRoute(hash) {
       fid: query.get("fid"),
       query,
       diagnostics: path === "/diag",
+      ...(redirectHash ? {redirectHash} : {}),
     };
   try {
     const feature=featureRoute(path,query);
