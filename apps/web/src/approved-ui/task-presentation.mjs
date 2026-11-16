@@ -49,7 +49,7 @@ export function taskStatusLabel(status){
 }
 export function taskDisplayTitle(task,characters=[]){
  if(!task)return '任务详情';
- if(typeof task.title==='string'&&task.title&&task.title!==task.kind&&task.title!==task.type)return task.title;
+ if(typeof task.title==='string'&&task.title&&task.title!==task.kind&&task.title!==task.type){const title=domainName(task.title,'');if(title)return title;}
  const character=characters.find(row=>row.id===task.fluctlight_id)?.name;
  return [character,domainName(task.kind||task.type||task.title,'后台任务')].filter(Boolean).join(' · ');
 }
@@ -143,6 +143,7 @@ export function taskFailureReason(task,preparation){
  const current=preparation?.task_id===task?.task_id?preparation:null;
  const raw=task?.source?.last_error||task?.last_error;
  const isMedia=(task?.kind||task?.type)==='media.generation';
+ if((task?.kind||task?.type)==='goal.plan'&&/^\s*sql:\s*no rows in result set\s*$/i.test(String(raw||'')))return ['failed','dead_letter'].includes(task?.status)?'规划任务没有找到对应资料，已停止。':'规划任务没有找到对应资料，请重新读取任务状态。';
  if(['wardrobe_preparation_context_failed','wardrobe_provider_assignment_unavailable','wardrobe_provider_unconfigured'].includes(current?.error_code)&&current?.result?.failure_reason)return current.result.failure_reason;
  if(taskNeedsModelConfiguration(task,current)){const reason=errorMessage({code:current?.error_code,message:raw}).replace('原资料与已完成步骤会保留。','已有角色、世界与准备记录会保留。'),summary=reason.includes('已有角色、世界')?reason:reason+' 已有角色、世界与准备记录会保留。';return isMedia&&raw?`${summary} 详细原因：${raw}`:summary;}
  if(current?.result?.failure_reason)return current.result.failure_reason;
@@ -170,7 +171,7 @@ export function taskEventReason(entry){
  const code=typeof entry.reason_code==='string'?entry.reason_code:'';
  if(!reason&&!code)return '';
  const fallback='';
- const message=errorMessage({message:reason,code},fallback);if(entry.safe_cause&&reason&&message&&message!==reason)return `${message} 详细原因：${reason}`;return typeof message==='string'&&message?message:reason||fallback;
+ const message=errorMessage({message:reason,code},fallback);return typeof message==='string'&&message?message:'本次执行未完成，详细原因已保留在原始记录中。';
 }
 export function taskRecoveryStrategy(snapshot,recovery){
  if(snapshot?.intent?.intent_type==='media.generation')return '按媒体任务的实际状态选择可用操作；恢复会保留已保存结果，受理后仍需核对执行结果。';

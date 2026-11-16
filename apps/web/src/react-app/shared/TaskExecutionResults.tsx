@@ -37,6 +37,6 @@ export default function TaskExecutionResults({task,steps,calls,available}:{task:
    </li>)}</ol>}
    {calls.cursor&&<Button variant="outline" disabled={calls.busy} onClick={calls.more}>读取更多模型调用</Button>}
   </Disclosure>
-  {steps.length>0&&<JsonDetails value={steps} title="生命周期原始记录"/>}
+  {steps.length>0&&<JsonDetails value={steps} title="生命周期原始记录" rawOnly/>}
  </div>;
 }
