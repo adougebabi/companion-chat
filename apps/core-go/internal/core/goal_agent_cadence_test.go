@@ -203,13 +203,16 @@ func TestGoalAgentCadenceEvaluationRepairWithoutNewEvents(t *testing.T) {
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET status='succeeded' WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_agent_cadence SET evaluation_next_at=now(),last_activity_at=LEAST(last_activity_at,now()-interval '31 minutes') WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
 	for i := 0; i < 2; i++ {
 		if _, err := f.app.RepairGoalEvaluationCadence(f.ctx, 20); err != nil {
 			t.Fatal(err)
 		}
 	}
 	var pending int
-	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.goal_evaluation_requests WHERE fluctlight_id=$1 AND status='pending' AND reason='periodic_due'`, f.fluctlightID).Scan(&pending); err != nil || pending != 1 {
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.goal_evaluation_requests WHERE fluctlight_id=$1 AND status='pending' AND reason='activity_quiet_due'`, f.fluctlightID).Scan(&pending); err != nil || pending != 1 {
 		t.Fatal(pending, err)
 	}
 }
