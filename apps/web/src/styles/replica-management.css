@@ -302,6 +302,6 @@
  .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-management-section-header{gap:4px}
  .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-settings-head{flex-direction:row;align-items:center;gap:8px}
  .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-settings-head h2{line-height:24px}
- .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-settings-head :is(p,small,.replica-diagnostic-environment,.replica-settings-section-icon){display:none}
+ .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-settings-head :is(p,small,.replica-settings-section-icon){display:none}
  .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-management-section-header [role=tab][data-slot=tabs-trigger]{min-height:36px;padding:4px 2px}
 }

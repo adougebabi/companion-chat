@@ -74,9 +74,10 @@ test('narrow compact state hides only header explanations and decorations; title
       assert.notEqual(f.computed('.replica-settings-head p').display,'none','explanations are present before scrolling');
       const heading=f.document.querySelector('.replica-page-heading');
       heading.classList.add('is-scrolled');
-      for(const selector of ['p','small','.replica-diagnostic-environment','.replica-settings-section-icon']){
+      for(const selector of ['p','small','.replica-settings-section-icon']){
         assert.equal(f.computed('.replica-settings-head '+selector).display,'none',variant+' hides '+selector);
       }
+      assert.notEqual(f.computed('.replica-diagnostic-environment').display,'none','运行记录入口在紧凑态仍可见');
       assert.equal(f.computed('.replica-settings-head').flexDirection,'row');
       assert.equal(f.computed('.replica-settings-head h2').lineHeight,'24px');
       assert.equal(f.computed('.replica-page-heading h1').lineHeight,'24px');

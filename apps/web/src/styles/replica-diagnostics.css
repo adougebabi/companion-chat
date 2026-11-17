@@ -11,7 +11,7 @@
 /* R16: exact shared Demo spacing; live facts replace only simulated copy. */
 .replica-diagnostics>.replica-settings-head{gap:12px;align-items:center;flex-direction:row}
 .replica-diagnostics>.replica-settings-head p{margin-top:0;font-size:12px;color:#7a827a;line-height:1.75}
-.replica-diagnostic-environment{font-size:11px;color:#93a284;padding:3px 8px;border:1px solid #e1e7d8;border-radius:20px;white-space:nowrap}
+.replica-diagnostic-environment{display:inline-flex;flex:none;min-height:32px;font-size:11px;white-space:nowrap}
 .replica-diagnostics>[data-slot=tabs]{margin-bottom:22px;gap:0}
 .replica-diagnostics>[data-slot=tabs]>[data-slot=tabs-list]{height:auto;min-height:0;justify-content:flex-start;gap:21px;border-radius:0;border-bottom:1px solid #e2e7de;padding:0;background:transparent;overflow-x:auto}
 .replica-diagnostics>[data-slot=tabs] [data-slot=tabs-trigger]{height:auto;min-height:0;padding:0 2px 12px;font-size:12px;font-weight:400;color:#7d8872;border-radius:0;border:0;border-bottom:2px solid transparent;box-shadow:none;flex:none;gap:7px}
@@ -30,7 +30,7 @@
 .replica-service-heading h2{font-size:14px;font-weight:600;letter-spacing:.15px;color:inherit}
 .replica-service-heading p{font-size:11px;color:#87907d;line-height:1.8;margin-top:5px}
 @media(max-width:1200px){.replica-diagnostics .replica-data-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:700px){.replica-diagnostic-environment{display:none}.replica-diagnostics .replica-data-stats{grid-template-columns:minmax(0,1fr);gap:16px}.replica-diagnostics .replica-diagnostic-metric{padding:20px}.replica-diagnostics .replica-diagnostic-metric strong{font-size:27px}.replica-diagnostics .replica-diagnostic-metric small{font-size:11px}.replica-diagnostics .replica-diagnostic-task-surface,.replica-service-diagnostics{padding:18px}.replica-diagnostics>[data-slot=tabs]>[data-slot=tabs-list]{gap:19px}.replica-diagnostics>[data-slot=tabs] [data-slot=tabs-trigger]{font-size:11px}.replica-diagnostics .replica-diagnostic-filters{width:auto;gap:12px}.replica-diagnostics .replica-diagnostic-filters>span{width:215px}.replica-service-row small{font-size:11px}}
+@media(max-width:700px){.replica-diagnostic-environment{padding:4px 8px}.replica-diagnostics .replica-data-stats{grid-template-columns:minmax(0,1fr);gap:16px}.replica-diagnostics .replica-diagnostic-metric{padding:20px}.replica-diagnostics .replica-diagnostic-metric strong{font-size:27px}.replica-diagnostics .replica-diagnostic-metric small{font-size:11px}.replica-diagnostics .replica-diagnostic-task-surface,.replica-service-diagnostics{padding:18px}.replica-diagnostics>[data-slot=tabs]>[data-slot=tabs-list]{gap:19px}.replica-diagnostics>[data-slot=tabs] [data-slot=tabs-trigger]{font-size:11px}.replica-diagnostics .replica-diagnostic-filters{width:auto;gap:12px}.replica-diagnostics .replica-diagnostic-filters>span{width:215px}.replica-service-row small{font-size:11px}}
 .replica-service-actions{display:flex;align-items:center;gap:8px;flex:none}
 .replica-service-actions>[data-slot=button]{height:36px;min-height:0}
 .replica-service-guidance{margin-top:18px}
