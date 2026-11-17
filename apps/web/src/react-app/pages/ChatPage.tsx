@@ -301,7 +301,7 @@ export default function ChatPage({
           <AlertDescription>可以查看历史对话，已归档角色不能发送新消息。</AlertDescription>
           <Button asChild variant="outline"><a href="#/library">返回角色库</a></Button>
         </Alert>}
-        <PersonaPreparationFeedback key={scope} character={character}/>
+        {!archived&&<PersonaPreparationFeedback key={scope} character={character}/>}
         <MessageScrollerProvider autoScroll defaultScrollPosition="end" scrollEdgeThreshold={80}>
           <MessageScroller className="replica-chat-scroller">
             <MessageScrollerViewport aria-label="聊天消息" className="companion-message-list">

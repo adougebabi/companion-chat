@@ -32,7 +32,7 @@ const detail=(id,status)=>({id,status,identity:{id,name:'验收归档角色',age
 const page=(messages,id=archivedId)=>({conversation:{createdAt:instant,createdByActorId:owner,id:conversationId,revision:0,title:null,updatedAt:instant},messages,nextBeforeSequence:null,participants:[{actorId:id,conversationId,joinedAt:instant,leftAt:null,role:'member',status:'active'},{actorId:owner,conversationId,joinedAt:instant,leftAt:null,role:'owner',status:'active'}]});
 const history={id:'historical-message',conversationId,sequence:1,authorActorId:owner,kind:'user',text:'这是一条保留的历史消息',attachmentRefs:[],createdAt:instant};
 const button=(v,text)=>[...v.host.querySelectorAll('button')].find(n=>n.textContent.trim()===text);
-async function fixture({width=1280,status='retired',messages=[],detailStatus=200,id=archivedId}={}){
+async function fixture({width=1280,status='retired',messages=[],detailStatus=200,id=archivedId,preparation}={}){
   sessionStorage.clear();localStorage.clear();store.$reset();
   const original=BrowserClient.prototype.json,reads=[];
   let failure=detailStatus;
@@ -45,7 +45,7 @@ async function fixture({width=1280,status='retired',messages=[],detailStatus=200
     if(pathname.endsWith('/detail')){
       if(failure!==200)throw Object.assign(new Error('Service Unavailable INTERNAL_KEY'),{status:failure});
       const requestedId=decodeURIComponent(pathname.split('/')[3]);
-      return detail(requestedId,requestedId===id?status:'active');
+      return {...detail(requestedId,requestedId===id?status:'active'),...(preparation?{persona_preparation:structuredClone(preparation)}:{})};
     }
     if(pathname.endsWith('/conversation'))return page(structuredClone(messages),decodeURIComponent(pathname.split('/')[3]));
     if(pathname.endsWith('/messages'))return {messages:structuredClone(messages),nextBeforeSequence:null};
@@ -99,6 +99,34 @@ test(`direct archived chat keeps shell and read-only ${messages.length?'history'
     assert.equal(back.hash,'#/library');
     assert.equal(back.textContent,'返回角色库');
     assert.equal(back.getAttribute('aria-disabled'),null);
+  }finally{await f.close();}
+});
+
+for(const status of ['queued','failed'])for(const archived of [true,false])
+test(`${archived?'archived':'active'} chat ${archived?'hides':'retains'} ${status} persona preparation feedback`,async()=>{
+  const f=await fixture({
+    id:archived?archivedId:directory[0].id,
+    status:archived?'retired':'active',
+    messages:[history],
+    preparation:{status,task_id:'persona-preparation-task',can_recover:status==='failed'},
+  }),{v}=f;
+  try{
+    if(archived){
+      assert.ok(!v.host.querySelector('[aria-label="人格准备与恢复"]'),'archived chat hides persona preparation feedback');
+      assert.doesNotMatch(v.host.textContent,/人格资料正在准备|人格资料准备失败|准备完成后即可聊天|当前输入会保留|重新读取准备状态|查看人格准备任务|继续准备人格|完成后再发送/);
+      assert.match(v.host.querySelector('[data-testid=chat-archived]').textContent,/角色已归档.*返回角色库/);
+      assert.match(v.host.querySelector('.companion-message-list').textContent,/这是一条保留的历史消息/);
+      assert.equal(v.host.querySelector('textarea').disabled,true);
+    }else{
+      const notice=v.host.querySelector('[aria-label="人格准备与恢复"]');
+      assert.ok(notice);
+      assert.match(notice.textContent,status==='failed'?/人格资料准备失败/:/人格资料正在准备.*准备完成后即可聊天/);
+      assert.match(notice.textContent,/重新读取准备状态/);
+      assert.match(notice.textContent,/查看人格准备任务/);
+      assert.equal(v.host.querySelector('[data-testid=chat-archived]'),null);
+      await v.input(v.host.querySelector('textarea'),'保留准备中的草稿');
+    }
+    assert.equal(button(v,'发送').disabled,true);
   }finally{await f.close();}
 });
 
