@@ -113,7 +113,21 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   const main = useRef<HTMLDivElement>(null),
     page = route.removed||route.notFound?"页面暂不可用":route.page || state.page;
   const current = workspace.current.value;
-  const routeCharacterExists = !route.fid || state.characters.some((character: {id:string}) => character.id === route.fid);
+  const directoryCharacterExists = !route.fid || state.characters.some((character: {id:string}) => character.id === route.fid);
+  const directChat = page === "聊天" && !directoryCharacterExists && !route.removed && !route.notFound;
+  const routeCharacterExists = directoryCharacterExists || (directChat && state.chatCharacter?.id === route.fid);
+  const [chatResolution, setChatResolution] = useState<{fid?:string|null;owner?:string;status:string}>({status:'loading'});
+  const [chatRetry, setChatRetry] = useState(0);
+  useEffect(() => {
+    if (!state.ready || !state.session || !directChat || routeCharacterExists) return;
+    let active = true;
+    const identity = {fid:route.fid,owner:state.session.actorId};
+    setChatResolution({...identity,status:'loading'});
+    void workspace.resolveChatCharacter(route.fid, () => active).catch((cause:any) => {
+      if(active)setChatResolution({...identity,status:cause?.status===404?'missing':'error'});
+    });
+    return () => {active=false;};
+  }, [workspace, state.ready, state.session?.actorId, route.fid, directChat, routeCharacterExists, chatRetry]);
   const character =
     page === "初始化角色"
       ? { id:"", name: "创建角色", initial: "+", color: "#dce9e2", _directory:null }
@@ -149,7 +163,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     setMobileOpen(false);
     Object.assign(workspace.state,{route});
     if(page==="登录"){navigate("角色库");return;}
-    if (route.fid && state.characters.some((c: any) => c.id === route.fid))
+    if (route.fid && routeCharacterExists)
       workspace.select(route.fid);
     if (
       !workspace.state.selectedId &&
@@ -213,6 +227,10 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
         </Button>
       </CardSurface>
     );
+  if (state.ready && state.session && directChat && !routeCharacterExists && !(chatResolution.fid===route.fid && chatResolution.owner===state.session.actorId && chatResolution.status==='missing')) {
+    if(chatResolution.fid===route.fid && chatResolution.owner===state.session.actorId && chatResolution.status==='error')return <section className="approved-bootstrap"><h1>暂时无法读取角色</h1><p>请稍后重新读取，或返回角色库。</p><Button onClick={()=>setChatRetry(value=>value+1)}>重新读取</Button><Button asChild variant="outline"><a href="#/library">返回角色库</a></Button></section>;
+    return <LoadingState label="正在读取角色…"/>;
+  }
   if (state.ready && state.session && !routeCharacterExists) return <section className="approved-bootstrap"><h1>角色不存在</h1><p>请回到角色库选择当前可用的角色。</p><Button asChild><a href="#/library">返回角色库</a></Button></section>;
   if (state.ready && !state.session)
     return (

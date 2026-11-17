@@ -181,6 +181,7 @@ export function createWorkspace({ observable = proxy } = {}) {
     session: null,
     characters: [],
     selectedId: "",
+    chatCharacter: null,
     page: "聊天",
     worlds: [],
     media: [],
@@ -211,7 +212,7 @@ export function createWorkspace({ observable = proxy } = {}) {
   const current = selector(
     () =>
       state.characters.find((c) => c.id === state.selectedId) ||
-      emptyCharacter,
+      (state.chatCharacter?.id === state.selectedId ? state.chatCharacter : emptyCharacter),
   );
   const currentScope = () =>
     JSON.stringify([state.session?.actorId, state.selectedId]);
@@ -232,6 +233,7 @@ export function createWorkspace({ observable = proxy } = {}) {
       notificationCounter.reset(owner?.actorId);
       generation++;
       state.characters = [];
+      state.chatCharacter = null;
       channels.clear();
       state.operations = [];
       state.worlds = [];
@@ -258,7 +260,7 @@ export function createWorkspace({ observable = proxy } = {}) {
         _directory: row,
       };
     });
-    if (!state.characters.some((c) => c.id === state.selectedId))
+    if (!state.characters.some((c) => c.id === state.selectedId) && state.chatCharacter?.id !== state.selectedId)
       state.selectedId = get("ui")?.charId || state.characters[0]?.id || "";
     if(ownerChanged&&owner?.actorId)void notificationCounter.refresh();
   }
@@ -1057,13 +1059,24 @@ export function createWorkspace({ observable = proxy } = {}) {
       /* Domain error stays on the current work surface. */
     }
   }
+  // Resolve direct chat links without adding closed characters to the directory.
+  async function resolveChatCharacter(id, live) {
+    const owner = state.session?.actorId;
+    const raw = await client.detail(id);
+    if (!active || state.session?.actorId !== owner || !live()) return;
+    const name = raw.identity?.name || raw.core_persona?.identity?.name || "未命名角色";
+    state.chatCharacter = {...blankCharacter(), id, name, initial: avatarInitial(name), status: ({active:"正常",paused:"已暂停",retired:"已退休",archived:"已归档",created:"未启动",failed:"异常"}[raw.status] || "状态未读取"), detail: raw};
+    generation++;
+    state.loading = {};
+    state.selectedId = id;
+  }
   function select(id) {
-    if (state.selectedId === id || !state.characters.some((c) => c.id === id))
+    if (state.selectedId === id || (!state.characters.some((c) => c.id === id) && state.chatCharacter?.id !== id))
       return;
     generation++;
     state.loading = {};
     state.selectedId = id;
-    setUi({ charId: id });
+    if (state.characters.some((c) => c.id === id)) setUi({ charId: id });
   }
   return {
     state,
@@ -1088,6 +1101,7 @@ export function createWorkspace({ observable = proxy } = {}) {
     command,
     notify,
     select,
+    resolveChatCharacter,
     isCurrent,
     currentScope,
     navigatePath,

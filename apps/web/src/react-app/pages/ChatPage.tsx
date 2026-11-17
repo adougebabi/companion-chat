@@ -79,6 +79,8 @@ export default function ChatPage({
   );
   const character = workspace.current.value,
     scope = workspace.currentScope();
+  const archived = ["retired", "archived", "已退休", "已归档"].includes(character.status) ||
+    ["retired", "archived"].includes(character.detail?.status);
   const storageKey = "fluctlight:approved-chat-draft:" + scope;
   const [draft, setDraft] = useState(() => {
     try {
@@ -195,7 +197,7 @@ export default function ChatPage({
   async function send() {
     const submitted = latestDraft.current,
       text = submitted.trim(), revision = draftRevision.current;
-    if (!text || submittedDraftRevision.current === revision || sendBusy || readLoading || conversationUnavailable || preparationBlocked || snapshot.fluctlightId!==character.id || !snapshot.conversation) return;
+    if (archived || !text || submittedDraftRevision.current === revision || sendBusy || readLoading || conversationUnavailable || preparationBlocked || snapshot.fluctlightId!==character.id || !snapshot.conversation) return;
     submittedDraftRevision.current=revision;
     try { await store.send(text, false, null, () => {
       if (
@@ -282,7 +284,7 @@ export default function ChatPage({
             <strong className="line-clamp-2" title={character.name}>{character.name}</strong>
             <span>
               <i className="online-dot" />{" "}
-              {character.status === "正常"
+              {archived ? "已归档" : character.status === "正常"
                 ? "生活进行中"
                 : character.status || "状态未读取"}
               {character.job && <span> · {character.job}</span>}
@@ -294,6 +296,11 @@ export default function ChatPage({
             只属于你们的对话
           </span>
         </header>
+        {archived&&<Alert data-testid="chat-archived" className="min-w-0 gap-3 p-4">
+          <AlertTitle>角色已归档</AlertTitle>
+          <AlertDescription>可以查看历史对话，已归档角色不能发送新消息。</AlertDescription>
+          <Button asChild variant="outline"><a href="#/library">返回角色库</a></Button>
+        </Alert>}
         <PersonaPreparationFeedback key={scope} character={character}/>
         <MessageScrollerProvider autoScroll defaultScrollPosition="end" scrollEdgeThreshold={80}>
           <MessageScroller className="replica-chat-scroller">
@@ -301,7 +308,7 @@ export default function ChatPage({
               <MessageScrollerContent className="replica-chat-messages">
 
                 {(snapshot.loading||readLoading)&&<MessageScrollerItem messageId="loading" role="status" aria-live="polite" data-feedback-kind="progress"><Spinner/>正在读取对话…</MessageScrollerItem>}
-                {!snapshot.loading&&!readLoading&&!messages.length&&!error&&!readNotice&&!busy&&<MessageScrollerItem messageId="intro"><div className="replica-chat-empty"><LeafIcon size={24}/><p>从一句问候开始，让陪伴慢慢发生。</p></div></MessageScrollerItem>}
+                {!snapshot.loading&&!readLoading&&!messages.length&&!error&&!readNotice&&!busy&&<MessageScrollerItem messageId="intro"><div className="replica-chat-empty"><LeafIcon size={24}/><p>{archived?"还没有历史对话。":"从一句问候开始，让陪伴慢慢发生。"}</p></div></MessageScrollerItem>}
           {messages.map((message,index) => {
             const mine = message.kind === "user",
               failed =
@@ -336,7 +343,7 @@ export default function ChatPage({
                   {mine&&message.turnStatus==='completed'&&<div className="companion-message-state"><CheckCheckIcon size={12}/>已送达</div>}
                   {failed && (
                     <ChatTurnFeedback
-                      message={message}
+                      message={archived ? {...message,turnRetryable:false} : message}
                       messages={messages}
                       store={store}
                       onOpenDiagnostic={openTurnDiagnostic}
@@ -361,7 +368,7 @@ export default function ChatPage({
                   <a href={diagnosticHref} onClick={openDiagnostic}>查看本次运行 <ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/></a>
                 </Button>
               )}
-              {store.canCancel && (
+              {!archived && store.canCancel && (
                 <Button variant="link" onClick={() => store.cancel()}>
                   停止本次生成
                 </Button>
@@ -397,8 +404,8 @@ export default function ChatPage({
           {promptOffer&&<div className="companion-prefill-note"><span>已保留你的草稿，还有一条来自其他页面的请求。</span><Button variant="link" onClick={()=>{editDraft(current=>current.trim()?current+'\n\n'+promptOffer:promptOffer);setPromptOffer('');}}>加入草稿</Button><Button variant="ghost" size="icon" aria-label="放下这条请求" onClick={()=>setPromptOffer('')}><XIcon size={12}/></Button></div>}
           <Textarea
             aria-label="聊天消息"
-            disabled={readLoading || conversationUnavailable}
-            placeholder={conversationUnavailable?"对话暂不可用，请检查模型配置后重新读取":"说点什么，分享你的今天…"}
+            disabled={archived || readLoading || conversationUnavailable}
+            placeholder={archived?"角色已归档，仅可查看历史对话":conversationUnavailable?"对话暂不可用，请检查模型配置后重新读取":"说点什么，分享你的今天…"}
             value={draft}
             onChange={(event) => editDraft(event.target.value)}
             onCompositionStart={() => (composing.current = true)}
@@ -420,10 +427,10 @@ export default function ChatPage({
             }}
           />
           <div className="companion-composer-bottom">
-            <span>{conversationUnavailable?"对话恢复后才可发送，草稿已保留":<>Enter 发送 <i/> Shift + Enter 换行</>}</span>
+            <span>{archived?"角色已归档，不能发送新消息":conversationUnavailable?"对话恢复后才可发送，草稿已保留":<>Enter 发送 <i/> Shift + Enter 换行</>}</span>
             <Button
               className="touch-target"
-              disabled={!draft.trim() || sameDraftPending || sendBusy || readLoading || conversationUnavailable || preparationBlocked || !snapshot.conversation || !!snapshot.recoveryStorageError}
+              disabled={archived || !draft.trim() || sameDraftPending || sendBusy || readLoading || conversationUnavailable || preparationBlocked || !snapshot.conversation || !!snapshot.recoveryStorageError}
               onClick={() => void send()}
             >
               {canQueueFollowUp ? "追加消息" : snapshot.sending || store.hasPendingTurn ? "回应中" : store.hasSettlingTurn ? "等待结束" : "发送"}
@@ -434,7 +441,7 @@ export default function ChatPage({
       </Surface>
       {preview&&<aside className="companion-moment-preview"><SidebarProvider keyboardShortcut={false} open={preview} onOpenChange={onPreviewChange} className="contents min-h-0"><Sidebar side="right" data-side="right" collapsible="none" className="replica-chat-preview"><SidebarContent className="replica-chat-preview-content">{previewContent}</SidebarContent></Sidebar></SidebarProvider></aside>}
       </div>
-      {(historyOpen||historyRoute)&&<ConversationHistory key={historyRoute?historyRoute.path+'?'+historyRoute.query:'inline'} initialQuery={historyRoute?.query.get('q')||''} initialConversationId={historyRoute?.query.get('conversation')||''} initialMessageId={historyRoute?.query.get('message')||''} returnFocus={()=>historyFocus.current} busy={busy} onClose={closeHistory}/>}
+      {(historyOpen||historyRoute)&&<ConversationHistory key={historyRoute?historyRoute.path+'?'+historyRoute.query:'inline'} initialQuery={historyRoute?.query.get('q')||''} initialConversationId={historyRoute?.query.get('conversation')||''} initialMessageId={historyRoute?.query.get('message')||''} returnFocus={()=>historyFocus.current} busy={busy||archived} onClose={closeHistory}/>}
       {attachment&&<WorkspaceDialog open onOpenChange={open=>{if(!open)setAttachment(null);}} title="对话附件" description={character.name+' 的历史对话图片'} returnFocus={()=>attachmentFocus.current}><MediaPreview src={workspace.services.mediaClient.url(attachment)} alt={character.name+' 的附件'}/></WorkspaceDialog>}
       {diagnosticRoute&&<DetailDrawer title="本次对话运行" testId="chat-diagnostic-drawer" onClose={()=>setDiagnosticRoute(null)}><DomainPage route={diagnosticRoute}/></DetailDrawer>}
     </div>
