@@ -1,0 +1,127 @@
+{
+ "GET /api/fluctlights/<id>/detail（节选，顶层没有 world_id 字段）": {
+  "id": "fluctlight_c187d20ec29d6dcbd36af29f09e98a36",
+  "status": "active",
+  "context": {
+   "activity": null,
+   "authority_status": "pending",
+   "context_revision": "life_ctx_c182d229f7cacb8e37cf95e223c6b831",
+   "effective_at": "2026-11-16T16:00:00.000+00:00",
+   "expires_at": "2026-11-17T16:00:00.000+00:00",
+   "instant": "2026-11-17T03:50:45.053+00:00",
+   "local_date": "2026-11-17",
+   "location": null,
+   "revision": 1099092521,
+   "scene": null,
+   "source": "pending",
+   "timezone": "Asia/Shanghai",
+   "world_binding_revision": 1,
+   "world_effects": [],
+   "world_id": "world_db6c03b37f7757c87b7c41485a9b8394"
+  }
+ },
+ "GET /api/fluctlights/<id>/world/catalog": {
+  "active_binding": {
+   "revision": 1,
+   "world_id": "world_db6c03b37f7757c87b7c41485a9b8394"
+  },
+  "items": [
+   {
+    "active": true,
+    "background": "为 UI 验收准备的虚构运行世界，只用于测试世界物品目录。",
+    "description": "",
+    "flavor": "",
+    "fluctlight_id": "fluctlight_c187d20ec29d6dcbd36af29f09e98a36",
+    "id": "world_db6c03b37f7757c87b7c41485a9b8394",
+    "item_pool": "",
+    "name": "验收-P2-06 测试世界",
+    "revision": 1,
+    "rules": "",
+    "source_resource_id": null,
+    "source_version": null,
+    "timezone": "Asia/Shanghai",
+    "venue_categories": [
+     {
+      "id": "home",
+      "name": "居所"
+     },
+     {
+      "id": "shops",
+      "name": "商店"
+     },
+     {
+      "id": "public",
+      "name": "公共空间"
+     }
+    ]
+   }
+  ],
+  "next_cursor": null
+ },
+ "GET /api/fluctlights/<id>/world/items": {
+  "items": [
+   {
+    "available": true,
+    "created_at": "2026-11-17T03:36:13.800+00:00",
+    "definition": {
+     "category": "personal",
+     "description": "一本牛皮纸封面的笔记本",
+     "item_kind": "object",
+     "schema": "item-definition.v1",
+     "slot": ""
+    },
+    "fluctlight_id": "fluctlight_c187d20ec29d6dcbd36af29f09e98a36",
+    "id": "world_item_4dfea0b2a7a28c0930285f90191fe387",
+    "local_overrides": {},
+    "name": "验收-P2-06 笔记本",
+    "place_id": null,
+    "revision": 1,
+    "source_resource_id": "res_08eec84f572089a9eb0b582b50881917",
+    "source_version": "1",
+    "updated_at": "2026-11-17T03:36:13.800+00:00",
+    "world_id": "world_db6c03b37f7757c87b7c41485a9b8394"
+   },
+   {
+    "available": true,
+    "created_at": "2026-11-17T03:36:13.776+00:00",
+    "definition": {
+     "category": "personal",
+     "description": "一把墨绿色长柄雨伞",
+     "item_kind": "object",
+     "schema": "item-definition.v1",
+     "slot": ""
+    },
+    "fluctlight_id": "fluctlight_c187d20ec29d6dcbd36af29f09e98a36",
+    "id": "world_item_142299441dda36f85f2b50f000bfa7bc",
+    "local_overrides": {},
+    "name": "验收-P2-06 雨伞",
+    "place_id": null,
+    "revision": 1,
+    "source_resource_id": "res_bd08a30a328ad190d55d55c6eba81f61",
+    "source_version": "1",
+    "updated_at": "2026-11-17T03:36:13.776+00:00",
+    "world_id": "world_db6c03b37f7757c87b7c41485a9b8394"
+   }
+  ],
+  "next_cursor": "",
+  "world_id": "world_db6c03b37f7757c87b7c41485a9b8394"
+ },
+ "GET /api/fluctlights（节选）": [
+  {
+   "id": "fl-chenmo",
+   "status": "active"
+  },
+  {
+   "id": "fl-suqing",
+   "status": "active"
+  },
+  {
+   "id": "fl-baiban",
+   "status": "active"
+  },
+  {
+   "id": "fluctlight_c187d20ec29d6dcbd36af29f09e98a36",
+   "status": "active"
+  }
+ ]
+}

@@ -4,6 +4,7 @@ import { MockConflict, assertWritableCharacter } from './client.js';
 const clone = value => structuredClone(value);
 export const sceneOptions = ['cafe', 'oldstreet', 'flowershop', 'seaside', 'apartment', 'shop'].map(name => ({ value: `/v3/assets/scenes/${name}.svg`, label: name }));
 export const mockWorld = {
+  catalog(characterId) { const worldId = store.get('characters', characterId)?.worldId; return { items: this.worlds(characterId), active_binding: worldId ? { world_id: worldId } : null }; },
   worlds(characterId) { const originalWorldId = createMockSeed().characters[characterId]?.worldId; return clone(store.list('worlds', world => world.charId === characterId || store.get('characters', characterId)?.worldId === world.id || world.id === originalWorldId)); },
   world(characterId, id) { const world = this.worlds(characterId).find(item => item.id === id); if (!world) throw new Error('当前角色范围未找到世界'); return { ...world, version: world.version || 1 }; },
   create(characterId, name) { assertWritableCharacter(characterId);

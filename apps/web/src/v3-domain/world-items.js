@@ -10,7 +10,6 @@ import {MissingWorld} from '../v3/proto/components/world-presentation.js';
 
 export function renderWorldItems(el,ctx){
  const fid=ctx.charId,owner=get('session')?.actorId;let active=true,term=ctx.query.q||'';
- if(!get('characters',fid)?.worldId){el.innerHTML=MissingWorld(fid);return()=>{};}
  const alive=()=>active&&el.isConnected&&get('session')?.actorId===owner;
  el.innerHTML=`<div data-domain-ui="card" class="card"><h2>世界物品目录</h2><p>查看当前运行世界中已注册的物品定义。浏览、配置和提出请求不会取得、穿着或使用物品；实际结果可在衣柜与行动来源中查询。</p><div class="row"><button data-create data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" type="button" disabled>新建物品定义</button><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${encodeURIComponent(fid)}/world">返回世界总览</a></div><div data-search>${SearchForm({value:term,placeholder:'搜索目录物品',inputAttrs:{disabled:true}})}</div><div data-items class="stack"></div></div>`;
  const box=el.querySelector('[data-items]'),create=el.querySelector('[data-create]'),form=el.querySelector('[data-search] form');
@@ -20,8 +19,14 @@ export function renderWorldItems(el,ctx){
  create.onclick=()=>{if(ready)location.hash='#/studio/edit/new?kind=item';};
  const panel=mountCursorRecords(box,{
   alive,label:'世界物品',
-  read:async cursor=>{setReady(false);return mockWorld.items(fid,{cursor,q:term});},
-  bind:()=>setReady(true),
+  read:async cursor=>{
+   setReady(false);
+   const catalog=await mockWorld.catalog(fid);
+   if(!alive())return {items:[]};
+   if(!catalog.active_binding?.world_id)return {items:[],missingWorld:true};
+   return mockWorld.items(fid,{cursor,q:term});
+  },
+  bind:(_,page)=>{if(page.missingWorld)el.innerHTML=MissingWorld(fid);else setReady(true);},
   onError:()=>{setReady(false);box.replaceChildren();},
   renderFailure:()=>`<div data-panel-failure data-domain-ui="alert" data-feedback-kind="error" class="stack" role="alert"><p>暂时无法读取世界物品目录，请稍后再试。</p><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" type="button" data-panel-retry>重新读取</button></div>`,
   render:item=>WorldItemCard(item,fid),empty:'当前世界尚未注册物品。可在创作中发布物品定义，再明确应用到此角色的运行世界。'

@@ -14,7 +14,7 @@ const item = { id: 'private-item', name: '旅行背包', definition: { descripti
 function fixture(read, worldId = 'private-world') {
   store.replaceSnapshot({ ...store.get(), session: { actorId: 'owner' }, characters: { 'fl-suqing': { id: 'fl-suqing', worldId } } });
   const calls = [];
-  configureDomainService('world', { items: (fid, options) => { calls.push({ fid, ...options }); return read(options); } });
+  configureDomainService('world', { catalog: async () => ({ active_binding: worldId ? { world_id: worldId } : null }), items: (fid, options) => { calls.push({ fid, ...options }); return read(options); } });
   const el = document.createElement('div'); document.body.append(el);
   const dispose = renderWorldItems(el, ctx);
   return { el, calls, dispose() { dispose(); el.remove(); } };
@@ -24,10 +24,11 @@ function controlsDisabled(el, expected) {
 }
 test.after(() => env.restore());
 
-test('no running world reuses the events empty state and makes no directory request', () => {
+test('no running world reuses the events empty state and makes no directory request', async () => {
   const f = fixture(() => { throw Error('must not read'); }, null);
   const events = document.createElement('div'); document.body.append(events);
   const dispose = renderRealWorldEvents(events, ctx);
+  await tick();
   try {
     assert.equal(f.el.innerHTML, events.innerHTML);
     assert.match(f.el.textContent, /尚未选择运行世界/);
@@ -86,6 +87,7 @@ test('search and pagination retain their query and cursor; a later failure hides
 test('late reads after leaving the page cannot re-enable controls or show errors', async () => {
   for (const reject of [false, true]) {
     const pending = deferred(), f = fixture(() => pending.promise);
+    await tick();
     f.dispose();
     if (reject) pending.reject(Error('private_error')); else pending.resolve({ items: [], next_cursor: '' });
     await tick(); controlsDisabled(f.el, true);
