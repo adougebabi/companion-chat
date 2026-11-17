@@ -207,6 +207,7 @@ func TestGoalAssessmentMissingCoverageGetsOneTypedCorrection(t *testing.T) {
 		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: evaluations, Plans: []GoalPlanCandidate{}})}
 	})}
 	requestID := latestPendingGoalRequest(t, f)
+	advanceGoalEvaluationCycleForTest(t, f, requestID)
 	result, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID)
 	if err != nil || modelCalls != 2 || stringValue(result["status"]) != "succeeded" {
 		t.Fatalf("coverage correction result=%#v calls=%d err=%v", result, modelCalls, err)
@@ -227,6 +228,7 @@ func TestGoalAssessmentRepeatedMissingCoverageFailsTerminally(t *testing.T) {
 		return fakeProviderResult{Structured: goalEvaluationProviderFixture(snapshot, GoalEvaluationTaskOutput{Evaluations: []GoalEvaluationCandidate{candidate}, Plans: []GoalPlanCandidate{}})}
 	})}
 	requestID := latestPendingGoalRequest(t, f)
+	advanceGoalEvaluationCycleForTest(t, f, requestID)
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID); err == nil || !strings.Contains(err.Error(), "goal_assessment_coverage_missing") {
 		t.Fatalf("repeated bad coverage error=%v", err)
 	}

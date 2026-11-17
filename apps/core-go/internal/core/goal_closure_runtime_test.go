@@ -119,6 +119,7 @@ func TestFormalConversationWithoutIntentionCompletesOriginalExpressionGoal(t *te
 		t.Fatalf("formal turn=%#v %v", turn, err)
 	}
 	requestID := latestPendingGoalRequest(t, f)
+	advanceGoalEvaluationCycleForTest(t, f, requestID)
 	result, err := f.app.ProcessGoalEvaluationIntent(f.ctx, requestID)
 	if err != nil || stringValue(result["status"]) != "succeeded" {
 		t.Fatalf("assessment=%#v %v", result, err)
