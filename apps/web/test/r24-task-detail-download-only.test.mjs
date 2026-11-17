@@ -6,7 +6,7 @@ import {proxy,snapshot,subscribe} from 'valtio/vanilla';
 import {act,mountReact,installDOM} from './helpers/react-dom.mjs';
 
 const env=installDOM();
-const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),envFile:false,cacheDir:'/workspace/r24p2/tmp/vite-r24-task-download-only',appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
+const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),envFile:false,appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
 test.after(async()=>{await vite.close();env.restore();});
 const button=(host,title)=>[...host.querySelectorAll('button')].find(node=>node.textContent.trim()===title);
 const task={task_id:'goal_planner_private',kind:'goal.plan',title:'goal.plan',fluctlight_id:'private-character',status:'failed',workflow_id:'workflow-private',correlation_id:'correlation-private',created_at:'2026-11-16T00:00:00Z',source:{last_error:'sql: no rows in result set'},steps:[{id:'diagnostic-private',event_type:'lifecycle.workflow.failed',reason_code:'workflow_describe_failed',status:'failed'}]};

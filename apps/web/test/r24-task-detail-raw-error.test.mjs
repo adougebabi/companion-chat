@@ -4,7 +4,7 @@ import {createServer} from 'vite';
 import {fileURLToPath} from 'node:url';
 import {proxy,snapshot,subscribe} from 'valtio/vanilla';
 import {act,mountReact,installDOM} from './helpers/react-dom.mjs';
-const env=installDOM(),vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),envFile:false,cacheDir:'/workspace/r24p2/tmp/vite-r24-task-raw-error',appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
+const env=installDOM(),vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),envFile:false,appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
 test.after(async()=>{await vite.close();env.restore();});
 const button=(text)=>[...document.querySelectorAll('button')].find(node=>node.textContent.trim()===text);
 const task={task_id:'goal_planner_private',title:'goal.plan',kind:'goal.plan',status:'failed',workflow_id:'goal-planner:private',correlation_id:'diagnostic_private',created_at:'2026-11-16T00:00:00Z',started_at:'2026-11-16T00:01:00Z',completed_at:'2026-11-16T00:02:00Z',next_attempt_at:'2026-11-17T00:00:00Z',runs:1,has_more_steps:false,source:{last_error:'sql: no rows in result set',state:'failed'},steps:[{id:'private-event',event_type:'lifecycle.workflow.failed',status:'failed',at:'2026-11-16T00:02:00Z',reason_code:'workflow_describe_failed',safe_cause:'sql: no rows in result set'}]};

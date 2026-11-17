@@ -8,7 +8,7 @@ import {React, installDOM, mountReact} from './helpers/react-dom.mjs';
 const env = installDOM();
 const vite = await createServer({
   root: fileURLToPath(new URL('../', import.meta.url)),
-  envFile: false, cacheDir: '/workspace/r24p2/tmp/vite-sidebar-footer-tests',
+  envFile: false,
   appType: 'custom', logLevel: 'silent', server: {middlewareMode: true},
 });
 const {SidebarProvider, Sidebar, SidebarTrigger} = await vite.ssrLoadModule('/src/components/ui/sidebar.tsx');

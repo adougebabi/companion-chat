@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {act,installDOM,mountReact} from './helpers/react-dom.mjs';
 
 const env=installDOM();
-const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),cacheDir:'/workspace/r24p2/tmp/vite-r24-chat-isolation',appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
+const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
 const load=path=>vite.ssrLoadModule('/src/'+path);
 const {createWorkspace}=await load('state/workspace.mjs');
 const directory=await load('v3/proto/store.js');

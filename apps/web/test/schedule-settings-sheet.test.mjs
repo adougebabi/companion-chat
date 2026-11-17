@@ -6,7 +6,7 @@ import {readFile} from 'node:fs/promises';
 import {proxy,snapshot,subscribe} from 'valtio/vanilla';
 import {act,installDOM,mountReact} from './helpers/react-dom.mjs';
 const env=installDOM();
-const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),envFile:false,cacheDir:'/workspace/r24p2/tmp/vite-schedule-sheet-tests',appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
+const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),envFile:false,appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
 test.after(async()=>{await vite.close();env.restore();});
 const load=path=>vite.ssrLoadModule('/src/'+path);
 const {default:Domain}=await load('react-app/pages/DomainPage.tsx');

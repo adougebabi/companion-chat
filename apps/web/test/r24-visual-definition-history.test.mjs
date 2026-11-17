@@ -8,7 +8,6 @@ import {mediaFixture} from './fixtures/media-fixture.mjs';
 const env = installDOM();
 const vite = await createServer({
   root: fileURLToPath(new URL('../', import.meta.url)),
-  cacheDir: '/workspace/r24p2/tmp/vite-visual-definition-history',
   envFile: false, appType: 'custom', logLevel: 'silent', server: {middlewareMode: true},
 });
 test.after(async () => {await vite.close(); env.restore();});

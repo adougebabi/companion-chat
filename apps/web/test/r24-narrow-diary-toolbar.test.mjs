@@ -7,7 +7,7 @@ import {act, installDOM, mountReact} from './helpers/react-dom.mjs';
 import {diaryToolbarWorkspace} from './fixtures/diary-toolbar-fixture.mjs';
 
 const env = installDOM();
-const vite = await createServer({root:fileURLToPath(new URL('../', import.meta.url)), envFile:false, cacheDir:'/workspace/r24p2/tmp/vite-diary-toolbar-tests', appType:'custom', logLevel:'silent', server:{middlewareMode:true}});
+const vite = await createServer({root:fileURLToPath(new URL('../', import.meta.url)), envFile:false, appType:'custom', logLevel:'silent', server:{middlewareMode:true}});
 const {default:Diary} = await vite.ssrLoadModule('/src/react-app/pages/DiaryPage.jsx');
 test.after(async () => {await vite.close(); env.restore();});
 

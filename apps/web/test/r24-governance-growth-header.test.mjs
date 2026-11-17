@@ -4,7 +4,7 @@ import {createServer} from 'vite';
 import {fileURLToPath} from 'node:url';
 import {act,installDOM,mountReact} from './helpers/react-dom.mjs';
 const env=installDOM();
-const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),cacheDir:'/workspace/r24p2/tmp/vite-governance-header',envFile:false,appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
+const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),envFile:false,appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
 const load=path=>vite.ssrLoadModule(path);
 test.after(async()=>{await vite.close();env.restore();});
 const scenarios=[['capabilities','能力申请与审核','profile','GovernancePage'],['foundation','身份核心与提议','profile','GovernancePage'],['developing','发展中的自我','growth/self','GovernancePage'],['self','成长认识','growth','SelfPage'],['snapshot','人格快照','growth','SelfPage']];

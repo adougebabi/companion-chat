@@ -9,7 +9,6 @@ import {approvedRoute} from '../src/approved-ui/routing.mjs';
 const env = installDOM();
 const vite = await createServer({
   root: fileURLToPath(new URL('../', import.meta.url)),
-  cacheDir: '/workspace/r24p2/tmp/vite-settings-panels',
   envFile: false, appType: 'custom', logLevel: 'silent',
   server: {middlewareMode: true},
 });

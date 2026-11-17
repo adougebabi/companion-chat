@@ -6,7 +6,7 @@ import {proxy,snapshot,subscribe} from 'valtio/vanilla';
 import {act,installDOM,mountReact} from './helpers/react-dom.mjs';
 import {settingsHref} from '../src/approved-ui/service-unavailable.mjs';
 
-const env=installDOM(),vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),cacheDir:'/workspace/r24p2/tmp/vite-r24-chat-error',appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
+const env=installDOM(),vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
 const load=path=>vite.ssrLoadModule('/src/'+path);
 const {BrowserClient}=await vite.ssrLoadModule('/@fs'+fileURLToPath(new URL('../../../packages/browser-client/src/index.ts',import.meta.url)));
 const provider=await load('v3/providers/real.ts'),{productConversation:store}=await load('state/conversation.ts'),{default:Chat}=await load('react-app/pages/ChatPage.tsx');
