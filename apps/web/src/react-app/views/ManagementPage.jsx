@@ -5,7 +5,8 @@ import DiagnosticsWorkspace from "@/react-app/shared/DiagnosticsWorkspace";
 import {useRef,useState,useEffect} from 'react';
 import WorkspaceDialog from '../shared/WorkspaceDialog';
 import WorkspacePageHeader from "@/react-app/shared/WorkspacePageHeader";
-import {Server,MessageSquare,ImageIcon,Leaf,Bell,Activity,Database,SlidersHorizontal} from "lucide-react";
+import {managementCategories as categories} from '@/approved-ui/management-navigation.mjs';
+import {Server} from 'lucide-react';
 import RecordView from '@/react-app/shared/RecordView';
 import CursorControls from '@/react-app/shared/CursorControls';
 import {Field,FieldLabel} from '@/components/ui/field';
@@ -43,17 +44,6 @@ import {
 const Yi = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 export function ManagementPageView({ view: view }) {
   const recordTrigger=useRef(null),managementNav=useRef(null),[callTechnicalTarget,setCallTechnicalTarget]=useState(null);
-  const categories = [
-    {id:'models',label:'模型服务与用途',icon:Server,sections:['服务地址','模型用途']},
-    {id:'conversation',label:'聊天与视觉',icon:MessageSquare,sections:['聊天回复','看图理解']},
-    {id:'media',label:'图片生成',icon:ImageIcon,sections:['图片（ComfyUI）']},
-    {id:'plugins',label:'能力插件',icon:SlidersHorizontal,sections:['能力插件']},
-    {id:'autonomy',label:'自主性与安静时段',icon:Leaf,sections:['角色自主与主动联系','安静时段']},
-    {id:'runtime',label:'通知与后台',icon:Bell,sections:['通知','作息与后台节奏','资源与预算']},
-    {id:'diagnostics',label:'诊断与任务',icon:Activity,sections:[]},
-    {id:'data',label:'数据管理',icon:Database,sections:[]},
-    {id:'advanced',label:'高级设置',icon:SlidersHorizontal,sections:['高级']},
-  ];
   const category=readValue(view.tab)==='运行诊断'?'diagnostics':categories.find(c=>c.sections.includes(view.currentSection.value))?.id||'models';
   useEffect(()=>{const align=()=>{const nav=managementNav.current,active=nav?.querySelector('[aria-current=page]');if(!nav||!active||nav.scrollWidth<=nav.clientWidth)return;const box=nav.getBoundingClientRect(),item=active.getBoundingClientRect();if(item.left<box.left)nav.scrollLeft+=item.left-box.left;else if(item.right>box.right)nav.scrollLeft+=item.right-box.right;};align();window.addEventListener('resize',align);return()=>window.removeEventListener('resize',align);},[category]);
   const show=title=>categories.find(c=>c.id===category)?.sections.includes(title)&&(category!=='models'||view.currentSection.value===title);

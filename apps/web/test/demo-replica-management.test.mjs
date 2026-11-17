@@ -183,7 +183,7 @@ test('r21 data domain navigation icons survive and summary reaches real backup c
  configureDomainService('dataTools',{backups:async()=>{reads++;return {items:[],next_cursor:''};},backupCommand:async()=>{writes++;}});
  const host=document.createElement('div');document.body.append(host);const dispose=renderRealData(host,{navigate(){}}),ui=await mountReact(vite,Ports,{props:{root:host}});
  try{
-  await ui.flush();const links=[...host.querySelectorAll('nav a[data-slot=button]')];assert.equal(links.length,8);assert.equal(links.filter(link=>link.querySelector('svg')).length,8);assert.equal(links.find(link=>link.textContent.includes('诊断与任务')).getAttribute('href'),'#/diag?view=tasks');assert.equal(links.find(link=>link.getAttribute('aria-current')==='page').textContent,'数据管理');
+  await ui.flush();const links=[...host.querySelectorAll('nav a[data-slot=button]')];assert.equal(links.length,9);assert.equal(links.filter(link=>link.querySelector('svg')).length,9);assert.equal(links.find(link=>link.textContent.includes('诊断与任务')).getAttribute('href'),'#/diag?view=tasks');assert.equal(links.find(link=>link.getAttribute('aria-current')==='page').textContent,'数据管理');
   const heading=host.querySelector('[data-backup-heading]');let scrolled=false;heading.scrollIntoView=()=>scrolled=true;
   await ui.click(button(host,'查看业务备份与创建任务'));assert.equal(scrolled,true);assert.equal(heading.ownerDocument.activeElement,heading);assert.ok(button(host,'创建备份任务'));assert.equal(writes,0);assert.equal(reads,1);assert.match(host.textContent,/最大 3 MiB/);assert.doesNotMatch(host.textContent,/组已修改的数据|份本地备份/);
  }finally{await ui.dispose();dispose();host.remove();}
