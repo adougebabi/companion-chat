@@ -290,3 +290,18 @@
 .replica-inbox .replica-notice-panel > .replica-page-empty { padding:45px 20px; }
 
 .replica-inbox-aside .replica-inbox-caption { padding:4px 0; }
+
+/* Reuse the scroll state owned by App; keep the narrow fixed stack compact. */
+@media(max-width:700px){
+ .react-workspace.replica-workspace .replica-page--managed:has(.replica-page-heading.is-scrolled){padding-top:4px}
+ .replica-page--managed .replica-page-heading.is-scrolled{margin-bottom:4px;gap:8px}
+ .react-workspace .replica-page--managed .replica-page-heading.is-scrolled h1{font-size:18px;line-height:24px;transform:none}
+ .replica-page--managed .replica-page-heading.is-scrolled .replica-page-actions [data-slot=button]{min-height:36px;height:auto;padding-block:4px}
+ .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-management-layout{gap:4px}
+ .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-management-nav{padding-block:0}
+ .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-management-section-header{gap:4px}
+ .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-settings-head{flex-direction:row;align-items:center;gap:8px}
+ .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-settings-head h2{line-height:24px}
+ .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-settings-head :is(p,small,.replica-diagnostic-environment,.replica-settings-section-icon){display:none}
+ .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-management-section-header [role=tab][data-slot=tabs-trigger]{min-height:36px;padding:4px 2px}
+}
