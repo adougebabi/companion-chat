@@ -16,6 +16,9 @@ const event={id:'event-private',type:'lifecycle.workflow.failed',at:task.created
 const forbidden=/sql: no rows|goal\.plan|goal_planner_private|workflow-private|correlation-private|diagnostic-private|command-private|private-action|run-private|event-private|原始 JSON/;
 test('media failures retain recorded Provider HTTP status without exposing transport internals',async()=>{
  const {taskFailureReason,taskEventReason,taskModelFailureReason}=await vite.ssrLoadModule('/src/approved-ui/task-presentation.mjs');
+ for(const entry of [{status:'queued',reason_code:'dispatcher_selected'},{status:'started',reason_code:'workflow_dispatched'},{status:'completed',reason_code:'workflow_terminal_completed'},{status:'unknown_state',reason_code:'unknown_internal_reason'}])assert.equal(taskEventReason(entry),'');
+ assert.match(taskEventReason({status:'failed',reason_code:'unknown_internal_failure'}),/本次执行未完成/);
+ assert.equal(taskEventReason({status:'started',reason_code:'workflow_dispatched',safe_cause:'已交给执行器。'}),'已交给执行器。');
  for(const status of [400,503]){
   const cause=`media prompt generation failed: Post "http://private-service/v1/chat/completions": provider HTTP ${status}: PRIVATE_RESPONSE_BODY node path: [private-node]`;
   for(const message of [taskFailureReason({kind:'media.generation',status:'failed',source:{last_error:cause}}),taskEventReason({safe_cause:cause})]){assert.match(message,new RegExp('HTTP '+status));assert.doesNotMatch(message,/private-service|PRIVATE_RESPONSE_BODY|private-node|node path/);}
