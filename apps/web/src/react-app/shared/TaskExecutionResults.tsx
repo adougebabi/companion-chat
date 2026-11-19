@@ -6,7 +6,7 @@ import {Feedback,ReadState} from './Presentation';
 import DiagnosticStatus from './DiagnosticStatus';
 import RecordView from './RecordView';
 import JsonDetails from './JsonDetails';
-import {diagnosticTimeLabel,taskEventText,taskEventReason,taskRoundRecords} from '@/approved-ui/task-presentation.mjs';
+import {diagnosticTimeLabel,taskEventText,taskEventReason,taskRoundRecords,taskModelFailureReason} from '@/approved-ui/task-presentation.mjs';
 import {callDurationLabel} from '@/approved-ui/task-model-call-presentation.mjs';
 
 export default function TaskExecutionResults({task,steps,calls,available}:{task:any;steps:any[];calls:any;available:boolean}){
@@ -30,8 +30,8 @@ export default function TaskExecutionResults({task,steps,calls,available}:{task:
       {call.started_at&&<time dateTime={call.started_at}>{diagnosticTimeLabel(call.started_at)}</time>}
       <section><h3>输入</h3><RecordView value={call.prompt} emptyText="未记录输入"/></section>
       <section><h3>输出</h3><RecordView value={call.response} emptyText="未记录输出"/></section>
-      <section><h3>错误</h3>{call.error||call.error_code?<><RecordView value={call.error} emptyText="未提供错误说明"/>{call.error_code&&<JsonDetails value={{error_code:call.error_code}} title="错误代码"/>}</>:<p className="replica-inbox-caption">未记录错误</p>}</section>
-      <JsonDetails value={record} title="本轮原始记录"/>
+      <section><h3>错误</h3>{call.error||call.error_code?<><p>{taskModelFailureReason(call)}</p>{call.error_code&&<JsonDetails value={{error_code:call.error_code}} title="错误代码" downloadOnly/>}</>:<p className="replica-inbox-caption">未记录错误</p>}</section>
+      <JsonDetails value={record} title="本轮原始记录" downloadOnly/>
      </CollapsibleContent>
     </Collapsible>
    </li>)}</ol>}

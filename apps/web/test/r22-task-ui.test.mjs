@@ -10,7 +10,8 @@ const {default:Record}=await vite.ssrLoadModule('/src/react-app/shared/TaskRecor
 const {default:Wizard}=await vite.ssrLoadModule('/src/react-app/views/CharacterWizard.jsx');
 test.after(async()=>{await vite.close();env.restore();});
 const button=(host,text)=>[...host.querySelectorAll('button')].find(node=>node.textContent.trim()===text);
-async function tab(view,label){await act(async()=>[...document.querySelectorAll('[role=tab]')].find(node=>node.textContent.trim()===label).dispatchEvent(new window.MouseEvent('mousedown',{bubbles:true,button:0})));await view.flush();}
+async function tab(view,label){await act(async()=>[...document.querySelectorAll('[role=tab]')].find(node=>node.textContent.trim().startsWith(label)).dispatchEvent(new window.MouseEvent('mousedown',{bubbles:true,button:0})));await view.flush();}
+async function modelCalls(v,host){const trigger=[...host.querySelectorAll('button')].find(node=>node.textContent.startsWith('模型调用记录'));assert.ok(trigger);if(trigger.getAttribute('aria-expanded')!=='true')await v.click(trigger);}
 function workspace(task,page=async()=>({items:[],next_cursor:''})){
  const state=proxy({session:{actorId:'r22-task-owner'},characters:[]});
  return {state,subscribe:fn=>subscribe(state,fn),getSnapshot:()=>snapshot(state),services:{operationsClient:{task:async()=>task},diagnosticsClient:{page}}};
@@ -24,27 +25,27 @@ test('r22 execution results count physical calls, disclose each input/output/err
  const w=workspace(task,async(kind,query)=>{reads.push({kind,query});return {items:records,next_cursor:''};}),v=await mountReact(vite,Record,{workspace:w,props:{taskId:'T',onClose(){}}});
  try{
   const sheet=document.querySelector('[data-slot=sheet-content]');assert.equal(sheet.dataset.side,'right');assert.deepEqual(reads,[]);
-  await tab(v,'执行记录');assert.deepEqual(reads,[{kind:'model-runs',query:{correlationId:'exact-correlation',limit:20}}]);assert.deepEqual([...sheet.querySelectorAll('.replica-task-result-summary dd')].map(node=>node.textContent),['3','1','1']);assert.equal(sheet.querySelectorAll('.replica-task-result-list>li').length,3);
+  await tab(v,'执行记录');await modelCalls(v,document.querySelector('[data-slot=sheet-content]'));assert.deepEqual(reads,[{kind:'model-runs',query:{correlationId:'exact-correlation',limit:20}}]);assert.deepEqual([...sheet.querySelectorAll('.replica-task-result-summary dd')].map(node=>node.textContent),['3','1','1']);assert.equal(sheet.querySelectorAll('.replica-task-result-list>li').length,3);
   assert.equal(sheet.querySelector('.replica-task-round-content').textContent,'');assert.doesNotMatch(sheet.textContent,/diagnostic_internal|persona_compilation_retrying|本条记录未提供可识别/);
   const rows=[...sheet.querySelectorAll('.replica-task-result-list>li')];assert.match(rows[0].textContent,/第 1 轮.*成功.*0 毫秒/);assert.match(rows[1].textContent,/第 2 轮.*失败.*1.25 秒/);assert.match(rows[2].textContent,/调用记录 3.*耗时未记录/);
   await v.click(rows[1].querySelector('[data-slot=collapsible-trigger]'));const content=rows[1].querySelector('.replica-task-round-content');assert.deepEqual([...content.querySelectorAll('section h3')].map(node=>node.textContent),['输入','输出','错误']);assert.match(content.querySelectorAll('section')[0].textContent,/输入0/);assert.match(content.querySelectorAll('section')[1].textContent,/输出否/);assert.match(content.textContent,/实际失败/);assert.doesNotMatch(content.textContent,/raw_provider_error/);assert.equal(button(content,'本轮原始记录').getAttribute('aria-expanded'),'false');
-  await v.click(button(sheet,'生命周期记录 · 9 条'));assert.equal(sheet.querySelectorAll('.replica-task-history>li').length,9);assert.doesNotMatch(sheet.textContent,/diagnostic_internal|persona_compilation_retrying|本条记录未提供可识别/);assert.equal(button(sheet,'生命周期原始记录').getAttribute('aria-expanded'),'false');
-  await v.click(button(sheet,'生命周期原始记录'));assert.match(sheet.textContent,/diagnostic_internal_0/);
+  assert.equal(sheet.querySelectorAll('.replica-task-history>li').length,9);assert.doesNotMatch(sheet.textContent,/diagnostic_internal|persona_compilation_retrying|本条记录未提供可识别/);assert.equal(button(sheet,'生命周期原始记录').getAttribute('aria-expanded'),'false');
+  await v.click(button(sheet,'生命周期原始记录'));assert.doesNotMatch(sheet.textContent,/diagnostic_internal_0/);assert.ok(button(sheet,'下载原始记录'));
  }finally{await v.dispose();}
 });
 
 test('r22 failed pre-model task reports zero physical rounds without turning nine lifecycle events into attempts',async()=>{
  const task={task_id:'pre-model',status:'failed',correlation_id:'pre-model-correlation',runs:2,steps:lifecycle()},v=await mountReact(vite,Record,{workspace:workspace(task),props:{taskId:task.task_id,onClose(){}}});
- try{await tab(v,'执行记录');const sheet=document.querySelector('[data-slot=sheet-content]');assert.deepEqual([...sheet.querySelectorAll('.replica-task-result-summary dd')].map(node=>node.textContent),['0','0','0']);assert.match(sheet.textContent,/进入模型执行前已停止/);assert.equal(sheet.querySelector('.replica-task-result-list'),null);assert.equal(sheet.querySelector('.replica-task-history'),null);}finally{await v.dispose();}
+ try{await tab(v,'执行记录');await modelCalls(v,document.querySelector('[data-slot=sheet-content]'));const sheet=document.querySelector('[data-slot=sheet-content]');assert.deepEqual([...sheet.querySelectorAll('.replica-task-result-summary dd')].map(node=>node.textContent),['0','0','0']);assert.match(sheet.textContent,/进入模型执行前已停止/);assert.equal(sheet.querySelector('.replica-task-result-list'),null);assert.equal(sheet.querySelectorAll('.replica-task-history>li').length,9);}finally{await v.dispose();}
 });
 
 test('r22 task round pagination retries original correlation and discards responses after task changes',async()=>{
  let fail=true,late;const reads=[],task={task_id:'first',correlation_id:'first-correlation',status:'running',steps:[]};
  const w=workspace(task,async(kind,query)=>{reads.push({kind,...query});if(query.correlationId==='second-correlation')return {items:[{ref:'second',data:{status:'completed',prompt:'当前任务'}}],next_cursor:''};if(query.cursor){if(fail)throw Error('fetch failed');return new Promise(resolve=>late=resolve);}return {items:[{ref:'original',data:{status:'completed'}}],next_cursor:'original-cursor'};}),v=await mountReact(vite,Record,{workspace:w,props:{taskId:'first',onClose(){}}});
  try{
-  await tab(v,'执行记录');const sheet=document.querySelector('[data-slot=sheet-content]');assert.equal(sheet.querySelector('.replica-task-result-summary dt').textContent,'已读取轮次');await v.click(button(sheet,'读取更多执行轮次'));assert.ok(button(sheet,'重新读取执行轮次'));assert.equal(sheet.querySelectorAll('.replica-task-result-list>li').length,1);
-  fail=false;await act(async()=>button(sheet,'重新读取执行轮次').click());await v.flush();assert.equal(reads.at(-1).cursor,'original-cursor');assert.equal(reads.at(-1).correlationId,'first-correlation');
-  w.services.operationsClient.task=async()=>({...task,task_id:'second',correlation_id:'second-correlation'});await v.update({taskId:'second',onClose(){}});await tab(v,'执行记录');await act(async()=>late({items:[{ref:'late-old',data:{status:'failed',prompt:'旧任务输入'}}],next_cursor:'stale'}));await v.flush();assert.equal(sheet.querySelectorAll('.replica-task-result-list>li').length,1);await v.click(sheet.querySelector('.replica-task-round-trigger'));assert.match(sheet.textContent,/当前任务/);assert.doesNotMatch(sheet.textContent,/旧任务输入/);assert.equal(button(sheet,'读取更多执行轮次'),undefined);
+  await tab(v,'执行记录');await modelCalls(v,document.querySelector('[data-slot=sheet-content]'));const sheet=document.querySelector('[data-slot=sheet-content]');assert.equal(sheet.querySelector('.replica-task-result-summary dt').textContent,'已读取调用');await v.click(button(sheet,'读取更多模型调用'));assert.ok(button(sheet,'重新读取模型调用'));assert.equal(sheet.querySelectorAll('.replica-task-result-list>li').length,1);
+  fail=false;await act(async()=>button(sheet,'重新读取模型调用').click());await v.flush();assert.equal(reads.at(-1).cursor,'original-cursor');assert.equal(reads.at(-1).correlationId,'first-correlation');
+  w.services.operationsClient.task=async()=>({...task,task_id:'second',correlation_id:'second-correlation'});await v.update({taskId:'second',onClose(){}});await tab(v,'执行记录');await modelCalls(v,document.querySelector('[data-slot=sheet-content]'));await act(async()=>late({items:[{ref:'late-old',data:{status:'failed',prompt:'旧任务输入'}}],next_cursor:'stale'}));await v.flush();assert.equal(sheet.querySelectorAll('.replica-task-result-list>li').length,1);await v.click(sheet.querySelector('.replica-task-round-trigger'));assert.match(sheet.textContent,/当前任务/);assert.doesNotMatch(sheet.textContent,/旧任务输入/);assert.equal(button(sheet,'读取更多模型调用'),undefined);
  }finally{late?.({items:[],next_cursor:''});await v.dispose();}
 });
 
@@ -53,12 +54,12 @@ test('r22 wizard opens task as a right Sheet and restores its original trigger a
  try{location.hash='#/library/create?resume=created';const hash=location.hash,trigger=button(v.host,'查看任务记录');await v.click(trigger);const sheet=document.querySelector('[data-slot=sheet-content]');assert.equal(sheet.dataset.side,'right');assert.equal(document.querySelector('[data-slot=dialog-content]'),null);assert.equal(location.hash,hash);await act(async()=>sheet.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));await v.flush();assert.equal(document.querySelector('[role=dialog]'),null);assert.equal(document.activeElement,trigger);assert.equal(location.hash,hash);}finally{await v.dispose();f.c.dispose();}
 });
 
-test('r22 management task detail uses the same right Sheet and returns to its task row',async()=>{
+test('management task detail uses the approved centered Dialog and returns to its task row',async()=>{
  const {default:Host}=await vite.ssrLoadModule('/src/react-app/shared/DiagnosticsWorkspace.jsx');
  const w=workspace({task_id:'management-original',status:'failed',steps:[]},async()=>({items:[{ref:'management-row',data:{task_id:'management-original',kind:'persona.compile',status:'failed'}}],next_cursor:''}));
  w.navigatePath=path=>{location.hash='#'+path;window.dispatchEvent(new window.HashChangeEvent('hashchange'));};
  const v=await mountReact(vite,Host,{workspace:w,props:{view:{openTaskDiagnostics(){}}}});
- try{const trigger=v.host.querySelector('.replica-task-row');await v.click(trigger);const sheet=document.querySelector('[data-slot=sheet-content]');assert.equal(sheet?.dataset.side,'right');assert.ok(sheet.querySelector('[data-slot=sheet-footer]'));assert.equal(document.querySelector('[data-slot=dialog-content]'),null);await v.click(sheet.querySelector('[data-slot=sheet-close]'));assert.equal(document.querySelector('[role=dialog]'),null);assert.equal(document.activeElement,trigger);assert.equal(new URLSearchParams(location.hash.split('?')[1]).has('taskId'),false);}finally{await v.dispose();}
+ try{const trigger=v.host.querySelector('.replica-task-row');await v.click(trigger);const dialog=document.querySelector('[data-slot=dialog-content]');assert.ok(dialog);assert.ok(dialog.querySelector('[data-slot=dialog-footer]'));assert.equal(document.querySelector('[data-slot=sheet-content]'),null);await v.click(dialog.querySelector('[data-slot=dialog-close]'));assert.equal(document.querySelector('[role=dialog]'),null);assert.equal(document.activeElement,trigger);assert.equal(new URLSearchParams(location.hash.split('?')[1]).has('taskId'),false);}finally{await v.dispose();}
 });
 
 test('r22 skip explicitly defers waiting, persists progress and preserves failed task and original recovery request',async()=>{

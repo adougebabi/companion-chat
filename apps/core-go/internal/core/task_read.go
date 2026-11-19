@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -76,7 +77,15 @@ func (a *App) OwnerTask(ctx context.Context, owner, id string) (map[string]any, 
 		source["diary_id"] = diaryID
 	}
 	steps := []any{}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,event_type,COALESCE(payload->>'stage',''),COALESCE(payload->>'status',''),COALESCE(payload->>'reason_code',''),COALESCE(NULLIF(payload->>'latest_safe_cause',''),NULLIF(payload->>'safe_cause',''),NULLIF(payload->>'first_safe_cause',''),''),created_at FROM public.diagnostic_events WHERE event_type LIKE 'lifecycle.%' AND payload->>'intent_id'=$1 ORDER BY created_at DESC,id DESC LIMIT 101`, intent)
+	// Media workers retain the domain media intent in lifecycle records.
+	// Bind that alternate identity to this exact workflow; recovery attempts for
+	// another workflow must not be merged merely because they share a media ID.
+	mediaIntentID := ""
+	if kind == "media.generation" {
+		mediaIntentID = stringValue(input["intent_id"])
+	}
+	canonicalWorkflow := strings.TrimPrefix(workflow, "go:")
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,event_type,COALESCE(payload->>'stage',''),COALESCE(payload->>'status',''),COALESCE(payload->>'reason_code',''),COALESCE(NULLIF(payload->>'latest_safe_cause',''),NULLIF(payload->>'safe_cause',''),NULLIF(payload->>'first_safe_cause',''),''),created_at FROM public.diagnostic_events WHERE event_type LIKE 'lifecycle.%' AND (payload->>'intent_id'=$1 OR ($2::text<>'' AND payload->>'intent_id'=$2 AND payload->>'workflow_id'=ANY($3::text[]))) ORDER BY created_at DESC,id DESC LIMIT 101`, intent, mediaIntentID, []string{canonicalWorkflow, "go:" + canonicalWorkflow})
 	if err != nil {
 		return nil, err
 	}

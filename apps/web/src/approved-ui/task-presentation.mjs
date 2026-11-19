@@ -139,24 +139,42 @@ export function taskNeedsModelConfiguration(task,preparation){
  const cause=[task?.source?.last_error,task?.last_error].filter(Boolean).join(' ');
  return /initialization_role_unconfigured|wardrobe_provider_unconfigured|provider role [\w.-]+ preflight failed|provider role [\w.-]+ unavailable:[^\n]*no rows in result set/.test(cause);
 }
+function recordedProviderFailure(raw){
+ // This marker is emitted by the Provider transport, not inferred from model
+ // prose. Keep the recorded status while leaving URL/body/stack in downloads.
+ const match=/\bprovider HTTP ([45]\d{2})\b/.exec(String(raw||''));
+ return match?`模型服务${match[1][0]==='4'?'未接受本次请求':'处理本次请求时返回错误'}（HTTP ${match[1]}）。`:'';
+}
+function safeDiagnosticReason(raw,code,fallback){
+ const transport=recordedProviderFailure(raw);if(transport)return transport;
+ const text=typeof raw==='string'?raw:'';
+ // An error containing Chinese can still carry a private endpoint or stack.
+ // Keep an owned summary instead of editing pieces out of the original record.
+ const technical=/https?:\/\/|\bsql:|\b(?:node path|stacktrace|traceback|sqlstate|goroutine)\b|(?:^|\n)\s*at\s+\S+|\/(?:Users|home|private|tmp)\//i.test(text);
+ return errorMessage(technical?{code}:{message:text,code},fallback);
+}
+export function taskModelFailureReason(call){
+ return safeDiagnosticReason(typeof call.error==='string'?call.error:call.error?.message,call.error_code||call.error?.code,'本次模型调用未完成，详细原因已保留在原始记录中。');
+}
 export function taskFailureReason(task,preparation){
  const current=preparation?.task_id===task?.task_id?preparation:null;
  const raw=task?.source?.last_error||task?.last_error;
  const isMedia=(task?.kind||task?.type)==='media.generation';
+ const transport=recordedProviderFailure(raw);if(transport)return transport;
  if((task?.kind||task?.type)==='goal.plan'&&/^\s*sql:\s*no rows in result set\s*$/i.test(String(raw||'')))return ['failed','dead_letter'].includes(task?.status)?'规划任务没有找到对应资料，已停止。':'规划任务没有找到对应资料，请重新读取任务状态。';
  if(['wardrobe_preparation_context_failed','wardrobe_provider_assignment_unavailable','wardrobe_provider_unconfigured'].includes(current?.error_code)&&current?.result?.failure_reason)return current.result.failure_reason;
- if(taskNeedsModelConfiguration(task,current)){const reason=errorMessage({code:current?.error_code,message:raw}).replace('原资料与已完成步骤会保留。','已有角色、世界与准备记录会保留。'),summary=reason.includes('已有角色、世界')?reason:reason+' 已有角色、世界与准备记录会保留。';return isMedia&&raw?`${summary} 详细原因：${raw}`:summary;}
+ if(taskNeedsModelConfiguration(task,current)){const reason=safeDiagnosticReason(raw,current?.error_code,'模型配置暂时无法读取，请核对原始记录。').replace('原资料与已完成步骤会保留。','已有角色、世界与准备记录会保留。'),summary=reason.includes('已有角色、世界')?reason:reason+' 已有角色、世界与准备记录会保留。';return summary;}
  if(current?.result?.failure_reason)return current.result.failure_reason;
  const failed=['failed','dead_letter','error','timeout'].includes(task?.status);
  if(isMedia){
-  if(raw){const message=errorMessage(raw,'');return message&&message!==raw?`${message} 详细原因：${raw}`:message||raw;}
+  if(raw)return safeDiagnosticReason(raw,task?.error_code,'本次媒体任务未完成，详细原因已保留在原始记录中。');
   return failed?'失败原因尚未记录。':'';
  }
  const fallback='本次任务未完成，原资料和已确认的结果仍保留。请查看执行记录与业务恢复入口。';
  // A legacy assignment-read wrapper can contain a DB/connection failure. Do not
  // let the general message formatter turn it back into an unassigned-model claim.
  if(/provider role [\w.-]+ unavailable:/.test(String(raw||'')))return fallback;
- return errorMessage(raw,fallback);
+ return safeDiagnosticReason(raw,task?.error_code,fallback);
 }
 export function taskSourceHref(task){
  if(!task?.fluctlight_id)return '';
@@ -171,7 +189,7 @@ export function taskEventReason(entry){
  const code=typeof entry.reason_code==='string'?entry.reason_code:'';
  if(!reason&&!code)return '';
  const fallback='';
- const message=errorMessage({message:reason,code},fallback);return typeof message==='string'&&message?message:'本次执行未完成，详细原因已保留在原始记录中。';
+ const message=safeDiagnosticReason(reason,code,fallback);return typeof message==='string'&&message?message:'本次执行未完成，详细原因已保留在原始记录中。';
 }
 export function taskRecoveryStrategy(snapshot,recovery){
  if(snapshot?.intent?.intent_type==='media.generation')return '按媒体任务的实际状态选择可用操作；恢复会保留已保存结果，受理后仍需核对执行结果。';

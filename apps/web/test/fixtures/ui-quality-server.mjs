@@ -1,6 +1,7 @@
 // Task-owned same-origin fixture for production-build UI verification.
 // Binds loopback only; never proxies to a real Core/Provider or persists user data.
 import http from 'node:http';
+import {diagnosticTaskReplay} from './diagnostic-task-replay.mjs';
 import {demoParityFixture} from './demo-parity-fixture.mjs';
 import {managementFixture} from './management-fixture.mjs';
 import {scheduleReplayFixture} from './schedule-fixture.mjs';
@@ -22,6 +23,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=process.env.FLUCTLIGHT_UI_FIXTURE_DIST?resolve(process.env.FLUCTLIGHT_UI_FIXTURE_DIST):resolve(fileURLToPath(new URL('../../',import.meta.url)),'dist');
+const diagnosticReplay=process.env.FLUCTLIGHT_UI_FIXTURE_DIAGNOSTIC_EVIDENCE?diagnosticTaskReplay(JSON.parse(await readFile(process.env.FLUCTLIGHT_UI_FIXTURE_DIAGNOSTIC_EVIDENCE,'utf8'))):null;
 const port=Number(process.env.FLUCTLIGHT_UI_FIXTURE_PORT ?? 4175);
 const nasAdditions=process.env.FLUCTLIGHT_UI_FIXTURE_NAS_ADDITIONS==='1';
 const pendingChat=process.env.FLUCTLIGHT_UI_FIXTURE_PENDING_CHAT==='1';
@@ -99,8 +101,10 @@ function page(id=instance){return {conversation:{id:conversationId,createdByActo
 const server=http.createServer(async(req,res)=>{
  try{
   const url=new URL(req.url,'http://127.0.0.1'),path=url.pathname,method=req.method ?? 'GET';
+  if(diagnosticReplay&&!['GET','HEAD'].includes(method)&&diagnosticReplay.handler({path,method,url,json,res}))return;
   let body={};if(!['GET','HEAD'].includes(method)){let raw='';for await(const chunk of req)raw+=chunk;if(raw)body=JSON.parse(raw);requests.push({method,path,query:Object.fromEntries(url.searchParams),body:{...body,...(body.secrets ? {secrets:'fixture-redacted'} : {})}});}
   else if(path.startsWith('/api/'))requests.push({method,path,query:Object.fromEntries(url.searchParams)});
+  if(diagnosticReplay?.handler({path,method,body,url,json,res}))return;
   if(parityReplay&&await parityReplay.handler({path,method,body,url,json,res}))return;
   if(managementReplay&&await managementReplay.handler({path,method,body,url,json,res}))return;
   if(creationReplay&&await creationReplay.handler({path,method,body,url,json,res})){
