@@ -88,7 +88,7 @@ func TestCurrentCapturePreservesCameraAndRejectsFinalTemplateOverrides(t *testin
 }
 
 func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides(t *testing.T) {
-	for _, scenario := range []string{"valid-frozen", "enum-rejected", "explicit-selfie", "model-clothing", "workflow-clothing"} {
+	for _, scenario := range []string{"valid-frozen", "enum-rejected", "enum-repaired", "explicit-selfie", "model-clothing", "workflow-clothing"} {
 		t.Run(scenario, func(t *testing.T) {
 			f := seedWardrobeToolFixture(t)
 			seedCognitiveProviderRole(t, f.ctx, f.repository, "capture-worker-provider-"+f.suffix)
@@ -108,7 +108,7 @@ func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
 			if scenario == "explicit-selfie" {
 				plan["capture_method"], plan["viewpoint"], plan["framing"] = "handheld_selfie", "subject_facing", "full_body"
 			}
-			submitted, modelCalls := 0, 0
+			submitted, modelCalls, parseCalls, normalizationCalls := 0, 0, 0, 0
 			var final map[string]any
 			f.app.Provider.HTTP = &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 				raw, err := io.ReadAll(request.Body)
@@ -126,11 +126,16 @@ func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
 				modelCalls++
 				var output map[string]any
 				if strings.Contains(string(raw), "解析本次原始图像意图") {
+					parseCalls++
+					if parseCalls == 2 && (!strings.Contains(string(raw), "validation_feedback") || len(arrayValue(decodeObject(raw)["tools"])) != 0) {
+						t.Error("schema correction lost validation feedback or acquired tools")
+					}
 					output = cloneMap(plan)
-					if scenario == "enum-rejected" {
+					if scenario == "enum-rejected" || scenario == "enum-repaired" && parseCalls == 1 {
 						output["framing"] = "unsupported_medium_long_shot"
 					}
 				} else if strings.Contains(string(raw), "你负责把本次媒体意图编译") {
+					normalizationCalls++
 					if !strings.Contains(string(raw), "白衬衫") {
 						return nil, errors.New("normalizer did not receive actual frozen clothing")
 					}
@@ -152,7 +157,7 @@ func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
 				t.Fatal(err)
 			}
 			args := map[string]any{"intent": "穿上刚买的黑色短靴拍现在的照片", "media_plan": plan}
-			if scenario == "enum-rejected" {
+			if scenario == "enum-rejected" || scenario == "enum-repaired" {
 				delete(args, "media_plan")
 			}
 			if scenario == "explicit-selfie" {
@@ -161,10 +166,20 @@ func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
 			}
 			request := f.request("media.image.generate", "current-worker", args)
 			request.TargetKind, request.TargetRef = "conversation", f.conversationID
+			var intentsBefore int
+			if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$1`, f.fluctlightID).Scan(&intentsBefore); err != nil {
+				t.Fatal(err)
+			}
 			accepted, err := f.app.ExecuteTool(f.ctx, request)
 			if scenario == "enum-rejected" {
-				if err == nil || !strings.Contains(err.Error(), "media_subject_parse_invalid") || submitted != 0 || modelCalls != 1 {
-					t.Fatal("invalid enum was silently accepted or retried", accepted, err, submitted, modelCalls)
+				// Formal schema validation now rejects framing before the legacy
+				// media_subject_parse_invalid decoder can run.
+				if !errors.Is(err, errADKFinalContractInvalid) || !strings.Contains(err.Error(), "framing") || !strings.Contains(err.Error(), "adk_final_repair_invalid") || accepted.Result.ErrorCode != "capability_prepare_failed" || submitted != 0 || modelCalls != 2 || parseCalls != 2 || normalizationCalls != 0 {
+					t.Fatal("twice-invalid enum was accepted or exceeded one schema correction", accepted, err, submitted, modelCalls)
+				}
+				var intentsAfter int
+				if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$1`, f.fluctlightID).Scan(&intentsAfter); err != nil || intentsAfter != intentsBefore {
+					t.Fatal("invalid enum admitted durable media work", err)
 				}
 			} else {
 				if err != nil {
@@ -174,7 +189,7 @@ func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
 				if _, err = f.app.ProcessMediaIntent(f.ctx, intentID); err == nil {
 					t.Fatal("renderer failure/override was reported successful")
 				}
-				if scenario == "valid-frozen" || scenario == "explicit-selfie" {
+				if scenario == "valid-frozen" || scenario == "explicit-selfie" || scenario == "enum-repaired" {
 					wire := jsonString(final)
 					if submitted != 1 || !strings.Contains(wire, "白衬衫") || strings.Contains(wire, "短靴") || strings.Contains(wire, "nonexistent boots") {
 						t.Fatalf("renderer lost actual clothing: %s submits=%d", wire, submitted)
@@ -188,6 +203,9 @@ func TestCurrentCaptureFinalMediaWorkerSubmitsOnlyFrozenFactsAndRejectsOverrides
 						if frozen["capture_method"] != "handheld_selfie" || frozen["framing"] != "full_body" {
 							t.Fatal("normalization rewrote explicit camera", frozen)
 						}
+					}
+					if scenario == "enum-repaired" && (parseCalls != 2 || normalizationCalls != 1 || modelCalls != 3) {
+						t.Fatalf("valid schema correction did not enter normalization once: parse=%d normalization=%d physical=%d", parseCalls, normalizationCalls, modelCalls)
 					}
 				} else if submitted != 0 {
 					t.Fatal("override reached renderer", final)
