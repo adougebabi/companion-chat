@@ -85,7 +85,7 @@ func TestDirectMediaDeliveryEvidenceRequiresScopedCommittedAttachment(t *testing
 	}
 }
 
-func TestDirectMediaDeliveryEvidenceDoesNotInventTimeForLateAttachment(t *testing.T) {
+func TestDirectMediaDeliveryEvidenceDoesNotInventLegacyAttachmentTime(t *testing.T) {
 	ctx, repo, app, owner, fid, conversation := setupDirectPublicationToolTest(t, "direct-late-attachment-time")
 	const intentID = "late-attachment-time"
 	const messageID = "late-attachment-message"
@@ -98,6 +98,10 @@ func TestDirectMediaDeliveryEvidenceDoesNotInventTimeForLateAttachment(t *testin
 	}
 	targetMessage := messageID
 	if err := app.publishMediaAsset(ctx, mediaIntent{ID: intentID, Owner: fid, MessageID: &targetMessage}, "asset_"+intentID); err != nil {
+		t.Fatal(err)
+	}
+	// Simulate a pre-upgrade reference: its creation time does not certify attachment time.
+	if _, err := repo.Pool().Exec(ctx, `UPDATE public.media_references SET published_at=NULL WHERE asset_id=$1`, "asset_"+intentID); err != nil {
 		t.Fatal(err)
 	}
 	items, err := directMediaDeliveries(ctx, repo.Pool(), owner, owner, fid, conversation, false)

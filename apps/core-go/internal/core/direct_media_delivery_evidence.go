@@ -45,8 +45,8 @@ func directMediaDeliveriesForIntents(ctx context.Context, q lifeContextQuerier, 
 		AND EXISTS (SELECT 1 FROM public.conversation_participants p WHERE p.conversation_id=$4 AND p.actor_id=$2 AND p.status='active')
 		AND EXISTS (SELECT 1 FROM public.conversation_participants p WHERE p.conversation_id=$4 AND p.actor_id=$3 AND p.status='active')`
 	// An attachment may be added to an existing legacy message much later than
-	// the message was created. That path has no authoritative attachment time.
-	const legacy = `SELECT t.id,a.id,m.id,r.id,t.prompt,CASE WHEN COALESCE(t.message_id,'')<>'' THEN NULL ELSE m.created_at END,t.revision,a.revision,a.sha256
+	// the message was created. Only an explicit publication timestamp proves it.
+	const legacy = `SELECT t.id,a.id,m.id,r.id,t.prompt,CASE WHEN COALESCE(t.message_id,'')<>'' THEN r.published_at ELSE COALESCE(r.published_at,m.created_at) END,t.revision,a.revision,a.sha256
 		FROM public.media_intents t
 		JOIN public.media_assets a ON a.id='asset_'||t.id AND a.owner_fluctlight_id=t.owner_fluctlight_id AND a.status='ready' AND a.kind='image'
 		JOIN public.media_references r ON r.asset_id=a.id AND r.owner_fluctlight_id=t.owner_fluctlight_id
@@ -58,7 +58,7 @@ func directMediaDeliveriesForIntents(ctx context.Context, q lifeContextQuerier, 
 		 OR (COALESCE(t.message_id,'')='' AND t.conversation_id=$4 AND r.target_type='conversation' AND r.target_id=$4
 		     AND m.idempotency_key='media:'||t.id||':conversation-result' AND m.author_actor_id=$3 AND m.kind='media_reference'))
 		AND ` + authorization
-	const draft = `SELECT t.id,a.id,m.id,r.id,t.prompt,m.created_at,t.revision,a.revision,a.sha256
+	const draft = `SELECT t.id,a.id,m.id,r.id,t.prompt,COALESCE(r.published_at,m.created_at),t.revision,a.revision,a.sha256
 		FROM public.media_intents t
 		JOIN public.conversation_reply_actions x ON x.media_intent_id=t.id AND x.kind='image' AND x.status='bound'
 		JOIN public.conversation_reply_drafts d ON d.id=x.draft_id AND d.fluctlight_id=$3 AND d.conversation_id=$4
@@ -97,7 +97,7 @@ func directMediaDeliveriesForIntents(ctx context.Context, q lifeContextQuerier, 
 			// The intent is a business value, not a command or Core identifier.
 			// Keep it as supplied; do not recursively strip or rewrite user text.
 			item.Intent = stringValue(decodeObject([]byte(rawPrompt))["intent"])
-			item.Ref = "delivery:" + stableDigest(strings.Join([]string{owner, subject, fluctlight, conversation, item.intentID, item.assetID, item.messageID, item.refID, fmt.Sprint(intentRevision), fmt.Sprint(assetRevision), assetDigest, stableDigest(rawPrompt)}, "\x1f"))[:32]
+			item.Ref = "delivery:" + stableDigest(strings.Join([]string{owner, subject, fluctlight, conversation, item.intentID, item.assetID, item.messageID, item.refID, fmt.Sprint(intentRevision), fmt.Sprint(assetRevision), assetDigest, stableDigest(rawPrompt), mediaPublicationTimeIdentity(item.Delivered)}, "\x1f"))[:32]
 			byRef[item.Ref] = item
 		}
 		err = rows.Err()

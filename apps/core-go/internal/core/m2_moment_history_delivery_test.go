@@ -56,7 +56,7 @@ func TestMomentHistoricalEvidenceRequiresScopedCommittedImage(t *testing.T) {
 	seen := map[string]string{}
 	for _, delivery := range deliveries {
 		seen[delivery.intentID] = delivery.Intent
-		if !delivery.Delivered.IsZero() || strings.Contains(delivery.Ref, delivery.intentID) {
+		if delivery.Delivered.IsZero() || strings.Contains(delivery.Ref, delivery.intentID) {
 			t.Fatalf("historical Moment evidence exposed an ID or invented attachment time: %#v", delivery)
 		}
 	}
@@ -70,7 +70,7 @@ func TestMomentHistoricalEvidenceRequiresScopedCommittedImage(t *testing.T) {
 }
 
 func TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable(t *testing.T) {
-	for _, scenario := range []string{"removed", "busy"} {
+	for _, scenario := range []string{"removed", "time_changed", "busy"} {
 		t.Run(scenario, func(t *testing.T) {
 			const text = "我之前已经把窗外日落照片发在另一条动态里。"
 			router := newFakeProviderRouter()
@@ -98,6 +98,10 @@ func TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable(t *testing.T)
 					if _, err := repo.Pool().Exec(ctx, `DELETE FROM public.media_references WHERE asset_id=$1`, "asset_history-intent-"+scenario); err != nil {
 						t.Fatal(err)
 					}
+				} else if scenario == "time_changed" {
+					if _, err := repo.Pool().Exec(ctx, `UPDATE public.media_references SET published_at=published_at+interval '1 second' WHERE asset_id=$1`, "asset_history-intent-"+scenario); err != nil {
+						t.Fatal(err)
+					}
 				} else {
 					var err error
 					locked, err = repo.Pool().Begin(ctx)
@@ -119,7 +123,7 @@ func TestMomentHistoricalEvidenceIsRecheckedAndLockBusyIsRetryable(t *testing.T)
 			if queryErr := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.moments WHERE owner_fluctlight_id=$1`, fid).Scan(&count); queryErr != nil {
 				t.Fatal(queryErr)
 			}
-			if scenario == "removed" {
+			if scenario != "busy" {
 				if err != nil || receipt.Result.Status != "handled" || stringValue(mapValue(receipt.Result.Output)["warning_code"]) != "direct_media_delivery_stale" || count != 1 {
 					t.Fatalf("removed Moment evidence was accepted: %#v count=%d err=%v", receipt.Result, count, err)
 				}
@@ -144,7 +148,7 @@ func TestMomentHistoricalImageClaimUsesActualMomentDelivery(t *testing.T) {
 		ref := ""
 		for _, raw := range arrayValue(view["committed_deliveries"]) {
 			delivery := mapValue(raw)
-			if delivery["delivery_scope"] == "moment" && delivery["intent"] == "窗外日落" && delivery["delivered_at"] == nil {
+			if delivery["delivery_scope"] == "moment" && delivery["intent"] == "窗外日落" && delivery["delivered_at"] != nil {
 				ref = stringValue(delivery["ref"])
 				sawMomentEvidence = ref != ""
 			}
@@ -202,6 +206,11 @@ func TestMomentHistoricalClaimCannotBorrowWrongDelivery(t *testing.T) {
 				seedDirectMediaEvidence(t, ctx, repo, app, fid, conversation, "m2-history-chat-"+sample.name, "completed", "窗外日落", true)
 			} else {
 				seedHistoricalMomentImage(t, ctx, repo, app, fid, sample.name, "窗外日落", sample.source == "moment")
+			}
+			if sample.name == "unknown-delivery-time" {
+				if _, err := repo.Pool().Exec(ctx, `UPDATE public.media_references SET published_at=NULL WHERE asset_id=$1`, "asset_history-intent-"+sample.name); err != nil {
+					t.Fatal(err)
+				}
 			}
 			request := ToolExecutionRequest{CapabilityName: "moment.publish", OperationID: "m2-history-wrong-" + sample.name, AuthorizationActorID: owner, FluctlightID: fid, ConversationID: conversation, Arguments: jsonBytes(map[string]any{})}
 			receipt, err := app.ExecuteTool(ctx, request)
@@ -295,6 +304,10 @@ func TestMomentCannotInventTimeForLatePrivateAttachment(t *testing.T) {
 	}
 	targetMessage := messageID
 	if err := app.publishMediaAsset(ctx, mediaIntent{ID: intentID, Owner: fid, MessageID: &targetMessage}, "asset_"+intentID); err != nil {
+		t.Fatal(err)
+	}
+	// A legacy attachment has no trustworthy publication timestamp.
+	if _, err := repo.Pool().Exec(ctx, `UPDATE public.media_references SET published_at=NULL WHERE asset_id=$1`, "asset_"+intentID); err != nil {
 		t.Fatal(err)
 	}
 	request := ToolExecutionRequest{CapabilityName: "moment.publish", OperationID: "m2-history-late-private", AuthorizationActorID: owner, FluctlightID: fid, ConversationID: conversation, Arguments: jsonBytes(map[string]any{})}

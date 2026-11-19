@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 )
 
 // A prior Moment delivery requires the visible character-authored Moment,
@@ -20,7 +21,7 @@ func momentMediaDeliveriesForIntents(ctx context.Context, q lifeContextQuerier, 
 			return nil, err
 		}
 	}
-	statement := `SELECT t.id,a.id,m.id,r.id,t.prompt,t.revision,a.revision,a.sha256,a.version,a.mime_type,m.revision
+	statement := `SELECT t.id,a.id,m.id,r.id,t.prompt,t.revision,a.revision,a.sha256,a.version,a.mime_type,m.revision,r.published_at
 		FROM public.media_intents t
 		JOIN public.media_assets a ON a.id='asset_'||t.id AND a.owner_fluctlight_id=t.owner_fluctlight_id AND a.status='ready' AND a.kind='image' AND lower(a.mime_type) LIKE 'image/%'
 		JOIN public.moments m ON m.id=t.moment_id AND m.owner_actor_id=$1 AND m.owner_fluctlight_id=$2 AND m.author_actor_id=$2 AND m.status='visible' AND m.media_asset_ids @> jsonb_build_array(a.id)
@@ -42,12 +43,16 @@ func momentMediaDeliveriesForIntents(ctx context.Context, q lifeContextQuerier, 
 		var item directMediaDelivery
 		var prompt, digest, version, mime string
 		var intentRevision, assetRevision, momentRevision int64
-		if err := rows.Scan(&item.intentID, &item.assetID, &item.momentID, &item.refID, &prompt, &intentRevision, &assetRevision, &digest, &version, &mime, &momentRevision); err != nil {
+		var published *time.Time
+		if err := rows.Scan(&item.intentID, &item.assetID, &item.momentID, &item.refID, &prompt, &intentRevision, &assetRevision, &digest, &version, &mime, &momentRevision, &published); err != nil {
 			return nil, err
 		}
+		if published != nil {
+			item.Delivered = *published
+		}
 		item.Intent = stringValue(decodeObject([]byte(prompt))["intent"])
-		item.Ref = "moment-delivery:" + stableDigest(strings.Join([]string{owner, fluctlight, item.intentID, item.assetID, item.momentID, item.refID, fmt.Sprint(intentRevision), fmt.Sprint(assetRevision), fmt.Sprint(momentRevision), digest, version, mime, stableDigest(prompt)}, "\x1f"))[:32]
-		// Moment creation time is not an attachment time: media can arrive later.
+		item.Ref = "moment-delivery:" + stableDigest(strings.Join([]string{owner, fluctlight, item.intentID, item.assetID, item.momentID, item.refID, fmt.Sprint(intentRevision), fmt.Sprint(assetRevision), fmt.Sprint(momentRevision), digest, version, mime, stableDigest(prompt), mediaPublicationTimeIdentity(item.Delivered)}, "\x1f"))[:32]
+		// No fallback to Moment creation time: legacy publication time stays unknown.
 		result = append(result, item)
 	}
 	if err := rows.Err(); err != nil {

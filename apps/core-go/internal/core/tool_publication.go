@@ -225,7 +225,7 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 		if !ready {
 			return publishedResource{}, ErrConflict
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.media_references(id,asset_id,owner_fluctlight_id,target_type,target_id) VALUES($4,$1,$2,'conversation_message',$3) ON CONFLICT DO NOTHING`, asset, command.FluctlightID, messageID, "media_ref_"+stableDigest(asset+":conversation_message:"+messageID)); err != nil {
+		if err := recordMediaPublicationTx(ctx, tx, "media_ref_"+stableDigest(asset+":conversation_message:"+messageID), asset, command.FluctlightID, "conversation_message", messageID, true); err != nil {
 			return publishedResource{}, err
 		}
 	}

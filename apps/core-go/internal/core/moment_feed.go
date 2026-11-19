@@ -256,7 +256,7 @@ func (a *App) linkMomentMediaTx(ctx context.Context, tx pgx.Tx, owner, fid, id s
 		if asset["readable"] != true {
 			return &SurfaceError{Status: 409, Code: "moment_media_unavailable", Message: "发布素材当前不可读取，请核对原任务和权限"}
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.media_references(id,asset_id,owner_fluctlight_id,target_type,target_id) VALUES($1,$2,$3,'moment',$4) ON CONFLICT(id) DO NOTHING`, "moment_ref_"+stableDigest(id+":"+assetID), assetID, fid, id); err != nil {
+		if err := recordMediaPublicationTx(ctx, tx, "moment_ref_"+stableDigest(id+":"+assetID), assetID, fid, "moment", id, true); err != nil {
 			return err
 		}
 	}
