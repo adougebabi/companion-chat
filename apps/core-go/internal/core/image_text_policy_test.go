@@ -156,6 +156,68 @@ func TestImageNegativePromptPlaceholderResolvesWithoutLosingOriginalExclusions(t
 	}
 }
 
+func TestImageSubmissionPrimitiveTextWiring(t *testing.T) {
+	for _, shared := range []bool{false, true} {
+		t.Run(map[bool]string{false: "separate", true: "shared"}[shared], func(t *testing.T) {
+			negativeSource := "negative-text"
+			if shared {
+				negativeSource = "positive-text"
+			}
+			primitive := func(value string) any {
+				return map[string]any{"class_type": "PrimitiveString", "inputs": map[string]any{"value": value}}
+			}
+			graph := map[string]any{
+				"positive-text": primitive("原始风景"), "negative-text": primitive("low quality"),
+				"model-name": primitive("original-model.safetensors"), "unused": primitive("untouched"),
+				"loader":   map[string]any{"class_type": "CheckpointLoaderSimple", "inputs": map[string]any{"ckpt_name": []any{"model-name", 0}}},
+				"positive": map[string]any{"class_type": "CLIPTextEncodeSDXL", "inputs": map[string]any{"text_g": []any{"positive-text", 0}, "text_l": "", "clip": []any{"loader", 1}}},
+				"negative": map[string]any{"class_type": "CLIPTextEncode", "inputs": map[string]any{"text": []any{negativeSource, 0}, "clip": []any{"loader", 1}}},
+				"sample":   map[string]any{"class_type": "KSampler", "inputs": map[string]any{"positive": []any{"positive", 0}, "negative": []any{"negative", 0}, "seed": json.Number("9007199254740993")}},
+			}
+			before, calls := jsonString(graph), 0
+			app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+				calls++
+				if request.URL.Path != "/prompt" {
+					t.Fatalf("wrong boundary: %s", request.URL.Path)
+				}
+				var body map[string]any
+				decoder := json.NewDecoder(request.Body)
+				decoder.UseNumber()
+				if err := decoder.Decode(&body); err != nil {
+					t.Fatal(err)
+				}
+				actual := mapValue(body["prompt"])
+				value := func(id string) string { return stringValue(mapValue(mapValue(actual[id])["inputs"])["value"]) }
+				if value("positive-text") != imagePromptWithoutText("原始风景") {
+					t.Errorf("positive primitive: %q", value("positive-text"))
+				}
+				wantNegative := "low quality"
+				if !shared {
+					wantNegative = appendImagePromptRule(wantNegative, imageNoTextNegativePrompt, ", ")
+				}
+				if value("negative-text") != wantNegative {
+					t.Errorf("negative primitive: %q", value("negative-text"))
+				}
+				for _, id := range []string{"model-name", "unused", "loader", "sample"} {
+					if jsonString(actual[id]) != jsonString(graph[id]) {
+						t.Errorf("non-text input changed: %s", id)
+					}
+				}
+				return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"prompt_id":"primitive"}`))}, nil
+			})}}}
+			response, err := app.submitComfyPrompt(context.Background(), mediaIntent{}, nil, graph, "原始风景", "http://controlled.invalid")
+			if err != nil {
+				t.Fatal(err)
+			}
+			response.Body.Close()
+			first := imageWorkflowWithoutText(graph)
+			if calls != 1 || jsonString(graph) != before || jsonString(imageWorkflowWithoutText(first)) != jsonString(first) {
+				t.Fatal("source mutation, duplicate rule or wrong submit count")
+			}
+		})
+	}
+}
+
 func TestImageSubmissionPreservesPositiveTextWhenFluxSharesNegativeConditioning(t *testing.T) {
 	const original = "青岚站在树林中，保留原始场景"
 	workflow := map[string]any{

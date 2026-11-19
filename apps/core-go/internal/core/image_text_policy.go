@@ -61,9 +61,44 @@ func imageWorkflowWithoutText(workflow map[string]any) map[string]any {
 		markConditioning(inputs["negative"], negativeNodes)
 		markConditioning(inputs["negative_prompt"], negativeNodes)
 	}
+	// Conditioning dependencies also include model/CLIP loaders. Follow only
+	// text slots to primitive values; a model filename is not prompt text.
+	textKeys := []string{"text", "text_g", "text_l", "prompt", "positive_prompt", "negative_prompt", "negative"}
+	primitivePositive, primitiveNegative := map[string]bool{}, map[string]bool{}
+	var markPrimitive func(any, map[string]bool)
+	markPrimitive = func(value any, uses map[string]bool) {
+		edge := arrayValue(value)
+		if len(edge) != 2 {
+			return
+		}
+		id, ok := edge[0].(string)
+		if !ok || uses[id] {
+			return
+		}
+		node := mapValue(result[id])
+		if node["class_type"] != "PrimitiveString" {
+			return
+		}
+		uses[id] = true
+		markPrimitive(mapValue(node["inputs"])["value"], uses)
+	}
 	for id, raw := range result {
 		inputs := mapValue(mapValue(raw)["inputs"])
-		for _, key := range []string{"text", "text_g", "text_l", "prompt", "positive_prompt", "negative_prompt", "negative"} {
+		for _, key := range textKeys {
+			uses := primitivePositive
+			if negativeNodes[id] && !positiveNodes[id] || key == "negative_prompt" || key == "negative" {
+				uses = primitiveNegative
+			}
+			markPrimitive(inputs[key], uses)
+		}
+	}
+	for id, raw := range result {
+		inputs := mapValue(mapValue(raw)["inputs"])
+		keys := textKeys
+		if primitivePositive[id] || primitiveNegative[id] {
+			keys = append(append([]string{}, textKeys...), "value")
+		}
+		for _, key := range keys {
 			text, ok := inputs[key].(string)
 			if !ok {
 				continue
@@ -71,7 +106,11 @@ func imageWorkflowWithoutText(workflow map[string]any) map[string]any {
 			// Flux and similar workflows derive zeroed negative conditioning
 			// from the positive encoder. Its shared text still renders the
 			// positive scene, so never append exclusion tokens there.
-			if negativeNodes[id] && !positiveNodes[id] || key == "negative_prompt" || key == "negative" {
+			negative := negativeNodes[id] && !positiveNodes[id] || key == "negative_prompt" || key == "negative"
+			if key == "value" {
+				negative = primitiveNegative[id] && !primitivePositive[id]
+			}
+			if negative {
 				inputs[key] = appendImagePromptRule(text, imageNoTextNegativePrompt, ", ")
 			} else {
 				inputs[key] = imagePromptWithoutText(text)
