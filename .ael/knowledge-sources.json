@@ -108,6 +108,27 @@
       }
     },
     {
+      "path": "docs/decisions/agent-trace-recovery/DESIGN.md",
+      "hash": "6709eee732d80e61974488a4b880e11348f274ac076119c62f48a22d4fc0e373",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/decisions/agent-trace-recovery/DESIGN.md",
+        "title": "DESIGN.md",
+        "kind": "decision",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/decisions/agent-trace-recovery/DESIGN.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/decisions/agent-trace-recovery/DESIGN.md",
+        "hash": "6709eee732d80e61974488a4b880e11348f274ac076119c62f48a22d4fc0e373",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
       "path": "docs/decisions/claim-evidence/DESIGN.md",
       "hash": "123a38f44c7fab972093ce1e63db1621f8b2565dff56eb9087325f0b81c94740",
       "action": "historical",
@@ -824,7 +845,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 37,
+    "historical": 38,
     "retired": 1
   }
 }

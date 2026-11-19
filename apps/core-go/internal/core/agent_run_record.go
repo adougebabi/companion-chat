@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -132,59 +131,7 @@ func (a *App) admitFormalRun(ctx context.Context, definition FormalAgentDefiniti
 	if tag.RowsAffected() == 1 {
 		return record, nil, nil
 	}
-	var previousDigest, status, failure string
-	var encoded []byte
-	var startedAt time.Time
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT input_digest,status,error_detail,result,started_at FROM public.agent_runs WHERE fluctlight_id=$1 AND agent_id=$2 AND run_id=$3`, record.FluctlightID, record.AgentID, record.RunID).Scan(&previousDigest, &status, &failure, &encoded, &startedAt); err != nil {
-		return nil, nil, err
-	}
-	result := &ADKStructuredTaskResult{Trace: &ADKCapabilityTrace{}}
-	if len(encoded) > 0 && string(encoded) != "{}" {
-		if err := json.Unmarshal(encoded, result); err != nil {
-			return nil, result, fmt.Errorf("decode Agent result: %w", err)
-		}
-	}
-	if previousDigest != digest {
-		return nil, result, newCapabilityError("agent_run_input_conflict", false, ErrConflict)
-	}
-	if status == "running" {
-		if time.Since(startedAt) > 5*time.Minute {
-			_, _ = a.DB.Pool().Exec(ctx, `UPDATE public.agent_runs SET status='failed',error_detail='stale_run_timeout',failure_stage='timeout',failure_code='request_timeout',finished_at=now() WHERE fluctlight_id=$1 AND agent_id=$2 AND run_id=$3 AND status='running'`, record.FluctlightID, record.AgentID, record.RunID)
-			return nil, result, errors.New("agent_run_failed: stale_run_timeout")
-		}
-		rows, err := a.DB.Pool().Query(ctx, `SELECT invocation,result FROM public.tool_executions WHERE fluctlight_id=$1 AND agent_id=$2 AND run_id=$3 ORDER BY committed_at,operation_id`, record.FluctlightID, record.AgentID, record.RunID)
-		if err != nil {
-			return nil, result, err
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var invocationJSON, resultJSON []byte
-			if err := rows.Scan(&invocationJSON, &resultJSON); err != nil {
-				return nil, result, err
-			}
-			var invocation CapabilityInvocation
-			var receipt CapabilityResult
-			if err := json.Unmarshal(invocationJSON, &invocation); err != nil {
-				return nil, result, err
-			}
-			if err := json.Unmarshal(resultJSON, &receipt); err != nil {
-				return nil, result, err
-			}
-			result.Trace.Append(invocation, receipt)
-		}
-		if err := rows.Err(); err != nil {
-			return nil, result, err
-		}
-		return nil, result, errors.New("agent_run_incomplete: inspect committed results before starting a new business run")
-	}
-	if status == "failed" {
-		safe := sanitizeAgentRunResult(*result)
-		return nil, &safe, fmt.Errorf("agent_run_failed: %s", boundedOperationalCause(failure))
-	}
-	if status != "completed" {
-		return nil, result, errors.New("agent_run_status_invalid")
-	}
-	return nil, result, nil
+	return a.restoreRecordedAgentRun(ctx, record, digest)
 }
 
 func (a *App) finishFormalRun(ctx context.Context, record *formalRunRecord, result ADKStructuredTaskResult, runErr error) error {
