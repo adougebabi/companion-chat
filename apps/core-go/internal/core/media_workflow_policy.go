@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -42,11 +43,15 @@ func validateMediaWorkflowPolicy(config, concept, workflow map[string]any) error
 	bodyAllowed := identityAllowed && mapValue(concept["media_capture_plan"])["visible_scope"] == "full"
 	faceLoras := map[string]bool{}
 	for _, raw := range arrayValue(config["face_identity_loras"]) {
-		faceLoras[stringValue(raw)] = true
+		if name := stringValue(raw); name != "" {
+			faceLoras[name] = true
+		}
 	}
 	styles := map[string]bool{}
 	for _, raw := range arrayValue(config["style_loras"]) {
-		styles[stringValue(raw)] = true
+		if name := stringValue(raw); name != "" {
+			styles[name] = true
+		}
 	}
 	for _, raw := range workflow {
 		node := mapValue(raw)
@@ -67,24 +72,31 @@ func validateMediaWorkflowPolicy(config, concept, workflow map[string]any) error
 			}
 		}
 
-		if bodyAllowed && strings.Contains(class, "lora") && !styles[stringValue(inputs["lora_name"])] && !faceLoras[stringValue(inputs["lora_name"])] {
-			dynamicBody := false
-			for _, value := range inputs {
-				if text, ok := value.(string); ok && (text == "{{chest_lora_weight}}" || text == "{{renderer_constraints.chest_lora_weight}}") {
-					dynamicBody = true
+		adapters, err := mediaWorkflowLoraInputs(class, inputs)
+		if err != nil {
+			return err
+		}
+		for _, adapter := range adapters {
+			name := stringValue(adapter["lora_name"])
+			if bodyAllowed && !styles[name] && !faceLoras[name] {
+				dynamicBody := false
+				for _, value := range adapter {
+					if text, ok := value.(string); ok && (text == "{{chest_lora_weight}}" || text == "{{renderer_constraints.chest_lora_weight}}") {
+						dynamicBody = true
+					}
+				}
+				if !dynamicBody {
+					return errors.New("media_workflow_unclassified_lora_forbidden")
+				}
+				if mediaRendererConstraints(concept)["chest_lora_weight"] == nil {
+					return errors.New("media_workflow_current_body_constraint_missing")
 				}
 			}
-			if !dynamicBody {
+			if !bodyAllowed && !styles[name] && !(identityAllowed && faceLoras[name]) {
 				return errors.New("media_workflow_unclassified_lora_forbidden")
-			}
-			if mediaRendererConstraints(concept)["chest_lora_weight"] == nil {
-				return errors.New("media_workflow_current_body_constraint_missing")
 			}
 		}
 		if !bodyAllowed {
-			if strings.Contains(class, "lora") && !styles[stringValue(inputs["lora_name"])] && !(identityAllowed && faceLoras[stringValue(inputs["lora_name"])]) {
-				return errors.New("media_workflow_unclassified_lora_forbidden")
-			}
 			for _, value := range inputs {
 				if text, ok := value.(string); ok && (strings.Contains(text, "{{chest_lora_weight}}") || strings.Contains(text, "{{renderer_constraints.chest_lora_weight}}")) {
 					return errors.New("media_workflow_body_condition_forbidden")
@@ -103,6 +115,35 @@ func validateMediaWorkflowPolicy(config, concept, workflow map[string]any) error
 		}
 	}
 	return nil
+}
+
+// Krea2's installed loader resolves every nonempty/non-none name, even when
+// strength is zero. Each slot carries its own body-weight proof; another slot
+// cannot authorize an unclassified adapter. Names connected through a graph
+// are unknown at admission and must not be treated as disabled slots.
+func mediaWorkflowLoraInputs(class string, inputs map[string]any) ([]map[string]any, error) {
+	if class != "krea2loraloader" {
+		if strings.Contains(class, "lora") {
+			return []map[string]any{inputs}, nil
+		}
+		return nil, nil
+	}
+	var adapters []map[string]any
+	for slot := 1; slot <= 3; slot++ {
+		raw, exists := inputs[fmt.Sprintf("lora_%d", slot)]
+		if !exists {
+			continue
+		} // execute defaults omitted slots to none.
+		name, ok := raw.(string)
+		if !ok {
+			return nil, errors.New("media_workflow_unclassified_lora_forbidden")
+		}
+		if name == "" || name == "none" {
+			continue
+		}
+		adapters = append(adapters, map[string]any{"lora_name": name, "strength": inputs[fmt.Sprintf("strength_%d", slot)]})
+	}
+	return adapters, nil
 }
 
 // Reuse the existing positive graph validation without its assumption that
