@@ -404,15 +404,18 @@ func TestGeneratedAvatarRealMediaHTTPWaitsForManualReview(t *testing.T) {
 	var submitted map[string]any
 	var designRequest map[string]any
 	uploaded := false
+	designCalls, referenceUploads, renderCalls := 0, 0, 0
 	comfy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case strings.HasSuffix(r.URL.Path, "/chat/completions"):
+			designCalls++
 			if err := json.NewDecoder(r.Body).Decode(&designRequest); err != nil {
 				t.Error(err)
 			}
 			_, _ = io.WriteString(w, `{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"A relaxed portrait in a sunlit reading room."}}]}`)
 		case r.URL.Path == "/upload/image":
+			referenceUploads++
 			file, _, err := r.FormFile("image")
 			if err != nil {
 				t.Error(err)
@@ -424,6 +427,7 @@ func TestGeneratedAvatarRealMediaHTTPWaitsForManualReview(t *testing.T) {
 			uploaded = bytes.Equal(content, png)
 			_, _ = io.WriteString(w, `{"name":"confirmed-reference.png"}`)
 		case r.URL.Path == "/prompt":
+			renderCalls++
 			if err := json.NewDecoder(r.Body).Decode(&submitted); err != nil {
 				t.Error(err)
 			}
@@ -447,10 +451,29 @@ func TestGeneratedAvatarRealMediaHTTPWaitsForManualReview(t *testing.T) {
 	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.runtime_settings(key,value_json) VALUES('media.comfyui',$1) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json`, jsonBytes(config)); err != nil {
 		t.Fatal(err)
 	}
-	ctx := withFrozenProviderAssignment(f.ctx, "media_prompt", providerAssignment{Role: "media_prompt", BaseURL: comfy.URL, ModelID: "avatar-designer", Timeout: time.Second})
+	const endpointID, purpose = "avatar-designer-http", "avatar-designer-no-auth"
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.provider_endpoints(id,kind,base_url,secret_purpose,capability_status) VALUES($1,'openai_compatible',$2,$3,'ready')`, endpointID, comfy.URL, purpose); err != nil {
+		t.Fatal(err)
+	}
+	endpoint, err := f.app.Provider.endpointCredentialSnapshot(f.ctx, endpointID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := withFrozenProviderAssignment(f.ctx, "media_prompt", providerAssignment{Role: providerBindingRole("media_prompt"), EndpointID: endpointID, EndpointRevision: endpoint.EndpointRevision, CredentialRevision: endpoint.CredentialRevision, SecretPurpose: purpose, BaseURL: comfy.URL, ModelID: "avatar-designer", Timeout: time.Second})
 	result, err := f.app.ProcessMediaIntent(ctx, avatarIntent)
 	if err != nil || result["status"] != "completed" || !uploaded {
 		t.Fatalf("avatar media execution: %#v uploaded=%v err=%v", result, uploaded, err)
+	}
+	if designCalls != 1 || referenceUploads != 1 || renderCalls != 1 {
+		t.Fatalf("controlled HTTP calls design=%d reference=%d render=%d", designCalls, referenceUploads, renderCalls)
+	}
+	storedIntent, err := f.app.readMediaIntent(ctx, avatarIntent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, found, err := readMediaStageSnapshot(storedIntent, FormalAgentMediaPrompt, "media_prompt_text", "media_prompt")
+	if err != nil || !found || snapshot.Assignment.Role != providerBindingRole("media_prompt") || snapshot.Assignment.EndpointID != endpointID || snapshot.Assignment.EndpointRevision != endpoint.EndpointRevision || snapshot.Assignment.ModelID != "avatar-designer" || snapshot.Assignment.BaseURL != comfy.URL || snapshot.Assignment.Secret != "" {
+		t.Fatalf("durable avatar model snapshot lost its controlled binding: found=%t err=%v", found, err)
 	}
 	if wire := jsonString(designRequest["messages"]); !strings.Contains(wire, "沉静喜欢老唱片") || strings.Contains(wire, "热情") {
 		t.Fatalf("legacy pending avatar did not freeze its current personality: %s", wire)
