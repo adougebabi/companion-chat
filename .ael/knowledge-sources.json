@@ -108,6 +108,27 @@
       }
     },
     {
+      "path": "docs/decisions/legacy-moment-comments/DESIGN.md",
+      "hash": "bb796b98ba3825cafcb056a9c3ef8234b14822df814d3a159b2b2997e82b8e6a",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/decisions/legacy-moment-comments/DESIGN.md",
+        "title": "DESIGN.md",
+        "kind": "decision",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/decisions/legacy-moment-comments/DESIGN.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/decisions/legacy-moment-comments/DESIGN.md",
+        "hash": "bb796b98ba3825cafcb056a9c3ef8234b14822df814d3a159b2b2997e82b8e6a",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
       "path": "docs/llm-prompt-composition.md",
       "hash": "21660f5f064fab470ceeae3d93ab093baaab24b9603b0d377de952ecbd5b8b30",
       "action": "historical",
@@ -782,7 +803,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 35,
+    "historical": 36,
     "retired": 1
   }
 }
