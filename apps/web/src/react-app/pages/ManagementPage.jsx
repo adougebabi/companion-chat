@@ -708,8 +708,11 @@ function createManagementPageController(props, context, lifecycle) {
                 },
               }),
         };
-        if (operation.operation === "endpoint")
+        if (operation.operation === "endpoint") {
           body.expectedVersions["endpoint:" + body.endpointId] ??= 0;
+          for (const purpose of [...Object.keys(body.secrets || {}), ...(body.clearSecrets || [])])
+            body.expectedVersions['secret:' + purpose] ??= 0;
+        }
         if (operation.operation === "binding") {
           if (body.clearOverride) body.expectedVersions = {['binding:' + body.role]: versions['binding:' + body.role] ?? 0};
           else {

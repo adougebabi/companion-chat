@@ -54,34 +54,26 @@ export function configurationPlan({
     if (endpoint.secret && endpoint.clearSecret)
       throw Error("不能同时填写新密钥并清除同一密钥");
     const source = endpoint._source;
-    if (
+    const connectionChanged = (
       !source ||
       source.base_url !== endpoint.url.replace(/\/+$/, "") ||
       source.kind !== endpoint.protocol
-    ) {
-      changedEndpoints.add(id);
+    );
+    if (connectionChanged || endpoint.secret || endpoint.clearSecret) {
+      if (connectionChanged) changedEndpoints.add(id);
+      const purpose = source?.secret_purpose || "provider:" + id;
       writes.push({
         kind: "endpoint:" + id,
         operation: "endpoint",
         formId: endpoint.id,
+        connectionChanged,
         body: {
           endpointId: id,
           kind: endpoint.protocol || "openai-compatible",
           baseUrl: endpoint.url,
           secretPurpose: source?.secret_purpose || "provider:" + id,
-        },
-      });
-    }
-    if (endpoint.secret || endpoint.clearSecret) {
-      const purpose = source?.secret_purpose || "provider:" + id;
-      writes.push({
-        kind: "secret:" + purpose,
-        operation: "settings",
-        body: {
-          ...(endpoint.secret
-            ? { secrets: { [purpose]: endpoint.secret } }
-            : {}),
-          ...(endpoint.clearSecret ? { clearSecrets: [purpose] } : {}),
+          ...(endpoint.secret ? {secrets:{[purpose]:endpoint.secret}} : {}),
+          ...(endpoint.clearSecret ? {clearSecrets:[purpose]} : {}),
         },
       });
     }

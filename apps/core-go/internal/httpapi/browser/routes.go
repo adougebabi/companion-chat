@@ -427,7 +427,14 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !ok {
 			return
 		}
-		s.callNoContent(response, request, "/internal/providers/endpoints", http.MethodPut, map[string]any{"endpoint_id": body["endpointId"], "kind": body["kind"], "base_url": body["baseUrl"], "secret_purpose": body["secretPurpose"], "expected_versions": body["expectedVersions"], "idempotency_key": body["idempotencyKey"]}, 403, "provider_configuration_failed", "Provider configuration failed")
+		mapped := map[string]any{"endpoint_id": body["endpointId"], "kind": body["kind"], "base_url": body["baseUrl"], "secret_purpose": body["secretPurpose"], "expected_versions": body["expectedVersions"], "idempotency_key": body["idempotencyKey"]}
+		if secrets, present := body["secrets"]; present {
+			mapped["secrets"] = secrets
+		}
+		if clear, present := body["clearSecrets"]; present {
+			mapped["clear_secrets"] = clear
+		}
+		s.callNoContent(response, request, "/internal/providers/endpoints", http.MethodPut, mapped, 403, "provider_configuration_failed", "Provider configuration failed")
 		return
 	}
 	if endpointID, ok := match(path, "/api/providers/endpoints/:endpointId/models"); ok && methodName == http.MethodGet {
@@ -1797,10 +1804,42 @@ func validateExpectedRevision(value map[string]any) bool {
 	return validateInteger(value["expectedRevision"], 0)
 }
 func validateProviderEndpoint(value map[string]any) bool {
-	if !onlyKeys(value, "endpointId", "kind", "baseUrl", "secretPurpose", "expectedVersions", "idempotencyKey") || !validConfigurationIdentity(value) {
+	if !onlyKeys(value, "endpointId", "kind", "baseUrl", "secretPurpose", "secrets", "clearSecrets", "expectedVersions", "idempotencyKey") || !validConfigurationIdentity(value) {
 		return false
 	}
-	return validateString(value["endpointId"], 1, 128) && validateString(value["kind"], 1, 64) && validateString(value["baseUrl"], 8, 1<<20) && validateString(value["secretPurpose"], 1, 128)
+	if !validateString(value["endpointId"], 1, 128) || !validateString(value["kind"], 1, 64) || !validateString(value["baseUrl"], 8, 1<<20) || !validateString(value["secretPurpose"], 1, 128) {
+		return false
+	}
+	purpose := stringValue(value["secretPurpose"])
+	var replacement string
+	if raw, present := value["secrets"]; present {
+		secrets, ok := raw.(map[string]any)
+		if !ok || len(secrets) > 1 {
+			return false
+		}
+		for key, plain := range secrets {
+			if key != purpose {
+				return false
+			}
+			if plain == nil {
+				continue
+			}
+			if !validateString(plain, 0, 64<<10) {
+				return false
+			}
+			replacement = plain.(string)
+		}
+	}
+	if raw, present := value["clearSecrets"]; present {
+		if !isStringArray(raw) {
+			return false
+		}
+		clear := stringArray(raw)
+		if len(clear) > 1 || len(clear) == 1 && (clear[0] != purpose || replacement != "" && replacement != "configured") {
+			return false
+		}
+	}
+	return true
 }
 func validateModelRole(value map[string]any) bool {
 	if !onlyKeys(value, "role", "endpointId", "modelId", "tokenBudget", "timeoutSeconds", "contextWindowTokens", "maxInputTokens", "temperature", "topP", "clearOverride", "expectedVersions", "idempotencyKey") || !validConfigurationIdentity(value) {

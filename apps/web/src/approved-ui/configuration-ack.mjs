@@ -10,11 +10,16 @@ export function acknowledgeConfiguration(
   catalog.versions = { ...versions };
   if (operation.operation === "endpoint") {
     const source = {
+      ...catalog.endpoints.find((e) => e.id === body.endpointId),
       id: body.endpointId,
       kind: body.kind,
       base_url: body.baseUrl.replace(/\/+$/, ""),
       secret_purpose: body.secretPurpose,
     };
+    if (body.clearSecrets?.includes(body.secretPurpose))
+      source.secret_configured = false;
+    else if (body.secrets?.[body.secretPurpose] && body.secrets[body.secretPurpose] !== 'configured')
+      source.secret_configured = true;
     const original = endpoints.find(
       (e) =>
         e.id === operation.formId ||
@@ -31,12 +36,14 @@ export function acknowledgeConfiguration(
     catalog.endpoints = catalog.endpoints
       .filter((e) => e.id !== source.id)
       .concat(source);
-    catalog.bindings = catalog.bindings.filter(
-      (b) => b.endpoint_id !== source.id,
-    );
-    for (const binding of bindings)
-      if (binding._source?.endpoint_id === source.id)
-        binding._source = undefined;
+    if (operation.connectionChanged !== false) {
+      catalog.bindings = catalog.bindings.filter(
+        (b) => b.endpoint_id !== source.id,
+      );
+      for (const binding of bindings)
+        if (binding._source?.endpoint_id === source.id)
+          binding._source = undefined;
+    }
   }
   if (operation.operation === "binding") {
     if (body.clearOverride) {

@@ -12265,12 +12265,39 @@
           },
           "base_url": {
             "type": "string",
-            "minLength": 8
+            "minLength": 8,
+            "maxLength": 1048576
           },
           "secret_purpose": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128
+          },
+          "secrets": {
+            "type": "object",
+            "maxProperties": 1,
+            "description": "Write-only credential for secretPurpose; omitted, empty or configured retains the current value.",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 65536
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "clear_secrets": {
+            "type": "array",
+            "maxItems": 1,
+            "description": "Explicitly clear only secretPurpose; cannot also replace it.",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
           },
           "expected_versions": {
             "type": "object",

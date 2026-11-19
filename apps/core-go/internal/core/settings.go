@@ -466,45 +466,111 @@ func (a *App) ConfigureProviderEndpoint(ctx context.Context, actorID string, pay
 		return err
 	}
 	id, kind, base, purpose := stringValue(payload["endpoint_id"]), stringValue(payload["kind"]), stringValue(payload["base_url"]), stringValue(payload["secret_purpose"])
-	if id == "" || kind == "" || base == "" || purpose == "" {
+	if id == "" || kind == "" || base == "" || purpose == "" || len([]rune(id)) > 128 || len([]rune(kind)) > 64 || len([]rune(base)) > 1<<20 || len([]rune(purpose)) > 128 {
 		return errors.New("provider_endpoint_invalid")
 	}
 	parsed, err := url.Parse(base)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		return errors.New("provider_endpoint_invalid")
 	}
+	// This endpoint command may change only its own write-only credential.
+	// Omitted/empty/masked values retain it; clearing is always explicit.
+	plain, clearCredential := "", false
+	if raw, present := payload["secrets"]; present {
+		secrets, ok := raw.(map[string]any)
+		if !ok || len(secrets) > 1 {
+			return invalid("Invalid Provider credential mutation")
+		}
+		for key, value := range secrets {
+			if key != purpose {
+				return invalid("Invalid Provider credential purpose")
+			}
+			if value == nil {
+				continue
+			}
+			text, ok := value.(string)
+			if !ok || len([]rune(text)) > 64<<10 {
+				return invalid("Invalid Provider credential value")
+			}
+			if text != "configured" {
+				plain = text
+			}
+		}
+	}
+	if raw, present := payload["clear_secrets"]; present {
+		switch raw.(type) {
+		case []any, []string:
+		default:
+			return invalid("Invalid Provider credential clear")
+		}
+		clear := arrayValue(raw)
+		if len(clear) > 1 || len(clear) == 1 && clear[0] != purpose {
+			return invalid("Invalid Provider credential clear")
+		}
+		clearCredential = len(clear) == 1
+	}
+	if plain != "" && clearCredential {
+		return invalid("Cannot replace and clear the same credential")
+	}
+	base = strings.TrimRight(base, "/")
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended('owner-configuration',0))`); err != nil {
 			return err
 		}
 		resources := []string{"endpoint:" + id}
-		rows, err := tx.Query(ctx, `SELECT role FROM public.model_roles WHERE provider_endpoint_id=$1 ORDER BY role`, id)
-		if err != nil {
+		var oldKind, oldBase, oldPurpose string
+		err := tx.QueryRow(ctx, `SELECT kind,base_url,secret_purpose FROM public.provider_endpoints WHERE id=$1`, id).Scan(&oldKind, &oldBase, &oldPurpose)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
-		for rows.Next() {
-			var role string
-			if err := rows.Scan(&role); err != nil {
-				rows.Close()
+		changed := errors.Is(err, pgx.ErrNoRows) || oldKind != kind || oldBase != base || oldPurpose != purpose
+		if plain != "" || clearCredential {
+			resources = append(resources, "secret:"+purpose)
+		}
+		if changed {
+			rows, err := tx.Query(ctx, `SELECT role FROM public.model_roles WHERE provider_endpoint_id=$1 ORDER BY role`, id)
+			if err != nil {
 				return err
 			}
-			resources = append(resources, "binding:"+role)
-		}
-		readErr := rows.Err()
-		rows.Close()
-		if readErr != nil {
-			return readErr
+			for rows.Next() {
+				var role string
+				if err := rows.Scan(&role); err != nil {
+					rows.Close()
+					return err
+				}
+				resources = append(resources, "binding:"+role)
+			}
+			readErr := rows.Err()
+			rows.Close()
+			if readErr != nil {
+				return readErr
+			}
 		}
 		receipt, replay, err := beginConfigurationCommandTx(ctx, tx, actorID, "provider_endpoint_update", payload, resources)
 		if err != nil || replay {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `DELETE FROM public.model_roles WHERE provider_endpoint_id=$1`, id); err != nil {
-			return err
+		if changed {
+			if _, err := tx.Exec(ctx, `DELETE FROM public.model_roles WHERE provider_endpoint_id=$1`, id); err != nil {
+				return err
+			}
+			if _, err = tx.Exec(ctx, `INSERT INTO public.provider_endpoints (id,kind,base_url,secret_purpose,capability_status) VALUES ($1,$2,$3,$4,'unknown') ON CONFLICT (id) DO UPDATE SET kind=excluded.kind,base_url=excluded.base_url,secret_purpose=excluded.secret_purpose,capability_status='unknown',checked_at=NULL`, id, kind, base, purpose); err != nil {
+				return err
+			}
 		}
-		_, err = tx.Exec(ctx, `INSERT INTO public.provider_endpoints (id,kind,base_url,secret_purpose,capability_status) VALUES ($1,$2,$3,$4,'unknown') ON CONFLICT (id) DO UPDATE SET kind=excluded.kind,base_url=excluded.base_url,secret_purpose=excluded.secret_purpose,capability_status='unknown',checked_at=NULL`, id, kind, strings.TrimRight(base, "/"), purpose)
-		if err != nil {
-			return err
+		if plain != "" {
+			encrypted, err := encryptSecret(a.SettingsKey, purpose, plain)
+			if err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `INSERT INTO public.setting_secrets(purpose,ciphertext,nonce,updated_at) VALUES($1,$2,$3,$4) ON CONFLICT(purpose) DO UPDATE SET ciphertext=excluded.ciphertext,nonce=excluded.nonce,updated_at=excluded.updated_at`, purpose, encrypted.ciphertext, encrypted.nonce, time.Now().UTC()); err != nil {
+				return err
+			}
+		}
+		if clearCredential {
+			if _, err := tx.Exec(ctx, `DELETE FROM public.setting_secrets WHERE purpose=$1`, purpose); err != nil {
+				return err
+			}
 		}
 		if receipt != nil {
 			return finishConfigurationCommandTx(ctx, tx, actorID, payload, receipt, "provider_endpoint_update")

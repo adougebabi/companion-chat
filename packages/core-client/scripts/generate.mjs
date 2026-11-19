@@ -22,7 +22,11 @@ import {inventorySchemas,inventoryPaths} from "../../browser-client/scripts/inve
 import {selfSchemas,selfPaths} from '../../browser-client/scripts/self-contract.mjs';
 
 const root = new URL("../", import.meta.url);
-const schema = JSON.parse(await readFile(new URL("openapi.json", root), "utf8"));
+let schema = JSON.parse(await readFile(new URL("openapi.json", root), "utf8"));
+// A focused endpoint repair must not refresh unrelated historical contracts.
+// The default command still regenerates the complete source inventory.
+const endpointOnly = process.argv.includes('--configuration-endpoint-only');
+const originalSchema = endpointOnly ? structuredClone(schema) : null;
 const memoryRead=schema.paths["/internal/fluctlights/{fluctlight_id}/memories"]?.get;
 if(memoryRead&&!memoryRead.parameters.some(p=>p.name==="aboutOwner"))memoryRead.parameters.push({name:"aboutOwner",in:"query",schema:{type:"boolean"}});
 schema.components.schemas.DiagnosticModelRunResponse.properties.parent_run_id={type:'string'};
@@ -44,6 +48,10 @@ schema.paths['/internal/fluctlight-creations/analysis'].post.requestBody={requir
 schema.components.schemas.CoreOwnerRequest.properties.status.enum=['pending','processing','accepted','rejected','deferred','awaiting_goal','cancelled','failed','completed'];
 Object.assign(schema.components.schemas.CoreOwnerRequest.properties,{tasks_state:{type:'string',enum:['available','failed']},tasks:{type:'array',items:{$ref:'#/components/schemas/CoreRequestTask'}},tasks_error_code:{type:'string'}});
 schema.paths['/internal/owner-requests/{request_id}']={get:{operationId:'readOwnerRequest',responses:{200:{description:'Authorized request state and actual workflow pointers',content:{'application/json':{schema:{$ref:'#/components/schemas/CoreOwnerRequest'}}}}}}};
+if(endpointOnly){
+ originalSchema.components.schemas.CoreConfigurationEndpointBody = schema.components.schemas.CoreConfigurationEndpointBody;
+ schema = originalSchema;
+}
 await writeFile(new URL('openapi.json',root),JSON.stringify(schema,null,2)+'\n');
 const operations = Object.keys(schema.paths).sort();
 const goalSchemaType = (value) => {
@@ -64,6 +72,14 @@ const goalSchemaType = (value) => {
   }
   return "unknown";
 };
+if(endpointOnly){
+ const path=new URL('src/index.ts',root),prior=await readFile(path,'utf8');
+ const declaration=`export type CoreConfigurationEndpointBody = ${goalSchemaType(schema.components.schemas.CoreConfigurationEndpointBody)};`;
+ const pattern=/^export type CoreConfigurationEndpointBody = .*;$/m;
+ if(!pattern.test(prior))throw Error('Missing existing CoreConfigurationEndpointBody declaration');
+ await writeFile(path,prior.replace(pattern,()=>declaration));
+ process.exit(0);
+}
 const goalTypes = [...Object.keys(deliverySchemas).map(name=>name.replace(/^Browser/,'Core')),"CoreOwnerRequest","CoreGoalSet","CoreGoalSetCommand","CoreActorContext","CoreActorContextUpdate","CoreGoal", "CoreGoalPage", "CoreGoalRecordPage", "CoreGoalOwnerCommand", "CoreGoalCommandResult"].map(name => {
   if (!schema.components.schemas[name]) throw new Error(`Missing Goal schema ${name}`);
   return `export type ${name} = ${goalSchemaType(schema.components.schemas[name])};`;
