@@ -1,28 +1,10 @@
 package core
 
 import (
-	"context"
-	"fmt"
-	"strings"
+	"github.com/jackc/pgx/v5"
 	"testing"
 	"time"
-
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 )
-
-type claimCaptureTx struct {
-	pgx.Tx
-	rows [][]any
-}
-
-func (tx *claimCaptureTx) Exec(_ context.Context, query string, args ...any) (pgconn.CommandTag, error) {
-	if !strings.Contains(query, "INSERT INTO public.cognition_claims") {
-		return pgconn.CommandTag{}, fmt.Errorf("unexpected statement")
-	}
-	tx.rows = append(tx.rows, append([]any(nil), args...))
-	return pgconn.NewCommandTag("INSERT 0 1"), nil
-}
 
 func claimUncertaintyFixture(t *testing.T) map[string]any {
 	t.Helper()
@@ -42,29 +24,25 @@ func claimUncertaintyFixture(t *testing.T) map[string]any {
 }
 
 func TestClaimSettlementPreservesEvaluatedUncertainty(t *testing.T) {
-	tx := &claimCaptureTx{}
 	at := time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC)
 	plan := claimUncertaintyFixture(t)
 	plan["omitted_claims"] = append(arrayValue(plan["omitted_claims"]), map[string]any{"kind": ClaimUncertainHypothesis, "content": "省略的假设", "confidence": 0.2, "evidence_refs": []any{}})
-	if err := persistClaimsTx(context.Background(), tx, "fixture-character", "claim-source", plan, at); err != nil {
-		t.Fatal(err)
-	}
-	byContent := make(map[string][]any, len(tx.rows))
-	for _, row := range tx.rows {
-		byContent[row[4].(string)] = row
+	byContent := map[string]cognitionClaimAssessment{}
+	for _, assessment := range claimAssessmentsForPlan(plan, "claim-source", at) {
+		byContent[assessment.Content] = assessment
 	}
 	for content, status := range map[string]string{"低置信度陈述": "uncertain", "有依据的陈述": "active", "有依据的假设": "active", "没有依据的自述": "rejected", "不应提升的自述": "rejected", "待确认假设": "uncertain", "省略的假设": "rejected"} {
-		row := byContent[content]
-		if len(row) != 10 || row[8] != status {
-			t.Fatalf("claim %q stored with wrong status: %#v", content, row)
+		assessment, found := byContent[content]
+		if !found || assessment.Status != status {
+			t.Fatalf("claim %q got incorrect evaluated state: %#v", content, assessment)
 		}
 		if status == "uncertain" || content == "有依据的假设" {
-			expires, ok := row[9].(time.Time)
+			expires, ok := assessment.Expires.(time.Time)
 			if !ok || !expires.Equal(at.Add(7*24*time.Hour)) {
-				t.Fatalf("uncertain claim %q lost expiry: %#v", content, row[9])
+				t.Fatalf("claim %q lost its original expiry: %#v", content, assessment.Expires)
 			}
-		} else if content == "有依据的陈述" && row[9] != nil {
-			t.Fatalf("observed claim gained an expiry: %#v", row[9])
+		} else if content == "有依据的陈述" && assessment.Expires != nil {
+			t.Fatalf("observed fact gained an expiry: %#v", assessment)
 		}
 	}
 }

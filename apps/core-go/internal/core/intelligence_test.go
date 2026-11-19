@@ -36,6 +36,7 @@ func TestNormalizeResponsePlanFiltersUnsupportedAndRepeatedClaims(t *testing.T) 
 		ReferenceIndex:  index,
 		Hypotheses: []map[string]any{{
 			"repetition_key": "我 最近 喜欢 火车",
+			"content":        "我最近喜欢火车",
 			"evidence_refs":  []any{"fact-old"},
 			"source_fact_id": "fact-old",
 			"status":         "active",

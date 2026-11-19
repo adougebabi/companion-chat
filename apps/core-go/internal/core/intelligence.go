@@ -724,7 +724,7 @@ func tokenize(value string) []string {
 }
 
 func (a *App) readActiveHypotheses(ctx context.Context, fluctlightID string) ([]map[string]any, error) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,source_fact_id,claim_type,content,evidence_refs,confidence,repetition_key,status,expires_at,created_at FROM public.cognition_claims WHERE fluctlight_id=$1 AND status IN ('active','uncertain') AND (expires_at IS NULL OR expires_at > now()) ORDER BY confidence DESC,created_at DESC LIMIT 50`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT c.id,c.source_fact_id,c.claim_type,c.content,c.evidence_refs,c.confidence,COALESCE((SELECT e.original_repetition_key FROM public.cognition_claim_evaluations e WHERE e.claim_id=c.id AND e.applied ORDER BY e.version DESC LIMIT 1),c.repetition_key),c.status,c.expires_at,c.created_at FROM public.cognition_claims c WHERE c.fluctlight_id=$1 AND c.status IN ('active','uncertain') AND (c.expires_at IS NULL OR c.expires_at > now()) ORDER BY c.confidence DESC,c.created_at DESC LIMIT 50`, fluctlightID)
 	if err != nil {
 		return nil, err
 	}
@@ -1049,13 +1049,14 @@ func validateResponsePlan(plan map[string]any) error {
 }
 
 func evaluateClaims(rawClaims []any, sourceFactID string, context ContextProjection) ([]any, []any, []any, error) {
-	active := make(map[string]map[string]any, len(context.Hypotheses))
+	active := make(map[string][]map[string]any, len(context.Hypotheses))
 	allowedEvidence := map[string]struct{}{sourceFactID: {}}
 	for _, entry := range context.ReferenceIndex.ByRef {
 		allowedEvidence[entry.EntityID] = struct{}{}
 	}
 	for _, hypothesis := range context.Hypotheses {
-		active[stringValue(hypothesis["repetition_key"])] = hypothesis
+		key := stringValue(hypothesis["repetition_key"])
+		active[key] = append(active[key], hypothesis)
 		allowedEvidence[stringValue(hypothesis["id"])] = struct{}{}
 		allowedEvidence[stringValue(hypothesis["source_fact_id"])] = struct{}{}
 	}
@@ -1105,7 +1106,14 @@ func evaluateClaims(rawClaims []any, sourceFactID string, context ContextProject
 			omitted = append(omitted, claim)
 			continue
 		}
-		if existing := active[repetitionKey]; existing != nil && sameEvidence(refs, arrayValue(existing["evidence_refs"])) {
+		repeated := false
+		for _, existing := range active[repetitionKey] {
+			if sameClaimContent(existing, content) && sameEvidence(refs, arrayValue(existing["evidence_refs"])) {
+				repeated = true
+				break
+			}
+		}
+		if repeated {
 			claim["reason_code"] = "repeated_without_new_evidence"
 			omitted = append(omitted, claim)
 			continue
@@ -1169,28 +1177,5 @@ func sameEvidence(left, right []any) bool {
 }
 
 func persistClaimsTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID string, plan map[string]any, businessAt time.Time) error {
-	for _, group := range []struct{ key, status string }{
-		{"approved_claims", "active"}, {"uncertain_claims", "uncertain"}, {"omitted_claims", "rejected"},
-	} {
-		for _, raw := range arrayValue(plan[group.key]) {
-			claim := mapValue(raw)
-			kind := firstString(claim["kind"], "")
-			status := group.status
-			if kind == ClaimUnsupportedSelf || stringValue(claim["reason_code"]) != "" {
-				status = "rejected"
-			} else if status != "rejected" && kind == ClaimUncertainHypothesis {
-				status = "uncertain"
-			}
-			id := "claim_" + stableDigest(fluctlightID+":"+firstString(claim["repetition_key"], repetitionKeyFor(stringValue(claim["content"]))))
-			var expires any
-			if status == "uncertain" || kind == ClaimSupportedHypothesis {
-				expires = businessAt.UTC().Add(7 * 24 * time.Hour)
-			}
-			_, err := tx.Exec(ctx, `INSERT INTO public.cognition_claims(id,fluctlight_id,source_fact_id,claim_type,content,evidence_refs,confidence,repetition_key,status,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(fluctlight_id,repetition_key) DO NOTHING`, id, fluctlightID, sourceFactID, kind, stringValue(claim["content"]), jsonBytes(arrayValue(claim["evidence_refs"])), boundedNumber(claim["confidence"], 0), firstString(claim["repetition_key"], repetitionKeyFor(stringValue(claim["content"]))), status, expires)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	return persistClaimAssessmentsTx(ctx, tx, fluctlightID, sourceFactID, plan, businessAt)
 }
