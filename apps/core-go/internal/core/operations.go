@@ -1605,25 +1605,69 @@ func (a *App) MarkMomentsRead(ctx context.Context, actorID, fluctlightID string)
 	_, err := a.DB.Pool().Exec(ctx, `INSERT INTO public.moment_unread_markers(owner_fluctlight_id,actor_id,last_seen_at) VALUES($1,$2,now()) ON CONFLICT(owner_fluctlight_id,actor_id) DO UPDATE SET last_seen_at=now()`, fluctlightID, actorID)
 	return err
 }
-func (a *App) CommentMoment(ctx context.Context, actorID, momentID, text string) (map[string]any, error) {
+
+// CommentMoment keeps unkeyed legacy calls compatible. Callers recovering an
+// unknown outcome must retain and reuse their explicit operation key.
+func (a *App) CommentMoment(ctx context.Context, actorID, momentID, text string, operationKey ...string) (map[string]any, error) {
 	if len([]rune(strings.TrimSpace(text))) == 0 || len([]rune(text)) > 32000 {
 		return nil, errors.New("moment_comment_invalid")
+	}
+	key := ""
+	if len(operationKey) > 1 {
+		return nil, ErrInvalidArguments
+	}
+	if len(operationKey) == 1 {
+		key = strings.TrimSpace(operationKey[0])
+		if strings.TrimSpace(key) == "" || len([]rune(key)) > 256 {
+			return nil, ErrInvalidArguments
+		}
 	}
 	if err := a.authorizeMoment(ctx, actorID, momentID); err != nil {
 		return nil, err
 	}
-	id := randomID("comment_")
+	digest := stableDigest("legacy-moment-comment:" + momentID + ":" + jsonString(map[string]any{"text": text}))
+	var result map[string]any
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := requireDomainPluginEnabledTx(ctx, tx, "moment"); err != nil {
-			return err
+		if key != "" {
+			// Common owner commands acquire this before their resource locks.
+			// Take it first too; world mutations additionally share the lock below.
+			if err := lockOwnerSurfaceIdempotencyTx(ctx, tx, actorID, key); err != nil {
+				return err
+			}
+			if err := lockOwnerWorldMutationTx(ctx, tx, actorID); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext($1))`, actorID+":"+key); err != nil {
+				return err
+			}
 		}
+		// Lock and recheck ownership before returning even an existing receipt.
 		row, err := readMomentWith(ctx, tx, actorID, momentID, true)
 		if err != nil {
+			return err
+		}
+		if key != "" {
+			var savedDigest string
+			var raw []byte
+			err := tx.QueryRow(ctx, `SELECT digest,response FROM public.owner_surface_idempotency WHERE owner_actor_id=$1 AND idempotency_key=$2`, actorID, key).Scan(&savedDigest, &raw)
+			if err == nil {
+				if savedDigest != digest {
+					return &SurfaceError{Status: 409, Code: "idempotency_conflict", Message: "This command key belongs to another operation"}
+				}
+				result = decodeObject(raw)
+				return nil
+			}
+			if !errors.Is(err, pgx.ErrNoRows) {
+				return err
+			}
+		}
+		if err := requireDomainPluginEnabledTx(ctx, tx, "moment"); err != nil {
 			return err
 		}
 		if row["status"] != "visible" {
 			return &SurfaceError{Status: 409, Code: "moment_hidden", Message: "隐藏动态不可评论"}
 		}
+		id := randomID("comment_")
 		if _, err := tx.Exec(ctx, `UPDATE public.moments SET revision=revision+1 WHERE id=$1`, momentID); err != nil {
 			return err
 		}
@@ -1631,14 +1675,21 @@ func (a *App) CommentMoment(ctx context.Context, actorID, momentID, text string)
 			return err
 		}
 		if fid := stringValue(row["owner_fluctlight_id"]); fid != "" {
-			return appendOutboxTx(ctx, tx, "moment.comment.created", "moment_comment", id, fid, momentID, "moment-comment:"+id, "moment-comment:"+id, map[string]any{"moment_id": momentID, "author_actor_id": actorID})
+			if err := appendOutboxTx(ctx, tx, "moment.comment.created", "moment_comment", id, fid, momentID, "moment-comment:"+id, "moment-comment:"+id, map[string]any{"moment_id": momentID, "author_actor_id": actorID}); err != nil {
+				return err
+			}
+		}
+		result = map[string]any{"id": id, "moment_id": momentID, "author_actor_id": actorID, "text": strings.TrimSpace(text)}
+		if key != "" {
+			_, err = tx.Exec(ctx, `INSERT INTO public.owner_surface_idempotency(owner_actor_id,idempotency_key,digest,response) VALUES($1,$2,$3,$4)`, actorID, key, digest, jsonBytes(result))
+			return err
 		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"id": id, "moment_id": momentID, "author_actor_id": actorID, "text": strings.TrimSpace(text)}, nil
+	return result, nil
 }
 func (a *App) ReactMoment(ctx context.Context, actorID, momentID, kind string) (map[string]any, error) {
 	if kind != "like" && kind != "care" && kind != "celebrate" {

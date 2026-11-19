@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -510,12 +511,22 @@ func (s *Server) commentMoment(w http.ResponseWriter, r *http.Request) {
 	if !valid {
 		return
 	}
-	value, err := s.app.CommentMoment(r.Context(), actor, r.PathValue("momentID"), stringValue(body["text"]))
+	value, err := s.commentMomentValues(r.Context(), actor, r.PathValue("momentID"), body)
 	if err != nil {
 		s.opError(w, err, "moment_comment_failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, value)
+}
+func (s *Server) commentMomentValues(ctx context.Context, actor, momentID string, body map[string]any) (map[string]any, error) {
+	if raw, present := body["idempotency_key"]; present {
+		key, valid := raw.(string)
+		if !valid {
+			return nil, core.ErrInvalidArguments
+		}
+		return s.app.CommentMoment(ctx, actor, momentID, stringValue(body["text"]), key)
+	}
+	return s.app.CommentMoment(ctx, actor, momentID, stringValue(body["text"]))
 }
 func (s *Server) reactMoment(w http.ResponseWriter, r *http.Request) {
 	actor, ok := s.authorizeHuman(w, r)

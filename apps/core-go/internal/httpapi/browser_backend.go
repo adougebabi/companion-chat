@@ -550,7 +550,11 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 		err = b.server.app.MarkMomentsRead(ctx, actorID, pathPart(parts, 2))
 	case strings.Contains(path, "/comments"):
 		parts := splitInternalPath(path)
-		return b.server.app.CommentMoment(ctx, actorID, pathPart(parts, 2), stringValue(values["text"]))
+		value, err := b.server.commentMomentValues(ctx, actorID, pathPart(parts, 2), values)
+		if errors.Is(err, core.ErrUnauthorized) {
+			return nil, &browser.CoreError{Status: http.StatusForbidden, Code: "moment_comment_forbidden", Message: "This comment target is not available"}
+		}
+		return value, ownerVersionError(err, "moment_comment_conflict")
 	case strings.Contains(path, "/reactions"):
 		parts := splitInternalPath(path)
 		return b.server.app.ReactMoment(ctx, actorID, pathPart(parts, 2), stringValue(values["kind"]))

@@ -26,7 +26,8 @@ let schema = JSON.parse(await readFile(new URL("openapi.json", root), "utf8"));
 // A focused endpoint repair must not refresh unrelated historical contracts.
 // The default command still regenerates the complete source inventory.
 const endpointOnly = process.argv.includes('--configuration-endpoint-only');
-const originalSchema = endpointOnly ? structuredClone(schema) : null;
+const legacyMomentOnly = process.argv.includes('--legacy-moment-comment-only');
+const originalSchema = endpointOnly || legacyMomentOnly ? structuredClone(schema) : null;
 const memoryRead=schema.paths["/internal/fluctlights/{fluctlight_id}/memories"]?.get;
 if(memoryRead&&!memoryRead.parameters.some(p=>p.name==="aboutOwner"))memoryRead.parameters.push({name:"aboutOwner",in:"query",schema:{type:"boolean"}});
 schema.components.schemas.DiagnosticModelRunResponse.properties.parent_run_id={type:'string'};
@@ -48,6 +49,11 @@ schema.paths['/internal/fluctlight-creations/analysis'].post.requestBody={requir
 schema.components.schemas.CoreOwnerRequest.properties.status.enum=['pending','processing','accepted','rejected','deferred','awaiting_goal','cancelled','failed','completed'];
 Object.assign(schema.components.schemas.CoreOwnerRequest.properties,{tasks_state:{type:'string',enum:['available','failed']},tasks:{type:'array',items:{$ref:'#/components/schemas/CoreRequestTask'}},tasks_error_code:{type:'string'}});
 schema.paths['/internal/owner-requests/{request_id}']={get:{operationId:'readOwnerRequest',responses:{200:{description:'Authorized request state and actual workflow pointers',content:{'application/json':{schema:{$ref:'#/components/schemas/CoreOwnerRequest'}}}}}}};
+if(legacyMomentOnly){
+ for(const name of ['CoreLegacyMomentCommentRequest','CoreLegacyMomentComment'])originalSchema.components.schemas[name]=schema.components.schemas[name];
+ originalSchema.paths['/internal/moments/{moment_id}/comments']=schema.paths['/internal/moments/{moment_id}/comments'];
+ schema=originalSchema;
+}
 if(endpointOnly){
  originalSchema.components.schemas.CoreConfigurationEndpointBody = schema.components.schemas.CoreConfigurationEndpointBody;
  schema = originalSchema;
@@ -72,6 +78,19 @@ const goalSchemaType = (value) => {
   }
   return "unknown";
 };
+const legacyMomentCommentMethod = `  async commentOnMoment(humanSession: string, momentId: string, text: string, idempotencyKey?: string): Promise<Record<string, unknown>> { return this.json(\`/internal/moments/\${encodeURIComponent(momentId)}/comments\`, humanSession, "POST", { text, ...(idempotencyKey === undefined ? {} : { idempotency_key: idempotencyKey }) }) as Promise<Record<string, unknown>>; }`;
+if(legacyMomentOnly){
+ const path=new URL('src/index.ts',root);let prior=await readFile(path,'utf8');
+ const pattern=/^  async commentOnMoment\([^\n]+$/m;
+ if(!pattern.test(prior))throw Error('Missing existing legacy comment method');
+ prior=prior.replace(pattern,()=>legacyMomentCommentMethod);
+ for(const name of ['CoreLegacyMomentCommentRequest','CoreLegacyMomentComment']){
+  const declaration=`export type ${name} = ${goalSchemaType(schema.components.schemas[name])};`;
+  const existing=new RegExp('^export type '+name+' = .*;$','m');
+  prior=existing.test(prior)?prior.replace(existing,()=>declaration):prior.replace(/^(export const coreOperations = .*;)$/m,(_,head)=>head+'\n'+declaration);
+ }
+ await writeFile(path,prior);process.exit(0);
+}
 if(endpointOnly){
  const path=new URL('src/index.ts',root),prior=await readFile(path,'utf8');
  const declaration=`export type CoreConfigurationEndpointBody = ${goalSchemaType(schema.components.schemas.CoreConfigurationEndpointBody)};`;
@@ -258,7 +277,7 @@ export class CoreClient {
   async workflowCommand(humanSession: string, workflowId: string, action: "pause" | "resume" | "cancel"): Promise<void> { await this.json(\`/internal/diagnostics/workflows/\${encodeURIComponent(workflowId)}/\${action}\`, humanSession, "POST", {}); }
   async resetWorkflow(humanSession: string, workflowId: string, historyPoint: number): Promise<Record<string, unknown>> { return this.json(\`/internal/diagnostics/workflows/\${encodeURIComponent(workflowId)}/reset\`, humanSession, "POST", { history_point: historyPoint }) as Promise<Record<string, unknown>>; }
   async restartWorkflow(humanSession: string, workflowId: string): Promise<Record<string, unknown>> { return this.json(\`/internal/diagnostics/workflows/\${encodeURIComponent(workflowId)}/restart\`, humanSession, "POST", {}) as Promise<Record<string, unknown>>; }
-  async commentOnMoment(humanSession: string, momentId: string, text: string): Promise<Record<string, unknown>> { return this.json(\`/internal/moments/\${encodeURIComponent(momentId)}/comments\`, humanSession, "POST", { text }) as Promise<Record<string, unknown>>; }
+${legacyMomentCommentMethod}
   async reactToMoment(humanSession: string, momentId: string, kind: string): Promise<Record<string, unknown>> { return this.json(\`/internal/moments/\${encodeURIComponent(momentId)}/reactions\`, humanSession, "POST", { kind }) as Promise<Record<string, unknown>>; }
   async setMomentStatus(humanSession: string, momentId: string, action: "hide" | "restore"): Promise<void> { await this.json(\`/internal/moments/\${encodeURIComponent(momentId)}/\${action}\`, humanSession, "POST", {}); }
   async conversationDirectory(humanSession: string, fluctlightId: string, options: {limit?:number;cursor?:string}={}): Promise<{items:Array<{conversation:CoreConversation;unread_count:number;last_read_sequence:number;last_delivered_sequence:number;last_message?:CoreMessage}>;current_conversation_id:string;next_cursor:string}> {

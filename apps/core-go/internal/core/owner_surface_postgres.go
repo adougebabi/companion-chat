@@ -98,10 +98,15 @@ func listSurfaceRecords(ctx context.Context, query postgresQuery, owner, kind, f
 
 type postgresSurfaceTx struct{ tx pgx.Tx }
 
+func lockOwnerSurfaceIdempotencyTx(ctx context.Context, tx pgx.Tx, owner, key string) error {
+	_, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "owner-surface:"+owner+"\x1f"+key)
+	return err
+}
+
 func (t postgresSurfaceTx) Idempotency(ctx context.Context, owner, key string) (string, map[string]any, bool, error) {
 	// Serialize identical owner-scoped command keys before the first read. A
 	// concurrent retry observes the committed receipt rather than executing again.
-	if _, err := t.tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "owner-surface:"+owner+"\x1f"+key); err != nil {
+	if err := lockOwnerSurfaceIdempotencyTx(ctx, t.tx, owner, key); err != nil {
 		return "", nil, false, err
 	}
 	var digest string

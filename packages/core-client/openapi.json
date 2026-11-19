@@ -14207,6 +14207,50 @@
           "restarted"
         ],
         "additionalProperties": false
+      },
+      "CoreLegacyMomentCommentRequest": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32000
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Retain the original key for retries after an unknown outcome. Omit only for legacy unkeyed behavior."
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": true
+      },
+      "CoreLegacyMomentComment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "moment_id": {
+            "type": "string"
+          },
+          "author_actor_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "moment_id",
+          "author_actor_id",
+          "text"
+        ],
+        "additionalProperties": false
       }
     }
   },
@@ -18872,85 +18916,131 @@
     },
     "/internal/moments/{moment_id}/comments": {
       "post": {
-        "operationId": "comment_on_moment_internal_moments__moment_id__comments_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "moment_id",
-            "required": true,
-            "schema": {
-              "title": "Moment Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-fluctlight-service-key",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Fluctlight-Service-Key"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-fluctlight-human-session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Fluctlight-Human-Session"
-            }
-          }
-        ],
+        "operationId": "commentOnMoment",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MomentCommentRequest"
+                "$ref": "#/components/schemas/CoreLegacyMomentCommentRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
+            "description": "Persistent authorized Moment state",
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Comment On Moment Internal Moments  Moment Id  Comments Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/CoreLegacyMomentComment"
                 }
               }
-            },
-            "description": "Successful Response"
+            }
+          },
+          "400": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version or idempotency conflict; preserve the draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
           },
           "422": {
+            "description": "Bounded Owner operation error",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/CoreGoalError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
+          },
+          "500": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bounded Owner operation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoreGoalError"
+                }
+              }
+            }
           }
         },
-        "summary": "Comment On Moment"
+        "parameters": [
+          {
+            "name": "moment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
       }
     },
     "/internal/moments/{moment_id}/hide": {

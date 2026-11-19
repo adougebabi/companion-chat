@@ -983,11 +983,25 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 
 	// Moment interactions.
 	if momentID, ok := match(path, "/api/moments/:momentId/comments"); ok && methodName == http.MethodPost {
-		body, valid := s.mutationBody(response, request, func(value map[string]any) bool { return validateString(value["text"], 1, 32000) })
+		body, valid := s.mutationBody(response, request, func(value map[string]any) bool {
+			if !validateString(value["text"], 1, 32000) {
+				return false
+			}
+			key, present := value["idempotencyKey"]
+			if !present {
+				return true
+			}
+			text, isText := key.(string)
+			return isText && validateString(text, 1, 256) && strings.TrimSpace(text) != ""
+		})
 		if !valid {
 			return
 		}
-		s.callMap(response, request, "/internal/moments/"+escape(momentID)+"/comments", http.MethodPost, map[string]any{"text": body["text"]}, s.readOnlyError(422, "moment_comment_failed", "Moment comment could not be saved"), nil)
+		payload := map[string]any{"text": body["text"]}
+		if key, present := body["idempotencyKey"]; present {
+			payload["idempotency_key"] = key
+		}
+		s.callMap(response, request, "/internal/moments/"+escape(momentID)+"/comments", http.MethodPost, payload, s.surfaceStatusError(422, "moment_comment_failed", "Moment comment could not be saved"), nil)
 		return
 	}
 	if momentID, ok := match(path, "/api/moments/:momentId/reactions"); ok && methodName == http.MethodPost {
