@@ -9,6 +9,7 @@ on:
       - codex/fact-only-reply-vision
       - codex/fluctlight-functional-recovery
       - codex/demo-fullsite-audit-20261028
+      - codex/fluctlight-meromero-plugin-humanization
   pull_request:
     branches:
       - main
@@ -24,7 +25,7 @@ permissions:
   contents: read
 
 env:
-  TEST_IMAGE_CHANNEL: ${{ github.ref == 'refs/heads/codex/fluctlight-meromero-plugin-humanization' && 'demo-fullsite-audit' || (github.ref == 'refs/heads/codex/fluctlight-functional-recovery' && 'functional-recovery' || 'fact-only') }}
+  TEST_IMAGE_CHANNEL: ${{ (github.ref == 'refs/heads/codex/fluctlight-meromero-plugin-humanization' || github.ref == 'refs/heads/codex/demo-fullsite-audit-20261028') && 'demo-fullsite-audit' || (github.ref == 'refs/heads/codex/fluctlight-functional-recovery' && 'functional-recovery' || 'fact-only') }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -91,7 +92,7 @@ jobs:
   # Test images never share a mutable tag with the stable publication jobs.
   test-image-build:
     needs: validate
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/codex/fact-only-reply-vision' || github.ref == 'refs/heads/codex/fluctlight-functional-recovery' || github.ref == 'refs/heads/codex/demo-fullsite-audit-20261028')
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/codex/fact-only-reply-vision' || github.ref == 'refs/heads/codex/fluctlight-functional-recovery' || github.ref == 'refs/heads/codex/demo-fullsite-audit-20261028' || github.ref == 'refs/heads/codex/fluctlight-meromero-plugin-humanization')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -144,10 +145,11 @@ jobs:
 
   test-image-promote:
     needs: test-image-build
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/codex/fact-only-reply-vision' || github.ref == 'refs/heads/codex/fluctlight-functional-recovery' || github.ref == 'refs/heads/codex/demo-fullsite-audit-20261028')
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/codex/fact-only-reply-vision' || github.ref == 'refs/heads/codex/fluctlight-functional-recovery' || github.ref == 'refs/heads/codex/demo-fullsite-audit-20261028' || github.ref == 'refs/heads/codex/fluctlight-meromero-plugin-humanization')
     runs-on: ubuntu-latest
     concurrency:
-      group: test-image-promotion-${{ github.ref }}
+      # Both demo branches update the same aliases, so promotion must serialize.
+      group: test-image-promotion-${{ (github.ref == 'refs/heads/codex/fluctlight-meromero-plugin-humanization' || github.ref == 'refs/heads/codex/demo-fullsite-audit-20261028') && 'demo-fullsite-audit' || github.ref }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
