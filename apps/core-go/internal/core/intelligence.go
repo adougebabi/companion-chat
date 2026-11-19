@@ -10,6 +10,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/jsonvalue"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -110,7 +111,7 @@ func contextProjectionFromValue(value any) (ContextProjection, bool) {
 		return ContextProjection{}, false
 	}
 	var projection ContextProjection
-	if err := json.Unmarshal(data, &projection); err != nil || projection.FluctlightID == "" {
+	if err := jsonvalue.Unmarshal(data, &projection); err != nil || projection.FluctlightID == "" {
 		return ContextProjection{}, false
 	}
 	if projection.SchemaVersion == "fluctlight.context.v3" {

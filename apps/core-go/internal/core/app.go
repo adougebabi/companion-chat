@@ -16,6 +16,7 @@ import (
 
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/decision"
 
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/jsonvalue"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/minio/minio-go/v7"
@@ -202,7 +203,7 @@ func jsonBytes(value any) []byte {
 
 func decodeObject(value []byte) map[string]any {
 	result := make(map[string]any)
-	_ = json.Unmarshal(value, &result)
+	_ = jsonvalue.Unmarshal(value, &result)
 	return result
 }
 

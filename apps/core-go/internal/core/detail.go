@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/jsonvalue"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -413,7 +414,7 @@ func scheduleContextNumber(value string) any {
 
 func decodeJSONValue(value []byte) any {
 	var result any
-	if len(value) == 0 || json.Unmarshal(value, &result) != nil {
+	if len(value) == 0 || jsonvalue.Unmarshal(value, &result) != nil {
 		return nil
 	}
 	return result

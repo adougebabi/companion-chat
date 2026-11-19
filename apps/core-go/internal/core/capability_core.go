@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/jsonvalue"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -276,7 +277,7 @@ func (context CapabilityContext) Snapshot() map[string]any {
 		}
 		data := jsonBytes(value)
 		var copyValue any
-		if json.Unmarshal(data, &copyValue) == nil {
+		if jsonvalue.Unmarshal(data, &copyValue) == nil {
 			result[key] = copyValue
 		}
 	}
@@ -414,7 +415,7 @@ func boundedSnapshotValue(value any) any {
 		return nil
 	}
 	var copyValue any
-	if json.Unmarshal(data, &copyValue) != nil {
+	if jsonvalue.Unmarshal(data, &copyValue) != nil {
 		return nil
 	}
 	return copyValue
@@ -688,7 +689,7 @@ func decodeCapabilityPreparedPayload(raw json.RawMessage) (CapabilityPreparedPay
 		return CapabilityPreparedPayload{SchemaVersion: CapabilityPreparedPayloadSchemaVersion, Data: map[string]any{}, Provenance: map[string]any{}}, nil
 	}
 	var object map[string]any
-	if err := json.Unmarshal(raw, &object); err != nil || object == nil {
+	if err := jsonvalue.Unmarshal(raw, &object); err != nil || object == nil {
 		return CapabilityPreparedPayload{}, errors.New("capability prepared payload must be an object")
 	}
 	for key := range object {
@@ -795,7 +796,7 @@ func capabilityOperationID(invocation CapabilityInvocation) string {
 
 func capabilityExecutionArguments(invocation CapabilityInvocation, definition CapabilityDefinition) (map[string]any, error) {
 	var arguments map[string]any
-	if err := json.Unmarshal(invocation.Arguments, &arguments); err != nil || arguments == nil {
+	if err := jsonvalue.Unmarshal(invocation.Arguments, &arguments); err != nil || arguments == nil {
 		return nil, errors.New("capability arguments must be an object")
 	}
 	payload, err := decodeCapabilityPreparedPayload(invocation.PreparedPayload)
@@ -844,7 +845,7 @@ func capabilityInvocationsFromValue(value any) ([]CapabilityInvocation, error) {
 		return []CapabilityInvocation{}, nil
 	}
 	var invocations []CapabilityInvocation
-	if err := json.Unmarshal(data, &invocations); err != nil {
+	if err := jsonvalue.Unmarshal(data, &invocations); err != nil {
 		return nil, fmt.Errorf("capability invocation payload invalid: %w", err)
 	}
 	seen := make(map[string]struct{}, len(invocations))
