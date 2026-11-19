@@ -24,7 +24,7 @@ permissions:
   contents: read
 
 env:
-  TEST_IMAGE_CHANNEL: ${{ github.ref == 'refs/heads/codex/demo-fullsite-audit-20261028' && 'demo-fullsite-audit' || (github.ref == 'refs/heads/codex/fluctlight-functional-recovery' && 'functional-recovery' || 'fact-only') }}
+  TEST_IMAGE_CHANNEL: ${{ github.ref == 'refs/heads/codex/fluctlight-meromero-plugin-humanization' && 'demo-fullsite-audit' || (github.ref == 'refs/heads/codex/fluctlight-functional-recovery' && 'functional-recovery' || 'fact-only') }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
