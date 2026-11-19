@@ -2951,9 +2951,8 @@ func kevWakeUpWait(ctx workflow.Context, delay time.Duration) (bool, error) {
 }
 
 func mediaActivityFailure(err error) error {
-	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-		return err
-	}
+	// A business failure can wrap a lost-response timeout/cancellation. Its
+	// nonretryable classification must win; retrying that submission is unsafe.
 	var failure *core.CapabilityError
 	if errors.As(err, &failure) && !failure.Retryable {
 		return temporal.NewNonRetryableApplicationError(err.Error(), failure.Code, err)
