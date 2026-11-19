@@ -259,7 +259,7 @@ func TestGoalPlannerNativeLoopConsumesQueryCommitAndReread(t *testing.T) {
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_planning_runs SET available_at=now()-interval '1 second' WHERE id=$1`, runID); err != nil {
 		t.Fatal(err)
 	}
-	calls := 0
+	calls, evaluationCalls := 0, 0
 	var toolSnapshot map[string]any
 	var committedID string
 	call := func(name string, args any) fakeProviderResult {
@@ -312,6 +312,7 @@ func TestGoalPlannerNativeLoopConsumesQueryCommitAndReread(t *testing.T) {
 		}
 	})
 	router.onGoalEvaluation(func(_ map[string]any) fakeProviderResult {
+		evaluationCalls++
 		snapshot := readProcessingGoalSnapshot(t, f)
 		var proof string
 		for _, source := range snapshot.Sources {
@@ -350,8 +351,17 @@ func TestGoalPlannerNativeLoopConsumesQueryCommitAndReread(t *testing.T) {
 		t.Fatal("new goal did not reach production conversation", err)
 	}
 	evaluationID := latestPendingGoalRequest(t, f)
+	deferred, err := f.app.ProcessGoalEvaluationIntent(f.ctx, evaluationID)
+	if err != nil || deferred["status"] != "deferred" || deferred["reason"] != "evaluation_cadence" || evaluationCalls != 0 {
+		t.Fatalf("fresh activity must retain the real cadence gate: result=%v calls=%d err=%v", deferred, evaluationCalls, err)
+	}
+	t.Log("ORIGINAL_EVIDENCE_CAUSE deferred=evaluation_cadence model_calls=0; elapsed-time fixture follows")
+	advanceGoalEvaluationCycleForTest(t, f, evaluationID)
 	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, evaluationID); err != nil {
 		t.Fatal(err)
+	}
+	if evaluationCalls != 1 {
+		t.Fatalf("elapsed cycle did not run exactly one real evaluation request: %d", evaluationCalls)
 	}
 	var status string
 	var resolutions int
