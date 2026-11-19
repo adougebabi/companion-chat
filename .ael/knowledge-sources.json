@@ -192,6 +192,27 @@
       }
     },
     {
+      "path": "docs/decisions/npc-cross-process-recovery/DESIGN.md",
+      "hash": "c86878c54b42d3978eaf4653f7c5adf9d95498f22f5797a4d2f9f86fc253f58a",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/decisions/npc-cross-process-recovery/DESIGN.md",
+        "title": "DESIGN.md",
+        "kind": "decision",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/decisions/npc-cross-process-recovery/DESIGN.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/decisions/npc-cross-process-recovery/DESIGN.md",
+        "hash": "c86878c54b42d3978eaf4653f7c5adf9d95498f22f5797a4d2f9f86fc253f58a",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
       "path": "docs/llm-prompt-composition.md",
       "hash": "21660f5f064fab470ceeae3d93ab093baaab24b9603b0d377de952ecbd5b8b30",
       "action": "historical",
@@ -866,7 +887,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 39,
+    "historical": 40,
     "retired": 1
   }
 }
