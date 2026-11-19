@@ -15,7 +15,7 @@ description: 在已初始化的 AEL 工程执行已授权的项目迭代、修�
 
 实际命令：[命令与恢复](references/commands.md)，机器数据结构以当前 CLI 的 `ael help --json` 为准，项目入口可使用 `./ael help --json`。需要读取字段、调用脚本或保存结果时，命令明确追加 `--json`；默认输出供人阅读。
 
-远程 authority 使用 [外部 Agent 通信协议](references/remote-agent.md)：已有 Agent 自行编辑、测试、截图和管理宿主；AEL 只接收并校验。先登记客户端，准备候选/context，再 runner claim；每次 submit 消费 next_action。断网按 operation_file 调用 runner retry，未知工作区使用 runner recover 明确接收方与停工/独立工作区决定。远程不使用下述本地 claim/verify/loop 命令；不需要客户端 Docker，不启动其他 Agent。run/resume-result/recover-claim 已退出，不能用于恢复新模式。默认只上传选定依据与证据，不上传整个代码库、HOME、聊天或凭据。
+远程 authority 使用 [外部 Agent 通信协议](references/remote-agent.md)：已有 Agent 自行编辑、测试、截图和管理宿主；AEL 只接收并校验。先登记客户端，准备候选/context，再 runner claim；领取私有回执直接传给后续命令的 --lease-file；runner submit --repository REPO 接收 result.artifacts 中的实际文件路径并自动登记候选、上传与绑定，runtime 报告另带 --artifacts-dir。每次 submit 消费 next_action。断网按 operation_file 调用 runner retry，未知工作区使用 runner recover 明确接收方与停工/独立工作区决定。远程不使用下述本地 claim/verify/loop 命令；不需要客户端 Docker，不启动其他 Agent。run/resume-result/recover-claim 已退出，不能用于恢复新模式。默认只上传选定依据与证据，不上传整个代码库、HOME、聊天或凭据。
 
 新的 Remote 工作会话先运行 `./ael session start --session HOST_SESSION_ID --runner RUNNER --json`，读取返回的冻结 Skill 路径。它在领取前查询兼容性，只按安装级明确选择的策略更新可信稳定版。后续 Remote 命令都带 `--session HOST_SESSION_ID`，或由用户显式提供 AEL_SESSION_ID。同一会话固定 CLI、Skill 和协议，已有会话不会因机器级升级切换。`session show` 可查看引用，责任完成或明确交接后可 `session end` 结束工具绑定。旧调用未给会话 ID 时按 runner ID 隔离兼容工具会话，恢复与新接入优先使用宿主的稳定会话 ID。
 

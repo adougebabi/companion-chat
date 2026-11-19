@@ -22,6 +22,38 @@ init 默认共用机器级 CLI，支持 `--prefix DIR --from CLIENT_PACKAGE`。�
 
 接入后再 repository register、knowledge index 与当前责任流程。机器级 upgrade 使用安装 prefix 参数。中间文件放项目外私有目录，不进 Git。每个写请求使用稳定 operation_id/idempotency_key，修改请求必须换键；网络结果未知先查原回执，不回退本地。
 
+### 常规领取与提交
+
+`runner claim --runner RUNNER --file PRIVATE_CLAIM_JSON --out PRIVATE_CLAIM_RECEIPT` 返回的私有文件直接用于后续命令的 `--lease-file`。CLI 从该文件读取 task、attempt、token、fence 和冻结领取版本。`task show.revision` 与 `recovery.source_revision` 用于当前任务状态查询；attempt 写入由 CLI 使用 claim_revision。heartbeat 使用同一文件并更新其中租约期限。
+
+```sh
+./ael runner heartbeat --runner RUNNER --lease-file PRIVATE_CLAIM_RECEIPT --file PRIVATE_HEARTBEAT_JSON --session HOST_SESSION_ID --json
+./ael runner submit --runner RUNNER --lease-file PRIVATE_CLAIM_RECEIPT --repository REPO --file PRIVATE_RESULT_JSON --session HOST_SESSION_ID --json
+```
+
+heartbeat 文件只需 operation_id、idempotency_key。submit 文件提供 operation_id、idempotency_key、result，以及当前检查实际需要的 method、exit_code、inputs。result.artifacts 填选定的原仓库相对文件路径，如 `apps/web/src/views/Page.tsx`。CLI 固定当前候选和选定字节，完成 observe、上传、finalize、绑定后提交。源码扩展名由 CLI 处理，Agent 使用实际交付文件路径。result.knowledge.artifacts 同样接受路径。原始字节、候选、租约与子操作保存在仓库外私有操作记录中。
+
+execute change/pass 示例请求如下，summary、路径和知识结论按实际工作填写。
+
+```json
+{
+  "operation_id": "execute-result-unique",
+  "idempotency_key": "execute-result-unique",
+  "result": {
+    "status": "pass",
+    "summary": "已完成本次修复并提供实际源码",
+    "artifacts": ["apps/web/src/views/Page.tsx"],
+    "knowledge": {"status": "unchanged", "reason": "本次修复沿用现行规范", "artifacts": []}
+  }
+}
+```
+
+选定的报告、日志和截图放在项目外目录，引用如 `runtime:report.json`、`runtime:desktop.png`，命令增加 `--artifacts-dir ABSOLUTE_DIRECTORY`。verify 的 report.json 由执行 Agent 根据真实检查产生，candidate/check/definition_revision/plan_revision/method/source/observations/covers 按下方协议填写。先用 `runner observe --lease-file PRIVATE_CLAIM_RECEIPT --repository REPO --file PRIVATE_OPERATION_JSON` 获取候选，再据此执行检查和形成报告，submit 会核对当前 checkout。`--dry-run` 只校验本地候选和选定字节并展示文件路径，不执行网络写入。
+
+`runner submit --repository` 模式中省略 bindings 与服务器附件 ID。完整手写请求继续使用下方低层接口。通信失败沿返回 operation_file 执行 `runner retry --pending FILE`，重试使用已固定字节，已接受结果可在租约结束后查询原回执。请求内容变化使用新的操作键。提交后消费 next.next_action，下一单元重新领取并使用新的私有回执文件。到期或撤权继续使用显式恢复流程。
+
+### 低层接口与证据约束
+
 1. `runner register --file PRIVATE_JSON --operation-id OP --idempotency-key KEY`：文件含 id、workspace_id、checkout_id、repository、version、capabilities（例如 development、model、scenario）、expected_revision:"absent"。可选 alias 和 machine 提供客户端别名与设备声明，未提供时使用 runner ID 并显示设备未声明。这是身份/能力声明，不是 OS 隔离证明。
 2. `task show --task ID` / `next --task ID` 取得 revision、next_action、current_step；父范围先 `runner next --runner ID --parent EPIC` 查询合法后继，再 claim，不凭查询直接工作。人工责任保持 wait_human；父级叶子与集成条件继续生效。
 3. `candidate capture --task ID --repository REPO --checkout CHECKOUT --workspace WORKSPACE --runner ID --expected-revision REV --operation-id OP --idempotency-key KEY`，然后 context publish/show，核对实际原文、版本、workspace_matches、validity。
@@ -32,6 +64,8 @@ init 默认共用机器级 CLI，支持 `--prefix DIR --from CLIENT_PACKAGE`。�
 8. `runner submit --runner ID --file PRIVATE_JSON`：共有租约字段及 expected_revision（领取时版本）、candidate_id、result、bindings、method、exit_code、inputs。result 含 status(pass|fail|blocked)、summary、artifacts（已 finalized 的 ID）；execute pass 必须有候选中的真实交付文件及 knowledge:{status:unchanged|updated,reason,artifacts:[]}。bindings 为 [{path:"app.txt"或"runtime:report.json",artifact_id:"ID"}]。非 verify 阶段 method 留空，不传 exit_code/inputs；verify 使用声明的 method 和实际 inputs。command 的 exit_code 必须符合 pass/fail。
 9. verify 非 blocked 必须上传并绑定 `runtime:report.json`，内容为 {candidate,check,definition_revision,plan_revision,method,source,observations,covers}。source 为 `external-command:RUNNER` / `external-model:RUNNER` / `external-scenario:RUNNER`，observations 是实际观察，covers 完整覆盖本检查的验收项。UI 仍需真实图片。哈希只证明字节一致，不能证明命令真实运行；Agent 不得冒充独立人工审批。必需报告/产物、旧候选、旧验收或权限不符继续被拒绝。
 10. 提交后消费 `next.next_action`：repair 留在同一叶子修复；continue 领取下一个当前责任；completed 后读取父范围后继，能力授权满足则继续。交接结束当前角色，由已有外部 Bot 自行领取。等待环境/人工时记录恢复条件，不循环伪进展。`runner receipt --runner ID --idempotency-key KEY` 查原提交回执；重复同一 submit 返回相同结果，不重复推进。旧回执不是新写授权。达到重复失败预算按既有复核规则停止，不改类别规避。
+
+execute 的 change 责任提交 pass 时，至少一个 result.artifacts 附件须绑定候选中的实际交付文件路径，附件 SHA-256 与候选哈希相同。上述 app.txt 是示例候选路径。常规提交入口自动生成这些绑定。单独 artifact upload 使用 --lease-file 时也自动处理源码扩展名，保留原始字节。每次重新领取后，附件需属于新的 attempt、候选与租约。
 
 `runner run`、`runner resume-result`、`runner recover-claim` 明确不支持；不要用它们恢复新模式。稳定本地 Managed/Attached 仍是显式本地功能，不作为远程前置。合并/发布交给外部 Git/CI/部署工具与用户授权，AEL 保存目标与回执，不能将 verified 偷换为 merged/released。没有活跃外部 Agent 就等待接手，不声称后台自动编码。
 
