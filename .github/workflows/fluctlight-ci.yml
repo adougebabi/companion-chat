@@ -17,6 +17,7 @@ on:
       - codex/fact-only-reply-vision
       - codex/fluctlight-functional-recovery
       - codex/demo-fullsite-audit-20261028
+      - codex/fluctlight-meromero-plugin-humanization
   workflow_dispatch:
 
 permissions:
