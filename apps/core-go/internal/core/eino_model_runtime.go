@@ -443,7 +443,11 @@ func (m *queuedToolCallingChatModel) preparePhysicalInput(ctx context.Context, i
 }
 
 func (m *queuedToolCallingChatModel) finishPhysicalInput(ctx context.Context, input []*schema.Message) ([]*schema.Message, error) {
-	return cloneWireToolNames(factOnlyPhaseInput(ctx, input)), nil
+	input = cloneWireToolNames(factOnlyPhaseInput(ctx, input))
+	if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Refs != nil {
+		bridge.Refs.noteOfferedInfluenceRefs(input)
+	}
+	return input, nil
 }
 
 func (m *queuedToolCallingChatModel) enforcePhysicalInputBudget(ctx context.Context, input []*schema.Message) error {
