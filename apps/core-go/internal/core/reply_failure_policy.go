@@ -130,10 +130,14 @@ func replyFailureAllowsLegacyFallback(err error) bool {
 }
 
 // providerHTTPUpstreamRetryable is the shared HTTP classifier for one physical
-// model call. 4xx and quota/OOM bodies are terminal. 500 joins 502/503/504, and
-// a gateway get_channel_failed on any 5xx is retryable.
+// model call. Capacity failures belong to durable workflow backoff, not this
+// subsecond retry loop. Other 4xx and quota/OOM bodies remain excluded.
+// 500 joins 502/503/504, and a gateway get_channel_failed on any 5xx is retryable.
 func providerHTTPUpstreamRetryable(response *providerHTTPResponseError) bool {
 	if response == nil {
+		return false
+	}
+	if providerCapacityError(response) {
 		return false
 	}
 	detail := strings.ToLower(response.Detail)

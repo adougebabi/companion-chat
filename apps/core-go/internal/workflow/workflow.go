@@ -86,6 +86,9 @@ func workflowIntentRetryExhausted(intentType string, attemptCount int) bool {
 }
 
 func visualIdentityFailureIsTerminal(reason string) bool {
+	if core.ProviderCapacityFailure(reason) {
+		return false
+	}
 	text := strings.ToLower(reason)
 	for _, needle := range []string{
 		"insufficient_user_quota",
@@ -1500,7 +1503,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		intentID, workflowID, intentType, currentIntentStatus, payload, attemptCount := item.id, item.workflowID, item.kind, item.status, item.payload, item.attempts
 		// Dispatch starts/adopts these stable clocks. The previous terminal Run
 		// must not close a queued recovery or move its backoff deadline forward.
-		if (intentType == "world.events.generate" || intentType == "schedule.current_day" || intentType == "wardrobe.initialize" || conversationGenerationFencedIntent(intentType)) && (currentIntentStatus == "pending" || currentIntentStatus == "retry") {
+		if (intentType == "world.events.generate" || intentType == "schedule.current_day" || intentType == "wardrobe.initialize" || providerCapacityQueued(intentType, payload) || conversationGenerationFencedIntent(intentType)) && (currentIntentStatus == "pending" || currentIntentStatus == "retry") {
 			continue
 		}
 		var input Input
@@ -1701,6 +1704,23 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionFailed, "workflow_history", "retry", "workflow_history_read_failed", attemptCount, historyErr)
 				continue
 			}
+		}
+		if intentStatus == "failed" && providerCapacityIntent(intentType) && core.ProviderCapacityFailure(terminalFailure) {
+			decision := providerCapacityRetryDecision(payload, attemptCount)
+			command, err := d.App.DB.Pool().Exec(ctx, providerCapacityRetrySQL, intentID, payload, attemptCount, decision.status, decision.attempts, decision.retries, int64(decision.delay/time.Second), terminalFailure)
+			if err != nil {
+				return count, err
+			}
+			if command.RowsAffected() == 1 {
+				transition, reason := core.LifecycleTransitionRetryScheduled, "provider_capacity_transient"
+				if decision.status == "dead_letter" {
+					transition, reason = core.LifecycleTransitionFailed, "provider_capacity_wait_exhausted"
+				}
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, transition, "workflow_reconcile", decision.status, reason, decision.attempts, errors.New(terminalFailure))
+				delete(d.Started, intentID)
+				count++
+			}
+			continue
 		}
 		if intentType == "studio.generate" && intentStatus == "failed" {
 			if terminalFailure == "" && status == enumspb.WORKFLOW_EXECUTION_STATUS_TIMED_OUT {
@@ -2283,11 +2303,20 @@ func boundedTemporalFailureMessage(failure *failurepb.Failure) string {
 	// Temporal wraps Activity failures several times. The leaf is the useful
 	// application error (for example the provider/placeholder failure), while
 	// the outer message is usually only "activity task failed".
-	message := ""
+	message, capacityMessage := "", ""
 	for current := failure; current != nil; current = current.GetCause() {
 		if value := strings.TrimSpace(current.GetMessage()); value != "" {
 			message = value
+			if core.ProviderCapacityFailure(value) {
+				capacityMessage = value
+			}
 		}
+	}
+	// A provider HTTP error can unwrap to a response-body read failure. Keep
+	// the deepest capacity evidence instead of replacing it with that I/O cause,
+	// so reconciliation refunds the attempt before ordinary retry exhaustion.
+	if capacityMessage != "" {
+		message = capacityMessage
 	}
 	message = strings.Join(strings.Fields(message), " ")
 	if runes := []rune(message); len(runes) > 1024 {
@@ -2442,6 +2471,19 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			input.GenerationBound = true
 		}
 		cognitionEventType := ""
+		// Wake-up repair can reopen any dead letter. Preserve the independent
+		// capacity bound at admission as well, before contacting Temporal.
+		if providerCapacityExhausted(intentType, payload) {
+			command, err := d.App.DB.Pool().Exec(ctx, providerCapacityExhaustedSQL, intentID, payload)
+			if err != nil {
+				return count, err
+			}
+			if command.RowsAffected() == 1 {
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, "", core.LifecycleTransitionFailed, "workflow_start", "dead_letter", "provider_capacity_wait_exhausted", attemptCount, nil)
+				count++
+			}
+			continue
+		}
 		if intentType != "reflection.run" && intentType != "wake_up.current" && workflowIntentRetryExhausted(intentType, attemptCount) {
 			if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, "", attemptCount, "workflow_retry_exhausted"); exhaustErr != nil {
 				return count, exhaustErr

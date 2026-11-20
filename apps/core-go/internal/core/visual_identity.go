@@ -1179,7 +1179,7 @@ func visualIdentityJSONEmpty(raw []byte) bool {
 }
 
 func visualIdentityTerminalProviderError(err error) bool {
-	if err == nil {
+	if err == nil || providerCapacityError(err) {
 		return false
 	}
 	text := strings.ToLower(err.Error())
