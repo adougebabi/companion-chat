@@ -438,10 +438,45 @@ R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
 | Kev persona.switch | profile/rule 条件、提议、实际 Tool arguments、当前输入与语义状态 | event identity 在 Core；实际授权切换仍走工具 |
 | Kev 自动流程/媒体 gate | 当前候选流程/意图/约束/拍摄方案 | 不增加无关私聊；不改远端 API。启用的自动 WakeUp 须经 Kev 允许，拒绝、未明或服务不可用会延期并在到期后再判断；手动触发及其他 gate 保留原有语义 |
 | native_cognition 的 NPC 相遇机会判断 | Working Persona + native 生活事实/记忆 + 公开角色/已认识状态/地点/真实机会与有效时间 | `world_opportunity_cognition.go`；仅安装 world.npc.encounter，保留 exact opportunity id/revision，其余来源身份由 Core 绑定 |
-| Owner life request | 本次请求所需字段、原始意图、冻结目标与真实状态 | `_request_id`/CAS 留服务端；必要 item/intention/asset target 保留 |
+| Owner life request | 本次请求所需字段、原始意图、冻结目标与真实状态；缺少执行回执时追加 `owner_life_execution_feedback` 业务续跑反馈 | `_request_id`/CAS 留服务端；必要 item/intention/asset target 保留；续跑沿用作用域内工具与原生回执，不重复已提交动作 |
 | ADK/Writer/persona/media correction | 原任务上下文、必要真实结果和校验/质量反馈 | 保留工具隔离、原生 transcript、旧草稿 contract；不重做已提交效果 |
 | vision probe | 诊断规则、测试文字和图片 | 非业务人格任务 |
 | embedding | 文本向量输入 | 不使用 chat 运行协议；新任务冻结端点、模型和凭据引用，诊断记录实际版本而不记录密钥。旧任务无可证明快照时沿旧行为并记录诊断 |
+
+`owner_life_request_decision` 的 ADK 最终输出先检查执行回执：对有效 Owner
+请求类型，除可解析 JSON 明确为 `rejected` / `deferred` 外，若 trace 中没有
+满足该请求结算语义的有效 effect、明确 no-change 或 promise 规划待定，Core
+追加一次业务续跑；`capability.catalog` 和查看类结果不算完成请求的权威回执。
+此检查也覆盖尚未形成合法 JSON 的候选，不是 DTO 格式修复。
+
+续跑输入保留原输入与原生 transcript，并追加一条 current-input 用户消息，
+内容为 JSON；`required_capabilities` 是该请求类型的所需能力名列表，
+`instruction` 使用以下英文原文：
+
+```json
+{
+  "required_capabilities": ["该请求类型的所需能力名"],
+  "instruction": "No authoritative execution receipt fulfills this Owner request yet. If you accept, use capability.catalog to load the required capability if needed, then invoke it for the exact requested target and consume its receipt before returning accepted. Catalog and inspection alone do not fulfill the request. Do not repeat committed actions. You may instead reject or defer with an honest public reason. Return the supplied final JSON contract; never describe an uncommitted action as completed."
+}
+```
+
+该消息的 prompt slot 为 `owner_life_execution_feedback`，source 为
+`core_owner_life_execution_validation`，reason 为
+`required_execution_receipt_missing`。续跑保留同一套作用域内 catalog、invoker、
+请求策略与原生回执，带同一工具集再跑一轮 ADK，名字追加 `-owner-execution`，
+沿用相同 `MaxIterations`。指令要求精确执行请求目标、读取回执后才返回 accepted，
+不得重复已提交动作，也可改为 `rejected` / `deferred` 并给出诚实的公开理由。
+
+续跑未出错但没有最终消息，或仍未满足上述回执检查时，返回
+`owner_life_execution_missing`；DTO 格式修复后的最终输出也再检查一次。
+用户可见失败原因为“本次请求未执行成功，尚未确认实际结果。请稍后重新提出请求。”，
+替代原英文 “The request did not produce a committed result”。原有 ADK 最终输出
+校验/修复轮保持不变：格式修复仍是无工具的第二次调用，仅纠正 DTO 格式，
+不提供工具目录、不允许 ToolCall，不能重复已提交的副作用；业务续跑单独在此前处理。
+
+本项验证证据仅为 `apps/core-go/internal/core/owner_life_execution_recovery_test.go`
+中的受控/离线测试：包含模拟 Provider 的续跑、无回执失败及格式修复边界，
+另有需 PostgreSQL 的换装结算用例。它们不证明真实模型行为；本次仅同步文档，未运行测试。
 
 ## 必要标识例外
 
@@ -451,7 +486,7 @@ R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
 | --- | --- |
 | 目标评估 `goal_ref/criterion_ref/object_ref/eN` | 选择冻结对象和证据，由 Core 恢复真实 ID/version |
 | persona profile/rule selectors | 选择已声明且获授权的人格/规则 |
-| Owner 请求的 item/intention/asset IDs | 对应工具必须精确匹配用户选择的目标，不能猜测或改对象 |
+| Owner 请求的 item/intention/asset IDs | 对应工具及缺回执后的业务续跑必须精确匹配用户选择的目标，不能猜测或改对象 |
 | 初始穿搭的 registered_items.id / item_refs / wear_item_refs | 方案和当前穿戴引用唯一衣物目录，选衣结果由 Core 校验并交给真实 wardrobe.wear；不发送方案自身 ID 或库存来源流水 |
 | 日程 place_ref/place_id、新地点局部 key；事件 place_id/npc_id/target_actor_ref | 显式选择授权世界实体或冻结的实际在场角色；Core 校验/绑定后才登记、排程或执行，不能猜运行时 ID |
 | Studio body/allowed_references 中的资源 ID/version | 创作定义的合法引用词表；job 自身 id/version 不发送 |
