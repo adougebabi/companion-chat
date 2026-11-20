@@ -16,6 +16,27 @@ import (
 const OwnerLifeRequestFactType = "life.owner_request.submitted"
 const ownerLifeRequestFactType = OwnerLifeRequestFactType
 
+type ownerLifeRequestKindKey struct{}
+
+var errOwnerLifeExecutionMissing = errors.New("owner_life_execution_missing")
+
+// Receipt semantics match settlement, including explicit no-change and
+// provisional promise planning. Catalog/inspection results are insufficient.
+func ownerLifeExecutionMissing(ctx context.Context, trace *ADKCapabilityTrace, finalText string) bool {
+	kind, _ := ctx.Value(ownerLifeRequestKindKey{}).(string)
+	if !isOwnerLifeRequestKind(kind) {
+		return false
+	}
+	var decision map[string]any
+	if json.Unmarshal([]byte(finalText), &decision) == nil && (decision["decision"] == "rejected" || decision["decision"] == "deferred") {
+		return false
+	}
+	_, results := trace.Snapshot()
+	effect, _ := ownerLifeEffects(kind, results)
+	satisfied, _ := ownerLifeSatisfiedNoChange(kind, results)
+	return !effect && !satisfied && !ownerPromisePlanningPending(kind, results)
+}
+
 func isOwnerLifeRequestKind(kind string) bool {
 	switch kind {
 	case "moment_suggestion", "media_generate", "item_photo", "wardrobe_wear", "item_use", "schedule_item_suggestion", "promise", "promise_reschedule", "inventory_borrow", "inventory_return", "inventory_remove", "inventory_outfit":
@@ -374,6 +395,7 @@ func ownerLifeDecisionSchema() map[string]any {
 }
 
 func (a *App) runOwnerLifeRequestTask(ctx context.Context, owner, fid, inbox, kind string, request map[string]any) (ProjectionTaskResult, error) {
+	ctx = context.WithValue(ctx, ownerLifeRequestKindKey{}, kind)
 	registry, err := a.ownerLifeRegistry(owner, fid, kind, request)
 	if err != nil {
 		return ProjectionTaskResult{}, err
@@ -585,7 +607,7 @@ func (a *App) processOwnerLifeRequest(ctx context.Context, inbox string, fact ma
 		satisfied, noChangeRefs = ownerLifeSatisfiedNoChange(kind, results)
 		planning = ownerPromisePlanningPending(kind, results)
 	}
-	status, code, reason := "failed", "owner_life_request_not_applied", "The request did not produce a committed result"
+	status, code, reason := "failed", "owner_life_request_not_applied", ownerRequestFailureReason(errOwnerLifeExecutionMissing)
 	switch {
 	case effect:
 		status, code, reason = "completed", "", "The requested change was committed"
@@ -686,6 +708,8 @@ func ownerRequestFailureReason(err error) string {
 	}
 	text := err.Error()
 	switch {
+	case errors.Is(err, errOwnerLifeExecutionMissing):
+		return "本次请求未执行成功，尚未确认实际结果。请稍后重新提出请求。"
 	case strings.Contains(text, "524"), strings.Contains(text, "gateway_timeout"):
 		return "模型中转服务等待超时，请检查模型通道后重新提出请求。"
 	case strings.Contains(text, "budget_exceeded"):
