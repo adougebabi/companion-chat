@@ -200,7 +200,7 @@ Studio 普通助手、文字预览及角色定义准备同样在各自模型阶�
 | wake_up | 专属完整唤醒协议 + Working Persona + D/M/S + 历史资料 H + 本次唤醒事件 | H，作为历史数据 | agent_result_adapter.go；capability_prompt_policy.go |
 | takeover_judge | Judge 协议 + 本轮 user/candidate/接管规则/控制与关系事实 + 可选 recent references | 无全量 H/M | turn_takeover.go；conversation_runtime.go |
 | takeover_reply | 接管任务规则 + caller 提供的选定人格、上下文及 messages + 授权 Tools | 取决于 caller | conversation_runtime.go |
-| wardrobe_preparation | 分阶段准备/选衣规则 + 穿搭所需身份/性格/偏好 + 本地时间/当前情境/实际身体与穿戴引用 + 唯一衣物目录/方案成员引用 | 0 | wardrobe_preparation.go；wardrobe_preparation_prompt.go |
+| wardrobe_preparation | 分阶段准备/选衣规则 + 穿搭所需身份/性格/偏好 + 本地时间/当前情境/实际身体与穿戴引用 + 唯一衣物目录/方案成员引用 + 按需选衣纠错反馈 selection_feedback | 0 | wardrobe_preparation.go；wardrobe_preparation_prompt.go |
 | initialization | 初始化解析协议（显式完整姓名包含前缀/连字符，不拆为昵称） + Owner 描述一次 + 预览字段、类型、输出结构和按 schema 生成的数组路径/元素说明；自然语言分析先恢复格式错误的数组并保留原值，再校正明确姓名，JSON 导入继续使用原校验 | 0 | app.go；model_tasks.go；initialization_name.go；initialization_array_recovery.go |
 | persona_compilation | 人格编译协议 + 选定 profile 和共享身份；必要时校验反馈 | 0 | persona_compilation.go |
 | media_prompt | 媒体任务规则 + 冻结意图/主体/拍摄方案/视觉事实和目标尺寸；`media_subject_parse` 与 `media_prompt_normalized` 使用各自 JSON Schema 作为严格 Provider `response_format` 并返回结构化字段；最终渲染提示词与头像构思仍使用文本输出。头像子任务使用冻结角色设定、已确认外貌和视觉偏好，由角色自主选择包括非人物在内的主体与构图，输出英文生图提示词；重试附此前 prompt 和质量反馈 | 0 | model_tasks.go；generated_avatar.go；media_capture_plan.go；media_prompt_branches.go |
@@ -568,6 +568,19 @@ typed task 使用一次性 PostgreSQL 数据库，其余测试无需数据库；
 `full_body`。本地时钟从真实 instant/timezone 转换；月份、时区、职业及方案
 名称不能证明天气、所在场景或当前活动。
 
+选衣阶段仍要求 `items=[]`、`plans=[]`，以 `wear_item_refs` 选择已有库存；
+`wardrobe_preparation_v1` 保留四字段传输 schema 和现有模型绑定，使旧式重复
+库存输出可通过 Provider schema 校验后进入领域解析。Core 将重复 items 的
+真实库存 ID 或唯一且完全相同的 `description + clothing_type` 解析为库存引用；
+显式 wear refs 优先，仅在缺少 wear refs 时采用重复 items。非空 plans、
+模糊或歧义匹配仍拒绝，不新增或修改库存，来源、可用性、所有权、主体覆盖、
+当前情境版本及独立 `wardrobe.wear` 校验保持原契约。
+
+选衣任务 JSON 按需增加 `selection_feedback`，提供上一候选的具体领域校验
+错误及 `selectable_item_refs`。反馈只读取本次冻结库存和已保存候选，不追加
+历史、运行元数据或重复库存详情；生成阶段不带此字段。输入仍为一条运行
+协议和一份任务 JSON，不新增输入输出 token 上限。
+
 输入按任务字段白名单构造。衣物详情只发送一次，方案与当前穿戴仅引用成员；
 失效/缺失方案成员显式保留为不可用引用，目录外当前穿戴不能变成可选库存。
 Core 保留库存/人格/Life 版本、来源流水和运行身份，不把完整数据库行发给模型。
@@ -582,6 +595,11 @@ Core 保留库存/人格/Life 版本、来源流水和运行身份，不把完�
 `GO_CORE_WARDROBE_PROMPT_CAPTURE` 可显式指定本地私人 request/response 文本，
 重建消息并比较字符数、核验原选择的主体覆盖；不入库、不调用模型，不能据此
 宣称真实模型选择质量、token 数或延迟已验证。
+
+`TestWardrobeSelectionRepeatedInventoryControlledProvider` 和
+`TestWardrobeSelectionFeedbackControlledProvider` 覆盖无数据库的受控 HTTP 请求；
+`TestWardrobeSelectionRepeatedInventoryCompletesRealWear` 需要隔离 PostgreSQL，
+覆盖实际初始化、库存提交、独立穿戴与重放。这些测试不代表真实模型语义质量验收。
 
 ## R9 传输与工具进度补充
 

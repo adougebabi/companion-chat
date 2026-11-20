@@ -14,10 +14,10 @@ Owner 已授权在没有完整可用搭配时补齐适量、符合人格的虚�
 新增 items 最多 16 件，每件恰好包含 key、description、clothing_type、seasons。key 为本次唯一局部引用，不得伪造运行时 id；description 为具体中文描述；clothing_type 只能是 outer、upper_body、underwear、panties、lower_body、socks、shoes、accessory；seasons 使用 spring、summer、autumn、winter，未知为 []。未知性别、尺码和身体测量不是授权初始库存的前置条件，不得编造这些个人属性或衣物尺寸。
 生成 1–4 套实用且主体覆盖完整的 plans，每套恰好包含 name、tags、item_refs；tags 为一个或多个情境标签，item_refs 使用已有真实衣物 id 或本次新增 key。跨方案复用衣物，避免重复创建。`
 
-const wardrobePreparationSelectInstruction = `本阶段 select_only=true，只选择初始穿搭，不创建衣物或方案，items 和 plans 必须为 []。
+const wardrobePreparationSelectInstruction = `本阶段 select_only=true，只选择初始穿搭，不创建衣物或方案，items 和 plans 必须为 []。若提供 selection_feedback，它是上一候选相对于当前选衣阶段的校验反馈；按 error 修正，selectable_item_refs 是当前可选库存 id，不得再次将库存复制为新建 items。
 从合适的已保存方案或可用已登记衣物中组合一套完整搭配，将所有选中衣物的真实 id 写入 wear_item_refs，最多 16 件。返回前逐项核对可用性和完整主体覆盖；不可遗漏作为内搭的 upper_body 而只选 outer。保留仍适合且可用的当前穿戴，包含需要保留的配饰；当前搭配已合适时沿用，不做无故更换。不要因为某套方案的标签或名称就假定当下活动。`
 
-func wardrobePreparationMessages(foundation, sections, life map[string]any, items, plans []map[string]any, selectOnly bool) []map[string]any {
+func wardrobePreparationMessages(foundation, sections, life map[string]any, items, plans []map[string]any, selectOnly bool, previous ...map[string]any) []map[string]any {
 	catalog := make([]map[string]any, 0, len(items))
 	registered := make(map[string]bool, len(items))
 	for _, item := range items {
@@ -56,6 +56,17 @@ func wardrobePreparationMessages(foundation, sections, life map[string]any, item
 		planViews = append(planViews, view)
 	}
 	input := map[string]any{"select_only": selectOnly, "persona": wardrobePersonaPromptView(foundation, sections), "current_life": wardrobeLifePromptView(life), "current_appearance": current, "registered_items": catalog, "plans": planViews}
+	if selectOnly && len(previous) > 0 && len(previous[0]) > 0 {
+		if _, err := wardrobeSelectionItemIDs(previous[0], items); err != nil {
+			selectable := []string{}
+			for _, item := range items {
+				if item["source_verified"] == true && item["availability"] == "available" && (item["ownership"] == "owned" || item["ownership"] == "borrowed") {
+					selectable = append(selectable, stringValue(item["id"]))
+				}
+			}
+			input["selection_feedback"] = map[string]any{"error": err.Error(), "selectable_item_refs": selectable}
+		}
+	}
 	instruction := wardrobePreparationSelectInstruction
 	if !selectOnly {
 		instruction = wardrobePreparationGenerateInstruction
