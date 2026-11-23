@@ -530,6 +530,17 @@
 .replica-diary .lp-diary-date[data-slot="button"]{height:auto;white-space:normal;grid-template-columns:minmax(0,1fr);justify-content:stretch;justify-items:start;font-weight:400}
 .replica-diary .lp-diary-date>span{width:100%;min-width:0}
 .replica-diary .lp-diary-index{min-width:0}
+@media(min-width:601px){
+  /* Keep the directory below the shared sticky heading; long lists scroll locally. */
+  .replica-diary .lp-diary-index{
+    position:sticky;
+    align-self:start;
+    top:96px;
+    max-height:calc(100dvh - 62px - 96px - var(--replica-page-top,32px) - var(--replica-page-bottom,48px));
+    overflow-y:auto;
+    overscroll-behavior-y:contain;
+  }
+}
 .replica-diary .lp-paper{min-width:0}
 .replica-diary .lp-paper-body,.replica-diary .lp-annotation p{overflow-wrap:anywhere;white-space:pre-wrap}
 .replica-diary .lp-paper-footer{display:grid;gap:18px}
