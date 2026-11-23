@@ -1,14 +1,16 @@
 import {InstantLabel} from '../v3/proto/components/instant-label.js';
 import {renderRealDiagnosticHome} from './diagnostics.js';
-import {operationsClient} from '../v3/proto/services.js';
+import {inventoryClient,operationsClient} from '../v3/proto/services.js';
 import * as store from '../v3/proto/store.js';
 import {asyncPage,instant} from '../v3/proto/components/async-page.js';
 import {CursorPager,bindCursorPager} from '../v3/proto/components/cursor-pager.js';
 import {mountPendingGroups} from '../v3/proto/components/pending-groups.js';
-import {JsonDetails} from '../v3/proto/components/records.js';
+import {JsonDetails,RawRecordDownload} from '../v3/proto/components/records.js';
 import {Tabs} from '../v3/proto/components/forms.js';
 import {domainName,stateLabel,errorMessage} from '../v3/domain-presentation.mjs';
-import {requestDecisionText,RequestFailureLink,RequestDecisionSource} from '../v3/proto/components/request-failure.js';
+import {requestDecisionText,RequestFailureLink} from '../v3/proto/components/request-failure.js';
+import {isInternalId} from '../v3/internal-id.mjs';
+import {userInstant} from '../v3/presentation-time.mjs';
 import {esc,badge,confirm} from '../v3/proto/ui.js';
 
 const taskLink=id=>`#/diag/task/${encodeURIComponent(id)}`;
@@ -34,9 +36,115 @@ export function renderRealPending(el,ctx){
   el.innerHTML=`<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/inbox">返回收件箱</a><p class="small muted">待处理事项来自各领域的实际状态。处理后会从对应来源消失；单一来源失败分别显示。</p><div class="row"><a data-domain-ui="button" data-domain-variant="${!fid?'default':'outline'}" data-domain-size="default" ${!fid?'aria-current="page"':''} href="#/diag/pending">所有角色</a>${store.list('characters').map(c=>`<a data-domain-ui="button" data-domain-variant="${fid===c.id?'default':'outline'}" data-domain-size="default" ${fid===c.id?'aria-current="page"':''} href="#/diag/pending?charId=${encodeURIComponent(c.id)}">${esc(c.name)}</a>`).join('')}<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-reload>重新读取</button></div><div class="stack" data-pending></div>`;
   const pending=mountPendingGroups(el.querySelector('[data-pending]'),{fid});el.querySelector('[data-reload]').onclick=()=>pending.reload();return()=>pending.dispose();
 }
+
+const requestKinds = new Map([
+  ['reflection_feedback','反思反馈'], ['diary_reply','日记回复'],
+  ['memory_suggestion','记忆建议'],
+]);
+const settledRequests = new Set(['completed','failed','rejected','cancelled']);
+const requestObjectReaders = new Map([
+  ['wardrobe_wear','read'], ['item_use','read'], ['item_photo','read'], ['inventory_outfit','outfit'],
+]);
+const inventoryActionKinds = new Set(['inventory_borrow','inventory_return','inventory_remove','inventory_outfit']);
+const inventoryResultLabels = new Map([
+  ['wardrobe.wear','换装后'], ['wardrobe.borrow','已借入'], ['wardrobe.return','已归还'],
+]);
+const technicalRequestText = /\b(?:\w*(?:Error|Exception)|[a-z\d]+(?:_[a-z\d]+)+|idempotency|correlation|metrics|revision|v\d+(?:\.\d+)*|[\w.-]+\.(?:internal|local)|localhost|\d{1,3}(?:\.\d{1,3}){3})\b|\b(?:stack|traceback)\s*[:：]|\b[a-z][a-z\d+.-]*:\/\/|\b[\w.-]+:\d{2,5}\b|(?:^|\n)\s*at\s+/i;
+
+function requestDetailText(value) {
+  if (typeof value !== 'string') return '';
+  const text = value.trim();
+  return isInternalId(text) || technicalRequestText.test(text) ? '' : text;
+}
+
+function requestDetailDecision(request) {
+  const reason = requestDecisionText(request);
+  const readableReason = requestDetailText(reason);
+  if (readableReason) return readableReason;
+  if (request.status !== 'failed') return '';
+  const code = request.result?.error_code;
+  return errorMessage({code},requestDecisionText({status:'failed',result:{error_code:code}}));
+}
+
+function requestDetailFact(label,value) {
+  return value ? `<p><b>${label}</b> ${esc(value)}</p>` : '';
+}
+
+function requestDetailTime(value) {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value)) ? userInstant(value) : '';
+}
+
+function requestItemNames(items) {
+  return Array.isArray(items) ? items.map(item=>requestDetailText(item?.description)).filter(Boolean).join('、') : '';
+}
+
+function requestInventoryResults(effects) {
+  if (!Array.isArray(effects)) return '';
+  return effects.map(effect=>{
+    const label = inventoryResultLabels.get(effect?.capability_name);
+    if (!label || effect.status !== 'completed') return '';
+    const {before_items,items} = effect.output || {};
+    const before = label === '换装后' ? requestDetailFact('换装前',requestItemNames(before_items)) : '';
+    return before + requestDetailFact(label,requestItemNames(items));
+  }).join('');
+}
+
+async function fillRequestObject(el,request,alive) {
+  const read = requestObjectReaders.get(request.kind);
+  const payload = request.payload;
+  const id = read === 'outfit' ? payload?.outfit_id : payload?.item_id;
+  if (!read || !id || !request.fluctlight_id) return;
+  let item;
+  try {
+    item = await inventoryClient[read](request.fluctlight_id,id);
+  } catch {
+    return;
+  }
+  if (!alive()) return;
+  const name = [item?.name,item?.description].map(requestDetailText).find(value=>value && value !== id);
+  el.querySelector('[data-request-object]').innerHTML = requestDetailFact('对象',name);
+}
+
 export function renderRealRequest(el,ctx){
-  return asyncPage(el,()=>operationsClient.request(ctx.params.requestId),(request,reload)=>{
-    el.innerHTML=`<div data-domain-ui="card" class="card"><div class="row"><h2 class="grow">${esc(domainName(request.kind,'行动请求'))} ${badge(stateLabel(request.status))}</h2><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-reload>重新查询</button></div><p>${esc(requestDecisionText(request)||'尚无处理结论')}</p><p class="small muted">${esc(request.id)} · ${esc(instant(request.created_at))} · v${esc(request.revision)}</p>${requestTaskLinks(request)}${RequestFailureLink(request)}${RequestDecisionSource(request)}${JsonDetails(request.payload,'请求原始内容')}${JsonDetails(request.result||{status:request.status},'实际结果')}${JsonDetails(request.result_refs,'结果与事实来源')}<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/inbox">返回收件箱</a><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/diag/pending">全部待处理</a>${request.fluctlight_id?`<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${encodeURIComponent(request.fluctlight_id)}/life/now">角色此刻</a>`:''}</div>`;el.querySelector('[data-reload]').onclick=reload;
+  return asyncPage(el,()=>operationsClient.request(ctx.params.requestId),(request,reload,alive)=>{
+    const {payload = {}, result = {}} = request;
+    const kind = requestKinds.get(request.kind) || domainName(request.kind,'行动请求');
+    const status = request.status === 'awaiting_goal' ? '等待关联目标' : stateLabel(request.status);
+    const object = [payload?.target_name,payload?.item_name,payload?.outfit_name,payload?.name,
+      result?.target_name,result?.item_name,result?.outfit_name,payload?.activity,
+      requestItemNames(payload?.items),
+      inventoryActionKinds.has(request.kind) ? '' : payload?.title,
+    ].map(requestDetailText).find(value=>value && value !== request.id && value !== payload?.item_id && value !== payload?.outfit_id);
+    const submittedAt = requestDetailTime(request.created_at);
+    const completedAt = requestDetailTime(request.completed_at) ||
+      (settledRequests.has(request.status) ? requestDetailTime(request.updated_at) : '');
+    const outcome = requestDetailDecision(request);
+    const summary = requestDetailText(result?.summary);
+    el.innerHTML = `
+      <section data-domain-ui="card" class="card">
+        <div class="row">
+          <h2 class="grow">${esc(requestDetailText(kind) || '行动请求')} ${badge(requestDetailText(status) || '状态待确认')}</h2>
+          <button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-reload>重新查询</button>
+        </div>
+        <div data-request-object>${requestDetailFact('对象',object)}</div>
+        ${requestDetailFact('提交内容',requestDetailText(payload?.text || payload?.prompt))}
+        ${requestDetailFact('提交理由',requestDetailText(payload?.reason))}
+        ${requestDetailFact('提交时间',submittedAt)}
+        ${requestDetailFact('完成时间',completedAt)}
+        ${requestDetailFact(request.status === 'failed' ? '失败原因' : '处理结论',outcome)}
+        ${summary !== outcome && request.status !== 'failed' ? requestDetailFact('实际结果',summary) : ''}
+        ${requestInventoryResults(result?.effects)}
+        ${requestTaskLinks(request)}
+        ${RequestFailureLink(request)}
+        <div class="row">
+          ${RawRecordDownload(request,'原始请求记录（诊断）')}
+          <a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/inbox">返回收件箱</a>
+          <a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/diag/pending">全部待处理</a>
+          ${request.fluctlight_id ? `<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${encodeURIComponent(request.fluctlight_id)}/life/now">角色此刻</a>` : ''}
+        </div>
+      </section>`;
+    el.querySelector('[data-reload]').onclick = reload;
+    if (!object) void fillRequestObject(el,request,alive);
   });
 }
 export function renderRealTask(el,ctx){

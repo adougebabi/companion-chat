@@ -4,7 +4,8 @@ import {readFileSync} from 'node:fs';
 import {requestDecisionText,RequestDecisionSource,RequestFailureLink} from '../src/v3/proto/components/request-failure.js';
 import {esc,badge} from '../src/v3/proto/components/controls.js';
 import {Tabs} from '../src/v3/proto/components/forms.js';
-import {JsonDetails} from '../src/v3/proto/components/records.js';
+import {JsonDetails,RawRecordDownload} from '../src/v3/proto/components/records.js';
+import {isInternalId} from '../src/v3/internal-id.mjs';
 import {userInstant} from '../src/v3/presentation-time.mjs';
 import {stateLabel,domainName} from '../src/v3/domain-presentation.mjs';
 
@@ -80,8 +81,14 @@ test('terminal request receipt keeps original identity and exposes raw diagnosti
 
 test('request detail keeps its complete original record after shared localization',async()=>{
  const el=element();
- const {renderRealRequest}=load('../../v3-domain/operations.js',['renderRealRequest'],{stateLabel,domainName,operationsClient:{request:async()=>failed},asyncPage:async(_el,read,paint)=>paint(await read(),()=>{})});
- await renderRealRequest(el,{params:{requestId:failed.id}});checkDecision(el.innerHTML);
+ const {renderRealRequest}=load('../../v3-domain/operations.js',['renderRealRequest'],{stateLabel,domainName,RawRecordDownload,isInternalId,operationsClient:{request:async()=>failed},asyncPage:async(_el,read,paint)=>paint(await read(),()=>{})});
+ await renderRealRequest(el,{params:{requestId:failed.id}});
+ assert.match(el.innerHTML,/没有可确认的已提交结果/);
+ assert.doesNotMatch(el.innerHTML.replace(/<a [^>]*download=[^>]*>/g,''),/failed|The request|2026-10-20T15:01:58/);
+ assert.doesNotMatch(el.innerHTML,/<details\b/);
+ const raw = el.innerHTML.match(/download="fluctlight-record\.json" href="data:application\/json;charset=utf-8,([^"]+)">原始请求记录（诊断）<\/a>/);
+ assert.ok(raw);
+ assert.deepEqual(JSON.parse(decodeURIComponent(raw[1].replaceAll('&#39;',"'"))),failed);
  assert.match(ordinary(el.innerHTML),/2026-10-20 23:01 \(北京时间\)/);
 });
 
