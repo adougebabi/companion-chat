@@ -211,12 +211,18 @@ export default function WorkspaceCommandDialog({
             </form>
           )}
           {state.pending && (
-            <JsonDetails value={state.pending.value} title="原提交内容" />
+            action.pendingSummary ? <>
+              {action.pendingSummary(state.pending.value)}
+              <JsonDetails value={state.pending.value} title="原始提交内容（诊断）" downloadOnly />
+            </> : <JsonDetails value={state.pending.value} title="原提交内容" />
           )}
           {state.review && (
             <section className="lp-stack">
-              <h3 ref={reviewHeading} tabIndex={-1}>核对最新对象与版本</h3>
-              <JsonDetails value={state.review.object} title="最新对象与来源" />
+              <h3 ref={reviewHeading} tabIndex={-1}>{action.reviewSummary ? "核对最新资料" : "核对最新对象与版本"}</h3>
+              {action.reviewSummary ? <>
+                {action.reviewSummary(state.review.object)}
+                <JsonDetails value={state.review.object} title="最新记录与来源（诊断）" downloadOnly />
+              </> : <JsonDetails value={state.review.object} title="最新对象与来源" />}
               <Button
                 disabled={state.busy}
                 onClick={() => model.confirmLatest()}
