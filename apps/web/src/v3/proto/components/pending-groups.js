@@ -18,7 +18,7 @@ function renderPendingItem(item,kind) {
   const role = name && name !== item.fluctlight_id && !isInternalId(name) ? `角色：${esc(name)}` : '';
   const time = typeof item.created_at === 'string' && Number.isFinite(Date.parse(item.created_at))
     ? `<time>${esc(userInstant(item.created_at))}</time>` : '';
-  const summary = [source && `来源：${esc(source)}`,role,time].filter(Boolean).join(' · ');
+  const summary = [source && `来源：${esc(source)}`,item.fluctlight_id ? role : '系统任务',time].filter(Boolean).join(' · ');
   const href = item.href?.trim() ? esc(item.href) : '';
   const title = item.title ? `<b>${esc(pendingTitle(item.title))}</b>` : '';
 

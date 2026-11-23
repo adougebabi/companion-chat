@@ -75,16 +75,17 @@ test('完整待处理显示中文来源、角色和北京时间，诊断下载�
   assertDownload(row, item);
 });
 
-test('完整待处理省略空值和未解析的角色，仍下载完整诊断记录', async t => {
+test('完整待处理标记系统任务并省略未解析的角色，仍下载完整诊断记录', async t => {
   const empty = {title: '手动确认', fluctlight_id: '', created_at: null, href: '', status: ''};
   const unresolved = {...empty, fluctlight_id: 'fluctlight_missing', created_at: 'invalid-time'};
   const host = await mount(t, [{kind: 'capability', status: 'ok', count: 2, items: [empty, unresolved]}], {});
   const rows = [...host.querySelectorAll('.pending-item')];
   assert.equal(rows.length, 2);
   for (const [index, row] of rows.entries()) {
-    assert.equal(row.querySelector('.small.muted').textContent, '来源：能力请求');
+    assert.equal(row.querySelector('.small.muted').textContent, index === 0 ? '来源：能力请求 · 系统任务' : '来源：能力请求');
     assert.equal(row.querySelector('a:not([download]), time, .pending-state'), null);
-    assert.doesNotMatch(row.textContent, /角色|fluctlight_|invalid-time|打开来源|系统任务|尚未记录|时间未知|状态待确认/);
+    assert.doesNotMatch(row.textContent, /角色|fluctlight_|invalid-time|打开来源|尚未记录|时间未知|状态待确认/);
+    assert.equal(row.textContent.split('系统任务').length - 1, index === 0 ? 1 : 0);
     assertDownload(row, [empty, unresolved][index]);
   }
 });
