@@ -32,8 +32,8 @@ function assertBusinessView(root) {
   assert.equal(root.querySelector('pre'), null);
 }
 
-async function assertDownload(view, root, expected) {
-  const trigger = button(root, diagnosticTitle);
+async function assertDownload(view, root, expected, title = diagnosticTitle) {
+  const trigger = button(root, title);
   assert.ok(trigger, '显示诊断下载入口');
   await view.click(trigger);
   const download = button(trigger.closest('.product-disclosure'), '下载原始记录');
@@ -125,7 +125,7 @@ test('已保存视觉定义保留业务说明和来源跳转，定义及评审�
   const source = [...view.host.querySelectorAll('a')].find(node => node.textContent === '查看定义来源');
   assert.equal(source?.getAttribute('href'), '#/studio/edit/res_visual_style');
   await assertDownload(view, source.closest('.panel'), state.brief);
-  await assertDownload(view, view.host.querySelector('.r-timeline-entry'), timeline);
+  await assertDownload(view, view.host.querySelector('.r-timeline-entry'), timeline, '原始事件记录（诊断）');
   await view.click(button(view.host, '生成新候选'));
   const dialog = document.querySelector('[role=dialog]');
   assert.match(dialog.textContent, /本次使用已保存的视觉定义/);

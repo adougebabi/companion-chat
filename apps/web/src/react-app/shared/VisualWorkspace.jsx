@@ -38,12 +38,35 @@ const reviewSources = {
   legacy_unknown: "早期评审来源待确认",
 };
 
+const timelineEventTitles = new Map([
+  ["candidate_created", "已创建候选形象"],
+  ["candidate_accepted", "已接受候选形象"],
+  ["candidate_rejected", "候选形象未通过评审"],
+  ["candidate_media_ready", "候选形象图片已生成"],
+  ["candidate_media_failed", "候选形象图片生成失败"],
+  ["character_sheet_media_failed", "角色设定图生成失败"],
+]);
+const snakeCaseCode = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/i;
+
 function timelineText(value) {
   if (typeof value !== "string") return "";
   return value.replace(/Visual Identity/g, "形象准备")
-    .replace(/\b[a-z0-9_-]+\b/gi, token => isInternalId(token) || /^v\d+$/i.test(token) ? "…" : token)
+    .replace(/\b[a-z0-9_-]+\b/gi, token => snakeCaseCode.test(token) || isInternalId(token) || /^v\d+$/i.test(token) ? "…" : token)
     .trim();
 }
+
+function timelineEventReading(row) {
+  const summary = typeof row.summary === "string" ? row.summary.trim() : "";
+  const codeInSummary = snakeCaseCode.test(summary);
+  const eventCode = row.event_type || row.kind || (codeInSummary ? summary : "");
+  const reading = codeInSummary ? "" : timelineText(summary);
+  if (!eventCode) return { title: reading || visualStageLabel(row.stage, "视觉记录") };
+  return {
+    title: timelineEventTitles.get(String(eventCode).replace(/^visual_identity_/, "")) ?? "视觉身份有新的变化",
+    summary: reading,
+  };
+}
+
 function VisualBriefRevision({ row }) {
   const fields = briefFields.flatMap(([key, label]) => {
     const before = profileText(row.before_value?.[key]);
@@ -1030,25 +1053,29 @@ export default function VisualWorkspace({ model: m }) {
         <Surface className="panel r-padded">
           <h2 className="r-inline-title">候选与评审记录</h2>
           <MediaReader source={timeline} label="视觉记录" />
-          {timeline.items.map((row, index) => (
-            <div className="r-timeline-entry" key={row.id || index}>
-              <b>{timelineText(row.summary) || visualStageLabel(row.stage, "视觉记录")}</b>
-              {row.occurred_at && <small>{userInstant(row.occurred_at)}</small>}
-              {row.review?.summary && <p>{timelineText(row.review.summary)}</p>}
-              <VisualReviewReading value={row.review} title="评审意见" />
-              {row.review?.source && <p>{Object.hasOwn(reviewSources, row.review.source) ? reviewSources[row.review.source] : "评审来源待确认"}</p>}
-              {(row.asset_ids || []).map((id) => (
-                <Button
-                  key={id}
-                  variant="ghost"
-                  onClick={(e) => m.openAsset(id, e.currentTarget)}
-                >
-                  查看当时的图片
-                </Button>
-              ))}
-              <JsonDetails title="原始媒体记录（诊断）" value={row} downloadOnly />
-            </div>
-          ))}
+          {timeline.items.map((row, index) => {
+            const { title, summary } = timelineEventReading(row);
+            return (
+              <div className="r-timeline-entry" key={row.id || index}>
+                <b>{title}</b>
+                {row.occurred_at && <small>{userInstant(row.occurred_at)}</small>}
+                {summary && <p>{summary}</p>}
+                {row.review?.summary && <p>{timelineText(row.review.summary)}</p>}
+                <VisualReviewReading value={row.review} title="评审意见" />
+                {row.review?.source && <p>{Object.hasOwn(reviewSources, row.review.source) ? reviewSources[row.review.source] : "评审来源待确认"}</p>}
+                {(row.asset_ids || []).map((id) => (
+                  <Button
+                    key={id}
+                    variant="ghost"
+                    onClick={(e) => m.openAsset(id, e.currentTarget)}
+                  >
+                    查看当时的图片
+                  </Button>
+                ))}
+                <JsonDetails title="原始事件记录（诊断）" value={row} downloadOnly />
+              </div>
+            );
+          })}
           {timeline.ready && !timeline.items.length && (
             <p>尚无视觉生成与评审记录。</p>
           )}
