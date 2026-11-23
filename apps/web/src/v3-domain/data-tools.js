@@ -2,6 +2,7 @@ import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {managementCategories,managementCategoryHref} from '../approved-ui/management-navigation.mjs';
 import {errorMessage} from '../v3/domain-presentation.mjs';
+import {isInternalId} from '../v3/internal-id.mjs';
 import {ManagementNavigation} from '../v3/proto/components/configuration-summary.js';
 import {InstantLabel} from '../v3/proto/components/instant-label.js';
 import {mountBusinessBackups} from '../v3/proto/components/business-backups.js';
@@ -9,14 +10,14 @@ import {dataToolsClient} from '../v3/proto/services.js';
 import {get,list} from '../v3/proto/store.js';
 import {esc,badge} from '../v3/proto/ui.js';
 import {Field} from '../v3/proto/components/forms.js';
-import {JsonDetails} from '../v3/proto/components/records.js';
+import {JsonDetails,RawRecordDownload} from '../v3/proto/components/records.js';
 import {asyncPage,instant} from '../v3/proto/components/async-page.js';
 import {mountCursorRecords} from '../v3/proto/components/cursor-records.js';
 import {durableCommandDrawer} from '../v3/proto/components/durable-command-drawer.js';
 import {studioDraftStorage} from '../v3/proto/components/studio-draft-storage.js';
 
 const navigationIcon=icon=>renderToStaticMarkup(createElement(icon,{size:16,'aria-hidden':true}));
-const kinds={place:'地点字段',memory:'记忆',relationship:'关系',resource:'创作定义',npc_definition:'NPC 定义',self:'自我认识'};
+const kinds={place:'地点字段',memory:'记忆',relationship:'关系',resource:'创作定义',npc_definition:'人物定义',self:'自我认识'};
 const packEntryLink=r=>`#/studio/${r.kind==='npc'?'npc':'edit'}/${encodeURIComponent(r.resource_id)}`;
 function PackValidation(value){return `<p>${value.entries.length} 项设定已通过校验</p><p>将创建新的创作草稿，不会自动发布或应用到角色。</p>${JsonDetails(value,'完整校验记录')}${JsonDetails(value.entries,'待导入定义与来源版本')}${JsonDetails(value.publish_order,'需要时按此顺序发布依赖与套装')}${value.external_bindings.length?`<p data-domain-ui="alert" class="banner warn">${value.external_bindings.length} 处运行地点或 NPC 引用需要按目标世界重新核对；校验结构不代表运行绑定可用。</p>${JsonDetails(value.external_bindings,'待核对的运行引用')}`:''}`;}
 export function renderRealData(el,ctx){
@@ -40,9 +41,23 @@ export function renderRealPack(el,ctx){return asyncPage(el,()=>dataToolsClient.p
  el.innerHTML=`<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/data">返回数据工具</a><div data-domain-ui="card" class="card stack"><div class="row"><h2 class="grow">已导入的定义草稿 ${badge('尚未发布')}</h2><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-refresh>重新读取</button></div><p>包 ${esc(pack.id)} · ${esc(pack.digest)} · ${esc(instant(pack.created_at))}</p><p>先发布独立依赖，再发布引用它们的定义。运行世界引用请在对应编辑器重新核对；定义不代表已应用或已结识。</p>${pack.resource_versions.map(row=>`<a data-domain-ui="item" class="lrow" href="${packEntryLink(row)}"><span class="grow"><b>${esc(row.name)}</b><p class="small muted">${esc(row.entry_key)} → ${esc(row.resource_id)} v${esc(row.version)}</p></span>${badge('独立草稿')}</a>`).join('')||'<p>此包没有资源定义，分组与偏好建议仍保留在下方。</p>'}${JsonDetails(pack.publish_order,'原包的依赖发布顺序')}${JsonDetails(pack.external_bindings,'需按目标世界重新核对的引用')}</div><div class="grid g2"><div data-domain-ui="card" class="card stack"><h3>分组建议草稿</h3><p>明确采用后创建缺失的分组；已有同名分组会复用，不移动任何角色。</p>${pack.groups.map((group,index)=>`<div data-domain-ui="item" class="lrow"><span class="grow">${esc(group.name)}${pack.adopted_groups?.[index]?` · 已采用 ${esc(pack.adopted_groups[index].name)}`:''}</span><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-group="${index}" ${pack.adopted_groups?.[index]?'disabled':''}>核对并采用</button></div>`).join('')||'<p>没有分组建议</p>'}<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/library">角色库分组</a></div><div data-domain-ui="card" class="card stack"><h3>通知偏好建议草稿</h3>${JsonDetails(pack.preferences,'包内公开偏好')}${pack.preferences['product.notifications']?`<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/settings/notifications?pack=${encodeURIComponent(pack.id)}">到设置核对并采用为草稿</a>`:'<p>包内没有已保存通知偏好；没有填入默认值。</p>'}<p>采用到草稿后仍须在当前设置版本上明确保存。</p></div></div>`;
  el.querySelector('[data-refresh]').onclick=reload;el.querySelectorAll('[data-group]').forEach(button=>button.onclick=()=>{const index=Number(button.dataset.group);durableCommandDrawer({slot:`pack-group:${pack.id}:${index}`,title:'采用分组名称建议',body:`${Field({label:'分组名称',name:'name',value:pack.groups[index].name,attrs:{required:true,maxlength:128}})}${Field({label:'采用理由',name:'reason',type:'textarea',attrs:{required:true,maxlength:1000}})}`,read:box=>({name:box.querySelector('[name=name]').value,expectedRevision:pack.revision,reason:box.querySelector('[name=reason]').value}),execute:(body,key)=>dataToolsClient.adoptGroup(pack.id,index,{...body,idempotencyKey:key}),onSaved:async()=>{await dataToolsClient.refresh();if(alive())await reload();}});});
  });}
+function ObjectRevisionRow(row) {
+ const kind=Object.hasOwn(kinds,row.kind)?kinds[row.kind]:'对象';
+ const title=row.title?.trim();
+ const name=title&&title!==row.id&&title!==row.fluctlight_id&&!isInternalId(title)?title:`未命名的${kind}`;
+ const updated=typeof row.updated_at==='string'&&Number.isFinite(Date.parse(row.updated_at));
+ return `<article data-domain-ui="card" class="card flex flex-col items-start gap-2 text-left">
+  <a class="block w-full [overflow-wrap:anywhere]" href="#${esc(row.href)}">
+   <b>${esc(name)}</b>
+   <p class="small muted">${esc(kind)}${updated?` · 最近更新 ${InstantLabel(row.updated_at)}`:''}</p>
+   ${Number.isInteger(row.history_count)?`<p class="small muted">${row.history_count} 条保留历史</p>`:''}
+  </a>
+  ${RawRecordDownload(row,'原始修订记录（诊断）')}
+ </article>`;
+}
 export function renderRealRevisions(el,ctx){
  let active=true;const owner=get('session')?.actorId,alive=()=>active&&el.isConnected&&get('session')?.actorId===owner;let filters=Object.fromEntries(['kind','fluctlightId','objectId','q'].filter(k=>ctx.query[k]).map(k=>[k,ctx.query[k]]));
  el.innerHTML=`<div class="stack"><div><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/data">返回数据工具</a></div><form data-domain-ui="card" class="card stack" data-filter><p>对象保留各自历史。进入对应领域查询完整修订与受控恢复，保留生活事实和来源。</p><div class="grid g2">${Field({label:'对象类型',name:'kind',value:filters.kind||'',type:'select',options:[{value:'',label:'全部'},...Object.entries(kinds).map(([value,label])=>({value,label}))]})}${Field({label:'角色范围',name:'fluctlightId',value:filters.fluctlightId||'',type:'select',options:[{value:'',label:'全部'},...list('characters').map(c=>({value:c.id,label:c.name}))]})}${Field({label:'精确对象 ID',name:'objectId',value:filters.objectId||''})}${Field({label:'标题搜索',name:'q',value:filters.q||''})}</div><div class="row"><button data-domain-ui="button" data-domain-variant="default" data-domain-size="default">查询</button></div><p class="small muted">对象与保留修订按最近修改或记录排序；并发修改后可刷新重查。没有匹配不代表审计或业务从未发生，原审计保留其记录身份。</p></form><div class="stack" data-records></div></div>`;
- const panel=mountCursorRecords(el.querySelector('[data-records]'),{alive,label:'真实对象',read:cursor=>dataToolsClient.revisions({...filters,cursor}),render:row=>`<a data-domain-ui="card" class="card row" href="#${esc(row.href)}"><span class="grow"><b>${esc(row.title||row.id)}</b><p class="small muted">${esc(kinds[row.kind]||row.kind)} · ${esc(row.id)} · ${InstantLabel(row.updated_at)}</p></span><span>v${esc(row.revision)} · ${esc(row.history_count)} 条保留历史</span></a>`,empty:'当前筛选没有可识别的对象。可清除精确ID或选择其他范围；从原业务页仍可查看各自历史。'});el.querySelector('[data-filter]').onsubmit=e=>{e.preventDefault();filters=Object.fromEntries([...new FormData(e.target)].filter(([,v])=>String(v).trim()).map(([k,v])=>[k,String(v).trim()]));void panel.reload({reset:true});};return()=>{active=false;panel.dispose();};
+ const panel=mountCursorRecords(el.querySelector('[data-records]'),{alive,label:'真实对象',read:cursor=>dataToolsClient.revisions({...filters,cursor}),render:ObjectRevisionRow,empty:'当前筛选没有可识别的对象。可清除精确ID或选择其他范围；从原业务页仍可查看各自历史。'});el.querySelector('[data-filter]').onsubmit=e=>{e.preventDefault();filters=Object.fromEntries([...new FormData(e.target)].filter(([,v])=>String(v).trim()).map(([k,v])=>[k,String(v).trim()]));void panel.reload({reset:true});};return()=>{active=false;panel.dispose();};
 }
 export function renderRealRollback(el){el.innerHTML='<div data-domain-ui="card" class="card stack"><h2>角色时间线回档</h2><p>暂不支持将角色的整个运行世界退回过去，也不会删除后续聊天、记忆和事件。</p><p>单个对象通过原领域追加修订并保留历史。业务备份用于故障副本和隔离恢复，不作为角色回档操作。</p><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/data/revisions">真实对象修订</a><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/data">数据工具</a></div>';}
