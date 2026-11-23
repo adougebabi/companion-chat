@@ -127,12 +127,18 @@ test('关于你摘要：空值无占位，保留 false、0 和用户正文，不
   assert.doesNotMatch(html, /交流偏好/);
 });
 
-test('未提供页面摘要的命令保留原提交、最新对象与来源及版本核对行为', () => {
+test('未提供页面摘要的命令仅下载原提交和最新对象，并保留基线核对入口', () => {
   const fixture = harness({ pending: { value: pending }, review: { object: latest } });
-  const html = render(fixture.load('./WorkspaceCommandDialog').default, { action: { identity: 'other', fields: () => null } });
-  for (const text of ['原提交内容', '最新对象与来源', '核对最新对象与版本', 'private-actor-913', 'private-context-914', 'private-key-919', 'private-metric-918']) assert.ok(html.includes(text), text);
-  assert.doesNotMatch(html, /（诊断）/);
-  assert.ok(fixture.downloads.every((props) => !props.downloadOnly));
+  const html = render(fixture.load('./WorkspaceCommandDialog').default, {
+    action: { identity: 'other', title: '更新操作资料', fields: () => null },
+  });
+  for (const text of ['更新操作资料', '这项操作的完整内容可在诊断记录中下载。', '核对最新资料', '已核对，采用最新基线']) assert.ok(html.includes(text), text);
+  assert.doesNotMatch(html, forbidden);
+  assert.equal((html.match(/下载原始记录/g) || []).length, 2);
+  assert.deepEqual(fixture.downloads.map(({ value, title, downloadOnly }) => ({ value, title, downloadOnly })), [
+    { value: pending, title: '原始提交记录（诊断）', downloadOnly: true },
+    { value: latest, title: '原始核对记录（诊断）', downloadOnly: true },
+  ]);
 });
 
 test('关于你主视图与 PeopleSourceSheet 保持业务字段阅读和完整来源仅下载', () => {
