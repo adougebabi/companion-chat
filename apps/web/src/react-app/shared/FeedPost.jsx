@@ -6,11 +6,9 @@ import JsonDetails from './JsonDetails';
 import MediaPreview from "./MediaPreview";
 import CharacterAvatar from "./CharacterAvatar";
 import useWorkspaceRead from "./useWorkspaceRead";
-import { FeedReader } from "./FeedParts";
-import { momentAuthor, momentCount } from "@/approved-ui/feed-presentation.mjs";
-import { momentReading, momentRecord } from "@/v3/moment-reading.mjs";
-import { userInstant } from "@/v3/presentation-time.mjs";
-import {compactDateTime} from '@/approved-ui/presentation.mjs';
+import { FeedReader, FeedTime, feedAuthorName, feedDisplayText } from "./FeedParts";
+import { momentCount } from "@/approved-ui/feed-presentation.mjs";
+import { momentReading } from "@/v3/moment-reading.mjs";
 function PostMedia({ asset, model: m, full, onOpen }) {
   const [failed, setFailed] = useState(false);
   if (!asset?.id) return null;
@@ -24,8 +22,11 @@ function PostMedia({ asset, model: m, full, onOpen }) {
         </a>
       </div>
     );
-  const src = asset.url || m.w.services.mediaClient.url(asset.id),
-    label = asset.title || asset.source_filename || "动态附件";
+  const src = asset.url || m.w.services.mediaClient.url(asset.id);
+  const label = [asset.title, asset.source_filename]
+    .filter((value) => value !== asset.id)
+    .map(feedDisplayText)
+    .find(Boolean) || "动态附件";
   if (!full)
     return (
       <button
@@ -94,12 +95,10 @@ function CommentPreview({ post, model: m }) {
       <FeedReader source={source} label="评论预览" />
       {source.items.length > 0 && (
         <div className="companion-comment-preview">
-          {source.items.slice(0, 2).map((c) => (
-            <p key={c.id}>
-              <b>{momentAuthor(c)}：</b>
-              {c.text}
-            </p>
-          ))}
+          {source.items.slice(0, 2).map((c) => {
+            const author = feedAuthorName(c);
+            return <p key={c.id}>{author && <b>{author}：</b>}{c.text}</p>;
+          })}
         </div>
       )}
     </>
@@ -113,7 +112,7 @@ export default function FeedPost({
   onAction,
 }) {
   const reading = momentReading(post),
-    author = momentAuthor(post),
+    author = feedAuthorName(post),
     hidden = post.status === "hidden",
     character = m.w.state.characters.find(c=>c.id===post.author_actor_id);
   return (
@@ -124,10 +123,8 @@ export default function FeedPost({
       <header>
         <CharacterAvatar className="feed-author-avatar" name={author} src={character?._directory?.avatar} color={character?.color}/>
         <div>
-          <strong>{author}</strong>
-          <span>
-            {post.created_at ? <time dateTime={post.created_at} title={userInstant(post.created_at)}>{compactDateTime(post.created_at,'Asia/Shanghai',Date.now(),true)||userInstant(post.created_at)}</time> : "发布时间未记录"}
-          </span>
+          {author && <strong>{author}</strong>}
+          <span><FeedTime value={post.created_at} /></span>
         </div>
         <Button
           variant="ghost"
@@ -229,22 +226,19 @@ export default function FeedPost({
               </Button>
             ))}
           </div>
-          <p>
-            全部回应 {momentCount(post.reaction_count)} ·{" "}
-            {post.viewer_reaction === "care"
-              ? "你已关心"
-              : post.viewer_reaction === "celebrate"
-                ? "你已庆祝"
-                : post.viewer_reaction === "like"
-                  ? "你已点赞"
-                  : "尚无你的回应"}
-          </p>
+          {Number.isSafeInteger(post.reaction_count) && post.reaction_count >= 0 && (
+            <p>全部回应 {momentCount(post.reaction_count)}</p>
+          )}
+          {post.viewer_reaction === "care" && <p>你已关心</p>}
+          {post.viewer_reaction === "celebrate" && <p>你已庆祝</p>}
+          {post.viewer_reaction === "like" && <p>你已点赞</p>}
+          {post.viewer_reaction === null && <p>尚无你的回应</p>}
           {post.request_id && (
             <a href={"#/diag/request/" + encodeURIComponent(post.request_id)}>
               原发布建议与处理结果
             </a>
           )}
-          <JsonDetails value={momentRecord(post)} title="动态的完整技术记录"/>
+          <JsonDetails value={post} title="原始动态记录（诊断）" downloadOnly />
         </Disclosure>
       ) : (
         <CommentPreview post={post} model={m} />

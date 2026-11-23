@@ -6,14 +6,54 @@ import WorkspaceCommandDialog from "./WorkspaceCommandDialog";
 import WorkspaceInfo from "./WorkspaceInfo";
 import useWorkspaceRead from "./useWorkspaceRead";
 import FeedPost from "./FeedPost";
-import { FeedReader, FeedMore } from "./FeedParts";
+import JsonDetails from "./JsonDetails";
+import { FeedReader, FeedMore, FeedTime, feedAuthorName, feedDisplayText } from "./FeedParts";
 import {
   checkMoment,
-  momentAuthor,
   momentCount,
   momentText,
 } from "@/approved-ui/feed-presentation.mjs";
-import { userInstant } from "@/v3/presentation-time.mjs";
+const interactionStatuses = new Map([
+  ["pending", "等待独立判断"],
+  ["completed", "实际互动已提交"],
+  ["skipped", "本次不回应"],
+  ["suppressed", "来源变化，未产生互动"],
+  ["failed", "执行失败"],
+]);
+const interactionErrors = new Map([
+  ["domain_plugin_disabled", "动态能力已停用"],
+  ["npc_moment_source_changed", "原结识来源、人物或运行世界已变化"],
+  ["npc_moment_assessment_failed", "人物互动判断失败"],
+  ["npc_moment_response_missing", "人物互动判断未返回有效结果"],
+  ["npc_moment_response_invalid", "人物互动判断未返回有效结果"],
+  ["provider_unavailable", "互动服务暂不可用"],
+]);
+const interactionReactions = new Map([
+  ["like", "点赞"],
+  ["care", "关心"],
+  ["celebrate", "庆祝"],
+]);
+const authorTypes = new Map([
+  ["user", "由你发布"],
+  ["fluctlight", "角色生活分享"],
+  ["npc", "世界人物分享"],
+]);
+
+function NPCInteractionSummary({ row }) {
+  const status = interactionStatuses.get(row.status);
+  const reason = feedDisplayText(row.response?.reason) || interactionErrors.get(row.error_code);
+  const comment = row.status === "completed" && row.response?.decision === "comment"
+    ? feedDisplayText(row.response.text) : "";
+  const reaction = row.status === "completed" && row.response?.decision === "react"
+    ? interactionReactions.get(row.response.reaction) : "";
+  return <>
+    {status && <strong>{status}</strong>}
+    <div><FeedTime value={row.updated_at || row.created_at} /></div>
+    {comment && <p>评论：{comment}</p>}
+    {reaction && <p>回应：{reaction}</p>}
+    {reason && <p>原因：{reason}</p>}
+  </>;
+}
 function CommentComposer({ model: m, post, onSaved, onClose }) {
   const [action] = useState(() => ({
     identity: "comment:" + post.id,
@@ -131,18 +171,7 @@ function NPCInteractions({ model: m, post }) {
         )}
         {interactions.items.map((row) => (
           <div className="feed-npc-row" key={row.id}>
-            <strong>
-              {{
-                pending: "等待独立判断",
-                completed: "实际互动已提交",
-                skipped: "本次不回应",
-                suppressed: "来源变化，未产生互动",
-                failed: "执行失败",
-              }[row.status] || "互动状态待读取"}
-            </strong>
-            <p>
-              {row.response?.reason || row.error_code || "实际结果尚未提供。"}
-            </p>
+            <NPCInteractionSummary row={row} />
             {(row.tasks || []).map((t) => (
               <a
                 key={t.task_id}
@@ -156,11 +185,7 @@ function NPCInteractions({ model: m, post }) {
                 重试本次互动
               </Button>
             )}
-            <Disclosure title="原结识、来源与互动记录">
-              <pre className="replica-source-record">
-                {JSON.stringify(row, null, 2)}
-              </pre>
-            </Disclosure>
+            <JsonDetails value={row} title="原始动态互动记录（诊断）" downloadOnly />
           </div>
         ))}
         <FeedMore source={interactions} label="人物互动" />
@@ -197,7 +222,9 @@ export default function FeedDetail({ model: m, id, onClose }) {
   const listed = m.feed.items.find((p) => p.id === id),
     stored = detail.items[0],
     post =
-      listed && stored && listed.revision > stored.revision ? listed : stored;
+      listed && stored && listed.revision > stored.revision ? listed : stored,
+    author = post && feedAuthorName(post),
+    authorType = post && authorTypes.get(post.author_type);
   useEffect(() => {
     if (stored && m.live()) m.adoptPost(stored);
   }, [stored]);
@@ -276,29 +303,28 @@ export default function FeedDetail({ model: m, id, onClose }) {
               {comments.ready && !comments.items.length && (
                 <p>还没有回应，你可以留下第一句话。</p>
               )}
-              {comments.items.map((c) => (
-                <div key={c.id}>
-                  <span className="companion-comment-avatar" aria-hidden="true">
-                    {[...momentAuthor(c)].at(-1)}
-                  </span>
-                  <div>
-                    <strong>
-                      {momentAuthor(c)}
-                      <small>
-                        {c.created_at
-                          ? userInstant(c.created_at)
-                          : "时间未记录"}
-                      </small>
-                    </strong>
-                    <p>{c.text}</p>
-                    {c.source_interaction_id && (
-                      <span className="companion-caption">
-                        来自已保存的人物互动
-                      </span>
-                    )}
+              {comments.items.map((c) => {
+                const name = feedAuthorName(c);
+                return (
+                  <div key={c.id}>
+                    <span className="companion-comment-avatar" aria-hidden="true">
+                      {[...name].at(-1)}
+                    </span>
+                    <div>
+                      <strong>
+                        {name}
+                        <small><FeedTime value={c.created_at} /></small>
+                      </strong>
+                      <p>{c.text}</p>
+                      {c.source_interaction_id && (
+                        <span className="companion-caption">
+                          来自已保存的人物互动
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <FeedMore source={comments} label="评论" />
             </section>
             {notice && <WorkspaceInfo>{notice}</WorkspaceInfo>}
@@ -328,14 +354,13 @@ export default function FeedDetail({ model: m, id, onClose }) {
               </Button>
             )}
             <NPCInteractions key={id} model={m} post={post} />
-            <div className="companion-source-note">
-              作者：{momentAuthor(post)} ·{" "}
-              {{
-                user: "由你发布",
-                fluctlight: "角色生活分享",
-                npc: "世界人物分享",
-              }[post.author_type] || "作者类型未记录"}
-            </div>
+            {(author || authorType) && (
+              <div className="companion-source-note">
+                {author && <>作者：{author}</>}
+                {author && authorType && " · "}
+                {authorType}
+              </div>
+            )}
           </>
         )}
       </div>
