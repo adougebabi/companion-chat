@@ -64,6 +64,12 @@ function renderPeopleListPage(el, ctx) {
   el.innerHTML=`<div class="stack"><header class="world-review-heading people-review-heading"><div><h2>人物关系</h2><p class="small muted">查看人物资料与已经记录的关系</p></div><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${ctx.charId}/people?view=relations">查看已记录的关系</a></header>${Tabs({value:scope,items:[['all','全部'],['known','已结识'],['world','世界人物']].map(([value,label])=>({value,label,href:link(value)}))})}${SearchForm({value:kw,placeholder:'搜索姓名、身份或地点',attrs:{'data-pf':true},inputAttrs:{'data-test':'people-q'}})}<div class="person-directory">${scope!=='world'&&(!kw||'关于你 所有者 我'.includes(kw))?PersonCard({name:store.get('user')?.name||'你',description:'所有者',status:'角色视角下与你的关系',href:sourceHref(`#/c/${ctx.charId}/people/owner`,ctx,'返回人物目录'),label:'关于你'}):''}${ns.map(n=>PersonCard({name:n.name,avatar:n.avatar,description:n.role||n.bio||'身份尚未补充',status:relation(n)?.stage||'尚无关系记录',href:sourceHref(`#/c/${ctx.charId}/people/npc/${encodeURIComponent(n.id)}`,ctx,'返回人物目录'),attrs:{'data-test':`npc-${n.id}`}})).join('')}</div>${!ns.length?`<div data-domain-ui="empty" class="statebox"><h3>${kw?'没有匹配的人物':scope==='known'?'尚未记录结识的人物':'尚未添加世界人物'}</h3><p>${kw?'可以换个关键词，或清除筛选查看人物目录。':scope==='known'?'浏览人物不会自动建立关系；实际接触后以已有记录为准。':'可以创建人物定义，再明确应用到这个世界。'}</p>${kw||scope!=='all'?`<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="${directoryHref}">清除筛选</a>`:''}</div>`:''}<div class="row"><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${ctx.charId}/people/npcs">管理世界人物</a><a data-domain-ui="button" data-domain-variant="default" data-domain-size="default" href="#/c/${ctx.charId}/people/npc/new">创建人物定义</a></div></div>`;
   el.querySelector('[data-pf]').onsubmit=e=>{e.preventDefault();ctx.navigate(`${directoryHref}?${new URLSearchParams({q:e.target.q.value,scope})}`);};
 }
+function relationRevisionDescription(entry) {
+  const summary = typeof entry.summary === 'string' ? entry.summary.trim() : '';
+  const reason = typeof entry.reason === 'string' ? entry.reason.trim() : '';
+  return summary || reason || '这次修订没有说明';
+}
+
 async function renderNpcPage(el, ctx,alive=()=>true) {
   const n = await mockClient.npc(ctx.charId, ctx.params.npcId);if(!alive())return;const c=store.get('characters',ctx.charId), context=n.relationship_context || {}, relations=context.relationships || [], history=context.relationship_history || [];
   const relationRows = relations.map(r => `<div data-domain-ui="item" class="lrow">
@@ -71,14 +77,12 @@ async function renderNpcPage(el, ctx,alive=()=>true) {
     <a data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" href="#/c/${ctx.charId}/people/relation/${esc(r.id)}">修正关系…</a>
   </div>`).join('');
   const historyRows = history.map(entry => {
-    const description = entry.summary || entry.reason;
+    const description = relationRevisionDescription(entry);
     const timestamp = entry.created_at;
     const time = typeof timestamp === 'string' && Number.isFinite(Date.parse(timestamp))
       ? `<time class="muted" datetime="${esc(timestamp)}">${esc(userInstant(timestamp))}</time>`
       : '';
-    return description || time
-      ? `<div data-domain-ui="item" class="lrow small">${description ? `<span>${esc(description)}</span>` : ''}${time}</div>`
-      : '';
+    return `<div data-domain-ui="item" class="lrow small"><span>${esc(description)}</span>${time}</div>`;
   }).join('');
   const relationDownload = relations.length || history.length
     ? RawRecordDownload({relationships: relations, relationship_history: history}, '原始关系记录（诊断）')
@@ -96,7 +100,7 @@ async function renderRelEditPage(el,ctx) {
   const {relation:r,history}=await mockClient.readRelation(ctx.charId,actorId,projection.id);
   const historyRows=history.map(entry=>{
     const time=typeof entry.created_at==='string'&&Number.isFinite(Date.parse(entry.created_at))?userInstant(entry.created_at):'';
-    const description=[entry.summary,time].filter(Boolean).join(' · ')||'关系修订';
+    const description=[relationRevisionDescription(entry),time].filter(Boolean).join(' · ');
     return `<div data-domain-ui="item" class="lrow"><span class="grow">${esc(description)}</span><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" data-restore-relation>恢复此修订字段</button></div>`;
   }).join('');
   el.innerHTML=`<div data-domain-ui="card" class="card [max-width:640px]"><div class="row"><h3 class="grow">关系修正</h3>${badge('所有者修改')}</div><p class="small muted">在当前关系记录基础上追加修订，保留旧记录与来源。</p><form class="stack" data-rf>${Field({label:'关系描述',name:'summary',value:r.summary || '',attrs:{required:true}})}${Field({label:'修正原因',name:'reason',attrs:{required:true}})}${Field({label:'证据引用（逗号分隔）',name:'evidenceRefs',attrs:{required:true}})}<details data-domain-ui="disclosure" class="mgmt"><summary>关系语义与指标</summary><div class="stack [margin-top:8px]">${Field({label:'关系语义',name:'semantic',value:r.role?.label || r.role?.primary || ''})}${Field({label:'亲密度（推测，0—100；留空表示未知）',name:'intimacy',value:typeof r.metrics?.intimacy==='number' ? r.metrics.intimacy*100 : '',type:'number',attrs:{min:0,max:100,step:'any'}})}</div></details><div class="row"><button data-domain-ui="button" type="button" data-domain-variant="outline" data-domain-size="default" data-back>取消</button><button data-domain-ui="button" data-domain-variant="default" data-domain-size="default">保存修正</button></div><p data-domain-ui="alert" data-error role="alert"></p></form></div><details data-domain-ui="disclosure" class="mgmt small muted [max-width:640px] [margin-top:12px]"><summary>对象历史与恢复</summary><p>恢复通过受控命令追加一个新修订，保留来源与生活时间线。</p>${historyRows || '<p>暂无可恢复修订</p>'}</details>

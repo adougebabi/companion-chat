@@ -75,10 +75,11 @@ test('NPC 关系正文仅展示描述和北京时间，诊断下载完整，保�
   const links = [...host.querySelectorAll('a')].filter(link => link.textContent === '修正关系…');
   assert.deepEqual(links.map(link => link.previousElementSibling.textContent), ['常在书店碰面', '初次认识']);
   const rows = host.querySelectorAll('[data-test="rel-revs"] [data-domain-ui="item"]');
-  assert.equal(rows.length, 2);
+  assert.equal(rows.length, 3);
   assert.equal(rows[0].querySelector('span').textContent, '在书店初识 <雨天>');
   assert.equal(rows[0].querySelector('time').textContent, '2026-11-22 09:30 (北京时间)');
   assert.equal(rows[1].textContent, '补充结识经过');
+  assert.equal(rows[2].textContent, '这次修订没有说明');
   assert.doesNotMatch(host.textContent, hidden);
 
   const downloads = host.querySelectorAll('a[download]');
