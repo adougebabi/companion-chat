@@ -1,5 +1,7 @@
 import {errorMessage} from '../v3/domain-presentation.mjs';
+import {isInternalId} from '../v3/internal-id.mjs';
 import {SemanticValue} from '../v3/proto/components/semantic-fields.js';
+import {RawRecordDownload} from '../v3/proto/components/records.js';
 import {userInstant} from '../v3/presentation-time.mjs';
 import {sourceHref} from '../v3/proto/components/source-navigation.js';
 import {openOwnerMediaDrawer} from '../v3/proto/components/media-generation-drawer.js';
@@ -16,18 +18,25 @@ import {KeyValueList,Field,Tabs,SearchForm} from '../v3/proto/components/forms.j
 import {belongsToWorld,mockWorld,mockClient} from '../v3/proto/services.js';
 const here=ctx=>store.get('characters',ctx.charId).locationId;
 const inWorld=(ctx,object)=>object.worldId?object.worldId===store.get('characters',ctx.charId)?.worldId:store.get('places',object.placeId)?.worldId===store.get('characters',ctx.charId)?.worldId;
-function renderPlacePage(el, ctx) {
+const readablePlaceText=value=>isInternalId(value)?'':typeof value==='string'?value.trim():value;
+function renderPlacePage(el, ctx, _alive, view) {
   const p = store.get('places', ctx.params.placeId), c=store.get('characters',ctx.charId);
   if (!p || !inWorld(ctx, p)) { el.innerHTML = '<div data-domain-ui="empty" class="statebox"><h2>当前范围未找到该地点</h2></div>'; return; }
   const world=store.get('worlds',c.worldId), category=world?.venueCategories?.find(v=>v.id===(p.venueCategoryId||p.venue_category_id));
-  const location=here(ctx)===p.id?`最近确认角色在${p.alias||p.name}。`:`角色最近确认的位置是${nameOf(here(ctx))||'未知'}。`;
+  const location=here(ctx)===p.id?`最近确认角色在${p.alias||p.name}。`:`角色最近确认的位置是${readablePlaceText(nameOf(here(ctx)))||'未知'}。`;
+  const record=view?.places?.find(place=>place.id===p.id)??p;
+  const definitionId=p.resourceId||p.source_resource_id;
+  const definitionName=definitionId&&readablePlaceText(store.get('resources',definitionId)?.name);
+  const description=readablePlaceText(p.desc);
+  const facts=[['楼层',esc(readablePlaceText(p.floor))],['氛围',esc(readablePlaceText(p.atmosphere))],['陈设',SemanticValue(readablePlaceText(p.furniture))],['布局',esc(readablePlaceText(p.layout))],['连通说明',esc(readablePlaceText(p.connections))]].filter(([,content])=>content);
   el.innerHTML = `<div class="place-reading stack"><header><p class="small muted"><a href="#/c/${ctx.charId}/world">${esc(world?.name||'当前世界')}</a>${category?' / '+esc(category.name):''} / ${esc(p.name)}</p><div class="row"><h2 class="grow">${esc(p.alias||p.name)}</h2><a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="sm" href="#/c/${ctx.charId}/worlds/${esc(c.worldId)}/place/${esc(p.id)}/edit">编辑地点</a></div>${p.alias?`<p class="small muted">正式名称：${esc(p.name)}</p>`:''}<p class="small muted">${esc(location)} 浏览地点不会改变角色的位置。</p></header>
   ${p.scene?`<img class="place-scene" src="${esc(p.scene)}" alt="${esc(p.alias||p.name)}的场景参考" data-place-image>`:''}
-  <section class="reading-paper"><h3>这里的样子</h3><p class="memory-content">${esc(p.desc||'场景描述尚未补充')}</p>${KeyValueList([['楼层',esc(p.floor||'尚未补充')],['氛围',esc(p.atmosphere||'尚未补充')],['陈设',SemanticValue(p.furniture)||'尚未补充'],['布局',esc(p.layout||'尚未补充')],['连通说明',esc(p.connections||'尚未补充')]])}</section>
+  ${description||facts.length?`<section class="reading-paper"><h3>这里的样子</h3>${description?`<p class="memory-content">${esc(description)}</p>`:''}${facts.length?KeyValueList(facts):''}</section>`:''}
   <div class="grid g3"><section data-domain-ui="card" class="card"><h3>这里的人</h3>${store.list('npcs', n => belongsToWorld(ctx.charId,n)&&!n.archived&&n.enabled!==false&&n.currentPlaceId===p.id).map(n=>NPCRow(n,objLink)+badge(n.presence==='confirmed'?'已确认在场':'预计位置','plain')).join('')||'<p class="small muted">当前没有已确认或预计在场的人物。</p>'}</section>
   <section data-domain-ui="card" class="card"><h3>相关安排</h3>${store.list('schedule',v=>v.placeId===p.id&&(!v.charId||v.charId===ctx.charId)).map(v=>`<div data-domain-ui="item" class="lrow small">${esc(v.time)} ${esc(v.title)} ${badge(v.state)}</div>`).join('')||'<p class="small muted">当前读取范围没有相关安排。</p>'}<a href="#/c/${ctx.charId}/life/schedule">查看日程</a></section>
   <section data-domain-ui="card" class="card"><h3>发生过的事</h3>${store.list('events',v=>v.placeId===p.id&&inWorld(ctx,v)).map(v=>`<div data-domain-ui="item" class="lrow small">${objLink(v.id)} ${badge(v.state)}</div>`).join('')||'<p class="small muted">当前读取范围没有相关事件。</p>'}<a href="#/c/${ctx.charId}/media">查看媒体库</a></section></div>
-  ${mgmt(`${esc(p.id)}${p.resourceId?' · 定义 '+objLink(p.resourceId,p.resourceId):''}`)}</div>`;
+  ${definitionName?mgmt(`定义：${objLink(definitionId,definitionName)}`):''}
+  ${RawRecordDownload(record,'原始地点记录（诊断）')}</div>`;
   const image=el.querySelector('[data-place-image]');image?.addEventListener('error',()=>image.remove(),{once:true});
 }
 function renderScenePage(el, ctx, alive, view) {
