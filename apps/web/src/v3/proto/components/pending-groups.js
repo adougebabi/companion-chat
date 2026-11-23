@@ -4,14 +4,45 @@ import {mountCursorRecords} from './cursor-records.js';
 import {esc,badge} from '../ui.js';
 import {get} from '../store.js';
 import {domainName,stateLabel,errorMessage} from '../../domain-presentation.mjs';
+import {isInternalId} from '../../internal-id.mjs';
+import {userInstant} from '../../presentation-time.mjs';
 import {InstantLabel} from './instant-label.js';
-import {JsonDetails} from './records.js';
+import {JsonDetails,RawRecordDownload} from './records.js';
 
 const pendingTitle=value=>({'daily_review.current_day':'日常回顾','schedule.current_day':'当日日程规划','reflection.current_window':'当前阶段反思','visual_identity.prepare':'视觉身份准备'})[value]||domainName(value,'待处理任务');
 const labels={capability:'能力请求',persona_proposal:'人格与身份提案',studio_apply:'待应用定义',failed_task:'失败任务',owner_request:'正在处理的请求'};
+const serviceWarning='<p data-domain-ui="alert" class="small banner warn">后台服务未完成这项工作，可在服务状态中查看恢复方式。</p>';
+
+function renderPendingItem(item,kind) {
+  const source = labels[kind];
+  const name = item.fluctlight_id && get('characters',item.fluctlight_id)?.name?.trim();
+  const role = name && name !== item.fluctlight_id && !isInternalId(name) ? `角色：${esc(name)}` : '';
+  const time = typeof item.created_at === 'string' && Number.isFinite(Date.parse(item.created_at))
+    ? `<time>${esc(userInstant(item.created_at))}</time>` : '';
+  const summary = [source && `来源：${esc(source)}`,role,time].filter(Boolean).join(' · ');
+  const href = item.href?.trim() ? esc(item.href) : '';
+  const title = item.title ? `<b>${esc(pendingTitle(item.title))}</b>` : '';
+
+  return `<div data-domain-ui="item" class="lrow pending-item">
+    <div class="grow">
+      ${title && href ? `<a href="${href}">${title}</a>` : title}
+      ${summary ? `<div class="small muted">${summary}</div>` : ''}
+      ${item.status ? `<div class="pending-state">${badge(stateLabel(item.status),'plain')}</div>` : ''}
+      ${kind === 'failed_task' ? serviceWarning : ''}
+      ${RawRecordDownload(item,'原始事项记录（诊断）')}
+    </div>
+    ${href ? `<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" href="${href}">打开来源</a>` : ''}
+  </div>`;
+}
+
+function renderCompactPendingItem(item,kind) {
+  return `<div data-domain-ui="item" class="lrow pending-item"><div class="grow"><a href="${esc(item.href)}"><b>${esc(pendingTitle(item.title))}</b></a><div class="small muted">${InstantLabel(item.created_at)} · ${esc(item.fluctlight_id?get('characters',item.fluctlight_id)?.name||'角色资料待读取':'系统任务')}</div><div class="pending-state">${badge(stateLabel(item.status),'plain')}</div>${kind==='failed_task'?serviceWarning:''}${JsonDetails(item,'事项来源与标识')}</div><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" href="${esc(item.href)}">${['failed_task','owner_request'].includes(kind)?'查看详情':'查看事项'}</a></div>`;
+}
+
 export function mountPendingGroups(box,{fid='',alive=()=>true,compact=false}={}){
   let disposed=false,epoch=0;const panels=[];
   const current=()=>!disposed&&alive()&&box.isConnected;
+  const renderItem=compact?renderCompactPendingItem:renderPendingItem;
   async function load(){
     const version=++epoch;panels.splice(0).forEach(p=>p.dispose());box.innerHTML='<p role="status" data-domain-ui="skeleton">正在读取待处理来源…</p>';
     try{
@@ -24,7 +55,17 @@ export function mountPendingGroups(box,{fid='',alive=()=>true,compact=false}={})
 
       for(const group of page.groups){
         let initial=group;
-        const panel=mountCursorRecords(box.querySelector(`[data-pending-kind="${group.kind}"]`),{alive:current,label:labels[group.kind],empty:'当前没有这类待处理事项。',read:async cursor=>{const g=initial||((await operationsClient.pending(fid,group.kind,cursor)).groups[0]);initial=null;if(g.status!=='ok')throw new Error(g.message||'该来源读取失败，不能判断是否处理完');return {items:g.items,next_cursor:g.next_cursor};},render:item=>`<div data-domain-ui="item" class="lrow pending-item"><div class="grow"><a href="${esc(item.href)}"><b>${esc(pendingTitle(item.title))}</b></a><div class="small muted">${InstantLabel(item.created_at)} · ${esc(item.fluctlight_id?get('characters',item.fluctlight_id)?.name||'角色资料待读取':'系统任务')}</div><div class="pending-state">${badge(stateLabel(item.status),'plain')}</div>${group.kind==='failed_task'?'<p data-domain-ui="alert" class="small banner warn">后台服务未完成这项工作，可在服务状态中查看恢复方式。</p>':''}${JsonDetails(item,'事项来源与标识')}</div><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" href="${esc(item.href)}">${['failed_task','owner_request'].includes(group.kind)?'查看详情':'查看事项'}</a></div>`});panels.push(panel);
+        const panel=mountCursorRecords(box.querySelector(`[data-pending-kind="${group.kind}"]`),{
+          alive:current,label:labels[group.kind],empty:'当前没有这类待处理事项。',
+          read:async cursor=>{
+            const g=initial||((await operationsClient.pending(fid,group.kind,cursor)).groups[0]);
+            initial=null;
+            if(g.status!=='ok')throw new Error(g.message||'该来源读取失败，不能判断是否处理完');
+            return {items:g.items,next_cursor:g.next_cursor};
+          },
+          render:item=>renderItem(item,group.kind),
+        });
+        panels.push(panel);
       }
     }catch(error){if(!current()||version!==epoch)return;box.innerHTML=`<p data-domain-ui="alert" class="banner err" role="alert">${esc(errorMessage(error))}</p><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-pending-retry>重新读取</button>`;box.querySelector('[data-pending-retry]').onclick=()=>void load();}
   }
