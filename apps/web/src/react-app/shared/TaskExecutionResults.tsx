@@ -9,7 +9,7 @@ import JsonDetails from './JsonDetails';
 import {diagnosticTimeLabel,taskEventText,taskEventReason,taskRoundRecords,taskModelFailureReason} from '@/approved-ui/task-presentation.mjs';
 import {callDurationLabel} from '@/approved-ui/task-model-call-presentation.mjs';
 
-export default function TaskExecutionResults({task,steps,calls,available}:{task:any;steps:any[];calls:any;available:boolean}){
+export default function TaskExecutionResults({task,steps,calls,available,downloadOnlyModelRecords=false}:{task:any;steps:any[];calls:any;available:boolean;downloadOnlyModelRecords?:boolean}){
  const rounds=taskRoundRecords(calls.items),success=rounds.filter((row:any)=>row.status==='success').length,failure=rounds.filter((row:any)=>row.status==='failure').length;
  const lifecycle=<ol className="replica-task-history">{steps.map((entry:any,index:number)=><li key={entry.id??index}>{entry.at&&<time dateTime={entry.at}>{diagnosticTimeLabel(entry.at)}</time>}<p className="replica-task-history-text">{taskEventText(entry)}</p>{taskEventReason(entry)&&<p className="replica-task-history-reason">{taskEventReason(entry)}</p>}</li>)}</ol>;
  return <div className="replica-task-results">
@@ -28,10 +28,12 @@ export default function TaskExecutionResults({task,steps,calls,available}:{task:
      <CollapsibleTrigger asChild><Button type="button" variant="ghost" className="replica-task-round-trigger"><span>{label}</span><DiagnosticStatus status={call.status} label={status==='success'?'成功':status==='failure'?'失败':undefined}/><span className="replica-task-round-duration">{callDurationLabel(call,{includeSource:false})}</span><ChevronDown size={14}/></Button></CollapsibleTrigger>
      <CollapsibleContent className="replica-task-round-content">
       {call.started_at&&<time dateTime={call.started_at}>{diagnosticTimeLabel(call.started_at)}</time>}
-      <section><h3>输入</h3><RecordView value={call.prompt} emptyText="未记录输入"/></section>
-      <section><h3>输出</h3><RecordView value={call.response} emptyText="未记录输出"/></section>
-      <section><h3>错误</h3>{call.error||call.error_code?<><p>{taskModelFailureReason(call)}</p>{call.error_code&&<JsonDetails value={{error_code:call.error_code}} title="错误代码" downloadOnly/>}</>:<p className="replica-inbox-caption">未记录错误</p>}</section>
-      <JsonDetails value={record} title="本轮原始记录" downloadOnly/>
+      {!downloadOnlyModelRecords&&<>
+       <section><h3>输入</h3><RecordView value={call.prompt} emptyText="未记录输入"/></section>
+       <section><h3>输出</h3><RecordView value={call.response} emptyText="未记录输出"/></section>
+      </>}
+      {call.error||call.error_code?<section><h3>错误</h3><p>{taskModelFailureReason(call)}</p>{!downloadOnlyModelRecords&&call.error_code&&<JsonDetails value={{error_code:call.error_code}} title="错误代码" downloadOnly/>}</section>:!downloadOnlyModelRecords&&<section><h3>错误</h3><p className="replica-inbox-caption">未记录错误</p></section>}
+      <JsonDetails value={record} title={downloadOnlyModelRecords?'本轮原始模型调用（诊断）':'本轮原始记录'} downloadOnly/>
      </CollapsibleContent>
     </Collapsible>
    </li>)}</ol>}

@@ -13,8 +13,8 @@ const presentation = {
     pending: '等待处理'
   })[value] || '状态待确认',
   errorMessage: () => '反思处理失败',
-  instant: value => value,
-  JsonDetails: () => '<details>原始状态</details>'
+  userInstant: value => value,
+  RawRecordDownload: () => '<a download>原始反思任务记录（诊断）</a>'
 };
 test('reflection failure, replacement and scheduled retry are visible independently of missing windows', () => {
   const {
@@ -43,7 +43,7 @@ test('reflection failure, replacement and scheduled retry are visible independen
     error_code: 'reflection_task_failed'
   });
   assert.match(retry.description, /已安排重试/);
-  assert.match(retry.description, /已尝试 2 次/);
+  assert.match(retry.description, /第 2 次尝试/);
   assert.equal(retry.attention, true);
   const pending = reflectionTaskPresentation({
     status: 'pending',
