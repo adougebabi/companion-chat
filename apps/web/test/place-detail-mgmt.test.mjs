@@ -74,13 +74,13 @@ test('地点详情省略空管理折叠并下载含原始 ID 的完整地点记�
   assertDownload(host, place);
 });
 
-test('地点管理信息显示可读的定义名称并保留原链接', async t => {
+test('有可读定义的地点显示世界地点链接并保留诊断下载', async t => {
   const resource = {id: place.source_resource_id, name: '书房 <原始定义>'};
   const host = await mount(t, {resource});
-  const management = host.querySelector('details[data-test="mgmt"]');
-  assert.equal(management.querySelector('summary').textContent, '管理信息');
-  assert.equal(management.querySelector('div').textContent, '定义：书房 <原始定义>');
-  assert.equal(management.querySelector('a').getAttribute('href'), '#/studio/edit/res_reading_room');
+  assert.equal(host.querySelector('details[data-test="mgmt"]'), null);
+  const link = [...host.querySelectorAll('a')].find(node => node.textContent === place.name);
+  assert.equal(link?.getAttribute('href'), `#/c/${fid}/world/place/${place.id}`);
+  assert.equal(host.querySelector('a[href^="#/studio/"]'), null);
   assertDownload(host, place);
 });
 
