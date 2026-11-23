@@ -186,16 +186,11 @@ export function describeProfileExpression(value, field = "") {
   return expressionValue(field, value);
 }
 
-export function describeProfileMood(mood) {
-  return scaleNumber(mood?.intensity) === 0 ? { ...mood, intensity: "平稳" } : mood;
-}
-
 export function describeProfileCurrentState(state) {
   if (!state || typeof state !== "object" || Array.isArray(state)) return state;
   return {
     ...state,
     activity: currentActivityDisplay(state.activity),
-    mood: describeProfileMood(state.mood),
     ...(state.context && typeof state.context === "object" && !Array.isArray(state.context)
       ? { context: { ...state.context, activity: currentActivityDisplay(state.context.activity) } }
       : {}),

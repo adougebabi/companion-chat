@@ -36,7 +36,7 @@ import {
   ProfileDiagnostic, ProfileExtensionsSummary, ProfileFieldsSummary, ProfileNote, ProfileTime, profileText,
   profileFieldsForReading, personalityShape, behaviorShape, lifeShape,
   systemShape, currentStateShape, WorkingPortraitSummary,
-  describeProfileExpression, describeProfileMood, describeProfileCurrentState,
+  describeProfileExpression, describeProfileCurrentState,
 } from "../shared/ProfileRecordSummary";
 import RequestStatus from "../shared/RequestStatus";
 import WearingSummary from "../shared/WearingSummary";
@@ -699,7 +699,7 @@ export default function CharacterDetailPageView({ model: m }) {
                   />
                   <Fact
                     label="心情"
-                    value={describeProfileMood(profileFieldsForReading(d.inner_state?.mood || d.current_state?.mood, currentStateShape.mood))}
+                    value={profileFieldsForReading(d.inner_state?.mood || d.current_state?.mood, currentStateShape.mood)}
                     identity={identity}
                   />
                   <div className="profile-key-value">
