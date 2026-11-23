@@ -213,7 +213,7 @@ func TestPostgresOwnerRequestLaneKeepsOriginalCASAfterConcurrentWardrobeChange(t
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("owner-cas-discover", capabilityCatalogName, map[string]any{"names": []string{wardrobeWearCapabilityName}})}}
 		}
 		if !payloadHasToolResult(payload) || !strings.Contains(jsonString(payload), "owner-cas-wear") {
-			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("owner-cas-wear", wardrobeWearCapabilityName, map[string]any{"mode": "partial", "item_ids": []string{boots}})}}
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("owner-cas-wear", wardrobeWearCapabilityName, map[string]any{})}}
 		}
 		return fakeProviderResult{Structured: map[string]any{"decision": "deferred", "reason": "衣橱状态已变化，请重新核对"}}
 	})

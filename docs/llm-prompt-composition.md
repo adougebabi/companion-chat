@@ -448,40 +448,36 @@ R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
 | vision probe | 诊断规则、测试文字和图片 | 非业务人格任务 |
 | embedding | 文本向量输入 | 不使用 chat 运行协议；新任务冻结端点、模型和凭据引用，诊断记录实际版本而不记录密钥。旧任务无可证明快照时沿旧行为并记录诊断 |
 
-`owner_life_request_decision` 的 ADK 最终输出先检查执行回执：对有效 Owner
-请求类型，除可解析 JSON 明确为 `rejected` / `deferred` 外，若 trace 中没有
-满足该请求结算语义的有效 effect、明确 no-change 或 promise 规划待定，Core
-追加一次业务续跑；`capability.catalog` 和查看类结果不算完成请求的权威回执。
-此检查也覆盖尚未形成合法 JSON 的候选，不是 DTO 格式修复。
+换装、整套换装与建议发动态的首次认知保留原生工具和角色拒绝、推迟的空间。
+系统规则只包含这类请求所需的处置、具体目标、回执和公开理由。用户原文、
+冻结目标与原生工具回执的来源和结构保持不变。
 
-续跑输入保留原输入与原生 transcript，并追加一条 current-input 用户消息，
-内容为 JSON；`required_capabilities` 是该请求类型的所需能力名列表，
-`instruction` 使用以下英文原文：
+模型明确接受却没有结算回执时，Core 对换装与建议发动态继续执行。Core 识别
+结构化决定和明确的 `decision: accepted` 行。含义不明的候选先通过无工具的
+DTO 校验修复，拿到明确接受后才进入执行。已明确拒绝或推迟的候选不会触发
+要求调用工具的续跑。其他 Owner 请求类型沿用已有续跑。
 
-```json
-{
-  "required_capabilities": ["该请求类型的所需能力名"],
-  "instruction": "No authoritative execution receipt fulfills this Owner request yet. If you accept, use capability.catalog to load the required capability if needed, then invoke it for the exact requested target and consume its receipt before returning accepted. Catalog and inspection alone do not fulfill the request. Do not repeat committed actions. You may instead reject or defer with an honest public reason. Return the supplied final JSON contract; never describe an uncommitted action as completed."
-}
-```
+续跑保留原输入和原生工具交互，只追加一条含 `required_capabilities`
+与 `instruction` 的 JSON 用户消息。已接受但尚未执行的助手草稿不再带入续跑，
+避免模型照抄在正文里生成的伪工具调用。换装在原作用域内经正常能力披露取得
+`wardrobe.wear`，建议发动态使用 `moment.publish`。主人换装的原生调用传空对象，
+由 Core 从原请求绑定单件或套装，避免模型抄错 ID。这个作用域的原生参数是封闭
+空对象，显式传入其他目标会被拒绝。Core 仍在事务内核对冻结目标和版本。有明确接受且回执缺失
+的物理请求只提供该工具，设置 `tool_choice: required`，并关闭执行轮的思考
+模式。模型只输出文字而且没有回执时，追加一次纠正并重新要求原生调用，正文
+始终不会转成工具调用。工具失败可根据回执纠正，三个目标工具结果都无法结算
+时停止。动态正文仍由独立 Writer 生成。
 
-该消息的 prompt slot 为 `owner_life_execution_feedback`，source 为
+该消息的 slot 为 `owner_life_execution_feedback`，source 为
 `core_owner_life_execution_validation`，reason 为
-`required_execution_receipt_missing`。续跑保留同一套作用域内 catalog、invoker、
-请求策略与原生回执，带同一工具集再跑一轮 ADK，名字追加 `-owner-execution`，
-沿用相同 `MaxIterations`。指令要求精确执行请求目标、读取回执后才返回 accepted，
-不得重复已提交动作，也可改为 `rejected` / `deferred` 并给出诚实的公开理由。
+`required_execution_receipt_missing`。取得实际执行回执或由工具确认无需
+变更后，首次认知环和续跑的结束阶段都使用无工具请求。若模型仍试图调用工具，已确认的回执可以
+安全终止该阶段。工具目录与查看结果不算执行回执。无法得到实际结果时返回
+`owner_life_execution_missing`，对外明确显示本次未执行成功。
 
-续跑未出错但没有最终消息，或仍未满足上述回执检查时，返回
-`owner_life_execution_missing`；DTO 格式修复后的最终输出也再检查一次。
-用户可见失败原因为“本次请求未执行成功，尚未确认实际结果。请稍后重新提出请求。”，
-替代原英文 “The request did not produce a committed result”。原有 ADK 最终输出
-校验/修复轮保持不变：格式修复仍是无工具的第二次调用，仅纠正 DTO 格式，
-不提供工具目录、不允许 ToolCall，不能重复已提交的副作用；业务续跑单独在此前处理。
-
-本项验证证据仅为 `apps/core-go/internal/core/owner_life_execution_recovery_test.go`
-中的受控/离线测试：包含模拟 Provider 的续跑、无回执失败及格式修复边界，
-另有需 PostgreSQL 的换装结算用例。它们不证明真实模型行为；本次仅同步文档，未运行测试。
+受控工具协议、回执和拒绝边界见 `owner_life_execution_recovery_test.go`。
+可选的真模型回归 `TestLiveOwnerLifeRequestExecution` 使用独立 PostgreSQL，
+通过真实换装和建议入口核对完成回执、穿着变化、动态 Feed 与请求重放。
 
 ## 必要标识例外
 

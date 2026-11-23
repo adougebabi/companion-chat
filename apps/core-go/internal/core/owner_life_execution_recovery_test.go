@@ -11,7 +11,7 @@ import (
 // Exercise the real Provider/ADK transport with an in-memory RoundTripper only.
 func TestOwnerLifeAcceptedWithoutToolRecovery(t *testing.T) {
 	for _, kind := range []string{"wardrobe_wear", "moment_suggestion"} {
-		for _, scenario := range []string{"text_then_execute", "json_then_execute", "never_execute"} {
+		for _, scenario := range []string{"text_then_execute", "json_then_execute", "repair_then_execute", "non_native_then_execute", "later_tool_ignored", "never_execute"} {
 			t.Run(kind+"/"+scenario, func(t *testing.T) {
 				action := ownerLifeActionNames(kind)[0]
 				trace := &ADKCapabilityTrace{}
@@ -21,23 +21,47 @@ func TestOwnerLifeAcceptedWithoutToolRecovery(t *testing.T) {
 				calls := 0
 				router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
 					calls++
-					accepted := fakeProviderResult{Structured: map[string]any{"decision": "accepted", "reason": "好的，这就为您换上。"}}
+					accepted := fakeProviderResult{Structured: map[string]any{"decision": "accepted", "reason": "好的，这就为您执行。"}}
 					if calls == 1 {
 						if scenario == "json_then_execute" {
 							return accepted
 						}
-						return fakeProviderResult{Text: "decision: accepted\nreason: 好的，这就为您换上。"}
+						if scenario == "repair_then_execute" {
+							return fakeProviderResult{Text: "我愿意帮您。"}
+						}
+						return fakeProviderResult{Text: "decision: accepted\nreason: 好的，这就为您执行。"}
 					}
-					if calls == 2 {
-						if !r6PayloadHasTool(payload, capabilityCatalogName) || !r6PayloadHasTool(payload, action) || strings.Contains(jsonString(payload["messages"]), "Do not call tools") {
-							t.Error("execution continuation must retain tools and permit required actions")
+					executionCall := 2
+					if scenario == "repair_then_execute" {
+						executionCall++
+						if calls == 2 {
+							if len(arrayValue(payload["tools"])) != 0 {
+								t.Error("an ambiguous decision must be repaired before requiring an action")
+							}
+							return accepted
+						}
+					}
+					if calls == executionCall || (calls == executionCall+1 && (scenario == "non_native_then_execute" || scenario == "never_execute")) {
+						if payload["tool_choice"] != "required" || len(arrayValue(payload["tools"])) != 1 ||
+							!r6PayloadHasTool(payload, action) || payload["enable_thinking"] != false {
+							t.Error("execution continuation must require just the scoped action")
+						}
+						if scenario == "non_native_then_execute" && calls == executionCall {
+							return fakeProviderResult{Text: "<call:action/>"}
+						}
+						if strings.Contains(jsonString(payload["messages"]), "<call:action/>") {
+							t.Error("retry reused the non-native pseudo-call")
 						}
 						if scenario != "never_execute" {
-							return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("catalog", capabilityCatalogName, map[string]any{"names": []string{action}})}}
+							return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("apply", action, map[string]any{})}}
 						}
-					}
-					if calls == 3 && scenario != "never_execute" {
-						return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("apply", action, map[string]any{})}}
+					} else {
+						if len(arrayValue(payload["tools"])) != 0 {
+							t.Error("committed execution must not offer more tools")
+						}
+						if scenario == "later_tool_ignored" {
+							return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("repeat", action, map[string]any{})}}
+						}
 					}
 					return accepted
 				})
@@ -61,14 +85,18 @@ func TestOwnerLifeAcceptedWithoutToolRecovery(t *testing.T) {
 					if !strings.Contains(reason, "未执行") || strings.Contains(reason, "这就") || strings.Contains(reason, "owner_") {
 						t.Fatalf("unsafe failure reason: %q (%v)", reason, err)
 					}
-					if calls != 2 {
+					if calls != 3 {
 						t.Fatalf("unbounded guidance: %d", calls)
 					}
 					return
 				}
 				_, results := trace.Snapshot()
 				applied, refs := ownerLifeEffects(kind, results)
-				if err != nil || !applied || len(refs) == 0 || len(response.ExecutedToolCalls) != 2 || calls != 4 {
+				wantCalls := 3
+				if scenario == "repair_then_execute" || scenario == "non_native_then_execute" {
+					wantCalls++
+				}
+				if err != nil || !applied || len(refs) == 0 || len(response.ExecutedToolCalls) != 1 || calls != wantCalls {
 					t.Fatalf("request did not recover with native receipts: calls=%d results=%#v response=%#v err=%v", calls, results, response, err)
 				}
 			})
@@ -116,7 +144,7 @@ func TestOwnerLifeWearAcceptedWithoutToolSettlement(t *testing.T) {
 						return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("load-wear", capabilityCatalogName, map[string]any{"names": []string{wardrobeWearCapabilityName}})}}
 					}
 					applied = true
-					return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("wear", wardrobeWearCapabilityName, map[string]any{"mode": "partial", "item_ids": []string{boots}})}}
+					return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("wear", wardrobeWearCapabilityName, map[string]any{})}}
 				}
 				return fakeProviderResult{Structured: map[string]any{"decision": "accepted", "reason": "好的，这就为您换上。"}}
 			})
@@ -150,7 +178,7 @@ func TestOwnerLifeWearAcceptedWithoutToolSettlement(t *testing.T) {
 }
 
 func TestOwnerLifeExecutionRepairPreservesCommittedEffectsAndDecisions(t *testing.T) {
-	for _, scenario := range []string{"committed", "no_change", "rejected", "deferred"} {
+	for _, scenario := range []string{"committed", "no_change", "rejected", "deferred", "fenced_rejected"} {
 		t.Run(scenario, func(t *testing.T) {
 			trace := &ADKCapabilityTrace{}
 			if scenario == "committed" {
@@ -163,6 +191,9 @@ func TestOwnerLifeExecutionRepairPreservesCommittedEffectsAndDecisions(t *testin
 			calls := 0
 			router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
 				calls++
+				if scenario == "fenced_rejected" {
+					return fakeProviderResult{Text: "```json\n{\"decision\":\"rejected\",\"reason\":\"暂时不想换装\"}\n```"}
+				}
 				if scenario == "rejected" || scenario == "deferred" {
 					return fakeProviderResult{Structured: map[string]any{"decision": scenario, "reason": "暂时不想换装"}}
 				}
@@ -182,7 +213,7 @@ func TestOwnerLifeExecutionRepairPreservesCommittedEffectsAndDecisions(t *testin
 				JSONMode:    true, SchemaName: "owner_life_request_decision", ResponseSchema: ownerLifeDecisionSchema(),
 			})
 			want := 2
-			if scenario == "rejected" || scenario == "deferred" {
+			if scenario == "rejected" || scenario == "deferred" || scenario == "fenced_rejected" {
 				want = 1
 			}
 			if err != nil || calls != want {
