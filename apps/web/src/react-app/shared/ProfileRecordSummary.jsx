@@ -108,34 +108,55 @@ export function ProfileNote({ value, label }) {
   return text ? <p>{label && <b>{label}：</b>}{text}</p> : null;
 }
 
-/** @param {{ value: any, identity?: object, activeProfileId?: string | null }} props */
-export function WorkingPortraitSummary({ value, identity, activeProfileId }) {
+const portraitPolicyValues = {
+  response_style: { warm: "温暖" },
+  message_length: { short: "简短", medium: "适中", long: "详细" },
+  punctuation_style: { natural: "自然" },
+  humor_style: { gentle: "温和" },
+  conflict_style: { direct: "直接", gentle: "温和" },
+  refusal_style: { clear: "清晰" },
+  intimacy_expression: { reserved: "含蓄" },
+};
+
+/** @param {{ value: any, identity?: object, activeProfileId?: string | null, localizePolicy?: boolean }} props */
+export function WorkingPortraitSummary({ value, identity, activeProfileId, localizePolicy = false }) {
   const working = workingPersonaPresentation(value);
   if (activeProfileId !== undefined && typeof working?.profile_id === "string" && working.profile_id !== activeProfileId) {
     return <p>当前人格的表达画像尚未读回，可下载留存记录核对。</p>;
   }
   const text = working?.portrait_text ?? working?.working_persona?.portrait_text;
   const rows = typeof text === "string" ? portraitPresentation(text, { includeOccurrences: true }) : [];
-  const reading = rows.flatMap((line) => {
-    if (line.field) {
-      const value = profileFieldsForReading(line.value, true);
-      return value === undefined ? [] : [{ ...line, value }];
+  const reading = rows.flatMap((row) => {
+    const source = localizePolicy && row.text?.match(/^用户原文(?:\s*[:：]\s*|\s+)([a-z][a-z\d_]*)\s*[:：]\s*(.*)$/);
+    if (source) {
+      const [, field, raw] = source;
+      const value = profileFieldsForReading({ [field]: raw }, narrativeFields)?.[field];
+      return value === undefined ? [] : [{ field, value, userSource: true }];
     }
-    if (/^\s*[a-z][a-z\d_]*\s*[:：]/i.test(line.text)) return [];
-    const text = profileText(line.text);
+    if (row.field) {
+      const value = profileFieldsForReading(row.value, true);
+      return value === undefined ? [] : [{ ...row, value }];
+    }
+    if (/^\s*[a-z][a-z\d_]*\s*[:：]/i.test(row.text)) return [];
+    const text = profileText(row.text);
     return text ? [{ text }] : [];
   });
   if (!reading.length) {
     return <ProfileFieldsSummary value={working?.working_persona ?? working} shape={personalityShape} identity={identity} />;
   }
   return <div data-testid="current-working-portrait">
-    {reading.map((line, index) => line.field ? (
-      <p key={index}>
+    {reading.map((line, index) => {
+      if (!line.field) return <p key={index}>{line.text}</p>;
+      const policy = localizePolicy && Object.hasOwn(behavioralFields, line.field);
+      const labels = (policy && portraitPolicyValues[line.field]) || {};
+      const value = Object.hasOwn(labels, line.value) ? labels[line.value] : line.value;
+      return <p key={index}>
+        {line.userSource && <span>用户原文 · </span>}
         <b>{readingFieldLabel(line.field)}：</b>
-        <SemanticTree value={line.value} field={line.field} identity={identity} reading />
+        {policy || line.userSource ? value : <SemanticTree value={line.value} field={line.field} identity={identity} reading />}
         {line.occurrences > 1 && <small className="r-muted">（原文出现 {line.occurrences} 次）</small>}
-      </p>
-    ) : <p key={index}>{line.text}</p>)}
+      </p>;
+    })}
   </div>;
 }
 

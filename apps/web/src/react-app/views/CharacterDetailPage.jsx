@@ -531,7 +531,7 @@ export default function CharacterDetailPageView({ model: m }) {
                     <h3>当前表达画像</h3>
                     {!workingProfileMismatch && working?.status && <Badge variant="outline">{stateLabel(working.status)}</Badge>}
                   </div>
-                  <WorkingPortraitSummary value={workingSource} activeProfileId={snapshot.activeProfileId} identity={identity} />
+                  <WorkingPortraitSummary value={workingSource} activeProfileId={snapshot.activeProfileId} identity={identity} localizePolicy />
                   <ProfileDiagnostic value={workingSource} title="原始表达画像记录（诊断）" />
                   <span>人格设定与最近生活共同影响此刻的表达</span>
                 </Surface>

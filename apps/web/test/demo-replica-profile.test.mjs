@@ -503,7 +503,9 @@ test('r20 current portrait translates declared scalar rows and shows same-value 
     await act(async()=>f.c.read());await f.v.flush();
     const portrait=f.v.host.querySelector('[data-testid=current-working-portrait]');
     assert.ok(portrait);assert.match(portrait.textContent,/回复风格/);assert.match(portrait.textContent,/标点风格/);assert.match(portrait.textContent,/幽默风格/);assert.match(portrait.textContent,/冲突风格/);assert.match(portrait.textContent,/拒绝风格/);assert.match(portrait.textContent,/亲密表达/);
-    assert.match(portrait.textContent,/原文出现 2 次/);assert.doesNotMatch(portrait.textContent,/unknown_portrait: custom/);assert.match(portrait.textContent,/用户原文 conflict_style: direct/);
+    assert.match(portrait.textContent,/原文出现 2 次/);assert.doesNotMatch(portrait.textContent,/unknown_portrait: custom/);
+    assert.match(portrait.querySelector('p:last-child').textContent, /^用户原文 · 冲突风格：直接$/);
+    assert.doesNotMatch(portrait.textContent, /\bconflict_style\b|\bdirect\b/);
     assert.equal(portrait.querySelectorAll('p').length,8);
     assert.equal(f.api.state('A').detail.persona_compilation.working_persona.portrait_text,original);
     const note = f.v.host.querySelector('.companion-portrait-note');
@@ -523,4 +525,45 @@ test('r20 current portrait translates declared scalar rows and shows same-value 
       anchor.click = click;
     }
   }finally{await f.dispose();}
+});
+
+test("current portrait localizes user-sourced policy rows and preserves free text", async () => {
+  const f = await fixture();
+  try {
+    f.api.state("A").detail.persona_compilation.working_persona.portrait_text = [
+      "用户原文 response_style: warm",
+      "用户原文：message_length：medium",
+      "用户原文 humor_style: gentle",
+      "用户原文 conflict_style: 先让我说完，再一起讨论",
+      "用户原文 refusal_style: active",
+      "用户原文 directness: 0.65",
+      "用户原文 extra_preference: 先问我是否方便",
+      "用户原文说，别替我做决定。",
+      "用户原文 id: portrait-record",
+      "用户原文 revision: 42",
+      "用户原文 source_ref: origin-key",
+      "用户原文 idempotency_key: retry-key",
+      "用户原文 metrics: metric-value",
+      "用户原文 message_length:",
+    ].join("\n");
+    await act(async () => f.c.read());
+    await f.v.flush();
+
+    const note = f.v.host.querySelector(".companion-portrait-note");
+    const portrait = note.querySelector('[data-testid="current-working-portrait"]');
+    assert.deepEqual([...portrait.querySelectorAll("p")].map(row => row.textContent), [
+      "用户原文 · 回复风格：温暖",
+      "用户原文 · 消息长度：适中",
+      "用户原文 · 幽默风格：温和",
+      "用户原文 · 冲突风格：先让我说完，再一起讨论",
+      "用户原文 · 拒绝风格：active",
+      "用户原文 · 直接性：0.65",
+      "用户原文 · 补充说明：先问我是否方便",
+      "用户原文说，别替我做决定。",
+    ]);
+    assert.doesNotMatch(note.textContent, /\b(?:id|revision|source_ref|idempotency_key|metrics)\b|portrait-record|42|origin-key|retry-key|metric-value|尚未记录/);
+    assert.ok(button(note, "原始表达画像记录（诊断）"));
+  } finally {
+    await f.dispose();
+  }
 });
