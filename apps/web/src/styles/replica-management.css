@@ -105,6 +105,7 @@
 @media(max-width:700px){.replica-data-stats{gap:8px}.replica-data-stats>section{padding:12px!important}.replica-data-stats strong{font-size:22px}.replica-data-stats small{font-size:9px}.replica-task-row{grid-template-columns:30px minmax(0,1fr) auto;gap:10px}.replica-task-row>svg{display:none}.replica-task-summary{padding:17px}.replica-task-detail button{min-height:44px}.replica-task-detail .replica-page-heading{gap:15px}}
 .replica-data{display:grid;gap:28px;min-width:0}
 .replica-data-main,.replica-data .data-tools-grid{display:grid;gap:20px;min-width:0;grid-template-columns:1fr}
+.replica-data-main{grid-auto-rows:max-content;align-content:start}
 .replica-data-domain .replica-management-nav a{justify-content:flex-start;text-align:left;gap:10px;padding:12px 14px;height:auto;min-height:44px;font-size:12px!important;color:#7d8875!important;border:1px solid transparent!important;white-space:normal;background:transparent!important;width:100%;border-radius:8px}
 .replica-data-domain .replica-management-nav a[aria-current=page]{background:#eaf0e2!important;color:#4b663e!important;border-color:#dce5d3!important;font-weight:600}
 .replica-data-domain [data-slot=card]{padding:24px;border-radius:11px;min-width:0}
