@@ -17,7 +17,7 @@ import { Surface, FieldInput, Textarea, Disclosure, Badge } from "../controls";
 import { useWorkspace } from "../page";
 import { jsonValueSnapshot } from "@/state/view-model";
 import { day } from "@/state/workspace.mjs";
-import { previousDiaryDate } from "@/approved-ui/diary-generation.mjs";
+import { diaryAttemptStatus, diaryStatuses as statuses, previousDiaryDate } from "@/approved-ui/diary-generation.mjs";
 import { errorMessage } from "@/v3/domain-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
@@ -27,14 +27,6 @@ import JsonDetails from "../shared/JsonDetails";
 import LoadingState from "../shared/LoadingState";
 import WorkspaceInfo from "../shared/WorkspaceInfo";
 import { EmptyState, InlineFeedback } from "../shared/Presentation";
-const statuses = {
-  pending: "等待整理",
-  running: "正在回顾",
-  ready: "已经写下",
-  no_content: "无正文",
-  failed: "整理未完成",
-  inactive: "尚未运行",
-};
 const empty = () => ({ items: [], cursor: "", ready: false });
 const field = (label, control) => (
   <label className="replica-field">
@@ -58,7 +50,7 @@ export function DiaryProvenance({ entry }) {
       {entry.attempts?.map((attempt, index) => (
         <div className="lp-source-card" key={attempt.id || index}>
           <p>
-            第 {attempt.attempt ?? index + 1} 次整理 · {statuses[attempt.status] || "状态待确认"}
+            第 {attempt.attempt ?? index + 1} 次整理 · {diaryAttemptStatus(attempt.status)}
             {attempt.created_at && <> · <time dateTime={attempt.created_at}>{userInstant(attempt.created_at)}</time></>}
           </p>
           {attempt.task_id && (

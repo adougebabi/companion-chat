@@ -14,6 +14,14 @@ function readableRecord(value,field=""){
 }
 export function JsonDetails(value,label='查看完整内容'){return `<details data-domain-ui="disclosure" class="mgmt small muted"><summary>${esc(label)}</summary>${readableRecord(value)}</details>`;}
 
+export function RawRecordDownload(value, label) {
+  if (value == null || value === '' || (typeof value === 'object' && !Object.keys(value).length)) return '';
+  const json = JSON.stringify(value, null, 2);
+  if (json === undefined) return '';
+  const href = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
+  return `<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" download="fluctlight-record.json" href="${esc(href)}">${esc(label)}</a>`;
+}
+
 export function RecordDetails(rows,{empty='尚无记录'}={}) {
   return rows.length?rows.map(row=>`<details data-domain-ui="disclosure" class="lrow block"><summary>${esc(row.reason || row.title || row.status || row.id || row.operation || '来源记录')}</summary><pre class="[white-space:pre-wrap] [overflow-wrap:anywhere]">${esc(JSON.stringify(row,null,2))}</pre></details>`).join(''):`<p class="small muted">${esc(empty)}</p>`;
 }

@@ -1,4 +1,5 @@
 import {errorMessage} from '../v3/domain-presentation.mjs';
+import {diaryAttemptStatus} from '../approved-ui/diary-generation.mjs';
 import {openPromise} from '../v3/proto/components/promise-catalogue.js';
 import {sourceHref,sourceReturn} from '../v3/proto/components/source-navigation.js';
 import {mountCalendarReading,localDate,reconcileReadingRecord} from '../v3/proto/components/calendar-reading.js';
@@ -7,8 +8,7 @@ import * as store from '../v3/proto/store.js';
 import {asyncPage,instant} from '../v3/proto/components/async-page.js';
 import {CursorPager,bindCursorPager} from '../v3/proto/components/cursor-pager.js';
 import {Field,Tabs,Toggle} from '../v3/proto/components/forms.js';
-import {JsonDetails} from '../v3/proto/components/records.js';
-import {ConflictPanel} from '../v3/proto/components/revisions.js';
+import {JsonDetails,RawRecordDownload} from '../v3/proto/components/records.js';
 import {beginDraftSubmission,settleDraftSubmission} from '../v3/proto/components/draft-submission.js';
 import {esc,badge,confirm,drawer,toast} from '../v3/proto/ui.js';
 
@@ -51,13 +51,56 @@ export function renderRealDiaryList(el,ctx){
  return()=>{active=false;generationDrawer?.close();reader();};
 }
 
-function sourceRows(fid,entry){
- const wanted=new Set(entry.refs);
- return (entry.source_snapshot?.sources||[]).filter(s=>wanted.has(s.ref)).map(source=>{
+function diarySources(fid,entry){
+ const refs=new Set(entry.refs||[]),sources=entry.source_snapshot?.sources||[];
+ const communication=sources.filter(source=>source.kind==='remote_communication').length;
+ const rows=sources.filter(source=>refs.has(source.ref)).map(source=>{
+  const remote=source.kind==='remote_communication';
+  const event=source.kind==='confirmed_life_event'||source.ref.startsWith('event:');
+  if(!remote&&!event)return '';
   const id=source.ref.replace(/^[^:]+:/,'');
-  const link=source.kind==='remote_communication'?`#/c/${encodeURIComponent(fid)}/chat?${new URLSearchParams({conversation:source.conversation_id,message:id})}`:`#/c/${encodeURIComponent(fid)}/world/event/${encodeURIComponent(id)}`;
-  return `<div data-domain-ui="item" class="lrow"><a class="grow" href="${esc(link)}">${esc(source.kind==='remote_communication'?'原交流消息':'已确认生活事件')} ${esc(id)}</a>${source.kind==='remote_communication'?badge('远程交流','plain'):''}${JsonDetails(source,'查看原来源快照')}</div>`;
- }).join('')||'<p class="small muted">还没有已提交正文的引用来源；生成尝试和没有产出的原因见下方。</p>';
+  const link=remote
+   ?(id&&source.conversation_id?`#/c/${encodeURIComponent(fid)}/chat?${new URLSearchParams({conversation:source.conversation_id,message:id})}`:'')
+   :(id?`#/c/${encodeURIComponent(fid)}/world/event/${encodeURIComponent(id)}`:'');
+  const label=remote?'原交流消息':'已确认生活事件';
+  const excerpt=remote?source.text:[source.activity,source.scene,source.location].filter(value=>typeof value==='string'&&value.trim()).join(' · ');
+  const time=remote?source.at:source.start_at;
+  return `<div data-domain-ui="item" class="lrow"><div class="grow">
+   ${link?`<a href="${esc(link)}">${label}</a>`:`<b>${label}</b>`}
+   ${time?`<p class="small muted"><time datetime="${esc(time)}">${esc(instant(time))}</time></p>`:''}
+   ${typeof excerpt==='string'&&excerpt.trim()?`<p class="memory-content">${esc(excerpt)}</p>`:''}
+  </div></div>`;
+ }).join('');
+ return `${sources.length?`<p class="small muted">可用素材 ${sources.length} 条${communication?`（远程交流 ${communication} 条）`:''}</p>`:''}
+  ${refs.size?`<p class="small muted">正文引用来源 ${refs.size} 条</p>`:''}
+  ${rows}
+  ${RawRecordDownload(entry,'原始日记记录（诊断）')}`;
+}
+
+function diaryAttemptRow(attempt,index){
+ const time=attempt.created_at;
+ const reason=typeof attempt.plan?.reason==='string'?attempt.plan.reason.trim():'';
+ const explanation=attempt.error_code
+  ?errorMessage({code:attempt.error_code},'这次整理遇到问题，请查看原任务诊断。')
+  :reason==='no_source_material'?'没有可用于整理的素材。':/^[a-z\d]+(?:[_:][a-z\d]+)+$/i.test(reason)?'':reason;
+ return `<div data-domain-ui="item" class="lrow"><div class="grow">
+  <p>第 ${esc(attempt.attempt??index+1)} 次整理 · ${diaryAttemptStatus(attempt.status)}${time?` · <time datetime="${esc(time)}">${esc(instant(time))}</time>`:''}</p>
+  ${explanation?`<p class="small muted">${esc(explanation)}</p>`:''}
+ </div>${attempt.task_id?`<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" href="#/diag/task/${encodeURIComponent(attempt.task_id)}">查看原任务</a>`:''}</div>`;
+}
+
+function diaryAnnotationConflict(annotation){
+ return `<div data-domain-ui="alert" class="banner err" role="alert" data-test="conflict">已保存的注记或收藏状态已更新。你的草稿已保留。</div>
+  <div class="stack">
+   <b>最新已保存注记</b>
+   <p>${annotation.favorite?'已收藏':'未收藏'}</p>
+   ${annotation.note?`<p class="memory-content">${esc(annotation.note)}</p>`:''}
+   ${RawRecordDownload(annotation,'原始注记记录（诊断）')}
+  </div>
+  <div class="row [margin:8px_0]">
+   <button data-domain-ui="button" type="button" data-domain-variant="outline" data-domain-size="default" data-keep>保留草稿</button>
+   <button data-domain-ui="button" type="button" data-domain-variant="default" data-domain-size="default" data-refresh>采用最新注记并保留草稿</button>
+  </div>`;
 }
 export function renderRealDiaryEntry(el,ctx){
  const fid=ctx.charId,id=ctx.params.entryId,owner=store.get('session')?.actorId,key=JSON.stringify([owner,fid,id]);
@@ -72,20 +115,27 @@ export function renderRealDiaryEntry(el,ctx){
   const draft=drafts.get(key);
   if(!draft.dirty&&!draft.pending.note&&entry.annotation.revision>=draft.base)Object.assign(draft,{note:entry.annotation.note,favorite:entry.annotation.favorite,base:entry.annotation.revision});
   const conflict=draft.base<entry.annotation.revision;
-  el.innerHTML=`<div class="stack reading-workspace"><div class="row reading-page-heading"><h1 class="reading-business-title grow">${esc(entry.date)} · 日记</h1><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-open-note>收藏与注记${draft.dirty?' · 有草稿':''}</button></div><div class="reading-paper life-reading-paper"><div class="row diary-entry-head">${badge('角色主观记录','plain')}${badge(labels[entry.status]||entry.status)}<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-reload>重新读取</button></div><p class="small muted">按日记原日期归档 · 正文来源：独立人物表达 · v${esc(entry.revision)}</p>${entry.body?`<p class="memory-content">${esc(entry.body)}</p>`:`<p>${entry.status==='no_content'?'这次没有足够或适合的素材形成日记。可以继续交流、生活，之后回顾相应日期。':'尚无已提交正文。请查看实际任务和状态，受理不代表已经生成。'}</p>`}${entry.last_error_code?`<p data-domain-ui="alert" class="banner err" role="alert">${esc(errorMessage(entry.last_error_code,'这篇日记没有生成，请查看任务原因后重试。'))}</p>`:''}${['failed','inactive'].includes(entry.status)?'<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-retry>按当前状态重新生成</button>':''}<p data-generation-feedback role="alert"></p></div><section data-domain-ui="card" class="card reading-annotation"><div class="row"><h3 class="grow">你的收藏与注记</h3><span data-saved-favorite>${entry.annotation.favorite?badge('已收藏','plain'):''}</span></div><p class="memory-content" data-saved-note>${esc(entry.annotation.note||'还没有已保存的注记。')}</p><p class="small muted" data-note-receipt>${draft.pending.note?'原注记正在保存，期间的新草稿将保留。':draft.dirty?'你有尚未保存的注记草稿。':'注记属于你，不修改她的主观正文。'}</p></section><details data-domain-ui="disclosure" class="card reading-secondary"><summary>素材与来源</summary>${sourceRows(fid,entry)}${JsonDetails(entry.persona_provenance,'本次表达所用人格版本')}${JsonDetails(entry.model_provenance,'模型来源与关联标识')}</details><details data-domain-ui="disclosure" class="card reading-secondary"><summary>生成尝试与实际任务</summary>${(entry.attempts||[]).map(a=>`<div data-domain-ui="item" class="lrow"><div class="grow"><b>尝试 ${esc(a.attempt)} · ${esc(labels[a.status]||a.status)}</b><p class="small muted">${esc(instant(a.created_at))} · ${esc(a.error_code||a.plan?.reason||'')}</p></div>${a.task_id?`<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" href="#/diag/task/${encodeURIComponent(a.task_id)}">实际任务</a>`:''}</div>`).join('')}${entry.has_more_attempts?'<p class="small muted">显示最近20次尝试；更早执行记录仍保留在任务诊断中。</p>':''}</details><div data-note-host hidden><form class="stack" data-note><h3>你的收藏与注记</h3><p class="small muted">这些字段属于你，不修改她的主观正文。</p>${conflict?ConflictPanel({baseVersion:draft.base,currentVersion:entry.annotation.revision}):''}${Toggle({label:'收藏这篇日记',name:'favorite',checked:draft.favorite})}${Field({label:'你的注记',name:'note',type:'textarea',value:draft.note,attrs:{maxlength:5000}})}<div class="row"><button data-domain-ui="button" type="button" data-domain-variant="outline" data-domain-size="default" data-reset ${draft.pending.note?'disabled':''}>撤销草稿</button><button data-domain-ui="button" data-domain-variant="default" data-domain-size="default" ${conflict||draft.pending.note?'disabled':''}>保存注记</button></div><p data-domain-ui="alert" role="alert" data-note-error></p>${conflict?JsonDetails(entry.annotation,'最新已保存注记（草稿保留）'):''}</form></div><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="${esc(sourceReturn(ctx,`#/c/${fid}/life/diary`))}">${esc(ctx.query.returnLabel||'返回日记')}</a></div>`;
+  el.innerHTML=`<div class="stack reading-workspace">
+   <div class="row reading-page-heading"><h1 class="reading-business-title grow">${esc(entry.date)} · 日记</h1><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-open-note>收藏与注记${draft.dirty?' · 有草稿':''}</button></div>
+   <div class="reading-paper life-reading-paper"><div class="row diary-entry-head">${badge('角色主观记录','plain')}${badge(labels[entry.status]||entry.status)}<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-reload>重新读取</button></div><p class="small muted">按日记原日期归档</p>${entry.body?`<p class="memory-content">${esc(entry.body)}</p>`:`<p>${entry.status==='no_content'?'这次没有足够或适合的素材形成日记。可以继续交流、生活，之后回顾相应日期。':'尚无已提交正文。请查看实际任务和状态，受理不代表已经生成。'}</p>`}${entry.last_error_code?`<p data-domain-ui="alert" class="banner err" role="alert">${esc(errorMessage(entry.last_error_code,'这篇日记没有生成，请查看任务原因后重试。'))}</p>`:''}${['failed','inactive'].includes(entry.status)?'<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-retry>按当前状态重新生成</button>':''}<p data-generation-feedback role="alert"></p></div>
+   <section data-domain-ui="card" class="card reading-annotation"><div class="row"><h3 class="grow">你的收藏与注记</h3><span data-saved-favorite>${entry.annotation.favorite?badge('已收藏','plain'):''}</span></div><p class="memory-content" data-saved-note ${entry.annotation.note?'':'hidden'}>${esc(entry.annotation.note)}</p><p class="small muted" data-note-receipt>${draft.pending.note?'原注记正在保存，期间的新草稿将保留。':draft.dirty?'你有尚未保存的注记草稿。':'注记属于你，不修改她的主观正文。'}</p></section>
+   <details data-domain-ui="disclosure" class="card reading-secondary"><summary>素材与来源</summary>${diarySources(fid,entry)}</details>
+   <details data-domain-ui="disclosure" class="card reading-secondary"><summary>生成尝试与实际任务</summary>${(entry.attempts||[]).map(diaryAttemptRow).join('')}${entry.has_more_attempts?'<p class="small muted">显示最近20次尝试；更早执行记录仍保留在任务诊断中。</p>':''}</details>
+   <div data-note-host hidden><form class="stack" data-note><h3>你的收藏与注记</h3><p class="small muted">这些字段属于你，不修改她的主观正文。</p>${conflict?diaryAnnotationConflict(entry.annotation):''}${Toggle({label:'收藏这篇日记',name:'favorite',checked:draft.favorite})}${Field({label:'你的注记',name:'note',type:'textarea',value:draft.note,attrs:{maxlength:5000}})}<div class="row"><button data-domain-ui="button" type="button" data-domain-variant="outline" data-domain-size="default" data-reset ${draft.pending.note?'disabled':''}>撤销草稿</button><button data-domain-ui="button" data-domain-variant="default" data-domain-size="default" type="submit" ${conflict||draft.pending.note?'disabled':''}>保存注记</button></div><p data-domain-ui="alert" role="alert" data-note-error></p></form></div>
+   <a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="${esc(sourceReturn(ctx,`#/c/${fid}/life/diary`))}">${esc(ctx.query.returnLabel||'返回日记')}</a></div>`;
   el.querySelector('[data-reload]').onclick=reload;
   el.querySelector('[data-retry]')?.addEventListener('click',async event=>{event.target.disabled=true;try{await diaryClient.generate(fid,{localDate:entry.date,timezone:entry.timezone,expectedRevision:entry.revision,reason:'Owner在失败或未运行后明确重试日记'});if(alive())await reload();}catch(error){if(alive()){el.querySelector('[data-generation-feedback]').textContent=errorMessage(error);event.target.disabled=false;}}});
   const note=el.querySelector('[data-note]'),host=el.querySelector('[data-note-host]');let noteDrawer;
   el.querySelector('[data-open-note]').onclick=()=>{noteDrawer=drawer({title:'你的收藏与注记',onClose:()=>{host.append(note);noteDrawer=null;}});noteDrawer.body.append(note);};note.oninput=note.onchange=()=>{draft.note=note.note.value;draft.favorite=note.favorite.checked;draft.dirty=true;el.querySelector('[data-open-note]').textContent='收藏与注记 · 有草稿';if(!draft.pending.note)el.querySelector('[data-note-receipt]').textContent='你有尚未保存的注记草稿。';};
   el.querySelector('[data-reset]').onclick=()=>{if(draft.pending.note)return;draft.dirty=false;void reload();};
   el.querySelector('[data-keep]')?.addEventListener('click',()=>{note.querySelector('[data-note-error]').textContent='注记草稿已保留。';});
-  el.querySelector('[data-refresh]')?.addEventListener('click',async()=>{if(await confirm({title:'核对最新注记后采用新基线',text:'保留当前草稿。请核对上方最新已保存注记，后续保存会基于它的版本。',identity:'所有者修改'})&&alive()){draft.base=entry.annotation.revision;void reload();}});
+  el.querySelector('[data-refresh]')?.addEventListener('click',async()=>{if(await confirm({title:'采用最新注记并保留草稿',text:'请先核对最新已保存的注记和收藏状态。确认后仍可编辑并保存你的草稿。',identity:'所有者修改'})&&alive()){draft.base=entry.annotation.revision;void reload();}});
   const settled=(channel,error,saved)=>{
    if(!alive())return;
    if(channel==='note'){
-    note.querySelector('[data-domain-variant=default]').disabled=draft.base<entry.annotation.revision;
+    note.querySelector('button[type=submit]').disabled=draft.base<entry.annotation.revision;
     note.querySelector('[data-reset]').disabled=false;
-    if(saved){el.querySelector('[data-saved-note]').textContent=saved.note||'还没有已保存的注记。';el.querySelector('[data-saved-favorite]').innerHTML=saved.favorite?badge('已收藏','plain'):'';}
+    if(saved){const savedNote=el.querySelector('[data-saved-note]');savedNote.textContent=saved.note;savedNote.hidden=!saved.note;el.querySelector('[data-saved-favorite]').innerHTML=saved.favorite?badge('已收藏','plain'):'';}
     el.querySelector('[data-note-receipt]').textContent=(error?errorMessage(error):'')||(draft.dirty?'本次提交已保存，期间的新草稿保留。':'注记已保存');
     note.querySelector('[data-note-error]').textContent=(error?errorMessage(error):'')||(draft.dirty?'本次提交已保存，期间的新草稿保留。':'注记已保存');
     if(!error)toast(draft.dirty?'注记已保存，新草稿已保留':'注记已保存');if(error?.status===409||(!error&&!draft.dirty))void reload();
@@ -96,7 +146,7 @@ export function renderRealDiaryEntry(el,ctx){
   note.onsubmit=async event=>{
    event.preventDefault();if(draft.pending.note||draft.base<entry.annotation.revision)return;
    const submission=beginDraftSubmission(draft,'note',{favorite:draft.favorite,note:draft.note});
-   note.querySelector('[data-domain-variant=default]').disabled=true;note.querySelector('[data-reset]').disabled=true;
+   note.querySelector('button[type=submit]').disabled=true;note.querySelector('[data-reset]').disabled=true;
    try{
     const saved=await diaryClient.annotate(fid,id,{...submission.value,expectedRevision:draft.base});
     if(drafts.get(key)!==draft)return;
