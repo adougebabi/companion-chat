@@ -22,7 +22,6 @@ import {
   Textarea,
   FieldInput,
   Badge,
-  Disclosure,
 } from "../controls";
 import CharacterAvatar from "../shared/CharacterAvatar";
 import SemanticTree, { hasVisibleSemanticValue } from "../shared/SemanticTree";
@@ -33,7 +32,11 @@ import WorkspacePageHeader from "../shared/WorkspacePageHeader";
 import WorkspaceDialog from "../shared/WorkspaceDialog";
 import WorkspaceInfo from "../shared/WorkspaceInfo";
 import LoadingState from "../shared/LoadingState";
-import JsonDetails from "../shared/JsonDetails";
+import {
+  ProfileDiagnostic, ProfileFieldsSummary, ProfileNote, ProfileTime, profileText,
+  profileFieldsForReading, personalityShape, behaviorShape, lifeShape,
+  systemShape, currentStateShape, WorkingPortraitSummary,
+} from "../shared/ProfileRecordSummary";
 import RequestStatus from "../shared/RequestStatus";
 import WearingSummary from "../shared/WearingSummary";
 import useWorkspaceRead from "../shared/useWorkspaceRead";
@@ -43,11 +46,8 @@ import { profileChanges } from "@/approved-ui/profile-fields.mjs";
 import {
   semanticEntries,
   workingPersonaPresentation,
-  portraitPresentation,
 } from "@/approved-ui/profile-presentation.mjs";
-import { semanticLabel } from "@/v3/proto/components/semantic-fields.js";
 import { stateLabel } from "@/v3/domain-presentation.mjs";
-import { userInstant } from "@/v3/presentation-time.mjs";
 const traitLabels = {
   openness: "开放性",
   conscientiousness: "尽责性",
@@ -72,11 +72,10 @@ const field = (label, control) => (
 function Value({ value, field = "", identity }) {
   return hasVisibleSemanticValue(value, field, identity) ? (
     <SemanticTree value={value} field={field} identity={identity} />
-  ) : (
-    <span className="profile-empty-value">尚未提供</span>
-  );
+  ) : null;
 }
 function Fact({ label, value, field, identity }) {
+  if (!hasVisibleSemanticValue(value, field, identity)) return null;
   return (
     <div className="profile-key-value">
       <span>{label}</span>
@@ -86,10 +85,13 @@ function Fact({ label, value, field, identity }) {
     </div>
   );
 }
-function OverviewFacts({entries,identity}) {
-  const visible=entries.filter(([label,key,value])=>hasVisibleSemanticValue(value,key,identity));
-  const missing=entries.filter(([label,key,value])=>!hasVisibleSemanticValue(value,key,identity));
-  return <>{visible.length>0&&<div className="companion-fact-grid">{visible.map(([label,key,value])=><Fact key={key} label={label} value={value} field={key} identity={identity}/>)}</div>}{missing.length>0&&<p className="profile-empty-value">尚未填写：{missing.map(([label])=>label).join("、")}。可以通过本区编辑入口补充。</p>}</>;
+function OverviewFacts({ entries, identity }) {
+  const visible = entries.filter(([, key, value]) => hasVisibleSemanticValue(value, key, identity));
+  return visible.length > 0 && (
+    <div className="companion-fact-grid">
+      {visible.map(([label, key, value]) => <Fact key={key} label={label} value={value} field={key} identity={identity} />)}
+    </div>
+  );
 }
 function Section({ title, description, action, children, className = "" }) {
   return (
@@ -106,6 +108,7 @@ function Section({ title, description, action, children, className = "" }) {
   );
 }
 function Block({ title, value, identity, field = "" }) {
+  if (!hasVisibleSemanticValue(value, field, identity)) return null;
   return (
     <div className="companion-reading-block">
       <h3>{title}</h3>
@@ -250,33 +253,42 @@ export default function CharacterDetailPageView({ model: m }) {
     m.last?.value?.readbackPending
       ? m.recoverProfileReadback()
       : m.read({ preserve: m.editing.value });
-  const biography = snapshot.bio || "",
+  const biography = profileText(snapshot.bio),
     tags = Array.isArray(identity.tags)
       ? identity.tags.filter((v) => typeof v === "string")
       : [];
   const policyFact = (key) => {
     const policy = core.behavioral_policy;
-    const value = Object.hasOwn(policy, key)
+    const recorded = Object.hasOwn(policy, key)
       ? policy[key]
       : Object.hasOwn(policy.expression || {}, key)
         ? policy.expression[key]
         : key === "response_style"
           ? policy.reply_style
           : undefined;
+    const value = profileFieldsForReading(recorded, true);
     return key === "message_length"
       ? { short: "简短", medium: "适中", long: "详细" }[value] || value
       : value;
   };
-  const working = workingPersonaPresentation(
-      snapshot.groups.find((group) => group.key === "working")?.value || {},
-    ),
+  const primaryPolicyFields = ["response_style", "reply_style", "message_length", "conflict_style", "refusal_style"];
+  const extraPolicy = { ...core.behavioral_policy, expression: { ...core.behavioral_policy.expression } };
+  for (const key of primaryPolicyFields) {
+    const shown = policyFact(key === "reply_style" ? "response_style" : key);
+    const display = (value) => key === "message_length" ? ({ short: "简短", medium: "适中", long: "详细" }[value] || value) : value;
+    if (display(extraPolicy[key]) === shown) delete extraPolicy[key];
+    if (display(extraPolicy.expression[key]) === shown) delete extraPolicy.expression[key];
+  }
+  const workingSource = snapshot.groups.find((group) => group.key === "working")?.value,
+    working = workingPersonaPresentation(workingSource),
     workingProfileMismatch = typeof working?.profile_id === "string" && working.profile_id !== snapshot.activeProfileId,
-    workingPortrait = !workingProfileMismatch && typeof working?.portrait_text === "string" ? working.portrait_text : "",
-    remainingSystem = Object.fromEntries(
-      Object.entries(d.core_persona?.personality_system || {}).filter(
-        ([key]) => key !== "profiles",
-      ),
-    );
+    switchSources = Array.isArray(d.persona_switch_history)
+      ? d.persona_switch_history.filter((row) => row && typeof row === "object" && !Array.isArray(row))
+      : [],
+    initialization = {
+      structured: "按资料设定创建", blank_slate: "从空白档案开始",
+      description: "根据描述创建", template: "使用创作模板创建",
+    }[d.initialization_source?.mode || d.initialization_mode];
   return (
     <div className="replica-profile companion-page">
       <WorkspacePageHeader
@@ -456,7 +468,7 @@ export default function CharacterDetailPageView({ model: m }) {
                     </Button>
                   }
                 >
-                  <OverviewFacts identity={identity} entries={[["称呼","nickname",identity.nickname],["年龄","age",identity.age],["职业","occupation",identity.occupation],["居住地","residence",identity.residence],["生活时区","timezone",identity.timezone],["出生地","birthplace",identity.birthplace]]}/>
+                  <OverviewFacts identity={identity} entries={[["称呼","nickname",identity.nickname],["年龄","age",identity.age],["职业","occupation",identity.occupation],["居住地","residence",profileFieldsForReading(identity.residence, currentStateShape.location)],["生活时区","timezone",identity.timezone],["出生地","birthplace",profileFieldsForReading(identity.birthplace, currentStateShape.location)]]}/>
                   {hasVisibleSemanticValue(biography)&&<Block title="简介与经历" value={biography} identity={identity}/>}
                   {hasVisibleSemanticValue(identity.biography) &&
                     identity.biography !== biography && (
@@ -483,12 +495,7 @@ export default function CharacterDetailPageView({ model: m }) {
                 >
                   <OverviewFacts identity={identity} entries={[["回复风格","response_style",policyFact("response_style")],["消息长短","message_length",policyFact("message_length")],["分歧处理","conflict_style",policyFact("conflict_style")],["拒绝方式","refusal_style",policyFact("refusal_style")]]}/>
                   {hasVisibleSemanticValue(identity.core_values)&&<Block title="核心价值观" value={identity.core_values} identity={identity}/>}
-                  <Disclosure title="完整表达与相处设定">
-                    <SemanticTree
-                      value={core.behavioral_policy}
-                      identity={identity}
-                    />
-                  </Disclosure>
+                  <ProfileFieldsSummary value={extraPolicy} shape={behaviorShape} identity={identity} />
                 </Section>
               </div>
               <div className="companion-stack">
@@ -516,20 +523,16 @@ export default function CharacterDetailPageView({ model: m }) {
                       当前尚未提供可读取的性格维度，这里保留留白。
                     </p>
                   )}
-                  <Disclosure title="完整性格与来源">
-                    <SemanticTree
-                      value={personality}
-                      field="personality"
-                      identity={identity}
-                    />
-                    <JsonDetails value={personality} title="性格完整记录" />
-                  </Disclosure>
+                  <ProfileFieldsSummary value={personality} shape={personalityShape} identity={identity} />
+                  <ProfileDiagnostic value={personality} title="原始性格记录（诊断）" />
                 </Section>
                 <Surface className="companion-portrait-note">
-                  <span className="companion-eyebrow">WORKING PERSONA</span>
-                  <div className="companion-row-between"><h3>当前表达画像</h3>{typeof working?.status==="string"&&working.status&&<Badge variant="outline">{stateLabel(working.status)}</Badge>}</div>
-                  {workingProfileMismatch?<p>当前人格的表达画像尚未读回，可核对保留的完整记录。</p>:workingPortrait?<div data-testid="current-working-portrait">{portraitPresentation(workingPortrait,{includeOccurrences:true}).map((line,index)=><p key={index}>{line.field?<><b>{semanticLabel(line.field)}：</b><Value value={line.value} field={line.field} identity={identity}/>{line.occurrences>1&&<small className="r-muted">（原文出现 {line.occurrences} 次）</small>}</>:line.text||'\u00a0'}</p>)}</div>:<Value value={working} identity={identity} />}
-                  {(workingPortrait||workingProfileMismatch)&&<JsonDetails value={working} title="表达画像完整记录与来源"/>}
+                  <div className="companion-row-between">
+                    <h3>当前表达画像</h3>
+                    {!workingProfileMismatch && working?.status && <Badge variant="outline">{stateLabel(working.status)}</Badge>}
+                  </div>
+                  <WorkingPortraitSummary value={workingSource} activeProfileId={snapshot.activeProfileId} identity={identity} />
+                  <ProfileDiagnostic value={workingSource} title="原始表达画像记录（诊断）" />
                   <span>人格设定与最近生活共同影响此刻的表达</span>
                 </Surface>
               </div>
@@ -580,10 +583,8 @@ export default function CharacterDetailPageView({ model: m }) {
                               : "人格档案"}
                           </Badge>
                         </div>
-                        <SemanticTree
-                          value={m.personaValue(p)}
-                          identity={identity}
-                        />
+                        <ProfileFieldsSummary value={m.personaValue(p)} identity={identity} />
+                        <ProfileDiagnostic value={p} title="原始人格档案（诊断）" />
                       </article>
                     ))}
                   </div>
@@ -597,21 +598,19 @@ export default function CharacterDetailPageView({ model: m }) {
                   <p className="companion-body-text">
                     人格切换和生活事实分别记录，实际穿着、所在世界和已经发生的经历继续以对应读面为准。
                   </p>
-                  <Value value={remainingSystem} identity={identity} />
+                  <ProfileFieldsSummary value={d.core_persona?.personality_system} shape={systemShape} identity={identity} />
                 </Section>
               </div>
               <Section
                 title="人格切换记录"
-                description="每次实际切换的目标、原因和版本可在这里查阅。"
+                description="查看实际切换的目标、时间和原因。"
               >
                 {snapshot.history.length ? (
                   <div className="companion-timeline">
                     {snapshot.history.map((item, index) => (
                       <div key={item.audit_id || item.id || index}>
                         <span className="companion-timeline-dot" />
-                        <small>
-                          {userInstant(item.occurred_at || item.created_at)}
-                        </small>
+                        <small><ProfileTime value={item.occurred_at || item.created_at} /></small>
                         <h4>
                           {m.personas.value.find(
                             (p) => p.id === item.from_profile_id,
@@ -621,8 +620,8 @@ export default function CharacterDetailPageView({ model: m }) {
                             (p) => p.id === item.to_profile_id,
                           )?.name || "目标人格"}
                         </h4>
-                        <p>{item.reason || "未记录额外说明。"}</p>
-                        <JsonDetails value={item} title="完整切换与版本记录" />
+                        <ProfileNote value={item.reason} label="切换原因" />
+                        <ProfileDiagnostic value={switchSources[index]} title="原始人格切换记录（诊断）" />
                       </div>
                     ))}
                   </div>
@@ -662,34 +661,7 @@ export default function CharacterDetailPageView({ model: m }) {
                   </Button>
                 }
               >
-                {[
-                  ["兴趣与偏好", core.life_profile.preferences],
-                  ["日常习惯", core.life_profile.life_habits],
-                  ["相处边界", core.life_profile.character_constraints],
-                  ["外貌特征", core.life_profile.appearance],
-                  [
-                    "生活设定的其他记录",
-                    Object.fromEntries(
-                      Object.entries(core.life_profile).filter(
-                        ([key]) =>
-                          ![
-                            "preferences",
-                            "life_habits",
-                            "character_constraints",
-                            "appearance",
-                            "wardrobe_items",
-                          ].includes(key),
-                      ),
-                    ),
-                  ],
-                ].map(([title, value]) => (
-                  <Block
-                    key={title}
-                    title={title}
-                    value={value}
-                    identity={identity}
-                  />
-                ))}
+                <ProfileFieldsSummary value={core.life_profile} shape={lifeShape} identity={identity} />
               </Section>
               <div className="companion-stack">
                 <Section title="此刻状态">
@@ -714,17 +686,17 @@ export default function CharacterDetailPageView({ model: m }) {
                   )}
                   <Fact
                     label="此刻地点"
-                    value={d.context?.location}
+                    value={profileFieldsForReading(d.context?.location, currentStateShape.location)}
                     identity={identity}
                   />
                   <Fact
                     label="正在做"
-                    value={d.context?.activity}
+                    value={profileFieldsForReading(d.context?.activity, currentStateShape.activity)}
                     identity={identity}
                   />
                   <Fact
                     label="心情"
-                    value={d.inner_state?.mood || d.current_state?.mood}
+                    value={profileFieldsForReading(d.inner_state?.mood || d.current_state?.mood, currentStateShape.mood)}
                     identity={identity}
                   />
                   <div className="profile-key-value">
@@ -735,10 +707,8 @@ export default function CharacterDetailPageView({ model: m }) {
                       error={w.state.errors?.wardrobe || ""}
                     />
                   </div>
-                  <Disclosure title="实际外观与状态记录">
-                    <Value value={d.current_state} identity={identity} />
-                    <JsonDetails value={d.current_state} title="原始当前状态" />
-                  </Disclosure>
+                  <ProfileFieldsSummary value={d.current_state} shape={currentStateShape} identity={identity} title="实际外观与状态" />
+                  <ProfileDiagnostic value={d.current_state} title="原始当前状态记录（诊断）" />
                   <div className="companion-action-row">
                     <Button
                       variant="outline"
@@ -780,7 +750,7 @@ export default function CharacterDetailPageView({ model: m }) {
                   )}
                   {claims.items.map((row) => (
                     <p className="companion-body-text" key={row.id}>
-                      {row.claim}
+                      {profileText(row.claim)}
                     </p>
                   ))}
                   {claims.ready && !claims.items.length && !claims.error && (
@@ -788,9 +758,8 @@ export default function CharacterDetailPageView({ model: m }) {
                       当前还没有读到已记录的认识。
                     </p>
                   )}
-                  <Disclosure title="档案中的发展记录">
-                    <Value value={d.developing_self} identity={identity} />
-                  </Disclosure>
+                  <ProfileFieldsSummary value={d.developing_self} shape={{ summary: true, claims: { claim: true, summary: true, description: true } }} identity={identity} title="档案中的发展记录" />
+                  <ProfileDiagnostic value={d.developing_self} title="原始发展记录（诊断）" />
                   <Button
                     variant="ghost"
                     className="companion-full-link"
@@ -826,19 +795,18 @@ export default function CharacterDetailPageView({ model: m }) {
                   {foundation.items.map((item) => (
                     <div key={item.id}>
                       <span className="companion-timeline-dot" />
-                      <small>
-                        {userInstant(item.accepted_at || item.created_at)}
-                      </small>
+                      <small><ProfileTime value={item.accepted_at || item.created_at} /></small>
                       <h4>
                         {item.source === "initialization"
                           ? "角色初始资料"
-                          : "身份修订 v" + item.revision}
+                          : "身份修订"}
                         <Badge variant="outline">
                           {stateLabel(item.status)}
                         </Badge>
                       </h4>
-                      <p>{item.reason || "未记录额外说明。"}</p>
-                      <JsonDetails value={item} title="该次修订与来源" />
+                      <ProfileNote value={item.reason} label="修订原因" />
+                      <ProfileFieldsSummary value={item.changes} identity={identity} title="本次修改" showClears />
+                      <ProfileDiagnostic value={item} title="原始资料修订记录（诊断）" />
                     </div>
                   ))}
                 </div>
@@ -881,24 +849,8 @@ export default function CharacterDetailPageView({ model: m }) {
                     <ArrowRightIcon size={14} />
                   </Button>
                 </Section>
-                <Section title="来源与版本">
-                  <Fact
-                    label="初始来源"
-                    value={
-                      d.initialization_source?.mode || d.initialization_mode
-                    }
-                    identity={identity}
-                  />
-                  <Fact
-                    label="身份核心版本"
-                    value={snapshot.foundationRevision}
-                    identity={identity}
-                  />
-                  <Fact
-                    label="人格运行版本"
-                    value={snapshot.runtimeRevision}
-                    identity={identity}
-                  />
+                <Section title="档案与来源">
+                  <Fact label="初始来源" value={initialization} identity={identity} />
                   <Button
                     variant="ghost"
                     className="companion-full-link"
@@ -1187,18 +1139,11 @@ export default function CharacterDetailPageView({ model: m }) {
         returnFocus={() => sourceTrigger.current}
         onOpenChange={setSourcesOpen}
         title="完整设定与来源"
-        description="读取当前正式档案、工作人格与版本记录。"
+        description="查看当前正式档案和创建来源。"
       >
-        <SemanticTree
-          value={{
-            identity: d.identity,
-            personality: d.personality,
-            behavioral_policy: d.behavioral_policy,
-            life_profile: d.life_profile,
-          }}
-          identity={identity}
-        />
-        <JsonDetails value={d} title="完整档案、版本与来源（可下载）" />
+        <ProfileNote value={initialization} label="初始来源" />
+        <ProfileFieldsSummary value={{ ...core, personality }} identity={identity} />
+        <ProfileDiagnostic value={d} title="原始角色档案（诊断）" />
       </WorkspaceDialog>
       {!m.editing.value && tab !== "persona" && (
         <ActionFeedback labels={["角色详情"]} />

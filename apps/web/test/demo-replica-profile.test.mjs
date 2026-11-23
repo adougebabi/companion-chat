@@ -8,6 +8,7 @@ const env = installDOM();
 const vite = await createServer({
   root: fileURLToPath(new URL("../", import.meta.url)),
   appType: "custom",
+  envFile: false,
   logLevel: "silent",
   server: { middlewareMode: true },
 });
@@ -130,7 +131,9 @@ test("profile uses actual trait scores and separates initial appearance from cur
     assert.match(f.v.host.textContent, /正式登记的白色衬衫/);
     assert.equal(f.api.state("A").detail.current_state.appearance, null);
     await tab(f.v, "修订与来源");
-    assert.match(f.v.host.textContent, /身份修订 v5/);
+    assert.match(f.v.host.textContent, /身份修订/);
+    assert.match(f.v.host.textContent, /把已有的生活偏好带入设定审阅/);
+    assert.doesNotMatch(f.v.host.textContent, /身份修订 v5|身份核心版本|人格运行版本/);
     assert.ok(
       f.api.calls.some((call) => call.path.endsWith("foundation-revisions")),
     );
@@ -484,11 +487,11 @@ test('current expression emphasizes the actual portrait text and never promotes 
  try{
   let note=f.v.host.querySelector('.companion-portrait-note');
   assert.match(note.querySelector('[data-testid="current-working-portrait"]').textContent,/愿意听完日常里的细节/);
-  assert.ok(button(note,'表达画像完整记录与来源'));
+  assert.ok(button(note,'原始表达画像记录（诊断）'));
   await act(async()=>{f.api.state('A').detail.persona_compilation.profile_id='focused';await f.c.read();});await f.v.flush();note=f.v.host.querySelector('.companion-portrait-note');
   assert.equal(note.querySelector('[data-testid="current-working-portrait"]'),null);
   assert.match(note.textContent,/当前人格的表达画像尚未读回/);
-  assert.ok(button(note,'表达画像完整记录与来源'));
+  assert.ok(button(note,'原始表达画像记录（诊断）'));
  }finally{await f.dispose();}
 });
 
@@ -500,10 +503,24 @@ test('r20 current portrait translates declared scalar rows and shows same-value 
     await act(async()=>f.c.read());await f.v.flush();
     const portrait=f.v.host.querySelector('[data-testid=current-working-portrait]');
     assert.ok(portrait);assert.match(portrait.textContent,/回复风格/);assert.match(portrait.textContent,/标点风格/);assert.match(portrait.textContent,/幽默风格/);assert.match(portrait.textContent,/冲突风格/);assert.match(portrait.textContent,/拒绝风格/);assert.match(portrait.textContent,/亲密表达/);
-    assert.match(portrait.textContent,/原文出现 2 次/);assert.match(portrait.textContent,/unknown_portrait: custom/);assert.match(portrait.textContent,/用户原文 conflict_style: direct/);
-    assert.equal(portrait.querySelectorAll('p').length,9);
+    assert.match(portrait.textContent,/原文出现 2 次/);assert.doesNotMatch(portrait.textContent,/unknown_portrait: custom/);assert.match(portrait.textContent,/用户原文 conflict_style: direct/);
+    assert.equal(portrait.querySelectorAll('p').length,8);
     assert.equal(f.api.state('A').detail.persona_compilation.working_persona.portrait_text,original);
-    await f.v.click(button(f.v.host,'表达画像完整记录与来源'));
-    assert.ok([...document.querySelectorAll('.record-facts .readable-prose')].some(node=>node.textContent===original));
+    const note = f.v.host.querySelector('.companion-portrait-note');
+    const create = URL.createObjectURL;
+    const anchor = window.HTMLAnchorElement.prototype;
+    const click = anchor.click;
+    let blob;
+    try {
+      URL.createObjectURL = value => { blob = value; return create(value); };
+      anchor.click = function () { assert.equal(this.download, 'fluctlight-record.json'); };
+      await f.v.click(button(note, '原始表达画像记录（诊断）'));
+      assert.doesNotMatch(note.textContent, /unknown_portrait: custom|owner switch targets/);
+      await f.v.click(button(note, '下载原始记录'));
+      assert.deepEqual(JSON.parse(await blob.text()), f.api.state('A').detail.persona_compilation);
+    } finally {
+      URL.createObjectURL = create;
+      anchor.click = click;
+    }
   }finally{await f.dispose();}
 });
