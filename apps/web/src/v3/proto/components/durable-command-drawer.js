@@ -1,7 +1,7 @@
-import {errorMessage} from '../../domain-presentation.mjs';
+import {errorMessage,errorRecord,errorRecordTitle,readErrorMessage} from '../../domain-presentation.mjs';
 import {get,subscribe} from '../store.js';
 import {drawer,esc} from '../ui.js';
-import {JsonDetails} from './records.js';
+import {JsonDetails,RawRecordDownload} from './records.js';
 import {persistentCommand} from '../../providers/persistent-command.mjs';
 import {studioDraftStorage} from './studio-draft-storage.js';
 
@@ -28,7 +28,7 @@ export function durableCommandDrawer({slot,title,body,read,execute,onSaved=()=>{
  let storageBlocked=false;
  function feedback(kind,text='',cause){
   if(!alive())return;const host=d.el.querySelector('[data-command-error]');host.setAttribute('data-feedback-kind',kind);host.textContent=text;host.hidden=!text;
-  d.el.querySelector('[data-command-diagnostic]').innerHTML=cause?JsonDetails({name:cause.name,code:cause.code,message:cause.message},'技术详情'):'';
+  d.el.querySelector('[data-command-diagnostic]').innerHTML=RawRecordDownload(errorRecord(cause),errorRecordTitle);
  }
  function accepted(){const raw=storage().getItem(acceptedKey);if(raw==null)return null;const result=JSON.parse(raw);if(result?.version!==1||!result.idempotencyKey||!result.value||typeof result.value!=='object'||Array.isArray(result.value)||!Object.hasOwn(result,'result'))throw Error('原回执记录无法读取，请先核对原记录；没有发起新提交。');return {raw,...result};}
  function readPending(){const raw=storage().getItem(key);if(raw!==null&&raw!==undefined&&!raw)throw Error('原提交记录为空，当前不能安全发起新提交。');return command.pending();}
@@ -56,7 +56,7 @@ export function durableCommandDrawer({slot,title,body,read,execute,onSaved=()=>{
     await onSaved(structuredClone(confirmed.result));
     if(current()&&storage().getItem(acceptedKey)===confirmed.raw)storage().removeItem(acceptedKey);
     if(alive()){let unchanged=confirmed.inputSnapshot!==null&&confirmed.inputSnapshot!==undefined?inputs()===confirmed.inputSnapshot:false;if(confirmed.inputSnapshot==null)try{unchanged=JSON.stringify(read(d.el))===JSON.stringify(confirmed.value);}catch{}if(unchanged)d.close();else feedback('information','原操作已保存；等待期间的新输入仍保留。');}
-   }catch(error){if(alive())feedback('action-required','原操作已有回执，页面结果暂未读到。可以只读恢复，不会再次提交。',error);}
+   }catch(error){if(alive())feedback('action-required','原操作已有回执，页面结果暂未读到。可以只读恢复，不会再次提交。'+readErrorMessage(error),error);}
   }catch(error){if(alive()){let pending;try{pending=command.pending();}catch{}feedback(pending?(pending.rejection?'warning':'action-required'):'error',errorMessage(error),error);}}
   finally{busy=false;if(!active)unsubscribe();paint();}
  }

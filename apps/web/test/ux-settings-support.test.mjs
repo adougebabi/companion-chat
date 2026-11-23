@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {URL as NodeURL} from 'node:url';
-import {feedbackDiagnostic} from '../src/v3/domain-presentation.mjs';
-import {JsonDetails} from '../src/v3/proto/components/records.js';
+import {errorRecord,errorRecordTitle} from '../src/v3/domain-presentation.mjs';
+import {RawRecordDownload} from '../src/v3/proto/components/records.js';
 import {configurationTestSummary,beijingFilterInput,diagnosticTimeFilter} from '../src/v3/configuration-feedback.mjs';
 
 const source=name=>readFileSync(new NodeURL(`../src/v3/proto/components/${name}.js`,import.meta.url),'utf8').replace(/^import .*;\s*$/gm,'').replace(/^export /gm,'');
@@ -30,14 +30,14 @@ test('diagnostic filters convert ordinary Beijing time and reject rollover or ma
 });
 test('initial cursor failure removes loading and can retry, later failure retains the last successful page',async()=>{
  let fail=true;const host=box(),message=()=> '读取失败，请重试';
- const mount=Function('get','subscribe','CursorPager','bindCursorPager','esc','errorMessage','feedbackDiagnostic','JsonDetails',source('cursor-records')+'\nreturn mountCursorRecords;')(()=>({actorId:'owner'}),()=>{},()=>'',()=>{},String,message,feedbackDiagnostic,JsonDetails);
+ const mount=Function('get','subscribe','CursorPager','bindCursorPager','esc','readErrorMessage','errorRecord','errorRecordTitle','RawRecordDownload',source('cursor-records')+'\nreturn mountCursorRecords;')(()=>({actorId:'owner'}),()=>{},()=>'',()=>{},String,message,errorRecord,errorRecordTitle,RawRecordDownload);
  const panel=mount(host,{read:async()=>{if(fail)throw Error('request_failed');return {items:['成功记录']};},render:String});
  await settle();assert.doesNotMatch(host.innerHTML,/正在读取/);assert.match(host.innerHTML,/读取失败/);
  fail=false;host.querySelector('[data-panel-retry]').onclick();await settle();assert.match(host.innerHTML,/成功记录/);
  fail=true;await panel.reload();assert.match(host.innerHTML,/成功记录/);assert.match(host.innerHTML,/读取失败/);panel.dispose();
 });
 test('async page error offers a business return without changing old read/paint arguments',async()=>{
- const host=box();const mount=Function('esc','errorMessage','JsonDetails',source('async-page')+'\nreturn asyncPage;')(String,()=> '暂时无法读取',()=>'<details>技术详情</details>');
+ const host=box();const mount=Function('esc','readErrorMessage','errorRecord','errorRecordTitle','RawRecordDownload',source('async-page')+'\nreturn asyncPage;')(String,()=> '暂时无法读取',errorRecord,errorRecordTitle,RawRecordDownload);
  mount(host,async()=>{throw Error('unavailable');},()=>{throw Error('must not paint');},{backHref:'#/inbox',backLabel:'返回收件箱'});
  await settle();assert.doesNotMatch(host.innerHTML,/正在读取/);assert.match(host.innerHTML,/href="#\/inbox"/);assert.match(host.innerHTML,/返回收件箱/);
 });
@@ -66,7 +66,7 @@ test('numeric edits compare values and an untouched editor cannot submit an unch
  raw.value='10';raw.oninput();assert.equal(node('[data-save]').disabled,true);
 });
 test('an original-only recovery drawer without a pending identity cannot create an empty command',async()=>{
- let admitted=0;const host=box(),mount=Function('get','persistentCommand','studioDraftStorage','drawer','esc','subscribe',source('durable-command-drawer')+'\nreturn durableCommandDrawer;')(()=>({actorId:'owner'}),()=>({pending:()=>null,submit:async()=>{admitted++;}}),()=>({getItem:()=>null}),()=>({el:host,close(){}}),String,()=>()=>{});
+ let admitted=0;const host=box(),mount=Function('get','persistentCommand','studioDraftStorage','drawer','esc','subscribe','RawRecordDownload','errorRecord','errorRecordTitle',source('durable-command-drawer')+'\nreturn durableCommandDrawer;')(()=>({actorId:'owner'}),()=>({pending:()=>null,submit:async()=>{admitted++;}}),()=>({getItem:()=>null}),()=>({el:host,close(){}}),String,()=>()=>{},RawRecordDownload,errorRecord,errorRecordTitle);
  mount({slot:'original',title:'原提交',body:'',read:()=>({}),execute(){},originalOnly:true});
  assert.equal(host.querySelector('[data-command-send]').disabled,true);
  assert.equal(host.querySelector('[data-command-send]').hidden,true);

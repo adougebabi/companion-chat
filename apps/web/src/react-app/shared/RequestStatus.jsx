@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge, Disclosure } from "../controls";
-import { InlineFeedback } from "./Presentation";
+import { Feedback } from "./Presentation";
 import LoadingState from "./LoadingState";
 import { jsonValueSnapshot } from "@/state/view-model";
 import { useWorkspace } from "../page";
-import { errorMessage } from "@/v3/domain-presentation.mjs";
+import { errorRecord, readErrorMessage } from "@/v3/domain-presentation.mjs";
 import { requestDecisionText } from "@/v3/proto/components/request-failure.js";
 const ownerLabels = {
   pending: "等待回应",
@@ -36,9 +36,10 @@ export default function RequestStatus({
   const w = useWorkspace(),
     owner = w.state.session.actorId,
     service = w.services.lifeClient;
+  const readScope = JSON.stringify([owner, fid, requestId, kind, ownerScoped]);
   const [record, setRecord] = useState(initial),
     [loading, setLoading] = useState(false),
-    [error, setError] = useState(""),
+    [error, setError] = useState(null),
     [paused, setPaused] = useState(false);
   const latest = useRef(initial),
     notify = useRef(onTerminal),
@@ -91,22 +92,25 @@ export default function RequestStatus({
           latest.current = jsonValueSnapshot(value);
           setRecord(latest.current);
         }
-        setError("");
+        setError(null);
         if (!pending(latest.current) && !notified) {
           notified = true;
           Promise.resolve(notify.current?.(latest.current)).catch((cause) => {
             if (live())
-              setError(
-                "请求结果已保留，页面读回未完成：" + errorMessage(cause),
-              );
+              setError({
+                scope: readScope,
+                summary: "请求结果已保留，页面读回未完成。" + readErrorMessage(cause),
+                failure: errorRecord(cause),
+              });
           });
         }
       } catch (cause) {
         if (live())
-          setError(
-            "更新失败，保留上次状态。" +
-              errorMessage(cause, "暂时无法读取请求。"),
-          );
+          setError({
+            scope: readScope,
+            summary: (latest.current ? "更新失败，保留上次状态。" : "") + readErrorMessage(cause),
+            failure: errorRecord(cause),
+          });
       } finally {
         inFlight = false;
         reads++;
@@ -225,7 +229,7 @@ export default function RequestStatus({
           自动更新已暂停，可以点击刷新原请求继续；后台任务仍按实际状态处理。
         </p>
       )}
-      {error && <InlineFeedback role="alert">{error}</InlineFeedback>}
+      {error?.scope === readScope && <Feedback kind="error" failure={error.failure}>{error.summary}</Feedback>}
       <Button
         variant="outline"
         disabled={loading}

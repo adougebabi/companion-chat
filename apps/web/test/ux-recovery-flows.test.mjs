@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { esc } from '../src/v3/proto/components/controls.js';
-import { domainName, stateLabel, errorMessage } from '../src/v3/domain-presentation.mjs';
+import {RawRecordDownload} from '../src/v3/proto/components/records.js';
+import { domainName, stateLabel, errorMessage, readErrorMessage, errorRecord, errorRecordTitle } from '../src/v3/domain-presentation.mjs';
 import { requestDecisionText, RequestDecisionSource, RequestFailureLink } from '../src/v3/proto/components/request-failure.js';
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const storage = () => {
@@ -71,8 +72,10 @@ test('inline progress follows original request, localizes tasks, keeps state on 
     },
     domainName,
     stateLabel,
-    errorMessage,
-    JsonDetails:(value,title)=>'<details>'+esc(title)+'<pre>'+esc(JSON.stringify(value))+'</pre></details>',
+    readErrorMessage,
+    errorRecord,
+    errorRecordTitle,
+    RawRecordDownload,
     requestDecisionText,
     RequestDecisionSource,
     RequestFailureLink,

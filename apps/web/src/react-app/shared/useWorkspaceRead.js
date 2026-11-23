@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useWorkspace } from "../page";
 import { jsonValueSnapshot } from "@/state/view-model";
-import { errorMessage,feedbackDiagnostic } from "@/v3/domain-presentation.mjs";
+import { errorRecord,readErrorMessage } from "@/v3/domain-presentation.mjs";
 const blank = () => ({
   items: [],
   cursor: "",
@@ -85,8 +85,8 @@ export default function useWorkspaceRead({
         setState((old) => ({
           ...old,
           busy: false,
-          error: errorMessage(cause),
-          failure:feedbackDiagnostic(cause),
+          error: readErrorMessage(cause),
+          failure:errorRecord(cause),
         }));
       }
     }
