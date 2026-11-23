@@ -1,10 +1,10 @@
 /* Migrated Demo styles share the unlayered presentation cascade of the other replica pages. */
 
 .replica-inbox{display:grid;gap:23px;min-width:0}
-.replica-inbox-toolbar{min-height:55px;display:flex;align-items:center;gap:12px}
+.replica-inbox-toolbar{min-height:55px;display:flex;flex-wrap:nowrap;align-items:center;gap:12px}
 .replica-inbox-toolbar>span{width:145px!important;flex:none!important}
-.replica-inbox-toolbar [role=tablist]{display:flex;gap:21px;overflow-x:auto;border-bottom:1px solid #e2e7de;margin-bottom:22px;scrollbar-width:none;background:transparent;height:auto;border-radius:0;padding:0}
-.replica-inbox-toolbar [role=tab]{font-size:12px;font-weight:400;height:auto;min-height:0;flex:none;gap:7px;padding:0 2px 12px;color:#7d8872;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;box-shadow:none;--tw-ring-shadow:0 0 #0000}
+.replica-inbox-toolbar [role=tablist]{display:flex;gap:21px;overflow-x:auto;border-bottom:1px solid #e2e7de;margin-bottom:0;scrollbar-width:none;background:transparent;border-radius:0;padding:0}
+.replica-inbox-toolbar [role=tab]{font-size:12px;font-weight:400;height:100%;min-height:0;flex:none;gap:7px;padding:0 2px;color:#7d8872;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;box-shadow:none;--tw-ring-shadow:0 0 #0000}
 .replica-inbox-toolbar [role=tab][data-state=active]{color:#33563d;border-bottom-color:#547b4b;font-weight:600}
 .replica-inbox-toolbar [role=tab]::after{display:none}
 .replica-inbox-toolbar [role=tab] [data-slot=badge]{font-size:9px;background:#edf1e7;padding:1px 5px;border:0;border-radius:4px;color:#8c967e}
@@ -41,7 +41,7 @@
 .replica-inbox-note p{font-size:11px;line-height:1.9;color:#a1ad92}
 .replica-inbox-body{font-size:13px;line-height:1.95;white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:1050px){.replica-inbox-layout{grid-template-columns:1fr}.replica-inbox-aside{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:700px){.replica-inbox{gap:18px}.replica-inbox-toolbar{display:grid;grid-template-columns:auto minmax(0,1fr) 36px;gap:8px}.replica-inbox-toolbar>button[role=combobox]{margin-left:0;min-width:0;width:100%}.replica-inbox-aside{grid-template-columns:1fr}.replica-notice{padding:18px 16px}.replica-notice-main{gap:11px}.replica-notice-title h3{font-size:11px}.replica-notice-main p{font-size:10px}.replica-notice-icon{width:34px;height:34px;border-radius:10px}.replica-inbox-toolbar button:not([data-size="icon"]){min-height:39px}.replica-inbox-toolbar [role=tablist]{gap:19px}.replica-inbox-toolbar [role=tab]{font-size:11px;min-height:0}.replica-notice-main small{font-size:9px}}
+@media(max-width:700px){.replica-inbox{gap:18px}.replica-inbox-toolbar{display:grid;grid-template-columns:auto minmax(0,1fr) 36px;align-items:center;gap:8px}.replica-inbox-toolbar>button[role=combobox]{margin-left:0;min-width:0;width:100%}.replica-inbox-aside{grid-template-columns:1fr}.replica-notice{padding:18px 16px}.replica-notice-main{gap:11px}.replica-notice-title h3{font-size:11px}.replica-notice-main p{font-size:10px}.replica-notice-icon{width:34px;height:34px;border-radius:10px}.replica-inbox-toolbar [role=tablist]{gap:19px}.replica-inbox-toolbar [role=tab]{font-size:11px;min-height:0}.replica-notice-main small{font-size:9px}}
 .replica-management{display:grid;gap:0;min-width:0}
 .replica-management-layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:28px;align-items:start}
 .replica-management-nav{display:grid;gap:5px;position:sticky;top:24px}

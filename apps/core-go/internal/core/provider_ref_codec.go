@@ -17,6 +17,7 @@ type providerContextRefCodec struct {
 	mu      sync.RWMutex
 	byShort map[string]string
 	known   map[string]ContextReferenceKind
+	offered map[string]string // Wire refs actually present in this physical model input.
 }
 
 func newProviderContextRefCodec(index ContextReferenceIndex) (*providerContextRefCodec, error) {

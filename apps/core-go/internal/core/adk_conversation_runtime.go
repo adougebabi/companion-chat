@@ -275,6 +275,10 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	if adkContext, ok := adkCapabilityContext(ctx); ok {
 		decode := adkContext.Refs.decodeArguments
 		switch capability.(type) {
+		case directMainReplyCapability:
+			decode = func(raw json.RawMessage) (json.RawMessage, error) {
+				return adkContext.Refs.decodeDirectReplyArguments(raw, projection.ReferenceIndex, directMainInvalidReplyAttempts(i.trace) >= 2)
+			}
 		case factOnlyReplyCapability:
 			decode = adkContext.Refs.decodePrivateReplyArguments
 		case factOnlyMomentCapability:

@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func TestR3ScheduleFailureDoesNotBecomePerpetualPending(t *testing.T) {
+func TestR3ScheduleValidationExhaustionAcceptsDefaultAndUnblocksWakeUp(t *testing.T) {
 	calls := 0
 	router := newFakeProviderRouter().on("schedule_response", func(_ map[string]any) fakeProviderResult {
 		calls++
@@ -23,12 +23,25 @@ func TestR3ScheduleFailureDoesNotBecomePerpetualPending(t *testing.T) {
 		t.Fatal(err)
 	}
 	result, err := app.EnsureCurrentDaySchedule(ctx, "prep-role")
-	if err == nil || result != nil || calls == 0 {
-		t.Fatalf("invalid schedule became pending: result=%v calls=%d err=%v", result, calls, err)
+	if err != nil || result == nil || calls != 2 {
+		t.Fatalf("validation exhaustion did not accept default: result=%v calls=%d err=%v", result, calls, err)
 	}
 	var count int
-	if err = repo.Pool().QueryRow(ctx, "SELECT count(*) FROM public.life_schedules WHERE fluctlight_id='prep-role'").Scan(&count); err != nil || count != 0 {
-		t.Fatal("invalid schedule persisted", count, err)
+	if err = repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.life_schedules WHERE fluctlight_id='prep-role' AND status='accepted' AND generated_from='default_initial_schedule' AND reschedule_policy->>'default_initial_schedule'='true'`).Scan(&count); err != nil || count != 1 {
+		t.Fatal("default schedule missing or unmarked", count, err)
+	}
+	schedule, life, err := app.readLifeContextSnapshotAt(ctx, "prep-role", app.now())
+	if err != nil || schedule == nil || life["behavior_state"] != "awake" {
+		t.Fatal("default schedule cannot support wake_up life dependency", schedule, life, err)
+	}
+	// This is the exact accepted-schedule dependency used by wake_up.current.
+	var wakeReady bool
+	if err := repo.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_schedules WHERE fluctlight_id='prep-role' AND status IN ('accepted','superseded'))`).Scan(&wakeReady); err != nil || !wakeReady {
+		t.Fatal("wake_up dependency remains blocked", wakeReady, err)
+	}
+	ready, err := app.EnsureCurrentDaySchedule(ctx, "prep-role")
+	if err != nil || ready["status"] != "ready" || calls != 2 {
+		t.Fatal("default schedule retriggered provider or stayed pending", ready, calls, err)
 	}
 }
 func TestR3ConversationSegmentConcurrentReplayUsesOneModel(t *testing.T) {

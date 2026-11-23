@@ -26,14 +26,18 @@ function checkDecision(html){
 
 test('fixed settlement reasons are localized with status/effect evidence and authored Chinese stays intact',()=>{
  const backend=readFileSync(new URL('../../core-go/internal/core/owner_life_requests.go',import.meta.url),'utf8');
+ const currentNotApplied={...failed,decision_reason:'本次请求未执行成功，尚未确认实际结果。请稍后重新提出请求。'};
  const cases=[
-  [failed,'没有可确认'],
+  [currentNotApplied,'本次请求未执行成功'],
   [{status:'completed',decision_reason:'The requested change was committed'},'变更已提交'],
   [{status:'accepted',decision_reason:'An intention was recorded; fulfillment requires later evidence'},'后续实际证据'],
   [{status:'awaiting_goal',decision_reason:'The proposed action awaits explicit Planner goal binding; no accepted promise yet'},'约定尚未接受'],
   [{status:'completed',decision_reason:'The exact requested target state was already recorded; no new mutation was needed',result:{disposition:'no_change'}},'无需新增操作'],
  ];
  for(const [request,expected] of cases){assert.ok(backend.includes(request.decision_reason));assert.ok(requestDecisionText(request).includes(expected));}
+ assert.equal(requestDecisionText(currentNotApplied),currentNotApplied.decision_reason);
+ assert.ok(requestDecisionText(failed).includes('没有可确认'));
+ assert.ok(!backend.includes(failed.decision_reason));
  for(const status of ['rejected','deferred','failed'])assert.equal(requestDecisionText({...failed,status,decision_reason:'先休息，明天再说。'}),'先休息，明天再说。');
  const unknown=requestDecisionText({...failed,decision_reason:'Unexpected engine fault',result:{error_code:'unknown',mutation_committed:true}});
  assert.match(unknown,/处理失败/);assert.doesNotMatch(unknown,/成功|未产生|没有操作|无副作用|Unexpected/);

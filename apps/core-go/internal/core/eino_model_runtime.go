@@ -443,7 +443,11 @@ func (m *queuedToolCallingChatModel) preparePhysicalInput(ctx context.Context, i
 }
 
 func (m *queuedToolCallingChatModel) finishPhysicalInput(ctx context.Context, input []*schema.Message) ([]*schema.Message, error) {
-	return cloneWireToolNames(factOnlyPhaseInput(ctx, input)), nil
+	input = cloneWireToolNames(factOnlyPhaseInput(ctx, input))
+	if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Refs != nil {
+		bridge.Refs.noteOfferedInfluenceRefs(input)
+	}
+	return input, nil
 }
 
 func (m *queuedToolCallingChatModel) enforcePhysicalInputBudget(ctx context.Context, input []*schema.Message) error {
@@ -1299,6 +1303,35 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 		return einoModelResponse{}, errors.New("adk_final_message_missing")
 	}
 	final := loopResult.FinalMessage
+	if call.SchemaName == "owner_life_request_decision" && ownerLifeExecutionMissing(ctx, adkContext.Trace, final.Content) {
+		// A final answer can end ADK before the accepted action was executed.
+		// This is business continuation, not DTO repair: keep the scoped catalog,
+		// invoker, request policy and native receipts, without replaying effects.
+		continuationInput := append([]*schema.Message(nil), input...)
+		continuationInput = append(continuationInput, loopResult.Messages...)
+		kind, _ := ctx.Value(ownerLifeRequestKindKey{}).(string)
+		continuationInput = append(continuationInput, schema.UserMessage(renderProviderJSON(map[string]any{
+			"required_capabilities": ownerLifeActionNames(kind),
+			"instruction":           "No authoritative execution receipt fulfills this Owner request yet. If you accept, use capability.catalog to load the required capability if needed, then invoke it for the exact requested target and consume its receipt before returning accepted. Catalog and inspection alone do not fulfill the request. Do not repeat committed actions. You may instead reject or defer with an honest public reason. Return the supplied final JSON contract; never describe an uncommitted action as completed.",
+		})))
+		continuationCtx := withContinuationPromptSlots(ctx, PromptSlotTrace{SlotID: "owner_life_execution_feedback", Position: PromptSlotCurrentInput, MessageIndex: len(continuationInput) - 1, Source: "core_owner_life_execution_validation", Reason: "required_execution_receipt_missing"})
+		continuation, continuationErr := RunADKLoop(continuationCtx, ADKLoopConfig{
+			Name: call.Agent.Name + "-owner-execution", Description: "Complete an Owner request using authoritative tools",
+			Model: chat, Tools: tools, MaxIterations: call.Agent.MaxIterations, EnableStreaming: call.EnableStreaming,
+		}, continuationInput)
+		loopResult.Messages = append(loopResult.Messages, continuation.Messages...)
+		loopResult.ToolCalls = append(loopResult.ToolCalls, continuation.ToolCalls...)
+		loopResult.ToolResults = append(loopResult.ToolResults, continuation.ToolResults...)
+		loopResult.FinalMessage = continuation.FinalMessage
+		preservePhysicalResponseMetadata(continuation.FinalMessage, unboundChat)
+		if continuationErr != nil {
+			return einoModelResponse{}, continuationErr
+		}
+		if continuation.FinalMessage == nil || ownerLifeExecutionMissing(ctx, adkContext.Trace, continuation.FinalMessage.Content) {
+			return einoModelResponse{}, errOwnerLifeExecutionMissing
+		}
+		final = continuation.FinalMessage
+	}
 	if conversationPublicationPolicyEnabled(ctx) && !conversationHasAuthoritativeOutput(adkContext.Trace) {
 		// A Provider may ignore tool_choice=required and return a final answer.
 		// Final text is never converted into a private message, and the tool-free
@@ -1320,8 +1353,8 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 				return einoModelResponse{}, validationErr
 			}
 			// A second, tool-free model call can correct a malformed final DTO.
-			// The original Tool effects are already committed, so the repair loop
-			// must not receive the Tool catalog or execute another ToolCall.
+			// Missing Owner execution was handled separately above. Keep this
+			// format-only repair tool-free so it cannot repeat committed effects.
 			correctionInput := append([]*schema.Message(nil), input...)
 			repairSlots := make([]PromptSlotTrace, 0)
 			for _, message := range loopResult.Messages {
@@ -1363,6 +1396,9 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 				return einoModelResponse{}, fmt.Errorf("%w: %w: %w", errADKFinalContractInvalid, validationErr, runErr)
 			}
 		}
+	}
+	if call.SchemaName == "owner_life_request_decision" && ownerLifeExecutionMissing(ctx, adkContext.Trace, final.Content) {
+		return einoModelResponse{}, errOwnerLifeExecutionMissing
 	}
 	// Final output and executed calls are separate contracts. Intermediate
 	// calls remain in the execution trace and must never be copied onto the

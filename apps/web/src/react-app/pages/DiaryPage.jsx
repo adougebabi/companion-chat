@@ -42,6 +42,39 @@ const field = (label, control) => (
     {control}
   </label>
 );
+export function DiaryProvenance({ entry }) {
+  const sources = entry.source_snapshot?.sources || [],
+    refs = new Set(entry.refs || []),
+    communication = sources.filter((source) => source.kind === "remote_communication").length;
+  return (
+    <Disclosure title="生成尝试、素材与来源">
+      {sources.length > 0 && (
+        <p className="lp-muted">
+          可用素材 {sources.length} 条
+          {communication > 0 && `（远程交流 ${communication} 条）`}
+        </p>
+      )}
+      {refs.size > 0 && <p className="lp-muted">正文引用来源 {refs.size} 条</p>}
+      {entry.attempts?.map((attempt, index) => (
+        <div className="lp-source-card" key={attempt.id || index}>
+          <p>
+            第 {attempt.attempt ?? index + 1} 次整理 · {statuses[attempt.status] || "状态待确认"}
+            {attempt.created_at && <> · <time dateTime={attempt.created_at}>{userInstant(attempt.created_at)}</time></>}
+          </p>
+          {attempt.task_id && (
+            <Button variant="link" asChild>
+              <a href={"#/diag/task/" + encodeURIComponent(attempt.task_id)}>查看原任务</a>
+            </Button>
+          )}
+        </div>
+      ))}
+      {entry.has_more_attempts && (
+        <p className="lp-muted">当前显示最近20次尝试，更早记录保留在实际任务诊断。</p>
+      )}
+      <JsonDetails value={entry} title="原始日记记录（诊断）" downloadOnly />
+    </Disclosure>
+  );
+}
 export default function DiaryPage() {
   const w = useWorkspace(),
     c = w.current.value,
@@ -880,34 +913,7 @@ export default function DiaryPage() {
                     {!selected.active_attempt_id&&<p className="lp-muted">这篇日记尚无可留言的正文，形成正文后可以留下回应。</p>}
                     <p className="lp-muted">留言会进入处理流程，是否有回应以实际交流记录为准。</p>
                   </section>
-                  <Disclosure title="生成尝试、素材与来源">
-                    <JsonDetails value={selected} title="完整日记与来源" />
-                    {selected.attempts?.map((attempt) => (
-                      <div className="lp-source-card" key={attempt.id}>
-                        <p>
-                          尝试 {attempt.attempt} ·{" "}
-                          {statuses[attempt.status] || attempt.status}
-                        </p>
-                        {attempt.task_id && (
-                          <Button variant="link" asChild>
-                            <a
-                              href={
-                                "#/diag/task/" +
-                                encodeURIComponent(attempt.task_id)
-                              }
-                            >
-                              查看原任务
-                            </a>
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    {selected.has_more_attempts && (
-                      <p className="lp-muted">
-                        当前显示最近20次尝试，更早记录保留在实际任务诊断。
-                      </p>
-                    )}
-                  </Disclosure>
+                  <DiaryProvenance entry={selected} />
                 </div>
               </article>
             ) : page.ready && !loading[kind] && !errors[kind] ? (

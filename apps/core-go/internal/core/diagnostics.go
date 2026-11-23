@@ -516,6 +516,9 @@ func providerRunErrorCode(err error) string {
 	}
 	var response *providerHTTPResponseError
 	if errors.As(err, &response) {
+		if providerCapacityError(err) {
+			return "provider_capacity_transient"
+		}
 		if response.StatusCode == 524 || response.StatusCode == 504 {
 			return "provider_gateway_timeout"
 		}

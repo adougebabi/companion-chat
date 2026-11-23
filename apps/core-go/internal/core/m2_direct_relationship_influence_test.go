@@ -76,12 +76,12 @@ func TestM2DirectRelationshipInfluenceUsesOfferedReference(t *testing.T) {
 	checkSettlement()
 }
 
-func TestM2DirectRelationshipInfluenceRejectsForgedReference(t *testing.T) {
+func TestM2DirectRelationshipInfluenceDropsForgedReference(t *testing.T) {
 	calls := 0
 	router := newFakeProviderRouter().otherwise(func(map[string]any) fakeProviderResult {
 		calls++
 		decision := map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{map[string]any{"ref": "relationship:ctx_00000000000000000000000000000000", "role": "grounds", "confidence": 0.9, "note": "伪造关系"}}}
-		args := map[string]any{"text": "不应发布", "decision": decision}
+		args := map[string]any{"text": "你好，我们聊聊。", "decision": decision}
 		return fakeProviderResult{ToolCalls: []map[string]any{{"id": fmt.Sprintf("m2-forged-relationship-%d", calls), "type": "function", "function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(args)}}}}
 	})
 	ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "m2-forged-relationship", router)
@@ -90,13 +90,17 @@ func TestM2DirectRelationshipInfluenceRejectsForgedReference(t *testing.T) {
 		t.Fatal(err)
 	}
 	persistConversationReplyMode(t, ctx, repo, "direct")
-	_, err := app.HandleTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "你好", "turn_id": "m2-forged-relationship", "idempotency_key": "m2-forged-relationship", "attachment_refs": []any{}})
+	turn, err := app.HandleTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "你好", "turn_id": "m2-forged-relationship", "idempotency_key": "m2-forged-relationship", "attachment_refs": []any{}})
 	var messages, assessments int
 	if queryErr := repo.Pool().QueryRow(ctx, `SELECT (SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'), (SELECT count(*) FROM public.cognition_assessments WHERE fluctlight_id=$2)`, conversation, fid).Scan(&messages, &assessments); queryErr != nil {
 		t.Fatal(queryErr)
 	}
-	if err == nil || calls != 3 || messages != 0 || assessments != 0 {
-		t.Fatalf("forged relationship reference was not rejected: err=%v calls=%d messages=%d assessments=%d", err, calls, messages, assessments)
+	if err != nil || calls != 3 || messages != 1 || assessments != 1 || stringValue(turn.Assistant["text"]) != "你好，我们聊聊。" {
+		t.Fatalf("unresolved influence blocked valid reply: err=%v calls=%d messages=%d assessments=%d", err, calls, messages, assessments)
+	}
+	var influences []byte
+	if err := repo.Pool().QueryRow(ctx, `SELECT payload->'influences' FROM public.cognition_assessments WHERE fluctlight_id=$1`, fid).Scan(&influences); err != nil || string(influences) != "[]" {
+		t.Fatalf("forged reference entered settlement: influences=%s err=%v", influences, err)
 	}
 }
 

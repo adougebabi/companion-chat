@@ -378,6 +378,14 @@ func classifyToolPrepareError(err error) (code string, retryable bool, detail st
 }
 
 func safeToolArgumentFeedback(err error) string {
+	var influenceErr *directInfluenceRefError
+	if errors.As(err, &influenceErr) {
+		return jsonString(map[string]any{
+			"field":          fmt.Sprintf("decision.influences[%d].ref", influenceErr.position),
+			"detail":         "This influence ref is not in the current context. Use an available ref or omit this influence; use an empty influences array when none apply.",
+			"available_refs": influenceErr.available,
+		})
+	}
 	if err == nil {
 		return "arguments do not match tool schema"
 	}

@@ -311,7 +311,7 @@ func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result
 	if _, err = a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_wardrobe_preparations SET status=$2,result=result-'failure_reason',error_code=NULL,updated_at=now() WHERE id=$1`, id, map[bool]string{true: "awaiting_wear", false: "generating"}[selectOnly]); err != nil {
 		return nil, err
 	}
-	messages := wardrobePreparationMessages(resource.CorePersona, sections, life, items, plans, selectOnly)
+	messages := wardrobePreparationMessages(resource.CorePersona, sections, life, items, plans, selectOnly, mapValue(state["proposal"]))
 	modelCtx := withAgentModelRoute(ctx, FormalAgentWardrobePreparation, wardrobeModelVariant)
 	assignment, err := a.wardrobePreparationAssignment(modelCtx, id, mapValue(state["model_provenance"]), messages)
 	if err != nil {
@@ -348,32 +348,9 @@ func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result
 	if !selectOnly {
 		return a.commitPreparedWardrobe(ctx, id, fid, owner, profile, revision, resource.CurrentRevision, proposal)
 	}
-	if len(arrayValue(proposal["items"])) > 0 || len(arrayValue(proposal["plans"])) > 0 {
-		return nil, errors.New("wardrobe_select_only_created_inventory")
-	}
-	ids := decisionServiceRefValues(proposal["wear_item_refs"])
-	if len(ids) == 0 || len(ids) > 16 {
-		return nil, errors.New("wardrobe_wear_selection_missing")
-	}
-	allowed := map[string]bool{}
-	selectedItems := []map[string]any{}
-	for _, item := range items {
-		if item["source_verified"] == true && item["availability"] == "available" && (item["ownership"] == "owned" || item["ownership"] == "borrowed") {
-			allowed[stringValue(item["id"])] = true
-		}
-	}
-	for _, itemID := range ids {
-		if !allowed[itemID] {
-			return nil, errors.New("wardrobe_wear_selection_unavailable")
-		}
-		for _, item := range items {
-			if item["id"] == itemID {
-				selectedItems = append(selectedItems, item)
-			}
-		}
-	}
-	if !wardrobeCoversBody(selectedItems) {
-		return nil, errors.New("wardrobe_initial_wear_incomplete")
+	ids, err := wardrobeSelectionItemIDs(proposal, items)
+	if err != nil {
+		return nil, err
 	}
 	_, latestLife, err := a.readLifeContextSnapshotAt(ctx, fid, a.now())
 	if err != nil {
