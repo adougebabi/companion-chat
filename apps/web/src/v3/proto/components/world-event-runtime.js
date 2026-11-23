@@ -1,3 +1,5 @@
+import { ReadingFields } from './reading-fields.js';
+import { readingFields } from '../../../approved-ui/reading-fields.mjs';
 import {errorMessage} from '../../domain-presentation.mjs';
 import {isInternalId} from '../../internal-id.mjs';
 import {userInstant} from '../../presentation-time.mjs';
@@ -47,6 +49,8 @@ function eventName(t){
  const name=t.name?.trim();
  return (name!==t.id&&name!==t.template_id&&name!==t.source_resource_id&&readableText(name))||'未命名的事件模板';
 }
+const bodyEffectShape = readingFields("body_part severity impact");
+
 function effectSummary(effects){
  if(!Array.isArray(effects)||!effects.length)return '';
  return `<ul>${effects.map(e=>{
@@ -54,7 +58,7 @@ function effectSummary(effects){
   const scope=['world','place','character'].includes(e.scope)?worldRecordLabel(e.scope):'';
   const value=e.value==='open'||e.value==='closed'?worldRecordLabel(e.value):readableText(e.value)||readableText(e.description);
   const details=[...new Set([value,readableText(e.body_effect?.description)].filter(Boolean))].join(' · ');
-  return `<li>${esc([kind,scope].filter(Boolean).join(' · '))}${details?`：${esc(details)}`:''}</li>`;
+  return `<li>${esc([kind,scope].filter(Boolean).join(' · '))}${details?`：${esc(details)}`:''}${ReadingFields(e.body_effect,bodyEffectShape)}</li>`;
  }).join('')}</ul>`;
 }
 export function EventDefinitionSummary(d){

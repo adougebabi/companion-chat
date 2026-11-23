@@ -5,6 +5,7 @@ import {reflectionClient} from '../v3/proto/services.js';
 import {asyncPage,requestReceipt,instant} from '../v3/proto/components/async-page.js';
 import {CursorPager,bindCursorPager} from '../v3/proto/components/cursor-pager.js';
 import {mountCursorRecords} from '../v3/proto/components/cursor-records.js';
+import {scoreText} from '../approved-ui/memory-record-summary.mjs';
 import {RawRecordDownload} from '../v3/proto/components/records.js';
 import {Field} from '../v3/proto/components/forms.js';
 import {stateLabel as domainStateLabel} from '../v3/domain-presentation.mjs';
@@ -83,7 +84,7 @@ const directions={
 };
 const candidateTextFields={
   content:'内容',observation:'关系观察',desired_outcome:'期望结果',success_criteria:'完成标准',
-  motivation:'动机',action_intent:'行动意图',expected_outcome:'预期结果',
+  motivation:'动机',action_intent:'行动意图',expected_outcome:'预期结果',capability_constraints:'能力约束',
   semantic_value:'拟调整内容',claim:'认识内容',
   original_time_expression:'原时间表述',semantic_reason:'提议原因',
   dominant_patterns:'主要情绪规律',triggers:'情绪触发因素',recovery_patterns:'恢复方式',conflicts:'情绪冲突',
@@ -166,6 +167,8 @@ function reflectionChanges(record,charId){
       ['调整对象',labelFor(changeSubjects,candidate?.field_path||candidate?.target)],
       ['认识类别',labelFor(selfCategories,candidate?.category)],
       ['变化方向',labelFor(directions,candidate?.direction)],
+      ['重要程度',scoreText(candidate?.importance)],
+      ['情感意义',scoreText(candidate?.emotional_significance)],
       ...Object.entries(candidateTextFields).map(([key,fieldLabel])=>{
         const value=candidate?.[key];
         return [fieldLabel,Array.isArray(value)?value.map(reflectionText).filter(Boolean).join('、'):reflectionText(value)];

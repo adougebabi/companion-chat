@@ -2,7 +2,7 @@ import {esc,badge} from '../ui.js';
 import {RawRecordDownload} from './records.js';
 import {isInternalId} from '../../internal-id.mjs';
 import {userInstant} from '../../presentation-time.mjs';
-import {wardrobeSlotLabel} from '../../../lib/wardrobe-form.ts';
+import {wardrobeCategoryLabel,wardrobeSlotLabel} from '../../../lib/wardrobe-form.ts';
 
 function readableName(value, id) {
   const name = typeof value === 'string' ? value.trim() : '';
@@ -15,10 +15,11 @@ export function WorldItemPlaceName(place) {
 
 export function WorldItemSummary(item, {world, place, heading = 'h2'} = {}) {
   const name = readableName(item.name, item.id) || '未命名的世界物品';
-  const {description, item_kind, slot} = item.definition ?? {};
+  const {description, item_kind, slot, category} = item.definition ?? {};
   const status = item.available === true ? '可提出取得请求' : item.available === false ? '当前不可取得' : '';
   const part = item_kind === 'wearable' && slot ? readableName(wardrobeSlotLabel(slot)) : '';
   const type = item_kind === 'wearable' ? ['服饰', part].filter(Boolean).join(' · ') : item_kind ? '普通物品' : '';
+  const categoryName = category && readableName(wardrobeCategoryLabel(category));
   const worldName = readableName(world?.name, item.world_id) || '当前运行世界';
   const placeName = WorldItemPlaceName(place);
   const scope = item.place_id ? (placeName ? '取得地点：' + placeName : '仅限指定地点取得') : '取得地点不限';
@@ -26,6 +27,7 @@ export function WorldItemSummary(item, {world, place, heading = 'h2'} = {}) {
   return `<div class="row"><${heading} class="grow">${esc(name)}</${heading}>${status ? badge(status, 'plain') : ''}</div>
     ${typeof description === 'string' && description.trim() ? `<p>${esc(description)}</p>` : ''}
     ${type ? `<p class="small muted">${esc(type)}</p>` : ''}
+    ${categoryName && categoryName !== part ? `<p class="small muted">物品分类：${esc(categoryName)}</p>` : ''}
     <p class="small muted">所属世界：${esc(worldName)} · ${esc(scope)}</p>
     ${updated ? `<p class="small muted">更新时间：<time datetime="${esc(item.updated_at)}">${esc(userInstant(item.updated_at))}</time></p>` : ''}`;
 }

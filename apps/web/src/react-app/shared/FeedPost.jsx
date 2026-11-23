@@ -9,6 +9,8 @@ import useWorkspaceRead from "./useWorkspaceRead";
 import { FeedReader, FeedTime, feedAuthorName, feedDisplayText } from "./FeedParts";
 import { momentCount } from "@/approved-ui/feed-presentation.mjs";
 import { momentReading, momentRecord } from "@/v3/moment-reading.mjs";
+const visibilityLabels = { owner: "仅所有者可见", participants: "参与者可见" };
+
 function PostMedia({ asset, model: m, full, onOpen }) {
   const [failed, setFailed] = useState(false);
   if (!asset?.id) return null;
@@ -238,6 +240,7 @@ export default function FeedPost({
               原发布建议与处理结果
             </a>
           )}
+          {Object.hasOwn(visibilityLabels, post.visibility) && <p>可见范围：{visibilityLabels[post.visibility]}</p>}
           <JsonDetails value={momentRecord(post)} title="原始动态记录（诊断）" downloadOnly />
         </Disclosure>
       ) : (

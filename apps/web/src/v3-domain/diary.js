@@ -170,10 +170,13 @@ function storyBasis(snapshot,rows,recordsHref,characterName){
  const from=storyTime(snapshot.first_communication_at),to=storyTime(snapshot.as_of);
  const turns=snapshot.metrics?.completed_turns;
  const semantics=snapshot.semantics;
+ const relationship= snapshot.metrics?.relationship?.value;
+ const relationshipRole=storyText(typeof relationship?.role === "string" ? relationship.role : relationship?.role?.label);
  return `
   ${from&&to?`<p>交流统计范围：${esc(from)} 至 ${esc(to)}</p>`:to?`<p>统计截至：${esc(to)}</p>`:''}
   ${turns?.available&&turns.complete&&Number.isFinite(turns.value)?`<p>完成回复轮次：${turns.value} 轮</p>`:''}
   ${Array.isArray(snapshot.footprints)?`<p>本页回顾记录 ${rows.length} 条，其中远程交流 ${rows.filter(row=>row.kind==='remote_communication').length} 条。</p>`:''}
+  ${relationshipRole?`<p>关系称谓：${esc(relationshipRole)}</p>`:''}
   ${characterName?`<p>回顾范围：你和${esc(characterName)}。</p>`:''}
   <p>统计来自同一次读取。${snapshot.footprints_complete===false?'本页只列出部分来源，完整交流可从下方入口查看。':''}</p>
   ${semantics?.communication==='actual_participation_intervals'?'<p>交流只纳入双方实际参与时段内的消息。</p>':''}

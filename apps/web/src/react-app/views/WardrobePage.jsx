@@ -37,6 +37,7 @@ import {
   clothingTypeOf,
   clothingTypeOptions,
   wardrobeAvailabilityOptions,
+  wardrobeCategoryLabel,
   wardrobeOwnershipOptions,
 } from "@/lib/wardrobe-form";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
@@ -151,6 +152,8 @@ function WardrobeRecordDownload({ value, kind, history = false }) {
   );
 }
 
+const clothingCategory = value => value?.category && recordText(wardrobeCategoryLabel(value.category));
+
 function revisionFacts(value, kind) {
   if (!value) return [];
   if (kind === "outfit") {
@@ -170,6 +173,7 @@ function revisionFacts(value, kind) {
     : [];
   return [
     ["服装描述", recordText(value.description) || recordText(value.name)],
+    ["服装分类", clothingCategory(value)],
     ["服装类型", clothingTypeOptions.find(({ value: type }) => type === clothingType)?.label],
     ["适合季节", seasons.join("、")],
     ["拥有关系", wardrobeOwnershipOptions.find(({ value: state }) => state === value.ownership)?.label],
@@ -1049,6 +1053,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
                   ["归档时间", recordTime(draft._source.archived_at)],
                 ]} />
                 <RecordHistory fid={fid} id={draft.id} kind="garment" />
+                <RecordFacts facts={[["服装分类", clothingCategory(draft._source)]]} />
                 <WardrobeRecordDownload value={draft._source} kind="garment" />
                 {draft._source.archived_at ? (
                   <p className="r-muted">

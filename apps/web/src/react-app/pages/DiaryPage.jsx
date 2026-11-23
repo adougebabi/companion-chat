@@ -1,3 +1,4 @@
+import { ProfileNote } from "../shared/ProfileRecordSummary";
 import {ResultFeedback} from '../shared/Presentation';
 import { useEffect, useRef, useState } from "react";
 import {
@@ -86,6 +87,7 @@ function DiaryReplySummary({ row }) {
   const submitted = typeof row.created_at === "string" && Number.isFinite(Date.parse(row.created_at));
   const status = Object.hasOwn(replyStatuses, row.status) ? replyStatuses[row.status] : "";
   const outcome = requestDecisionText(row);
+  const summary = row.result?.summary;
   const results = row.result_refs ?? row.result?.result_refs;
   const resultCount = Array.isArray(results) ? new Set(results.filter(Boolean)).size : 0;
   return (
@@ -96,6 +98,8 @@ function DiaryReplySummary({ row }) {
       )}
       {status && <p className="lp-small">处理状态：{status}</p>}
       {outcome && <p className="lp-small">处理结果：{outcome}</p>}
+      {row.status !== "failed" && typeof summary === "string" && summary.trim() && summary !== outcome &&
+        <ProfileNote value={summary} label="结果说明" />}
       {resultCount > 0 && <p className="lp-small">关联处理结果 {resultCount} 条</p>}
       <JsonDetails value={row} title="原始留言处理记录（诊断）" downloadOnly />
     </>

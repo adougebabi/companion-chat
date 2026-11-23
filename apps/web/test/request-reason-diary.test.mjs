@@ -6,6 +6,8 @@ import {esc,badge} from '../src/v3/proto/components/controls.js';
 import {Tabs} from '../src/v3/proto/components/forms.js';
 import {JsonDetails,RawRecordDownload} from '../src/v3/proto/components/records.js';
 import {isInternalId} from '../src/v3/internal-id.mjs';
+import {ReadingFields} from '../src/v3/proto/components/reading-fields.js';
+import {readingFields} from '../src/approved-ui/reading-fields.mjs';
 import {userInstant} from '../src/v3/presentation-time.mjs';
 import {stateLabel,domainName} from '../src/v3/domain-presentation.mjs';
 
@@ -90,7 +92,7 @@ test('terminal request receipt keeps original identity and exposes raw diagnosti
 
 test('request detail keeps its complete original record after shared localization',async()=>{
  const el=element();
- const {renderRealRequest}=load('../../v3-domain/operations.js',['renderRealRequest'],{stateLabel,domainName,RawRecordDownload,isInternalId,operationsClient:{request:async()=>failed},asyncPage:async(_el,read,paint)=>paint(await read(),()=>{})});
+ const {renderRealRequest}=load('../../v3-domain/operations.js',['renderRealRequest'],{stateLabel,domainName,RawRecordDownload,isInternalId,ReadingFields,readingFields,operationsClient:{request:async()=>failed},asyncPage:async(_el,read,paint)=>paint(await read(),()=>{})});
  await renderRealRequest(el,{params:{requestId:failed.id}});
  assert.match(el.innerHTML,/没有可确认的已提交结果/);
  assert.doesNotMatch(el.innerHTML.replace(/<a [^>]*download=[^>]*>/g,''),/failed|The request|2026-10-20T15:01:58/);

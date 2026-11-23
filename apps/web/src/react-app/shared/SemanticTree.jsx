@@ -6,6 +6,7 @@ import {
   semanticLabel,
   hasSemanticValue,
 } from "@/v3/proto/components/semantic-fields.js";
+import { readingFieldLabel, readingValueLabel } from "@/v3/proto/components/reading-fields.js";
 import { enumLabel } from "@/lib/fluctlight-display.ts";
 import {
   wardrobeCategoryLabel,
@@ -18,7 +19,7 @@ import {
   portraitPresentation,
 } from "@/approved-ui/profile-presentation.mjs";
 import { bodyFieldVisible } from "@/lib/body-field-presentation.mjs";
-import {relationMetrics} from '@/approved-ui/people-presentation.mjs';
+import {relationMetrics, relationshipRoleLabel} from '@/approved-ui/people-presentation.mjs';
 const technicalSemanticKey = k => /^(?:id|schema_version|provenance|extensions|evidence_refs|source|source_kind|source_ref|source_verified|revision|instant|update_policy|owner_switch_targets|owner_switch_status|hash|source_hash)$/.test(k) || /_(?:id|ids|revision|version|at)$/.test(k);
 export function hasVisibleSemanticValue(value,field='',identity={}) {
  if(technicalSemanticKey(field)||!bodyFieldVisible(field,value,identity))return false;
@@ -27,7 +28,7 @@ export function hasVisibleSemanticValue(value,field='',identity={}) {
  if(value&&typeof value==='object')return semanticEntries(value).some(([key,item])=>hasVisibleSemanticValue(item,key,identity));
  return hasSemanticValue(value);
 }
-/** @param {{value?: unknown, field?: string, depth?: number, identity?: object}} input */
+/** @param {{value?: unknown, field?: string, depth?: number, identity?: object, reading?: boolean}} input */
 export default function SemanticTree(input = {}) {
   const __props = {
     field: "",
@@ -37,6 +38,7 @@ export default function SemanticTree(input = {}) {
   };
   const props = __props;
   const technical = technicalSemanticKey;
+  const fieldLabel = props.reading ? readingFieldLabel : semanticLabel;
   function categoryLabel(value) {
     if(value==='upper')return '上装';
     if(value==='lower')return '下装';
@@ -79,7 +81,7 @@ export default function SemanticTree(input = {}) {
       typeof props.value === "string" &&
       /^\d+(?:\.\d+)?$/.test(props.value)
         ? Number(props.value)
-        : props.value;
+        : props.reading ? readingValueLabel(props.value, props.field) : props.value;
     if(props.field==='seasons'&&typeof value==='string')return ({spring:'春',summer:'夏',autumn:'秋',winter:'冬'})[value]||value;
     if(props.field==='clothing_type'&&typeof value==='string')return wardrobeSlotLabel(value);
     if (typeof value === "boolean") return value ? "是" : "否";
@@ -110,14 +112,30 @@ export default function SemanticTree(input = {}) {
       stale: "等待更新",
       missing: "尚未整理",
     };
-    const translated = aliases[value] || enumLabel(value);
+    const translated = aliases[value] || (props.reading && props.field === "role" ? relationshipRoleLabel(value, "") : "") || enumLabel(value);
     return translated === "未分类" ? String(value ?? "") : translated;
   });
   const _component_SemanticTree = SemanticTree;
-  if(props.value&&typeof props.value==='object'&&!Array.isArray(props.value)&&Object.hasOwn(props.value,'value')&&props.value.value!=null&&Object.keys(props.value).every(key=>['value','status'].includes(key)||technical(key)))return <SemanticTree value={props.value.value} field={props.field} depth={props.depth+1} identity={props.identity}/>;
+  if(props.value&&typeof props.value==='object'&&!Array.isArray(props.value)&&Object.hasOwn(props.value,'value')&&props.value.value!=null&&Object.keys(props.value).every(key=>['value','status'].includes(key)||technical(key)))return <SemanticTree value={props.value.value} field={props.field} depth={props.depth+1} identity={props.identity} reading={props.reading}/>;
+  if (props.reading && props.field === "role" && entries.value.length === 1 && entries.value[0][0] === "label") {
+    return <SemanticTree value={entries.value[0][1]} field="role" depth={props.depth + 1} identity={props.identity} reading />;
+  }
   if(props.field==='metrics'&&props.value&&typeof props.value==='object'&&!Array.isArray(props.value)){
     const known=new Map(relationMetrics({metrics:props.value}).map(row=>[row.key,row]));
-    return <dl className="approved-facts creation-relation-metrics">{Object.entries(props.value).filter(([key,value])=>hasVisibleSemanticValue(value,key,props.identity)).map(([key,value])=>{const metric=known.get(key);return <div key={key}><dt>{metric?.label||(semanticLabel(key)==='自定义字段'?key:semanticLabel(key))}</dt><dd>{metric?<span>{new Intl.NumberFormat('zh-CN',{style:'percent',maximumFractionDigits:2}).format(metric.value)}</span>:<SemanticTree value={value} field={key} depth={props.depth+1} identity={props.identity}/>}</dd></div>;})}</dl>;
+    const percent = new Intl.NumberFormat('zh-CN', {style:'percent',maximumFractionDigits:2});
+    return <dl className="approved-facts creation-relation-metrics">
+      {Object.entries(props.value).filter(([key,value])=>hasVisibleSemanticValue(value,key,props.identity)).map(([key,value])=>{
+        const metric = known.get(key);
+        const label = metric?.label || (props.reading || fieldLabel(key) !== '自定义字段' ? fieldLabel(key) : key);
+        const score = metric?.value ?? (props.reading && Number.isFinite(value) && value >= 0 && value <= 1 ? value : null);
+        return <div key={key}>
+          <dt>{label}</dt>
+          <dd>{score === null
+            ? <SemanticTree value={value} field={key} depth={props.depth + 1} identity={props.identity} reading={props.reading} />
+            : <span>{percent.format(score)}</span>}</dd>
+        </div>;
+      })}
+    </dl>;
   }
   return __props.value == null || __props.value === "" ? (
     <span key={0} className="muted">
@@ -152,7 +170,7 @@ export default function SemanticTree(input = {}) {
     </ul>
   ) : typeof __props.value !== "object" ? (
     <span key={2}>{displayText(scalar.value)}</span>
-  ) : __props.depth >= 7 ? (
+  ) : !props.reading && __props.depth >= 7 ? (
     <p key={3} className="muted">
       {"更多层级可在技术详情中查看。"}
     </p>
@@ -169,7 +187,7 @@ export default function SemanticTree(input = {}) {
                 <Fragment key={0}>
                   <strong>
                     {displayText(
-                      item.description || item.name || "物品描述尚未记录",
+                      item.description || item.name || (props.reading ? "" : "物品描述尚未记录"),
                     )}
                   </strong>
                   <p className="muted">
@@ -190,7 +208,7 @@ export default function SemanticTree(input = {}) {
                         .join(" · "),
                     )}
                   </p>
-                  {hasVisibleSemanticValue(extra,'',props.identity)&&<SemanticTree value={extra} depth={props.depth+1} identity={props.identity}/>}
+                  {hasVisibleSemanticValue(extra,'',props.identity)&&<SemanticTree value={extra} depth={props.depth+1} identity={props.identity} reading={props.reading}/>}
                 </Fragment>
               ) : (
                 <Fragment key={1}>{displayText(item)}</Fragment>
@@ -210,7 +228,7 @@ export default function SemanticTree(input = {}) {
                 value={item}
                 field={__props.field}
                 depth={__props.depth + 1}
-                identity={__props.identity}
+                identity={__props.identity} reading={__props.reading}
               />
             </li>
           );
@@ -225,23 +243,23 @@ export default function SemanticTree(input = {}) {
   ) : (
     <dl key={6} className="approved-facts">
       <Fragment>
-        {listValues(entries.value).filter(([key])=>!['strength','stability','trend'].includes(key)).map(([key, item], index) => {
+        {listValues(entries.value).filter(([key])=>props.reading||!['strength','stability','trend'].includes(key)).map(([key, item], index) => {
           return (
             <div key={key}>
-              {readValue(semanticLabel)(key)!=="自定义字段"&&<dt>{displayText(readValue(semanticLabel)(key))}</dt>}
+              {fieldLabel(key)!=="自定义字段"&&<dt>{displayText(fieldLabel(key))}</dt>}
               <dd>
                 <_component_SemanticTree
                   value={item}
                   field={key}
                   depth={__props.depth + 1}
-                  identity={__props.identity}
+                  identity={__props.identity} reading={__props.reading}
                 />
               </dd>
             </div>
           );
         })}
       </Fragment>
-      {entries.value.some(([key])=>['strength','stability','trend'].includes(key))&&<div><dd><Disclosure title="量表与评估记录"><p className="text-sm text-muted-foreground">这些数值是记录时的评估结果，不代表行为已经发生。</p><RecordView value={Object.fromEntries(entries.value.filter(([key])=>['strength','stability','trend'].includes(key)))} technical/></Disclosure></dd></div>}
+      {!props.reading&&entries.value.some(([key])=>['strength','stability','trend'].includes(key))&&<div><dd><Disclosure title="量表与评估记录"><p className="text-sm text-muted-foreground">这些数值是记录时的评估结果，不代表行为已经发生。</p><RecordView value={Object.fromEntries(entries.value.filter(([key])=>['strength','stability','trend'].includes(key)))} technical/></Disclosure></dd></div>}
       {!entries.value.length ? (
         <div key={0}>
           <dd className="muted">{"尚未记录"}</dd>

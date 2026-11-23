@@ -5,6 +5,7 @@ import { selfCategoryLabels } from "@/v3/proto/components/self-claims.js";
 import { stateLabel } from "@/v3/domain-presentation.mjs";
 import { requestDecisionText } from "@/v3/proto/components/request-failure.js";
 import JsonDetails from "../shared/JsonDetails";
+import { ClaimValueSummary } from "../shared/ProfileRecordSummary";
 
 export const memoryDownload = "原始记忆记录（诊断）";
 export const reflectionDownload = "原始反思记录（诊断）";
@@ -100,6 +101,9 @@ function candidateFacts(candidate) {
   return [
     ["提议操作", labelFor(operations, candidate.operation)],
     ["置信度", scoreText(candidate.confidence)],
+    ["重要程度", scoreText(candidate.importance)],
+    ["情感意义", scoreText(candidate.emotional_significance)],
+    ["能力约束", textList(candidate.capability_constraints)],
     ["内容", recordText(candidate.content)],
     ["认识内容", recordText(candidate.claim)],
     ["认识类别", labelFor(selfCategoryLabels, candidate.category)],
@@ -219,7 +223,7 @@ export function ClaimSummary({ record }) {
       ["有效性", record.expired === true ? "已过期" : ""],
       ["形成时间", recordTime(record.created_at)],
       ["最近更新", recordTime(record.updated_at)],
-      ["认识内容补充", recordText(record.value) || recordText(record.value?.summary) || recordText(record.value?.description)],
     ]} />
+    <ClaimValueSummary value={record.value} title="认识内容补充" />
   </>;
 }

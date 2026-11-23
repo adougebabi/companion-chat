@@ -33,6 +33,7 @@ export function memoryFacts(row) {
     ['最近确认', recordTime(row.last_confirmed_at)],
     ['置信度', scoreText(row.confidence)],
     ['情感意义', scoreText(row.emotional_significance)],
+    ['重要程度', scoreText(row.importance)],
     ['人格理解', (Array.isArray(row.personality_perspectives) ? row.personality_perspectives : [])
       .map(perspective => {
         const interpretation = recordText(perspective?.interpretation);
@@ -47,6 +48,7 @@ export function memorySourceFacts(row) {
   return [
     ['来源', labelFor(sourceKinds, row.source_kind) || '来源记录'],
     ['来源时间', recordTime(row.occurred_at) || recordTime(row.recorded_at)],
+    ['来源说明', recordText(row.summary) || recordText(row.description)],
     ['有效性', row.live === true ? '来源有效' : row.live === false ? '来源失效或未知' : labelFor(provenanceLabels, row.status)],
     ['来源变更', row.superseded_by_ref ? '已被其他来源替代' : ''],
   ];

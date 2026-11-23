@@ -2,7 +2,8 @@ import { behavioralFields, identityFields } from "@/approved-ui/profile-fields.m
 import { portraitPresentation, workingPersonaPresentation } from "@/approved-ui/profile-presentation.mjs";
 import { stateLabel } from "@/v3/domain-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
-import { semanticLabel } from "@/v3/proto/components/semantic-fields.js";
+import { narrativeFields, readingFields, readingText, selectReadingFields } from "@/approved-ui/reading-fields.mjs";
+import { readingFieldLabel } from "@/v3/proto/components/reading-fields.js";
 import JsonDetails from "./JsonDetails";
 import SemanticTree, { hasVisibleSemanticValue } from "./SemanticTree";
 
@@ -24,78 +25,69 @@ const traits = scalars([
   "sociability", "risk_tolerance",
 ]);
 const expression = scalars([...Object.keys(behavioralFields), "reply_style", "tone", "speech_style", "speech_patterns", "body_language"]);
-const narrative = scalars([
+const narrative = Object.fromEntries([
   "title", "name", "label", "text", "summary", "description", "content", "value",
   "reason", "likes", "dislikes", "stable_preferences", "habits", "boundaries",
-]);
+].map(key => [key, narrativeFields]));
 const location = { ...narrative, address: true, city: true, region: true, country: true };
 const appearance = {
   ...narrative,
-  ...scalars(["hair_color", "hair_style", "hair_length", "injuries", "daily_outfit_preferences", "style_preferences"]),
-  physical_features: scalars(["hair_color", "hair_style", "hair_length", "eye_color", "height", "height_cm", "chest_cup", "description"]),
+  ...readingFields("hair hair_color hair_style hair_length eyes eye_color body_type skin_tone build injuries daily_outfit_preferences style_preferences physical_features"),
+  wardrobe_items: readingFields("name description category slot clothing_type ownership available currently_worn seasons color material"),
 };
 const identityShape = {
-  ...scalars(Object.keys(identityFields)), tags: true, tagline: true,
+  ...scalars(Object.keys(identityFields)), ...readingFields("tags tagline education nationality languages hobbies"),
   residence: location, birthplace: location,
 };
 export const personalityShape = {
   ...traits, ...expression, ...narrative, traits, expression,
-  core_mechanisms: narrative, language_expression: { ...expression, ...narrative },
-  behavior_boundaries: narrative,
+  ...readingFields("core_mechanisms language_expression behavior_boundaries emotional_state stable_motivations temperament sensitivities rituals fears desires"),
 };
 export const behaviorShape = {
-  ...expression, ...narrative, expression, voice: { ...expression, ...narrative },
-  behavior_boundaries: narrative, scenario_behavior: narrative,
-  output_preferences: narrative, intimacy_progression: narrative,
+  ...expression, ...narrative, expression,
+  ...readingFields("voice body_language speech_patterns behavior_boundaries scenario_behavior output_preferences intimacy_progression behavior_state_machine behavior_loops"),
 };
 export const lifeShape = {
-  ...narrative, preferences: { ...narrative, interests: true, clothing_style: true }, life_habits: narrative,
-  character_constraints: narrative, recurring_commitments: { ...narrative, frequency: true }, appearance,
+  ...narrative, ...readingFields("preferences life_habits character_constraints recurring_commitments media_preferences social_background"),
+  relationship_seeds: {
+    ...readingFields("role summary trend emotional_association"),
+    metrics: narrativeFields,
+  },
+  appearance,
 };
 export const systemShape = {
-  mode: true, core_relationship: narrative, core_conflict: narrative,
-  integration: narrative, shared_memory_policy: narrative,
+  mode: true,
+  ...readingFields("core_relationship core_conflict integration shared_memory_policy switching forced_activation influence conflict_resolution behavior_state_machine"),
+  takeover_rules: readingFields("condition description priority cooldown_seconds enabled"),
 };
-export const profileShape = {
+const personaShape = {
   description: true, identity: identityShape, personality: personalityShape,
-  behavioral_policy: behaviorShape, life_profile: lifeShape, personality_system: systemShape,
-  voice: { ...expression, ...narrative }, desires: true, fears: true, secrets: true,
-  behavior_loops: narrative,
+  behavioral_policy: behaviorShape, life_profile: lifeShape,
+  ...readingFields("voice body_language desires fears secrets behavior_loops behavior_state_machine scenario_behavior intimacy_progression output_preferences emotional_state stable_motivations"),
 };
+export const profileShape = { ...personaShape, personality_system: { ...systemShape, profiles: { name: true, ...personaShape } } };
 const contextShape = {
-  location, scene: narrative, activity: narrative, doing: narrative,
+  location, ...readingFields("scene activity doing"),
 };
 export const currentStateShape = {
-  appearance, mood: { ...narrative, intensity: true }, momentum: narrative,
-  ...contextShape, context: contextShape, energy: narrative, scene_image: { label: true },
+  appearance, ...readingFields("mood momentum energy"),
+  ...contextShape, context: contextShape, scene_image: readingFields("label description"),
 };
 
 export function profileFieldsForReading(value, fields, showClears = false) {
-  if (Array.isArray(value)) {
-    const items = value.map((item) => profileFieldsForReading(item, fields))
-      .filter((item) => item !== undefined);
-    return items.length ? items : undefined;
-  }
-  if (value === "" && showClears) return "清空该设定";
-  if (typeof value === "string") return profileText(value) || undefined;
-  if (typeof value === "boolean" || Number.isFinite(value)) return value;
-  if (!value || typeof value !== "object") return undefined;
-  if (fields === true) return profileFieldsForReading(value.value, true);
-
-  const entries = Object.entries(fields).flatMap(([key, shape]) => {
-    const item = profileFieldsForReading(value[key], shape, showClears);
-    return item === undefined ? [] : [[key, item]];
+  return selectReadingFields(value, fields, {
+    showClears,
+    text: text => profileText(readingText(text)),
   });
-  return entries.length ? Object.fromEntries(entries) : undefined;
 }
 
-/** @param {{value: any, shape?: object | true, identity?: object, title?: string, showClears?: boolean}} props */
+/** @param {{value: any, shape?: object | true | typeof narrativeFields, identity?: object, title?: string, showClears?: boolean}} props */
 export function ProfileFieldsSummary({ value, shape = profileShape, identity, title, showClears }) {
   const summary = profileFieldsForReading(value, shape, showClears);
   if (!hasVisibleSemanticValue(summary, "", identity)) return null;
   return <>
     {title && <h4 className="font-medium">{title}</h4>}
-    <SemanticTree value={summary} identity={identity} />
+    <SemanticTree value={summary} identity={identity} reading />
   </>;
 }
 
@@ -139,8 +131,8 @@ export function WorkingPortraitSummary({ value, identity, activeProfileId }) {
   return <div data-testid="current-working-portrait">
     {reading.map((line, index) => line.field ? (
       <p key={index}>
-        <b>{semanticLabel(line.field)}：</b>
-        <SemanticTree value={line.value} field={line.field} identity={identity} />
+        <b>{readingFieldLabel(line.field)}：</b>
+        <SemanticTree value={line.value} field={line.field} identity={identity} reading />
         {line.occurrences > 1 && <small className="r-muted">（原文出现 {line.occurrences} 次）</small>}
       </p>
     ) : <p key={index}>{line.text}</p>)}
@@ -164,8 +156,13 @@ export function ClaimReadingSummary({ claim, category }) {
 
 /** @param {{ value: any, title?: string }} props */
 export function ClaimValueSummary({ value, title = "认识内容" }) {
-  return <ProfileFieldsSummary value={value} shape={narrative} title={title} />;
+  return <ProfileFieldsSummary value={value} shape={narrativeFields} title={title} />;
 }
+
+const capabilityShape = {
+  ...narrative,
+  ...readingFields("input inputs desired_input output outputs desired_output parameters limits limitations constraints restrictions preconditions prerequisites examples example error_handling errors failure_modes use_cases requirements assumptions output_format success_criteria"),
+};
 
 export function CapabilitySummary({ record }) {
   const sideEffect = { read: "只读", write: "会修改资料", external: "可能影响外部服务", none: "无副作用" }[record.side_effect_class];
@@ -173,7 +170,7 @@ export function CapabilitySummary({ record }) {
   return <>
     <ProfileNote value={record.description} />
     <ProfileNote value={record.rationale || record.reason} label="申请原因" />
-    <ProfileFieldsSummary value={record.desired_contract} shape={narrative} title="期望能力" />
+    <ProfileFieldsSummary value={record.desired_contract} shape={capabilityShape} title="期望能力" />
     <ProfileNote value={sideEffect} label="影响范围" />
     <ProfileNote value={priority} label="优先级" />
     <ProfileNote value={record.review_note} label="审核意见" />

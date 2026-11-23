@@ -1,3 +1,5 @@
+import { ReadingFields } from '../v3/proto/components/reading-fields.js';
+import { readingFields } from '../approved-ui/reading-fields.mjs';
 import {InstantLabel} from '../v3/proto/components/instant-label.js';
 import {renderRealDiagnosticHome} from './diagnostics.js';
 import {inventoryClient,operationsClient} from '../v3/proto/services.js';
@@ -105,6 +107,11 @@ async function fillRequestObject(el,request,alive) {
   el.querySelector('[data-request-object]').innerHTML = requestDetailFact('对象',name);
 }
 
+const requestContentShape = {
+  ...readingFields("description notes expected_outcome location scene desired_hair_color desired_hair_length"),
+  items: readingFields("description name"),
+};
+
 export function renderRealRequest(el,ctx){
   return asyncPage(el,()=>operationsClient.request(ctx.params.requestId),(request,reload,alive)=>{
     const {payload = {}, result = {}} = request;
@@ -129,6 +136,8 @@ export function renderRealRequest(el,ctx){
         <div data-request-object>${requestDetailFact('对象',object)}</div>
         ${requestDetailFact('提交内容',requestDetailText(payload?.text || payload?.prompt))}
         ${requestDetailFact('提交理由',requestDetailText(payload?.reason))}
+        ${ReadingFields(payload,requestContentShape)}
+        ${requestDetailFact('期望时间',[requestDetailTime(payload?.start_at),requestDetailTime(payload?.end_at)].filter(Boolean).join(' 至 '))}
         ${requestDetailFact('提交时间',submittedAt)}
         ${requestDetailFact('完成时间',completedAt)}
         ${requestDetailFact(request.status === 'failed' ? '失败原因' : '处理结论',outcome)}

@@ -39,6 +39,7 @@ function NoticeDetail({row,previews,read}){
   <p className="replica-inbox-caption">
    {occurredAt&&<>发生时间：<time dateTime={occurredAt}>{userInstant(occurredAt)}</time> · </>}
    {read?'已读':'未读'}
+   {row.quiet === true && ' · 静默通知'}
   </p>
   <JsonDetails value={row} title="原始通知记录（诊断）" downloadOnly/>
  </>;

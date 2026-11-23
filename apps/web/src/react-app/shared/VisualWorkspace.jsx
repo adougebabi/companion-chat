@@ -27,7 +27,8 @@ import { studioDraftStorage } from "@/v3/proto/components/studio-draft-storage.j
 import { visualStageLabel, errorMessage } from "@/v3/domain-presentation.mjs";
 import { isInternalId } from "@/v3/internal-id.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
-import VisualIdentityRecord from "./VisualIdentityRecord";
+import VisualIdentityRecord, { VisualReviewReading } from "./VisualIdentityRecord";
+import { ProfileNote, profileText } from "./ProfileRecordSummary";
 import JsonDetails from "./JsonDetails";
 
 const reviewSources = {
@@ -43,6 +44,26 @@ function timelineText(value) {
     .replace(/\b[a-z0-9_-]+\b/gi, token => isInternalId(token) || /^v\d+$/i.test(token) ? "…" : token)
     .trim();
 }
+function VisualBriefRevision({ row }) {
+  const fields = briefFields.flatMap(([key, label]) => {
+    const before = profileText(row.before_value?.[key]);
+    const saved = row.after_value?.[key];
+    const after = profileText(saved);
+    const cleared = Object.hasOwn(row.after_value ?? {}, key) && (saved == null || (typeof saved === "string" && !saved.trim()));
+    return before !== after && (after || cleared) ? [{ key, label, before, after }] : [];
+  });
+  if (!fields.length) return null;
+  return <dl className="profile-facts">{fields.map(({ key, label, before, after }) => (
+    <div key={key}>
+      <dt>{label}</dt>
+      <dd>
+        <ProfileNote value={before} label="修改前" />
+        <ProfileNote value={after || "已清除"} label="修改后" />
+      </dd>
+    </div>
+  ))}</dl>;
+}
+
 export default function VisualWorkspace({ model: m }) {
   const fid = m.target,
     [action, setAction] = useState(null),
@@ -1014,6 +1035,7 @@ export default function VisualWorkspace({ model: m }) {
               <b>{timelineText(row.summary) || visualStageLabel(row.stage, "视觉记录")}</b>
               {row.occurred_at && <small>{userInstant(row.occurred_at)}</small>}
               {row.review?.summary && <p>{timelineText(row.review.summary)}</p>}
+              <VisualReviewReading value={row.review} title="评审意见" />
               {row.review?.source && <p>{Object.hasOwn(reviewSources, row.review.source) ? reviewSources[row.review.source] : "评审来源待确认"}</p>}
               {(row.asset_ids || []).map((id) => (
                 <Button
@@ -1083,6 +1105,7 @@ export default function VisualWorkspace({ model: m }) {
             <b>{row.revision === 1 ? "首次保存视觉定义" : "更新视觉定义"}</b>
             {row.reason?.trim() && <p>{row.reason}</p>}
             {row.created_at && <small>{userInstant(row.created_at)}</small>}
+            <VisualBriefRevision row={row} />
             <JsonDetails title="原始媒体记录（诊断）" value={row} downloadOnly />
           </div>
         ))}

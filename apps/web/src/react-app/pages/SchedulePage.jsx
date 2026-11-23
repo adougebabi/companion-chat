@@ -1,3 +1,5 @@
+import { ProfileFieldsSummary } from "../shared/ProfileRecordSummary";
+import { readingFields } from "@/approved-ui/reading-fields.mjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowRightIcon,
@@ -41,6 +43,11 @@ const shiftDate = (date, step) => {
   return value.toISOString().slice(0, 10);
 };
 const pendingStatuses = ["pending", "processing", "deferred", "awaiting_goal"];
+const scheduleActionShape = {
+  ...readingFields("description reason desired_hair_color desired_hair_length duration_minutes"),
+  items: readingFields("description name"),
+};
+
 const requestLabels = {
   pending: "等待回应",
   processing: "正在考虑",
@@ -1314,6 +1321,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
                   过去和未来的安排供查阅，条目建议面向今天。
                 </p>
               )}
+              <ProfileFieldsSummary value={selected.item._source.action_plan} shape={scheduleActionShape} title="行动安排" />
               <JsonDetails title="原始日程记录（诊断）" value={selected.item._source} downloadOnly />
                 <Button
                   variant="outline"

@@ -6,6 +6,8 @@ import {get} from '../store.js';
 import {drawer,esc} from '../ui.js';
 import {Field,DiffRows} from './forms.js';
 import {JsonDetails,RawRecordDownload} from './records.js';
+import {ReadingFields} from './reading-fields.js';
+import {readingFields} from '../../../approved-ui/reading-fields.mjs';
 import {mountCursorRecords} from './cursor-records.js';
 import {durableCommandDrawer} from './durable-command-drawer.js';
 
@@ -65,6 +67,18 @@ function historyFieldText(field,value) {
  }).filter(Boolean).join('、');
 }
 
+const collectionDetails = readingFields('quantity position placement material color condition notes details');
+
+function historyCollectionDetails(value) {
+ return (Array.isArray(value) ? value : [value]).map(item => {
+  if (!item || typeof item !== 'object') return '';
+  const details = ReadingFields(item,collectionDetails);
+  if (!details) return '';
+  const name = historyText(item.name) || historyText(item.label);
+  return `${name ? `<p>${esc(name)}</p>` : ''}${details}`;
+ }).join('');
+}
+
 function historyFieldRows(before,after) {
  if (!after || typeof after !== 'object') return '';
  const rows = historyFields.map(([field,label]) => {
@@ -79,10 +93,16 @@ function historyFieldRows(before,after) {
   } else {
    const from = historyFieldText(field,previous);
    const to = historyFieldText(field,next);
-   if (from === to) return '';
+   const beforeDetails = historyCollections.has(field) ? historyCollectionDetails(previous) : '';
+   const afterDetails = historyCollections.has(field) ? historyCollectionDetails(next) : '';
+   if (from === to && beforeDetails === afterDetails) return '';
    const cleared = next == null || (typeof next === 'string' && !next.trim()) ||
     (Array.isArray(next) && next.length === 0);
-   change = from && to ? `${from} → ${to}` : to || (cleared ? `${from} → 已清除` : `原值：${from}`);
+   change = from === to ? '' : from && to ? `${from} → ${to}` : to || (cleared ? `${from} → 已清除` : `原值：${from}`);
+   if (beforeDetails !== afterDetails) {
+    const details = `${beforeDetails ? `<p>变更前补充</p>${beforeDetails}` : ''}${afterDetails ? `<p>变更后补充</p>${afterDetails}` : '<p>已清除补充说明</p>'}`;
+    return `<div><dt>${esc(label)}</dt><dd>${esc(change)}${details}</dd></div>`;
+   }
   }
   return `<div><dt>${esc(label)}</dt><dd>${esc(change)}</dd></div>`;
  }).join('');

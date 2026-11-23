@@ -1,3 +1,5 @@
+import { ProfileFieldsSummary, currentStateShape } from "../shared/ProfileRecordSummary";
+import { readingFields } from "@/approved-ui/reading-fields.mjs";
 import {ArrowUpRightIcon,BookOpenIcon,Clock3Icon,HeartIcon,LeafIcon,MapPinIcon,MessageSquareIcon,SunIcon} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {EmptyMedia} from '@/components/ui/empty';
@@ -15,6 +17,9 @@ import {day} from '@/state/workspace.mjs';
 import {nearbyScheduleItems,nextScheduleItem} from '@/approved-ui/presentation.mjs';
 import useMinuteClock from '../shared/useMinuteClock';
 import {useEffect,useRef} from 'react';
+const innerStateNarrative = readingFields("label description reason summary");
+const innerStateShape = { momentum: innerStateNarrative, regulation: innerStateNarrative, drives: innerStateNarrative, conflicts: innerStateNarrative };
+
 export default function NowPage({view}){
  const w=useWorkspace(),c=view.character.value,now=useMinuteClock(),zone=view.schedule.value.find(item=>item._schedule?.timezone)?._schedule.timezone||c.timezone||'Asia/Shanghai',today=day(new Date(now),zone);
  const previousDay=useRef(today);
@@ -60,6 +65,8 @@ export default function NowPage({view}){
    <ReaderFeedback source={worldRead} label="所属世界"/>
    {mood&&<div className="lp-runtime-item"><span className="lp-icon-box"><HeartIcon size={17}/></span><div><span className="lp-muted">当前情绪</span><strong className="lp-title">{mood}</strong><span className="lp-muted">随相处和生活自然变化</span></div></div>}
    <div className="lp-runtime-item"><span className="lp-icon-box"><SunIcon size={17}/></span><div><span className="lp-muted">今天的穿着</span><WearingSummary character={c} error={view.readError('wardrobe')} loading={w.state.loading.wardrobe}/><Button variant="link" onClick={()=>go('衣柜')}>打开衣柜<ArrowUpRightIcon size={12}/></Button></div></div>
+   <ProfileFieldsSummary value={c.detail?.current_state?.appearance} shape={currentStateShape.appearance} title="此刻的外貌" identity={c.detail?.identity}/>
+   <ProfileFieldsSummary value={c.detail?.inner_state ?? c.detail?.current_state?.inner_state} shape={innerStateShape} title="内在状态"/>
    <NowStateDownload detail={c.detail} world={world} schedule={view.schedule.value.length?view.schedule.value.map(item=>item._source):undefined}/>
   </Surface><Surface className="lp-pad"><div className="lp-row lp-between"><span className="lp-label">NEXT LITTLE THING</span><Clock3Icon size={15}/></div><strong className="replica-next-time">{(nextDisplay?.showTime ? next.time : nextDisplay?.timeNote)||'待安排'}</strong><p className="lp-title">{nowStateText(next?.text,'活动')||'接下来的安排尚未确认。'}</p><p className="lp-muted replica-next-note">未来的安排仍会变化，生活留一点余地。</p></Surface>
   <Button variant="ghost" className="lp-memory-card" onClick={()=>go('日记')}><div className="lp-row"><BookOpenIcon size={16}/><span className="lp-title">{c.name}写下的日常</span><ArrowUpRightIcon size={14}/></div><p className="lp-small">翻开日记，看看没有说出口的日常。</p></Button>

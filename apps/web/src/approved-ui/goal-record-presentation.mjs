@@ -106,6 +106,15 @@ export function goalRecordSummary(row, kind, goalNames) {
         ['涉及目标', [...new Set(names.filter(Boolean))].join('、')],
         ['规划原因', failure ? planningFailure(failure, row.status) : read(result?.reason) || read(row.reason)],
         ['复核条件', failure ? '' : read(result?.review_condition)],
+        ...suggestions.flatMap((item, index) => {
+          const prefix = names[index] ? names[index] + ' · ' : '';
+          return [
+            [prefix + '动机', read(item?.motivation)],
+            [prefix + '完成条件', Array.isArray(item?.success_criteria) ? item.success_criteria.map(criterion => read(criterion?.text ?? criterion)).filter(Boolean).join('；') : ''],
+            [prefix + '下一步', read(item?.next_step)],
+            [prefix + '等待条件', read(item?.wait_condition)],
+          ];
+        }),
       ],
     };
   }
@@ -133,6 +142,7 @@ export function goalRecordSummary(row, kind, goalNames) {
       ['实际证据', read(source?.summary) || read(source?.source_data?.summary) || read(source?.source_data?.text)
         || read(source?.data?.summary) || read(source?.data?.text) || read(row.summary)],
       ['期望结果', read(row.snapshot?.desired_outcome)],
+      ['动机', read(row.snapshot?.motivation)],
       ['完成条件', Array.isArray(row.snapshot?.success_criteria) ? row.snapshot.success_criteria.map(read).filter(Boolean).join('；') : ''],
       ['期望完成时间', time(row.snapshot?.deadline)],
     ],

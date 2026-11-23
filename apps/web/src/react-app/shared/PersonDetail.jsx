@@ -469,6 +469,13 @@ export default function PersonDetail({
               </Badge>
               {npc.bio?.trim() && <PeopleFact label="人物背景">{npc.bio}</PeopleFact>}
               {presencePlace && <PeopleFact label="已读在场地点">{presencePlace}</PeopleFact>}
+              {presencePlace && validTimeRange(npc.current_presence?.start_at, npc.current_presence?.end_at) && (
+                <PeopleFact label="已读在场时段">
+                  <time dateTime={npc.current_presence.start_at}>{userInstant(npc.current_presence.start_at)}</time>
+                  {" 至 "}
+                  <time dateTime={npc.current_presence.end_at}>{userInstant(npc.current_presence.end_at)}</time>
+                </PeopleFact>
+              )}
               {plannedPlace && <PeopleFact label="预计地点">{plannedPlace}</PeopleFact>}
               {plannedWindow && (
                 <PeopleFact label="预计时段">

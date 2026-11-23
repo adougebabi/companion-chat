@@ -1,6 +1,15 @@
+import { ProfileFieldsSummary, currentStateShape } from "./ProfileRecordSummary";
+import { readingFields } from "@/approved-ui/reading-fields.mjs";
 import { Disclosure } from '../controls';
 import { visualSessionState } from '@/approved-ui/media-presentation.mjs';
 import JsonDetails from './JsonDetails';
+
+const visualSnapshotShape = { ...readingFields("description physical_features hair eyes body_type"), appearance: currentStateShape.appearance };
+const visualReviewShape = readingFields("feedback review_note derived_review_feedback reason observations missing_sections");
+
+export function VisualReviewReading({ value, title }) {
+  return <ProfileFieldsSummary value={value} shape={visualReviewShape} title={title} />;
+}
 
 const reviewLabels = {
   accepted: '已通过', accept: '已通过', rejected: '未通过',
@@ -47,6 +56,10 @@ export default function VisualIdentityRecord({ value }) {
         </dl>
       </Disclosure>
     )}
+    <ProfileFieldsSummary value={value.identity_snapshot?.life_profile ?? value.identity_snapshot} shape={visualSnapshotShape} title="视觉身份外貌" identity={value.identity_snapshot?.identity} />
+    <VisualReviewReading value={current?.review ?? current} title="候选评审意见" />
+    <VisualReviewReading value={value.generated_reviews?.avatar} title="头像评审意见" />
+    <VisualReviewReading value={value.generated_reviews?.character_sheet} title="角色设定图评审意见" />
     <JsonDetails title="原始媒体记录（诊断）" value={value} downloadOnly filename="视觉身份原始记录.json" />
   </>;
 }
