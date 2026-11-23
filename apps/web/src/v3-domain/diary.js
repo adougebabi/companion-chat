@@ -8,9 +8,11 @@ import * as store from '../v3/proto/store.js';
 import {asyncPage,instant} from '../v3/proto/components/async-page.js';
 import {CursorPager,bindCursorPager} from '../v3/proto/components/cursor-pager.js';
 import {Field,Tabs,Toggle} from '../v3/proto/components/forms.js';
-import {JsonDetails,RawRecordDownload} from '../v3/proto/components/records.js';
+import {RawRecordDownload} from '../v3/proto/components/records.js';
 import {beginDraftSubmission,settleDraftSubmission} from '../v3/proto/components/draft-submission.js';
 import {esc,badge,confirm,drawer,toast} from '../v3/proto/ui.js';
+import {isInternalId} from '../v3/internal-id.mjs';
+import {userInstant} from '../v3/presentation-time.mjs';
 
 const labels={pending:'正在等待日记生成',running:'正在生成',ready:'已生成',no_content:'本次没有日记',failed:'生成失败',inactive:'角色未处于运行状态'};
 const entryHref=(fid,id)=>`#/c/${encodeURIComponent(fid)}/life/diary/${encodeURIComponent(id)}`;
@@ -158,30 +160,90 @@ export function renderRealDiaryEntry(el,ctx){
   return()=>{clearTimeout(timer);document.removeEventListener('visibilitychange',visible);noteDrawer?.close();if(draft.onSettled===settled)delete draft.onSettled;};
  },{backHref:`#/c/${encodeURIComponent(ctx.charId)}/life/diary`,backLabel:'返回日记'});
 }
+const storyTime=value=>typeof value==='string'&&Number.isFinite(Date.parse(value))?userInstant(value):'';
+const storyText=value=>typeof value==='string'&&value.trim()&&!isInternalId(value)?value:'';
+const footprintLabels={memory:'她记下的事',diary:'她的主观日记',remote_communication:'远程交流',relationship:'关系记录',promise:'约定'};
+const storyPromiseStatuses={awaiting_goal:'等待规划，尚未接受',deferred:'暂缓决定',accepted:'已接受，履行待证据'};
+const storyCards=[['companionship_days','陪伴天数','天'],['completed_turns','完成回复轮次','轮'],['relationship','现在的我们',''],['memories','关于你的记忆','条'],['diaries','她的日记','篇']];
+
+function storyBasis(snapshot,rows,recordsHref,characterName){
+ const from=storyTime(snapshot.first_communication_at),to=storyTime(snapshot.as_of);
+ const turns=snapshot.metrics?.completed_turns;
+ const semantics=snapshot.semantics;
+ return `
+  ${from&&to?`<p>交流统计范围：${esc(from)} 至 ${esc(to)}</p>`:to?`<p>统计截至：${esc(to)}</p>`:''}
+  ${turns?.available&&turns.complete&&Number.isFinite(turns.value)?`<p>完成回复轮次：${turns.value} 轮</p>`:''}
+  ${Array.isArray(snapshot.footprints)?`<p>本页回顾记录 ${rows.length} 条，其中远程交流 ${rows.filter(row=>row.kind==='remote_communication').length} 条。</p>`:''}
+  ${characterName?`<p>回顾范围：你和${esc(characterName)}。</p>`:''}
+  <p>统计来自同一次读取。${snapshot.footprints_complete===false?'本页只列出部分来源，完整交流可从下方入口查看。':''}</p>
+  ${semantics?.communication==='actual_participation_intervals'?'<p>交流只纳入双方实际参与时段内的消息。</p>':''}
+  ${semantics?.turns==='distinct_conversation_and_turn_with_persisted_owner_input_and_nonempty_character_reply'?'<p>每轮需有已保存的留言和角色的非空回复，同一交流中的同一轮只统计一次。</p>':''}
+  ${semantics?.memories==='active_owner_actor_refs_and_current_source_liveness'?'<p>记忆只统计与您有关且来源仍有效的记录。</p>':''}
+  ${semantics?.diaries==='ready_day_with_nonempty_active_attempt_body'?'<p>日记只统计已生成有效正文的日期。</p>':''}
+  ${semantics?.copresent===false?'<p>远程交流不表示双方曾在同一地点。</p>':''}
+  <p><a href="${esc(recordsHref)}">查看全部交流</a></p>
+  ${RawRecordDownload(snapshot,'原始共同经历记录（诊断）')}`;
+}
+
 export function renderRealShared(el,ctx){
  const fid=ctx.charId;
  if(ctx.query.view==='records'){
   const cursors=[''];let at=0;
   return asyncPage(el,()=>diaryClient.shared(fid,cursors[at]),(page,reload)=>{
-   el.innerHTML=`<div class="stack story-page"><h1 class="reading-business-title">交流记录</h1><p class="small muted">保留双方实际参与时段内的原交流；远程交流不表示物理同场。</p><div class="reading-paper life-reading-paper">${page.items.map(r=>`<div class="story-footprint"><p class="small muted">${esc(instant(r.occurred_at))}</p><p>${esc(r.title)}</p><a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" href="${esc(sourceHref(r.href,ctx,'返回共同交流'))}">查看原交流</a></div>`).join('')||'<p>当前读取范围没有交流记录。</p>'}</div>${CursorPager({more:!!page.next_cursor,previous:at>0,label:'交流'})}<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-story-back>返回共同经历</button></div>`;
+   el.innerHTML=`<div class="stack story-page"><h1 class="reading-business-title">交流记录</h1><p class="small muted">保留双方实际参与时段内的原交流；远程交流不表示物理同场。</p><div class="reading-paper life-reading-paper">${page.items.map(row=>{
+    const time=storyTime(row.occurred_at),title=storyText(row.title);
+    return `<div class="story-footprint">${time?`<p class="small muted">${esc(time)}</p>`:''}${title?`<p>${esc(title)}</p>`:''}<a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" href="${esc(sourceHref(row.href,ctx,'返回共同交流'))}">查看原交流</a></div>`;
+   }).join('')||'<p>当前读取范围没有交流记录。</p>'}</div>${CursorPager({more:!!page.next_cursor,previous:at>0,label:'交流'})}<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-story-back>返回共同经历</button></div>`;
    el.querySelector('[data-story-back]').onclick=ctx.goBack;
    bindCursorPager(el,{next:()=>{cursors[++at]=page.next_cursor;void reload();},previous:()=>{at--;void reload();}});
   });
  }
  const owner=store.get('session')?.actorId;let active=true,busy=false,snapshot=null,failure='',epoch=0;
  const live=()=>active&&el.isConnected&&store.get('session')?.actorId===owner;
+ const recordsHref=`#/c/${encodeURIComponent(fid)}/life/shared?view=records`;
  const metric=name=>snapshot?.metrics?.[name];
  const known=name=>metric(name)?.available&&metric(name)?.complete;
  function paint(){if(!live())return;
   const relation=known('relationship')?metric('relationship').value:null;
-  const cards=[['companionship_days','陪伴天数','天'],['completed_turns','完成回复轮次','轮'],['relationship','现在的我们',''],['memories','关于你的记忆','条'],['diaries','她的日记','篇']];
+  const relationLabel=storyText(relation?.role?.label),relationSummary=storyText(relation?.summary);
+  const cards=storyCards.map(([key,label,unit])=>{
+   if(!known(key))return '';
+   const value=metric(key).value,isRelationship=key==='relationship';
+   if(!isRelationship&&!Number.isFinite(value))return '';
+   const text=isRelationship?relationLabel||relationSummary:`${value} ${unit}`;
+   return `<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" class="story-metric" data-story-metric="${key}"><span>${label}</span>${text?`<strong class="${isRelationship?'story-relationship-value':''}">${esc(text)}</strong>`:''}</button>`;
+  }).join('');
   const targetHref=row=>row.kind==='memory'?`#/c/${fid}/growth/memory/${encodeURIComponent(row.id)}`:row.kind==='diary'?entryHref(fid,row.id):row.kind==='relationship'?`#/c/${fid}/people/owner`:`#/c/${fid}/chat?${new URLSearchParams({conversation:row.conversation_id,message:row.id})}`;
   const sourceHrefFromStory=row=>sourceHref(targetHref(row),ctx,'返回共同经历');
   const rows=[...(snapshot?.footprints||[])].sort((a,b)=>{const time=row=>row.at?Date.parse(row.at):row.local_date?Date.parse(row.local_date+'T00:00:00Z'):null;return (time(b)??-Infinity)-(time(a)??-Infinity);});
-  el.innerHTML=`<div class="stack story-page"><section class="story-overview"><h1 class="reading-business-title">我们</h1><p>${esc(relation?.summary||relation?.role?.label||'从每一次真实交流，慢慢积累共同经历。')}</p><p class="small muted">${snapshot?'截至 '+esc(instant(snapshot.as_of,snapshot.timezone)):'正在读取已有记录…'}</p></section><nav class="row" aria-label="我们的事"><a href="#/c/${encodeURIComponent(fid)}/growth?aboutOwner=true">她记得的事</a><a href="#/c/${encodeURIComponent(fid)}/life/schedule?section=promises">我们的约定</a></nav><details data-domain-ui="disclosure" class="reading-secondary"><summary>共同经历详情</summary><div class="story-metrics">${cards.map(([key,label,unit])=>{let text='—';if(known(key))text=key==='relationship'?(relation?.role?.label||relation?.summary||'尚无关系记录'):String(metric(key).value)+' '+unit;return `<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" class="story-metric" data-story-metric="${key}" ${known(key)?'':'disabled'}><span>${label}</span><strong class="${key==='relationship'?'story-relationship-value':''}">${esc(text)}</strong></button>`;}).join('')}</div></details>${failure?`<p data-domain-ui="alert" class="banner info" role="status">部分概览暂不可读取，已知内容保留：${esc(failure)}</p>`:''}<div class="row"><h3 class="grow">共同经历与原交流</h3><details data-domain-ui="disclosure"><summary>阅读选项</summary><button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-basis ${snapshot?'':'disabled'}>回顾依据</button></details></div><section class="reading-paper life-reading-paper">${rows.map(row=>`<article class="story-footprint"><p class="small muted">${esc(({memory:'她记下的事',diary:'她的主观日记',remote_communication:'远程交流',relationship:'关系记录',promise:'约定'})[row.kind]||'来源记录')} · ${row.local_date?esc(row.local_date):row.at?esc(instant(row.at,snapshot.timezone)):'时间未记录'}${row.revision?' · v'+esc(row.revision):''}</p><p class="story-source-excerpt">${esc(row.title)}</p>${row.kind==='promise'?`<p class="small muted">${esc(row.status==='awaiting_goal'?'等待规划，尚未接受':row.status==='deferred'?'暂缓决定':'已接受，履行待证据')}</p><button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-story-promise="${esc(row.id)}">查看约定</button>`:`<a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" href="${esc(sourceHrefFromStory(row))}">查看记录</a>`}</article>`).join('')||`<p class="muted">${snapshot?'还没有可回顾的足印，可以从真实交流开始。':'已有资料暂未读取。'}</p>`}</section><div class="row"><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${fid}/life/shared?view=records">查看全部交流</a><button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-story-refresh ${busy?'disabled':''}>重新读取概览</button></div></div>`;
+  const footprints=rows.map(row=>{
+   const label=Object.hasOwn(footprintLabels,row.kind)?footprintLabels[row.kind]:'来源记录';
+   const time=storyTime(row.local_date)||storyTime(row.at),title=storyText(row.title);
+   const promiseStatus=Object.hasOwn(storyPromiseStatuses,row.status)?storyPromiseStatuses[row.status]:'';
+   return `<article class="story-footprint">
+    <p class="small muted">${label}${time?' · '+esc(time):''}</p>
+    ${title?`<p class="story-source-excerpt">${esc(title)}</p>`:''}
+    ${row.kind==='promise'?`${promiseStatus?`<p class="small muted">${promiseStatus}</p>`:''}
+     <button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-story-promise="${esc(row.id)}">查看约定</button>`:
+     `<a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" href="${esc(sourceHrefFromStory(row))}">查看记录</a>`}
+   </article>`;
+  }).join('');
+  const asOf=storyTime(snapshot?.as_of);
+  el.innerHTML=`<div class="stack story-page">
+   <section class="story-overview"><h1 class="reading-business-title">我们</h1>
+    <p>${esc(relationSummary||relationLabel||'从每一次真实交流，慢慢积累共同经历。')}</p>
+    ${asOf?`<p class="small muted">截至 ${esc(asOf)}</p>`:busy&&!snapshot?'<p class="small muted">正在读取已有记录…</p>':''}
+   </section>
+   <nav class="row" aria-label="我们的事"><a href="#/c/${encodeURIComponent(fid)}/growth?aboutOwner=true">她记得的事</a><a href="#/c/${encodeURIComponent(fid)}/life/schedule?section=promises">我们的约定</a></nav>
+   ${cards?`<details data-domain-ui="disclosure" class="reading-secondary"><summary>共同经历详情</summary><div class="story-metrics">${cards}</div></details>`:''}
+   ${failure?`<p data-domain-ui="alert" class="banner info" role="status">部分概览暂不可读取，已知内容保留：${esc(failure)}</p>`:''}
+   <div class="row"><h3 class="grow">共同经历与原交流</h3><details data-domain-ui="disclosure"><summary>阅读选项</summary><button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-basis ${snapshot?'':'disabled'}>回顾依据</button></details></div>
+   <section class="reading-paper life-reading-paper">${footprints||`<p class="muted">${snapshot?'还没有可回顾的足印，可以从真实交流开始。':'已有资料暂未读取。'}</p>`}</section>
+   <div class="row"><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="${esc(recordsHref)}">查看全部交流</a><button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-story-refresh ${busy?'disabled':''}>重新读取概览</button></div>
+  </div>`;
   el.querySelectorAll('[data-story-promise]').forEach(button=>button.onclick=()=>openPromise(fid,button.dataset.storyPromise,()=>void load(),live));
   el.querySelector('[data-story-refresh]').onclick=()=>void load();
-  el.querySelector('[data-basis]').onclick=()=>drawer({title:'这次回顾的依据',body:`<p>读取时间：${esc(instant(snapshot.as_of,snapshot.timezone))}</p><p>范围：${esc(store.get('characters',fid)?.name||fid)}与当前所有者，当前人格 ${esc(snapshot.profile_id)}。统计使用同一次只读快照。足印展示最近一部分来源，不代表完整历史。</p>${JsonDetails(snapshot,'统计口径、实际对象与版本')}`});
+  el.querySelector('[data-basis]').onclick=()=>drawer({title:'这次回顾的依据',body:storyBasis(snapshot,rows,recordsHref,storyText(store.get('characters',fid)?.name))});
   el.querySelectorAll('[data-story-metric]').forEach(button=>button.onclick=()=>{const key=button.dataset.storyMetric;if(key==='diaries')ctx.navigate(`#/c/${fid}/life/diary`);else if(key==='memories')ctx.navigate(`#/c/${fid}/growth?aboutOwner=true&status=active`);else if(key==='relationship')ctx.navigate(`#/c/${fid}/people/owner`);else el.querySelector('[data-basis]').click();});
  }
  async function load(){if(busy||!live())return;busy=true;const token=++epoch;paint();try{const value=await diaryClient.overview(fid);if(!live()||token!==epoch)return;if(value.fluctlight_id!==fid||value.actor_id!==owner)throw new Error('共同经历读取范围已经变化，请重新打开');snapshot=value;failure='';}catch(error){if(live()&&token===epoch)failure=errorMessage(error);}finally{busy=false;paint();}}

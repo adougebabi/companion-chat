@@ -20,6 +20,7 @@ import { day } from "@/state/workspace.mjs";
 import { diaryAttemptStatus, diaryStatuses as statuses, previousDiaryDate } from "@/approved-ui/diary-generation.mjs";
 import { errorMessage } from "@/v3/domain-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
+import { requestDecisionText } from "@/v3/proto/components/request-failure.js";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
 import WorkspaceCommandDialog from "../shared/WorkspaceCommandDialog";
 import RequestStatus from "../shared/RequestStatus";
@@ -67,6 +68,40 @@ export function DiaryProvenance({ entry }) {
     </Disclosure>
   );
 }
+
+const replyStatuses = {
+  pending: "等待回应",
+  processing: "正在处理",
+  accepted: "已接受，等待实际行动",
+  completed: "留言处理已结束",
+  rejected: "暂未采纳",
+  deferred: "稍后决定",
+  awaiting_goal: "等待目标规划",
+  cancelled: "已取消",
+  failed: "留言处理未完成",
+};
+
+function DiaryReplySummary({ row }) {
+  const text = row.payload?.text;
+  const submitted = typeof row.created_at === "string" && Number.isFinite(Date.parse(row.created_at));
+  const status = Object.hasOwn(replyStatuses, row.status) ? replyStatuses[row.status] : "";
+  const outcome = requestDecisionText(row);
+  const results = row.result_refs ?? row.result?.result_refs;
+  const resultCount = Array.isArray(results) ? new Set(results.filter(Boolean)).size : 0;
+  return (
+    <>
+      {typeof text === "string" && text.trim() && <p>{text}</p>}
+      {submitted && (
+        <p className="lp-muted">提交时间：<time dateTime={row.created_at}>{userInstant(row.created_at)}</time></p>
+      )}
+      {status && <p className="lp-small">处理状态：{status}</p>}
+      {outcome && <p className="lp-small">处理结果：{outcome}</p>}
+      {resultCount > 0 && <p className="lp-small">关联处理结果 {resultCount} 条</p>}
+      <JsonDetails value={row} title="原始留言处理记录（诊断）" downloadOnly />
+    </>
+  );
+}
+
 export default function DiaryPage() {
   const w = useWorkspace(),
     c = w.current.value,
@@ -846,6 +881,7 @@ export default function DiaryPage() {
                       requestId={replyPointer.request.id}
                       initial={replyPointer.request}
                       onTerminal={() => void readReplies(selected.id)}
+                      renderRecord={(row) => <DiaryReplySummary row={row} />}
                     />
                   )}
                   <section className="replica-diary-replies" aria-label="留言与实际处理记录">
@@ -871,11 +907,7 @@ export default function DiaryPage() {
                     )}
                     {replies.items.map((row) => (
                       <div className="lp-source-card" key={row.id}>
-                        <span className="lp-muted">
-                          你 · {userInstant(row.created_at)}
-                        </span>
-                        <p>{row.payload?.text || "留言原文待读取"}</p>
-                        <JsonDetails value={row} title="原留言请求与处理结果" />
+                        <DiaryReplySummary row={row} />
                         <Button
                           variant="link"
                           onClick={() =>
