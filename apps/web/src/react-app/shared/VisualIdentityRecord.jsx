@@ -47,6 +47,6 @@ export default function VisualIdentityRecord({ value }) {
         </dl>
       </Disclosure>
     )}
-    <JsonDetails title="原始媒体记录（诊断）" value={value} downloadOnly />
+    <JsonDetails title="原始媒体记录（诊断）" value={value} downloadOnly filename="视觉身份原始记录.json" />
   </>;
 }

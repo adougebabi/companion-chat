@@ -59,7 +59,7 @@ test('original record downloads unchanged without rendering raw JSON', async () 
     await view.click(button(view.host, diagnosticTitle));
     await view.click(button(view.host,'下载原始记录'));
     assert.deepEqual(JSON.parse(await blob.text()), raw);
-    assert.equal(filename, 'fluctlight-record.json');
+    assert.equal(filename, '视觉身份原始记录.json');
     assert.doesNotMatch(view.host.textContent, forbidden);
     assert.equal(view.host.querySelector('pre'), null);
   } finally {URL.createObjectURL=create; URL.revokeObjectURL=revoke; anchor.click=click; await view.dispose();}

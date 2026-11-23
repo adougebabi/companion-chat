@@ -14,12 +14,12 @@ function readableRecord(value,field=""){
 }
 export function JsonDetails(value,label='查看完整内容'){return `<details data-domain-ui="disclosure" class="mgmt small muted"><summary>${esc(label)}</summary>${readableRecord(value)}</details>`;}
 
-export function RawRecordDownload(value, label) {
+export function RawRecordDownload(value, label, filename = 'fluctlight-record.json') {
   if (value == null || value === '' || (typeof value === 'object' && !Object.keys(value).length)) return '';
   const json = JSON.stringify(value, null, 2);
   if (json === undefined) return '';
   const href = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
-  return `<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" download="fluctlight-record.json" href="${esc(href)}">${esc(label)}</a>`;
+  return `<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" download="${esc(filename)}" href="${esc(href)}">${esc(label)}</a>`;
 }
 
 export function RecordDetails(rows,{empty='尚无记录'}={}) {
