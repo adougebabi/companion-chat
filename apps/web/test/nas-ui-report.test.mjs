@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {JSDOM} from 'jsdom';
 import {userInstant,displayTimezone} from '../src/v3/presentation-time.mjs';
 import {stateLabel,domainName} from '../src/v3/domain-presentation.mjs';
 import {DiagnosticCard} from '../src/v3/proto/components/diagnostic-card.js';
@@ -54,5 +55,12 @@ test('initial goal review keeps all JSON under closed disclosures and uses actua
  let depth=0;for(const tag of html.matchAll(/<\/?(?:details|pre)\b[^>]*>/g)){if(tag[0].startsWith('<details')){assert.ok(!/\bopen\b/.test(tag[0]));depth++;}else if(tag[0].startsWith('</details'))depth--;else if(tag[0].startsWith('<pre'))assert.ok(depth>0,'JSON was expanded in review body');}
 });
 test('goal history translates actual creation and planner states while preserving raw records',()=>{
- const html=GoalRecords([{reason:'goal created',status:'active'},{status:'awaiting_trigger'}]);assert.match(html,/目标已创建/);assert.match(html,/运行中/);assert.match(html,/等待触发条件/);assert.doesNotMatch(html.split('<details')[0],/goal created|awaiting_trigger/);assert.match(html,/goal created/);
+ const rows=[{reason:'goal created',status:'active'},{status:'awaiting_trigger'}];
+ const doc=JSDOM.fragment(GoalRecords(rows));
+ assert.match(doc.textContent,/目标已创建/);
+ assert.match(doc.textContent,/运行中/);
+ assert.match(doc.textContent,/等待触发条件/);
+ assert.doesNotMatch(doc.textContent,/goal created|awaiting_trigger/);
+ assert.deepEqual([...doc.querySelectorAll('a[download]')].map(link=>
+  JSON.parse(decodeURIComponent(link.getAttribute('href').split(',')[1]))),rows);
 });

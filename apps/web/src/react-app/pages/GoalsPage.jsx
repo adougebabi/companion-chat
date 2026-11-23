@@ -41,32 +41,57 @@ import {
 } from "@/approved-ui/goal-presentation.mjs";
 import { zonedInput, zonedInputInstant } from "@/v3/zoned-input.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
-import { errorMessage, stateLabel } from "@/v3/domain-presentation.mjs";
+import { errorMessage } from "@/v3/domain-presentation.mjs";
+import { goalExecutionFacts, goalRecordStatus, goalRecordSummary, goalRecordText } from "@/approved-ui/goal-record-presentation.mjs";
 const terminalStatuses = ["completed", "cancelled", "abandoned"];
 const evaluationPending = ["pending", "processing", "retry", "queued"];
+function GoalRecordFacts({ facts }) {
+  return facts.filter(([, value]) => value).map(([label, value]) => (
+    <p className="lp-muted" key={label}>{label}：{value}</p>
+  ));
+}
+function GoalRecordDownload({ value, title }) {
+  return value && Object.keys(value).length > 0
+    ? <JsonDetails value={value} title={title} downloadOnly />
+    : null;
+}
+function GoalDefinitionSummary({ outcome, motivation, criteria, deadline, deadlinePolicy, scope, status, reason, ownerProtected }) {
+  const conditions = Array.isArray(criteria) ? criteria.map(goalRecordText).filter(Boolean) : [];
+  return <GoalRecordFacts facts={[
+    ["期望结果", goalRecordText(outcome)],
+    ["动机", goalRecordText(motivation)],
+    ["完成条件", conditions.join("；")],
+    ["期望完成时间", deadline && userInstant(deadline)],
+    ["截止策略", deadlinePolicy === "hard" ? "硬期限" : deadlinePolicy === "soft" ? "软期限" : ""],
+    ["目标范围", scope && goalScopeLabel(scope)],
+    ["状态", goalLabels[status] || goalRecordStatus(status)],
+    ["所有者保护", typeof ownerProtected === "boolean" ? ownerProtected ? "已开启" : "未开启" : ""],
+    ["操作原因", goalRecordText(reason)],
+  ]}/>;
+}
+function latestGoalSummary(goal) {
+  return goal && <GoalDefinitionSummary outcome={goal.desired_outcome} motivation={goal.motivation} criteria={goal.success_criteria}
+    deadline={goal.deadline} deadlinePolicy={goal.deadline_policy} scope={goal.scope} status={goal.status} ownerProtected={goal.owner_protected} />;
+}
 function GoalPlanRecords({ goal }) {
   const rows = value => Array.isArray(value)
-    ? value.filter(row => row && typeof row === "object") : [];
+    ? value.filter(row => row && typeof row === "object" && Object.keys(row).length > 0) : [];
   const stages = rows(goal.stages), commitments = rows(goal.commitments);
   const dependencies = rows(goal.dependencies);
-  const stageName = id => stages.find(stage => stage.id === id)?.purpose
-    || "阶段未在本次记录中读到";
-  const criteria = values => Array.isArray(values) && values.length > 0 && (
-    <ul className="lp-copy">{values.map((row, index) => (
-      <li key={row?.id || index}>
-        {typeof row === "string" ? row : row?.text || "完成条件尚未完整读到"}
-      </li>
-    ))}</ul>
-  );
+  const stageName = id => goalRecordText(stages.find(stage => stage.id === id)?.purpose);
+  const criteria = values => {
+    const texts = Array.isArray(values) ? values.map(row => goalRecordText(row?.text ?? row)).filter(Boolean) : [];
+    return texts.length > 0 && <ul className="lp-copy">{texts.map((text, index) => <li key={index}>{text}</li>)}</ul>;
+  };
   return <>
     {dependencies.length > 0 && (
       <section aria-label="目标前置条件">
         <h2 className="r-inline-title">先完成这些期待</h2>
         {dependencies.map(row => (
           <div className="replica-goal-record" key={row.prerequisite_id}>
-            <p>{row.desired_outcome}</p>
-            <span className="lp-muted">{row.satisfied === true
-              ? "前置目标已完成" : "前置目标尚未完成"}</span>
+            {row.desired_outcome && <p>{goalRecordText(row.desired_outcome)}</p>}
+            {typeof row.satisfied === "boolean" && <span className="lp-muted">{row.satisfied
+              ? "前置目标已完成" : "前置目标尚未完成"}</span>}
           </div>
         ))}
       </section>
@@ -74,44 +99,51 @@ function GoalPlanRecords({ goal }) {
     {stages.length > 0 && (
       <section aria-label="目标阶段">
         <h2 className="r-inline-title">阶段与推进条件</h2>
-        {stages.map(row => (
-          <article className="replica-goal-record" key={row.id}>
-            <div className="lp-row lp-between">
-              <h3 className="lp-title">{row.purpose || "已记录的阶段"}</h3>
-              <Badge variant="outline">{goalLabels[row.status] || stateLabel(row.status)}</Badge>
-            </div>
-            {row.strategy && <p className="lp-copy">{row.strategy}</p>}
-            {row.entry_basis && <p className="lp-small">开始依据：{row.entry_basis}</p>}
-            {row.exit_basis && <p className="lp-small">结束依据：{row.exit_basis}</p>}
-            {criteria(row.criteria)}
-            {row.dependency_ids?.length > 0 && (
-              <p className="lp-muted">前置阶段：{row.dependency_ids.map(stageName).join("、")}</p>
-            )}
-            <JsonDetails value={row} title="阶段版本与完整来源"/>
-          </article>
-        ))}
+        {stages.map(row => {
+          const status = goalRecordStatus(row.status);
+          const prerequisites = row.dependency_ids?.map(stageName).filter(Boolean).join("、");
+          return (
+            <article className="replica-goal-record" key={row.id}>
+              <div className="lp-row lp-between">
+                <h3 className="lp-title">{goalRecordText(row.purpose) || "目标阶段"}</h3>
+                {status && <Badge variant="outline">{status}</Badge>}
+              </div>
+              <GoalRecordFacts facts={[
+                ["推进方式", goalRecordText(row.strategy)],
+                ["开始依据", goalRecordText(row.entry_basis)],
+                ["结束依据", goalRecordText(row.exit_basis)],
+                ["前置阶段", prerequisites],
+              ]}/>
+              {criteria(row.criteria)}
+              <GoalRecordDownload value={row} title="原始目标阶段记录（诊断）" />
+            </article>
+          );
+        })}
       </section>
     )}
     {commitments.length > 0 && (
       <section aria-label="目标行动承诺">
         <h2 className="r-inline-title">接下来的行动承诺</h2>
-        {commitments.map(row => (
-          <article className="replica-goal-record" key={row.id}>
-            <div className="lp-row lp-between">
-              <h3 className="lp-title">{row.expected_result || "已记录的行动承诺"}</h3>
-              <Badge variant="outline">{goalLabels[row.status] || stateLabel(row.status)}</Badge>
-            </div>
-            {row.stage_id && <p className="lp-muted">所属阶段：{stageName(row.stage_id)}</p>}
-            {(row.window_start || row.window_end) && <p className="lp-small">
-              时间窗口：{row.window_start ? userInstant(row.window_start) : "开始时间未限定"}
-              {" — "}{row.window_end ? userInstant(row.window_end) : "结束时间未限定"}
-            </p>}
-            {row.opportunity_condition && <p className="lp-small">推进机会：{row.opportunity_condition}</p>}
-            {row.blocker && <p className="lp-small">当前阻碍：{row.blocker}</p>}
-            {criteria(row.criteria)}
-            <JsonDetails value={row} title="承诺版本与完整来源"/>
-          </article>
-        ))}
+        {commitments.map(row => {
+          const status = goalRecordStatus(row.status);
+          return (
+            <article className="replica-goal-record" key={row.id}>
+              <div className="lp-row lp-between">
+                <h3 className="lp-title">{goalRecordText(row.expected_result) || "行动承诺"}</h3>
+                {status && <Badge variant="outline">{status}</Badge>}
+              </div>
+              <GoalRecordFacts facts={[
+                ["所属阶段", stageName(row.stage_id)],
+                ["窗口开始", row.window_start && userInstant(row.window_start)],
+                ["窗口结束", row.window_end && userInstant(row.window_end)],
+                ["推进机会", goalRecordText(row.opportunity_condition)],
+                ["当前阻碍", goalRecordText(row.blocker)],
+              ]}/>
+              {criteria(row.criteria)}
+              <GoalRecordDownload value={row} title="原始行动承诺记录（诊断）" />
+            </article>
+          );
+        })}
       </section>
     )}
   </>;
@@ -125,7 +157,7 @@ const field = (label, child, wide = false) => (
 const metric = (value) =>
   typeof value === "number" && Number.isFinite(value)
     ? new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 2 }).format(value)
-    : "尚未提供";
+    : "";
 export default function GoalsPage({ route, onGo }) {
   const w = useWorkspace(),
     c = w.current.value,
@@ -401,7 +433,7 @@ export default function GoalsPage({ route, onGo }) {
       timer,
       reading = false,
       count = 0;
-    const note=(kind,text,diagnostic='')=>setEvaluationNote({kind,text,diagnostic,...evaluationPointer});
+    const note=(kind,text,failure)=>setEvaluationNote({kind,text,failure,...evaluationPointer});
     async function read() {
       if (!active || !live() || document.hidden || reading) return;
       reading = true;
@@ -443,7 +475,7 @@ export default function GoalsPage({ route, onGo }) {
           note('warning','原核对请求仍保留，当前状态尚未读全。可重新读取或查看原目标。');
       } catch (cause) {
         if (active && live())
-          note('warning','进展状态暂时无法读取，原核对请求仍保留。',errorMessage(cause));
+          note('warning','进展状态暂时无法读取，原核对请求仍保留。',cause);
       } finally {
         reading = false;
         if (active && live() && !document.hidden && ++count < 100)
@@ -498,6 +530,10 @@ export default function GoalsPage({ route, onGo }) {
       title: goal ? "编辑目标" : "写下一个新的期待",
       submitLabel: "保存目标",
       description: "保存目标定义；完成条件由后续实际证据评估。",
+      pendingSummary: ({body}) => body && <GoalDefinitionSummary outcome={body.desiredOutcome} motivation={body.motivation}
+        criteria={body.successCriteria} deadline={body.deadline} deadlinePolicy={body.deadlinePolicy} scope={body.scope}
+        status={body.candidateOnly ? "candidate" : ""} reason={body.reason} ownerProtected={body.ownerProtected} />,
+      reviewSummary: latestGoalSummary,
       validate: (d) => {
         if (
           !d.title.trim() ||
@@ -672,19 +708,17 @@ export default function GoalsPage({ route, onGo }) {
           )}
           <div className="lp-wide">
             <Disclosure title="归属与保护">
-              {field(
-                "人格 ID（新建可选）",
+              {!d.goalId && field(
+                "所属人格标识（选填）",
                 <FieldInput
                   value={d.profileId}
-                  disabled={!!d.goalId}
                   onChange={(event) => edit({ profileId: event.target.value })}
                 />,
               )}
-              {field(
-                "关联 Actor ID（新建可选）",
+              {!d.goalId && field(
+                "关联对象标识（选填）",
                 <FieldInput
                   value={d.targetActorId}
-                  disabled={!!d.goalId}
                   onChange={(event) =>
                     edit({ targetActorId: event.target.value })
                   }
@@ -750,6 +784,8 @@ export default function GoalsPage({ route, onGo }) {
       title: names[operation],
       submitLabel: names[operation],
       initial: { reason: "", revision: goal.revision },
+      pendingSummary: ({reason}) => <GoalDefinitionSummary outcome={goal.desired_outcome} reason={reason} />,
+      reviewSummary: latestGoalSummary,
       description:
         operation === "reassess"
           ? "请求按实际条件和证据核对，不会直接标记目标完成。"
@@ -803,6 +839,7 @@ export default function GoalsPage({ route, onGo }) {
     });
   }
   const assessment = selected ? goalAssessment(selected) : null;
+  const executionFacts = goalExecutionFacts(selected?.execution);
   const ready =
     filter === "completed"
       ? partitions.history.ready
@@ -878,7 +915,7 @@ export default function GoalsPage({ route, onGo }) {
           </div>
           <TabsContent value={filter}>
             <ResultFeedback notice={notice} onDismiss={original=>setNotice(current=>current===original?null:current)}/>
-            {evaluationNote && <Feedback kind={evaluationNote.kind} details={evaluationNote.diagnostic&&<pre>{evaluationNote.diagnostic}</pre>} actions={<>{cache.current.has(evaluationNote.goalId)&&<Button variant="outline" onClick={event=>openGoal(cache.current.get(evaluationNote.goalId),event)}>查看原目标与核对记录</Button>}<Button variant="ghost" onClick={()=>{saveEvaluationPointer({goal_id:evaluationNote.goalId,evaluation_request_id:evaluationNote.requestId});setEvaluationRefresh(value=>value+1);}}>刷新核对状态</Button></>}>{evaluationNote.text}</Feedback>}
+            {evaluationNote && <Feedback kind={evaluationNote.kind} failure={evaluationNote.failure} actions={<>{cache.current.has(evaluationNote.goalId)&&<Button variant="outline" onClick={event=>openGoal(cache.current.get(evaluationNote.goalId),event)}>查看原目标与核对记录</Button>}<Button variant="ghost" onClick={()=>{saveEvaluationPointer({goal_id:evaluationNote.goalId,evaluation_request_id:evaluationNote.requestId});setEvaluationRefresh(value=>value+1);}}>刷新核对状态</Button></>}>{evaluationNote.text}</Feedback>}
             {Object.entries(errors)
               .filter(([, value]) => value)
               .map(([kind, value]) => (
@@ -917,11 +954,11 @@ export default function GoalsPage({ route, onGo }) {
                             goal.status === "active" ? "pending" : goal.status
                           }
                         >
-                          {goalLabels[goal.status] || goal.status}
+                          {goalLabels[goal.status] || goalRecordStatus(goal.status)}
                         </Badge>
                       </div>
                       <h3>{goal.desired_outcome}</h3>
-                      {goal.motivation !== goal.desired_outcome && <p>{goal.motivation || "动机尚未提供"}</p>}
+                      {goal.motivation && goal.motivation !== goal.desired_outcome && <p>{goal.motivation}</p>}
                       <Progress
                         value={a.progress === null ? null : a.progress * 100}
                         className="lp-progress"
@@ -933,11 +970,7 @@ export default function GoalsPage({ route, onGo }) {
                             ? `条件评估待读取 · 共 ${a.criteria.length} 项条件`
                             : `已核实 ${a.verifiedCount} / ${a.criteria.length} 项条件`}
                         </span>
-                        <span className="lp-muted">
-                          {goal.deadline
-                            ? userInstant(goal.deadline)
-                            : "慢慢来，不设期限"}
-                        </span>
+                        {goal.deadline && <span className="lp-muted">{userInstant(goal.deadline)}</span>}
                       </div>
                     </Button>
                   </Surface>
@@ -1071,22 +1104,18 @@ export default function GoalsPage({ route, onGo }) {
         )}
         {selected && (
           <div className="lp-stack">
-            <p className="lp-copy">{selected.motivation}</p>
+            {selected.motivation && <p className="lp-copy">{selected.motivation}</p>}
             <div className="lp-row">
               <span className="lp-chip">{goalScopeLabel(selected.scope)}</span>
-              <span className="lp-chip">
-                重要程度 · {metric(selected.importance)}
-              </span>
-              <span className="lp-chip">
-                紧迫程度 · {metric(selected.urgency)}
-              </span>
+              {metric(selected.importance) && <span className="lp-chip">重要程度 · {metric(selected.importance)}</span>}
+              {metric(selected.urgency) && <span className="lp-chip">紧迫程度 · {metric(selected.urgency)}</span>}
               {selected.deadline && (
                 <span className="lp-chip">
                   期待在 {userInstant(selected.deadline)} 前完成
                 </span>
               )}
             </div>
-            <section>
+            {assessment.criteria.length > 0 && <section>
               <div className="replica-section-heading">
                 <h2>怎样算做到？</h2>
               </div>
@@ -1107,29 +1136,14 @@ export default function GoalsPage({ route, onGo }) {
                             ? "本次评估尚未满足"
                             : "等待实际证据核对"}
                       </div>
-                      {item.reason && (
-                        <p className="lp-muted">
-                          {item.reason === "no applicable evidence"
-                            ? "尚无适用证据"
-                            : item.reason}
-                        </p>
-                      )}
+                      {goalRecordText(item.reason) && <p className="lp-muted">{goalRecordText(item.reason)}</p>}
                     </div>
                   </div>
                 ))}
               </div>
-              {!assessment.criteria.length && (
-                <p className="lp-muted">
-                  完成条件尚未完整读到，请查看原目标记录。
-                </p>
-              )}
-            </section>
+            </section>}
             <WorkspaceInfo>
-              {assessment.progress === null
-                ? "当前未提供证据评估进度。"
-                : "当前证据评估进度：" +
-                  Math.round(assessment.progress * 100) +
-                  "%。"}{" "}
+              {assessment.progress !== null && `当前证据评估进度：${Math.round(assessment.progress * 100)}%。 `}
               目标完成状态以实际领域记录为准。
             </WorkspaceInfo>
             <GoalPlanRecords goal={selected}/>
@@ -1152,9 +1166,9 @@ export default function GoalsPage({ route, onGo }) {
                 刷新核对状态
               </Button>
             )}
-            {selected.execution && (
+            {executionFacts.length > 0 && (
               <Disclosure title="推进条件与核对状态">
-                <JsonDetails value={selected.execution} title="实际推进记录" />
+                <GoalRecordFacts facts={executionFacts} />
               </Disclosure>
             )}
             {["evidence", "history"].map((kind) => (
@@ -1174,35 +1188,18 @@ export default function GoalsPage({ route, onGo }) {
                     </Button>
                   </InlineFeedback>
                 )}
-                {records[kind].items.map((record, index) => (
-                  <div className="replica-goal-record" key={record.id || index}>
-                    <p>
-                      {typeof record.reason === "string"
-                        ? record.reason
-                        : typeof record.source?.summary === "string"
-                          ? record.source.summary
-                          : {
-                              create: "创建目标",
-                              update: "修改目标",
-                              pause: "暂停目标",
-                              resume: "继续目标",
-                              abandon: "放下目标",
-                              cancel: "取消目标",
-                            }[record.operation] || "目标记录"}
-                    </p>
-                    <p className="lp-muted">
-                      {userInstant(
-                        record.created_at || record.source?.recorded_at,
-                      )}
-                    </p>
-                    <JsonDetails value={record} title="完整记录与来源" />
-                  </div>
-                ))}
-                {records[kind].ready &&
-                  !records[kind].items.length &&
-                  !recordErrors[kind] && (
-                    <p className="lp-muted">当前读取范围没有记录。</p>
-                  )}
+                {records[kind].items.map((record, index) => {
+                  if (!Object.keys(record).length) return null;
+                  const {title, status, facts} = goalRecordSummary(record, kind);
+                  return (
+                    <div className="replica-goal-record" key={record.id || index}>
+                      <p>{title}</p>
+                      {status && <Badge variant="outline">{status}</Badge>}
+                      <GoalRecordFacts facts={facts} />
+                      <GoalRecordDownload value={record} title={kind === "evidence" ? "原始目标证据记录（诊断）" : "原始目标修订记录（诊断）"} />
+                    </div>
+                  );
+                })}
                 {records[kind].cursor && (
                   <Button
                     variant="outline"
@@ -1214,7 +1211,7 @@ export default function GoalsPage({ route, onGo }) {
                 )}
               </Disclosure>
             ))}
-            <JsonDetails value={selected} title="完整目标与来源" />
+            <GoalRecordDownload value={selected} title="原始目标与推进记录（诊断）" />
             {!selectedTerminal && (
               <div className="lp-action-row">
                 <Button

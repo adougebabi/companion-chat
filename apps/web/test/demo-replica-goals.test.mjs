@@ -364,7 +364,10 @@ test("unknown create survives reopen with equal body/key, and newer fields becom
     v = await mount(w);
     await v.click(button(v.host, "添加目标"));
     await v.click(button(dialog(), "同步资料，保留输入"));
-    assert.match(dialog().textContent, /核对最新对象与版本/);
+    assert.match(dialog().textContent, /核对最新资料/);
+    assert.match(dialog().textContent, /期望结果：原期待/);
+    assert.ok(button(dialog(), "最新记录与来源（诊断）"));
+    assert.doesNotMatch(dialog().textContent, /expectedRevision|criteria_version|idempotencyKey/);
     await v.click(button(dialog(), "已核对，采用最新基线"));
     await v.click(button(dialog(), "保存目标"));
     assert.equal(attempts, 2);
