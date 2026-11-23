@@ -6,9 +6,10 @@ import WorkspaceDialog from "./WorkspaceDialog";
 import WorkspaceCommandDialog from "./WorkspaceCommandDialog";
 import WorkspaceInfo from "./WorkspaceInfo";
 import useWorkspaceRead from "./useWorkspaceRead";
-import { PeopleReader } from "./PeopleParts";
+import { PeopleFact, PeopleReader } from "./PeopleParts";
 import JsonDetails from "./JsonDetails";
-import SemanticTree from "./SemanticTree";
+import { validTimeRange } from "./schedule-presentation.mjs";
+import { isInternalId } from "@/v3/internal-id.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
 const labels = {
   encounters: "接触记录",
@@ -16,6 +17,7 @@ const labels = {
   opportunities: "相遇机会",
 };
 const states = {
+  recorded: "接触已记录",
   pending: "等待判断",
   deferred: "稍后判断",
   contacted: "接触已记录",
@@ -27,7 +29,74 @@ const states = {
   ended: "已结束",
   cancelled: "已取消",
 };
-export default function PersonRecords({ model: m, npc, onUpdated }) {
+const downloadTitles = {
+  encounters: "原始接触记录（诊断）",
+  presences: "原始在场记录（诊断）",
+  opportunities: "原始相遇机会记录（诊断）",
+};
+const resultReasons = new Map([
+  ["deferred_attempts_exhausted", "已达到延后判断次数上限"],
+  ["actual_presence_changed", "实际同地条件已经变化"],
+  ["No actual decision receipt was committed", "未保存实际判断结果"],
+  ["Actual shared presence no longer holds", "实际同地条件已失效"],
+  ["Current autonomy policy blocks this automatic encounter", "当前自主策略限制了这次自动接触"],
+]);
+const readableText = (value) =>
+  typeof value === "string" && value.trim() && !isInternalId(value) ? value : "";
+const validInstant = (value) =>
+  typeof value === "string" && Number.isFinite(Date.parse(value));
+const recordInstant = (row) =>
+  [row.occurred_at, row.start_at, row.created_at].find(validInstant);
+function recordStatus(row, kind) {
+  const candidates = kind === "encounters"
+    ? [row.outcome, row.result?.status, row.status]
+    : [row.status, row.result?.status];
+  const status = candidates.find((value) => Object.hasOwn(states, value));
+  if (status) return states[status];
+  return kind === "encounters" && row.life_event_id ? states.recorded : "";
+}
+
+function RecordSummary({ row, kind, placeName }) {
+  const instant = recordInstant(row);
+  const range = validTimeRange(row.start_at, row.end_at);
+  const place = placeName(row.place_id);
+  const summary = readableText(row.summary) || readableText(row.activity);
+  const status = recordStatus(row, kind);
+  const result = row.result;
+  const resultText = [result, result?.summary, result?.message, result?.detail, result?.reason]
+    .map((value) => resultReasons.get(value) || readableText(value))
+    .filter((value) => value && value !== summary && value !== status);
+  const outcomes = [...new Set([
+    status,
+    ...resultText,
+    kind === "encounters" && row.relationship_id && "已关联关系记录",
+    kind === "encounters" && row.memory_id && "已关联记忆记录",
+  ].filter(Boolean))];
+  return (
+    <>
+      {(instant || range) && (
+        <PeopleFact label={kind === "encounters" ? "接触时间" : "记录时间"}>
+          {range && !validInstant(row.occurred_at) ? (
+            <>
+              <time dateTime={row.start_at}>{userInstant(row.start_at)}</time>
+              {" 至 "}
+              <time dateTime={row.end_at}>{userInstant(row.end_at)}</time>
+            </>
+          ) : <time dateTime={instant}>{userInstant(instant)}</time>}
+        </PeopleFact>
+      )}
+      {place && <PeopleFact label="地点">{place}</PeopleFact>}
+      {summary && <PeopleFact label={kind === "encounters" ? "发生事项" : "事项"}>{summary}</PeopleFact>}
+      {outcomes.length > 0 && (
+        <PeopleFact label="结果">
+          {outcomes.map((text) => <p key={text}>{text}</p>)}
+        </PeopleFact>
+      )}
+    </>
+  );
+}
+
+export default function PersonRecords({ model: m, npc, placeName, onUpdated }) {
   const [kind, setKind] = useState("encounters"),
     [selection, setSelection] = useState(null),
     [action, setAction] = useState(null),
@@ -147,39 +216,38 @@ export default function PersonRecords({ model: m, npc, onUpdated }) {
         </Button>
         <PeopleReader source={records} label={labels[kind]} />
         <div className="companion-timeline">
-          {records.items.map((row) => (
-            <div key={row.id}>
-              <span className="companion-timeline-dot" />
-              <small>
-                {userInstant(row.occurred_at || row.start_at || row.created_at)}
-              </small>
-              <h4>{row.summary || states[row.status] || labels[kind]}</h4>
-              {row.status && (
-                <Badge variant="outline">
-                  {states[row.status] || row.status}
-                </Badge>
-              )}
-              {kind === "presences" && (
-                <p className="companion-caption">
-                  在场来自实际运行记录，历史结束记录不代表现在仍在场。
-                </p>
-              )}
-              {kind === "opportunities" && (
-                <p className="companion-caption">
-                  是否已结识仍以真实关系记录为准。
-                </p>
-              )}
-              <Button
-                variant="link"
-                onClick={(event) => {
-                  trigger.current = event.currentTarget;
-                  setSelection({ id: row.id, kind });
-                }}
-              >
-                详情
-              </Button>
-            </div>
-          ))}
+          {records.items.map((row) => {
+            const instant = recordInstant(row);
+            const summary = readableText(row.summary) || readableText(row.activity);
+            const status = recordStatus(row, kind);
+            return (
+              <div key={row.id}>
+                <span className="companion-timeline-dot" />
+                {instant && <small><time dateTime={instant}>{userInstant(instant)}</time></small>}
+                <h4>{summary || status || labels[kind]}</h4>
+                {summary && status && <Badge variant="outline">{status}</Badge>}
+                {kind === "presences" && (
+                  <p className="companion-caption">
+                    在场来自实际运行记录，历史结束记录不代表现在仍在场。
+                  </p>
+                )}
+                {kind === "opportunities" && (
+                  <p className="companion-caption">
+                    是否已结识仍以真实关系记录为准。
+                  </p>
+                )}
+                <Button
+                  variant="link"
+                  onClick={(event) => {
+                    trigger.current = event.currentTarget;
+                    setSelection({ id: row.id, kind });
+                  }}
+                >
+                  详情
+                </Button>
+              </div>
+            );
+          })}
         </div>
         {records.ready && !records.items.length && !records.error && (
           <p className="companion-body-text">当前没有已读{labels[kind]}。</p>
@@ -199,7 +267,7 @@ export default function PersonRecords({ model: m, npc, onUpdated }) {
         wide
         open={!!selection && !action}
         title={selection ? labels[selection.kind] : "人物记录"}
-        description="查看已保存的来源、结果与执行依据。"
+        description="查看已保存的事项与结果。"
         returnFocus={() => trigger.current}
         onOpenChange={(v) => {
           if (!v) setSelection(null);
@@ -229,13 +297,7 @@ export default function PersonRecords({ model: m, npc, onUpdated }) {
           )}
           {selected && (
             <>
-              <Badge variant="outline">
-                {states[selected.status] || selected.status || "已保存记录"}
-              </Badge>
-              {selected.summary && (
-                <p className="companion-body-text">{selected.summary}</p>
-              )}
-              {selected.result && <SemanticTree value={selected.result} />}
+              <RecordSummary row={selected} kind={selection.kind} placeName={placeName} />
               <WorkspaceInfo>
                 接触未获接受、尚待判断或仅有在场记录，都不会据此显示已经结识。
               </WorkspaceInfo>
@@ -262,7 +324,7 @@ export default function PersonRecords({ model: m, npc, onUpdated }) {
                   </a>
                 </Button>
               )}
-              <JsonDetails value={selected} title="完整记录与直接引用" />
+              <JsonDetails value={selected} title={downloadTitles[selection.kind]} downloadOnly />
             </>
           )}
         </div>
