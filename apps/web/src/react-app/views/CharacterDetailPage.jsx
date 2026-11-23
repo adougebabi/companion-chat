@@ -49,6 +49,7 @@ import {
   workingPersonaPresentation,
 } from "@/approved-ui/profile-presentation.mjs";
 import { stateLabel } from "@/v3/domain-presentation.mjs";
+import { currentActivityDisplay } from "../shared/schedule-presentation.mjs";
 const traitLabels = {
   openness: "开放性",
   conscientiousness: "尽责性",
@@ -692,7 +693,7 @@ export default function CharacterDetailPageView({ model: m }) {
                   />
                   <Fact
                     label="正在做"
-                    value={profileFieldsForReading(d.context?.activity, currentStateShape.activity)}
+                    value={currentActivityDisplay(profileFieldsForReading(d.context?.activity, currentStateShape.activity))}
                     identity={identity}
                   />
                   <Fact

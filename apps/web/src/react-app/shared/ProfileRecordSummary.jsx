@@ -7,6 +7,7 @@ import { readingFieldLabel } from "@/v3/proto/components/reading-fields.js";
 import { creationScaleHints } from "./CreationScaleHint";
 import JsonDetails from "./JsonDetails";
 import SemanticTree, { hasVisibleSemanticValue } from "./SemanticTree";
+import { currentActivityDisplay } from "./schedule-presentation.mjs";
 
 const internalToken = /\b(?:res|world_item|world|place|req|fluctlight|actor|profile|task|audit)_[a-z\d_-]+\b/gi;
 const isoInstant = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})/gi;
@@ -164,7 +165,15 @@ export function describeProfileMood(mood) {
 }
 
 export function describeProfileCurrentState(state) {
-  return state?.mood ? { ...state, mood: describeProfileMood(state.mood) } : state;
+  if (!state || typeof state !== "object" || Array.isArray(state)) return state;
+  return {
+    ...state,
+    activity: currentActivityDisplay(state.activity),
+    mood: describeProfileMood(state.mood),
+    ...(state.context && typeof state.context === "object" && !Array.isArray(state.context)
+      ? { context: { ...state.context, activity: currentActivityDisplay(state.context.activity) } }
+      : {}),
+  };
 }
 
 /** @param {{ value: any, identity?: object, activeProfileId?: string | null, localizePolicy?: boolean }} props */

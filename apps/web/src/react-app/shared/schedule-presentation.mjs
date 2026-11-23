@@ -4,10 +4,18 @@ export function validTimeRange(start, end) {
   return Number.isFinite(from) && Number.isFinite(to) && to > from;
 }
 
+export function isUnplannedActivity(value) {
+  return typeof value === 'string' && ['默认未安排', '未安排时间'].includes(value.trim());
+}
+
+export function currentActivityDisplay(value) {
+  return isUnplannedActivity(value) ? '此刻没有特别的安排' : value;
+}
+
 export function scheduleItemDisplay(item) {
   const source = item._source;
   const activity = typeof source?.activity === 'string' ? source.activity.trim() : '';
-  const unplanned = ['默认未安排', '未安排时间'].includes(activity || item.text)
+  const unplanned = isUnplannedActivity(activity || item.text)
     || (!activity && item._schedule?.reschedule_policy?.default_initial_schedule === true);
   const showTime = !unplanned && validTimeRange(source?.start_at, source?.end_at);
   return {

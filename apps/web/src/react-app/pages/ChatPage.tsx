@@ -11,6 +11,7 @@ import WorkspacePageHeader from '../shared/WorkspacePageHeader';
 import WorkspaceMomentArt from '../shared/WorkspaceMomentArt';
 import WearingSummary from '../shared/WearingSummary';
 import {nowEmptyText,nowStateSummary,nowStateText,NowStateDownload} from '../shared/NowState';
+import {scheduleItemDisplay} from '../shared/schedule-presentation.mjs';
 import {nextScheduleItem} from '@/approved-ui/presentation.mjs';
 import {readErrorCause,serviceUnavailableNotice,settingsHref} from '@/approved-ui/service-unavailable.mjs';
 import {Alert,AlertTitle,AlertDescription} from '@/components/ui/alert';
@@ -260,6 +261,7 @@ export default function ChatPage({
     finally{if(live())setReadLoading(false);}
   }
   const schedule = nextScheduleItem(character.schedule,now);
+  const scheduleDisplay = schedule && scheduleItemDisplay(schedule);
   const {activity,location:momentLocation,mood}=nowStateSummary(character);
   const worldId=character.detail?.context?.world_id;
   const hasWorld=typeof worldId==='string'&&!!worldId.trim();
@@ -275,7 +277,16 @@ export default function ChatPage({
       {hasWorld&&<Button variant="link" onClick={()=>onGo('世界')}>看看这个世界<ChevronRightIcon size={13}/></Button>}
     </div>
     <div className="companion-mini-section"><span>今天的穿着</span><WearingSummary character={character} error={currentReadError(workspace.state,'wardrobe',scope)} loading={workspace.state.loading.wardrobe}/><Button variant="link" onClick={()=>onGo('衣柜')}>去衣柜看看<ChevronRightIcon size={13}/></Button></div>
-    <div className="companion-mini-section"><div className="companion-row-between"><span>接下来的安排</span><Button variant="link" onClick={()=>onGo('日程')}>查看全部<ChevronRightIcon size={12}/></Button></div>{schedule?<div className="companion-next-schedule"><time dateTime={schedule._source?.start_at} title={userInstant(schedule._source?.start_at)}>{schedule.time}</time><div><p>{nowStateText(schedule.text,'活动')}</p><small>{schedule._source?.action_status==='in_progress'?'正在进行':'日程安排'}</small></div></div>:<p className="replica-caption">还没有读到接下来的安排。</p>}</div>
+    <div className="companion-mini-section">
+      <div className="companion-row-between"><span>接下来的安排</span><Button variant="link" onClick={()=>onGo('日程')}>查看全部<ChevronRightIcon size={12}/></Button></div>
+      {schedule ? <div className="companion-next-schedule">
+        {!scheduleDisplay?.unplanned&&<time dateTime={schedule._source?.start_at} title={userInstant(schedule._source?.start_at)}>{schedule.time}</time>}
+        <div>
+          <p>{nowStateText(scheduleDisplay?.title,'活动')}</p>
+          {!scheduleDisplay?.unplanned&&<small>{schedule._source?.action_status==='in_progress'?'正在进行':'日程安排'}</small>}
+        </div>
+      </div> : <p className="replica-caption">还没有读到接下来的安排。</p>}
+    </div>
     <NowStateDownload detail={character.detail} schedule={schedule?._source}/>
     </Surface><div className="companion-soft-note"><LeafIcon size={17}/><p>生活在继续，故事也在慢慢生长。<br/>这里是 {character.name} 的小小世界。</p></div></>;
   return (

@@ -1,4 +1,5 @@
 import JsonDetails from './JsonDetails';
+import {currentActivityDisplay} from './schedule-presentation.mjs';
 
 export const nowEmptyText = '此刻还没有可显示的状态';
 const technicalValue = /^(?:(?:res|world_item|world|place|req)_[a-z\d_-]+(?:\s*·\s*v\d+(?:\.\d+)*)?|(?:fluctlight\.[a-z\d.-]+\.)?v\d+(?:\.\d+)*)$/i;
@@ -12,7 +13,7 @@ export function nowStateText(value: unknown, label: string) {
 
 export function nowStateSummary(character: {activity?: unknown; location?: unknown; mood?: unknown}) {
   return {
-    activity: nowStateText(character.activity, '活动'),
+    activity: currentActivityDisplay(nowStateText(character.activity, '活动')),
     location: nowStateText(character.location, '地点'),
     mood: nowStateText(character.mood, '心情'),
   };
