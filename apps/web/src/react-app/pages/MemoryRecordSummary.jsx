@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { labelFor, recordText, recordTime, scoreText } from "@/approved-ui/memory-record-summary.mjs";
+import { profileEnumLabel, reflectionSubject } from "@/approved-ui/behavior-enum-labels.mjs";
 import { selfCategoryLabels } from "@/v3/proto/components/self-claims.js";
 import { stateLabel } from "@/v3/domain-presentation.mjs";
 import { requestDecisionText } from "@/v3/proto/components/request-failure.js";
@@ -62,14 +63,6 @@ const sourceKinds = {
 };
 const directions = {increase:"增强", strengthen:"增强", improve:"改善", positive:"改善", toward:"增强",
   decrease:"减弱", weaken:"减弱", negative:"减弱", away:"减弱", maintain:"维持"};
-const subjects = {
-  "baseline.pleasure":"愉悦程度", "baseline.arousal":"唤醒程度", "baseline.dominance":"掌控感",
-  "traits.openness":"开放性", "traits.conscientiousness":"尽责性", "traits.extraversion":"外向性",
-  "traits.agreeableness":"亲和性", "traits.emotional_stability":"情绪稳定性", "expression.warmth":"表达温暖度",
-  "expression.initiative":"表达主动性", "expression.playfulness":"表达活泼度", "communication.tone":"交流语气",
-  "response.style":"回应方式", "initiative.mode":"主动沟通方式", "conflict.approach":"冲突处理方式",
-  "support.style":"支持方式",
-};
 const items = value => Array.isArray(value) ? value.filter(Boolean) : [];
 const textList = value => items(value).map(recordText).filter(Boolean).join("、");
 const countText = value => Number.isSafeInteger(value) && value > 0 ? value + " 项" : "";
@@ -98,6 +91,7 @@ export function ReflectionObservations({ record }) {
 }
 
 function candidateFacts(candidate) {
+  const subject = reflectionSubject(candidate.field_path || candidate.target);
   return [
     ["提议操作", labelFor(operations, candidate.operation)],
     ["置信度", scoreText(candidate.confidence)],
@@ -112,8 +106,8 @@ function candidateFacts(candidate) {
     ["完成标准", textList(candidate.success_criteria)],
     ["动机", recordText(candidate.motivation)],
     ["行动意图", recordText(candidate.action_intent)],
-    ["调整对象", labelFor(subjects, candidate.field_path || candidate.target)],
-    ["拟调整内容", recordText(candidate.semantic_value)],
+    ["调整对象", subject.label],
+    ["拟调整内容", profileEnumLabel(recordText(candidate.semantic_value), subject.path)],
     ["变化方向", labelFor(directions, candidate.direction)],
     ["主要情绪规律", textList(candidate.dominant_patterns)],
     ["情绪触发因素", textList(candidate.triggers)],

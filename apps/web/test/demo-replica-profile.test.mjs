@@ -556,12 +556,12 @@ test("current portrait localizes user-sourced policy rows and preserves free tex
       "用户原文 · 消息长度：适中",
       "用户原文 · 幽默风格：温和",
       "用户原文 · 冲突风格：先让我说完，再一起讨论",
-      "用户原文 · 拒绝风格：active",
+      "用户原文 · 拒绝风格：主动拒绝",
       "用户原文 · 直接性：表达更直接",
       "用户原文 · 补充说明：先问我是否方便",
       "用户原文说，别替我做决定。",
     ]);
-    assert.doesNotMatch(note.textContent, /\b(?:id|revision|source_ref|idempotency_key|metrics)\b|portrait-record|42|origin-key|retry-key|metric-value|尚未记录/);
+    assert.doesNotMatch(note.textContent, /\b(?:active|id|revision|source_ref|idempotency_key|metrics)\b|portrait-record|42|origin-key|retry-key|metric-value|尚未记录/);
     assert.ok(button(note, "原始表达画像记录（诊断）"));
   } finally {
     await f.dispose();

@@ -1,4 +1,5 @@
 import { selectReadingFields } from '../../../approved-ui/reading-fields.mjs';
+import { profileEnumLabel, profileFieldPath } from '../../../approved-ui/behavior-enum-labels.mjs';
 import { esc } from './controls.js';
 import { semanticLabel, SemanticValue } from './semantic-fields.js';
 
@@ -57,7 +58,8 @@ const valueLabels = {
 
 export function readingValueLabel(value, field) {
   const choices = Object.hasOwn(valueLabels, field) ? valueLabels[field] : {};
-  return typeof value === 'string' && Object.hasOwn(choices, value) ? choices[value] : value;
+  if (typeof value !== 'string') return value;
+  return Object.hasOwn(choices, value) ? choices[value] : profileEnumLabel(value, field);
 }
 
 export function readingFieldLabel(key) {
@@ -74,8 +76,10 @@ function readingMarkup(value, key) {
     return `<ul class="semantic-list">${value.map(item => `<li>${readingMarkup(item, key)}</li>`).join('')}</ul>`;
   }
   if (value && typeof value === 'object') {
-    return `<dl class="record-facts">${Object.entries(value).map(([field, child]) =>
-      `<div><dt>${esc(readingFieldLabel(field))}</dt><dd>${readingMarkup(child, field)}</dd></div>`).join('')}</dl>`;
+    return `<dl class="record-facts">${Object.entries(value).map(([field, child]) => {
+      const path = profileFieldPath(field, key);
+      return `<div><dt>${esc(readingFieldLabel(path))}</dt><dd>${readingMarkup(child, path)}</dd></div>`;
+    }).join('')}</dl>`;
   }
   return SemanticValue(readingValueLabel(value, key), key);
 }

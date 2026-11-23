@@ -43,7 +43,7 @@ import WearingSummary from "../shared/WearingSummary";
 import useWorkspaceRead from "../shared/useWorkspaceRead";
 import { EmptyState, InlineFeedback } from "../shared/Presentation";
 import { ActionFeedback } from "../components";
-import { profileChanges } from "@/approved-ui/profile-fields.mjs";
+import { behavioralFields, profileChanges } from "@/approved-ui/profile-fields.mjs";
 import {
   semanticEntries,
   workingPersonaPresentation,
@@ -259,27 +259,22 @@ export default function CharacterDetailPageView({ model: m }) {
     tags = Array.isArray(identity.tags)
       ? identity.tags.filter((v) => typeof v === "string")
       : [];
-  const policyFact = (key) => {
-    const policy = core.behavioral_policy;
-    const recorded = Object.hasOwn(policy, key)
+  const policy = core.behavioral_policy;
+  const policyValue = (key) =>
+    Object.hasOwn(policy, key)
       ? policy[key]
       : Object.hasOwn(policy.expression || {}, key)
         ? policy.expression[key]
         : key === "response_style"
           ? policy.reply_style
           : undefined;
-    const value = profileFieldsForReading(recorded, true);
-    return key === "message_length"
-      ? { short: "简短", medium: "适中", long: "详细" }[value] || value
-      : value;
-  };
-  const primaryPolicyFields = ["response_style", "reply_style", "message_length", "conflict_style", "refusal_style"];
-  const extraPolicy = { ...core.behavioral_policy, expression: { ...core.behavioral_policy.expression } };
-  for (const key of primaryPolicyFields) {
-    const shown = policyFact(key === "reply_style" ? "response_style" : key);
-    const display = (value) => key === "message_length" ? ({ short: "简短", medium: "适中", long: "详细" }[value] || value) : value;
-    if (display(extraPolicy[key]) === shown) delete extraPolicy[key];
-    if (display(extraPolicy.expression[key]) === shown) delete extraPolicy.expression[key];
+  const primaryPolicyFields = ["response_style", "message_length", "conflict_style", "refusal_style"];
+  const policyOverview = primaryPolicyFields.map(key => [behavioralFields[key], key, profileFieldsForReading(policyValue(key), true)]);
+  const extraPolicy = { ...policy, expression: { ...policy.expression } };
+  for (const key of [...primaryPolicyFields, "reply_style"]) {
+    const shown = policyValue(key === "reply_style" ? "response_style" : key);
+    if (extraPolicy[key] === shown) delete extraPolicy[key];
+    if (extraPolicy.expression[key] === shown) delete extraPolicy.expression[key];
   }
   const workingSource = snapshot.groups.find((group) => group.key === "working")?.value,
     working = workingPersonaPresentation(workingSource),
@@ -495,7 +490,7 @@ export default function CharacterDetailPageView({ model: m }) {
                     </Button>
                   }
                 >
-                  <OverviewFacts identity={identity} entries={[["回复风格","response_style",policyFact("response_style")],["消息长短","message_length",policyFact("message_length")],["分歧处理","conflict_style",policyFact("conflict_style")],["拒绝方式","refusal_style",policyFact("refusal_style")]]}/>
+                  <OverviewFacts identity={identity} entries={policyOverview} />
                   {hasVisibleSemanticValue(identity.core_values)&&<Block title="核心价值观" value={identity.core_values} identity={identity}/>}
                   <ProfileFieldsSummary value={extraPolicy} shape={behaviorShape} identity={identity} present={describeProfileExpression} />
                 </Section>
@@ -600,7 +595,7 @@ export default function CharacterDetailPageView({ model: m }) {
                   <p className="companion-body-text">
                     人格切换和生活事实分别记录，实际穿着、所在世界和已经发生的经历继续以对应读面为准。
                   </p>
-                  <ProfileFieldsSummary value={d.core_persona?.personality_system} shape={systemShape} identity={identity} />
+                  <ProfileFieldsSummary value={d.core_persona?.personality_system} shape={systemShape} field="personality_system" identity={identity} />
                 </Section>
               </div>
               <Section
