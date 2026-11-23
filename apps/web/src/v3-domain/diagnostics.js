@@ -15,6 +15,7 @@ import {DiagnosticCard as card} from '../v3/proto/components/diagnostic-card.js'
 const titles={turns:'回合诊断',links:'执行器关联','media-recoveries':'媒体恢复尝试',lifecycle:'生命周期事件','model-runs':'物理模型调用','agent-runs':'逻辑 Agent 运行',events:'系统诊断事件','media-prompts':'媒体请求与实际提示词',kev:'自动行动评估（KEV）','workflow-intents':'已提交的工作流任务',audit:'所有者操作审计',harm:'安全拦截记录'};
 export function renderRealDiagnosticRecords(el,ctx){
  const section=ctx.def.mockSection||ctx.params.kind||'events',kind=section==='workflows'?'workflow-intents':section,owner=get('session')?.actorId;
+ ctx.setHeading?.('运行诊断 · '+(titles[kind]||'诊断记录'));
  let active=true,filters=Object.fromEntries(['fluctlightId','correlationId','runId','intentId','workflowId','surface','status','eventType','severity','role','identity','action','from','to','q'].filter(k=>ctx.query[k]).map(k=>[k,ctx.query[k]])),page=null,following=false,timer=null,exporting=false;
  const alive=()=>active&&el.isConnected&&get('session')?.actorId===owner;
  const primaryFields=['fluctlightId','q','status'];
