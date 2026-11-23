@@ -71,7 +71,22 @@ func TestStrictWireSchemasCoverRegisteredModelContracts(t *testing.T) {
 		if strings.Contains(name, ".") {
 			t.Fatalf("wire tool name %q still contains a dot", name)
 		}
-		assertStrictWireSchema(t, "tool:"+name, mapValue(function["parameters"]))
+		parameters := mapValue(function["parameters"])
+		if name == "media_image_generate" {
+			required := arrayValue(parameters["required"])
+			if len(required) != 1 || required[0] != "intent" || parameters["additionalProperties"] != false {
+				t.Fatalf("image tool should require only intent: %#v", parameters)
+			}
+			properties := mapValue(parameters["properties"])
+			if len(properties) != len(mapValue(imageCapabilityInputSchema()["properties"])) {
+				t.Fatal("image tool lost available arguments")
+			}
+			for key, raw := range properties {
+				assertStrictWireSchema(t, "tool:"+name+"."+key, mapValue(raw))
+			}
+			continue
+		}
+		assertStrictWireSchema(t, "tool:"+name, parameters)
 	}
 	calls, err := NormalizeProviderToolCalls([]any{map[string]any{
 		"id": "call-wire", "name": "conversation_reply", "arguments": map[string]any{"text": "hello", "topic_key": nil},

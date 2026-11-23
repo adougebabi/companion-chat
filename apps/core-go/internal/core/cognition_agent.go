@@ -118,12 +118,18 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 	surface := ProviderContextSurfaceConversationMain
 	var expressionRefs []string
 	expressionSelected := false
+	imageDiscovery := false
 	if replyRun := replyRunFromContext(ctx); replyRun != nil && replyRun.Settings.Mode == "fact_only" {
 		surface = ProviderContextSurfaceFactOnlyCognition
 		operationRules = []string{factOnlyExecutionBoundary}
 		projection = privateTextChatProjection(projection)
 	} else if replyRun != nil && replyRun.Settings.Mode == "direct" {
 		operationRules = []string{providerContextAuthorityRule, directMainConversationProtocol, factOnlyExecutionBoundary}
+		main, _ := ctx.Value(directMainConversationKey{}).(bool)
+		if main && a.directImageDiscoveryNeeded(ctx, projection, currentInput, definitions) {
+			imageDiscovery = true
+			ctx = context.WithValue(ctx, directImageDiscoveryPromptKey{}, directImageDiscoveryPrompt(projection, currentInput))
+		}
 		suggestions, suggestionErr := a.freezeDirectExpressionSuggestions(ctx, replyRun)
 		if suggestionErr != nil {
 			return ConversationCognitionAgentResult{}, suggestionErr
@@ -171,7 +177,7 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 	providerCtx = WithProviderCorrelation(providerCtx, firstString(providerCorrelation(ctx), "conversation-cognition-agent:"+runID))
 	providerCtx = a.bindProjectionRefresh(providerCtx, projectionRequest, surface, "cognitive_assessment", operationRules, currentInput, definitions, "conversation_turn_response", schema, nil)
 	if conversationID != "" {
-		providerCtx = withPhysicalModelRequestPolicy(providerCtx, conversationPublicationPhysicalRequestPolicy{})
+		providerCtx = withPhysicalModelRequestPolicy(providerCtx, conversationPublicationPhysicalRequestPolicy{directImageDiscovery: imageDiscovery})
 	}
 	assembly.ResponseFormat = schema
 	runInput := FormalAgentRunInput{

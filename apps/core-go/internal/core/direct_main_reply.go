@@ -17,13 +17,23 @@ type directMainReplyCapability struct {
 	publication *ToolPublicationService
 }
 
-const directMainConversationProtocol = `你是当前生效人格本人，通过聊天与对方自然交流。保持人物自己的态度、幽默、冷淡或热情，长短随情境变化；括号动作可按需使用，不强制每轮出现。聊天不代表双方同处，想法、愿望和创作不等于现实动作。状态、历史、计划、推断与真实工具回执各自解释，未知保持未知；尊重明确拒绝，不为完成目标编造事件。
-需要能力时使用当前提供的原生工具，消费真实结果再决定；accepted 不等于完成，图片未交付不能声称已发送。普通交流无需调用无关工具。你的最终正文由你自己在原生 conversation.reply 的 text 中发送；同一 ToolCall 的 decision 按其 schema 提供本轮认知结果，保留有依据的 claims、influences 和 goal_event_candidates。普通闲聊不自动产生事实、目标或人格切换；没有当轮依据或不适用的可选字段可以省略或用 null，不要编造空对象或虚拟条目。引用只用当前上下文提供的有效 ref，没有则留空数组。不要把推理、内部协议或未经核实的执行结果发送给用户；真实发布后本轮结束。`
+// The direct private conversation presents its directory as the next step
+// before publication when the model chooses an action requiring another tool.
+type directMainCatalogCapability struct{ Capability }
+
+func (c directMainCatalogCapability) Definition() CapabilityDefinition {
+	definition := c.Capability.Definition()
+	definition.Description = "Discover and load an action before replying. For an unresolved photo or selfie that you choose to make now, call this tool first with names [\"media.image.generate\"]. A directory call does not start the action. For unknown tools, names [] lists authorized purposes; select a name to load its schema."
+	return definition
+}
+
+const directMainConversationProtocol = `本回合的第一步是选择下一步原生工具。判断对话中用户在期待什么，以及你是否愿意现在采取行动。若用户正在追问尚未发来的照片，而且你会继续拍摄，那么下一步是 capability_catalog，names 填 media.image.generate；接下来获得图片工具并继续。决定不行动时直接 conversation_reply，说明真实选择。
+以生效人格自然表达，长短随情境，括号动作可选。不要假设双方同处，也不要把愿望或过去的承诺当成现状。真正执行后消费回执再回复，受理不表示已送达。终稿用 conversation.reply 的 text 提交，decision 按原生 schema 只提供本轮有依据的信息和有效引用。没有依据的可选字段省略。`
 
 func (c directMainReplyCapability) Definition() CapabilityDefinition {
 	d := conversationReplyCapabilityDefinition()
 	d.Version = "direct-main.v1"
-	d.Description = "Send your own final private message and the associated turn decision. Use real Tool results for actions; a planned or accepted action is not a completed effect. The decision contains only the current turn's valid context references. A committed reply ends this turn."
+	d.Description = "Publish the final private reply after any action you choose is done or has a real receipt. If the user is following up on a photo and you choose to make it now, call capability_catalog first to load the image action. For an accepted private image task, reply that it was submitted or is pending. Use only valid current reference IDs; for a simple receipt acknowledgment use decision with action_type=reply, a short response_intent and influences=[]. Omit optional decision fields that are unnecessary."
 	d.Surfaces = []CapabilitySurface{CapabilitySurfaceConversation}
 	d.ModelPreserveOptionalObjectPaths = []string{"decision"}
 	properties := map[string]any{

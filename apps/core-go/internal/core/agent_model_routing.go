@@ -12,7 +12,7 @@ import (
 var agentModelVariants = map[FormalAgentID][]string{
 	FormalAgentConversationCognition: {"conversation_turn_response"},
 	FormalAgentConversationReply:     {"private_reply", "proactive", "moment"},
-	FormalAgentReplyActionCheck:      {"reply_action_consistency", directMediaDeliveryCheckSchema},
+	FormalAgentReplyActionCheck:      {"reply_action_consistency", directMediaDeliveryCheckSchema, directImageDiscoverySchema},
 	FormalAgentExpressionLearning:    {expressionLearningSchema},
 	FormalAgentWakeUp:                {"wake_up_response"},
 	FormalAgentTakeoverJudge:         {"takeover_judge_response"},

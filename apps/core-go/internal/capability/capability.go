@@ -589,9 +589,12 @@ type CapabilityDefinition struct {
 	// Selected required object paths may retain their business-required fields
 	// on the model Tool schema; all other objects keep the strict default.
 	ModelPreserveOptionalObjectPaths []string `json:"-"`
-	ModelResultOmitFields            []string `json:"-"`
-	ProvenanceFields                 []string `json:"-"`
-	NestedProvenanceObject           string   `json:"-"`
+	// Preserve business-required top-level fields on the native wire. Server-side
+	// argument validation still uses the full original schema.
+	ModelPreserveOptionalRootFields bool     `json:"-"`
+	ModelResultOmitFields           []string `json:"-"`
+	ProvenanceFields                []string `json:"-"`
+	NestedProvenanceObject          string   `json:"-"`
 }
 
 type CapabilityPreparedPayload struct {

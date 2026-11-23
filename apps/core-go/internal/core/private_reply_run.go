@@ -94,7 +94,12 @@ func (a *App) withPrivateConversationReplyRun(ctx context.Context, scope ToolExe
 		// Independent Tool calls and WakeUp keep their existing Writer route.
 		if main && scope.Surface == CapabilitySurfaceConversation {
 			if priorDraft == "" {
-				view, err := capabilityRegistryView(a.capabilityRegistryForContext(ctx), directMainReplyCapability{app: a, publication: NewToolPublicationService(a)})
+				registry := a.capabilityRegistryForContext(ctx)
+				replacements := []Capability{directMainReplyCapability{app: a, publication: NewToolPublicationService(a)}}
+				if catalog, ok := registry.Lookup(capabilityCatalogName); ok {
+					replacements = append(replacements, directMainCatalogCapability{Capability: catalog})
+				}
+				view, err := capabilityRegistryView(registry, replacements...)
 				if err != nil {
 					return ctx, err
 				}

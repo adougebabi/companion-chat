@@ -221,6 +221,9 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 	}
 	if len(requestedNames) > 0 && len(loaded) > 0 {
 		output["next_step"] = "These schemas are loaded in the next native tools list. Call the selected tool itself using its wire name and parameters; loading does not execute it. Do not repeat this same catalog request."
+		if main, _ := ctx.Value(directMainConversationKey{}).(bool); main && containsString(loaded, "media.image.generate") {
+			output["next_step"] = "The image tool is now ready in the native tools. If you will take the requested photo, call media_image_generate now. For a new private selfie without a supplied image, call with just {\"intent\":\"拍一张当前自拍，发给对方\"}; keep the requested details in intent, and omit optional fields that do not apply, including delivery_target, reference_asset and referent_bindings. Wait for the tool receipt before conversation_reply. If you choose to decline, reply with that decision."
+		}
 	}
 	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", Output: output}, nil
 }
@@ -308,6 +311,23 @@ func (a *App) prepareKevTools(ctx context.Context, input ADKStructuredTaskInput)
 	}
 	registry := a.capabilityRegistryForContext(ctx)
 	full := appendCapabilityUtilities(registry, firstCapabilitySurface(input.Capability), input.Definitions)
+	if catalog, ok := registry.Lookup(capabilityCatalogName); ok && input.AgentID == FormalAgentConversationCognition {
+		if _, direct := catalog.(directMainCatalogCapability); direct {
+			for index, definition := range full {
+				if definition.Name == capabilityCatalogName {
+					// Keep the baseline membership unchanged. Only present the
+					// directory before the final reply for this direct run.
+					if index > 0 {
+						ordered := append([]CapabilityDefinition(nil), full...)
+						copy(ordered[1:index+1], ordered[:index])
+						ordered[0] = definition
+						full = ordered
+					}
+					break
+				}
+			}
+		}
+	}
 	if input.Capability != nil && input.Capability.Projection.KevTools != nil {
 		return context.WithValue(ctx, kevRunSelectionKey{}, input.Capability.Projection.KevTools), full, nil
 	}

@@ -173,7 +173,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		expectedPersonaRevision = &revision
 		expectedOverlayRevision = &overlayRevision
 	}
-	invocations, _ := i.trace.Snapshot()
+	invocations, priorResults := i.trace.Snapshot()
 	invocation := normalizeCapabilityInvocationMetadata(CapabilityInvocation{
 		CallID: callID, CapabilityName: capabilityName, Arguments: arguments,
 		SourceFactID: firstString(i.request.SourceFactID, projection.SourceFactID), ActionID: i.request.ActionID,
@@ -182,6 +182,16 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	}, i.request.FluctlightID, i.request.ConversationID, i.request.SourceFactID, i.request.SourceFactID, len(invocations))
 	invocation.ActionID = i.request.ActionID
 	publicationPolicy := conversationPublicationPolicyEnabled(ctx)
+	if publicationPolicy && capabilityName != capabilityCatalogName && directImageCatalogPending(ctx, priorResults) {
+		if previous, found := i.trace.FindResult(callID); found {
+			return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), i.trace.ResultFailure(callID)
+		}
+		result := handledCapabilityResult(invocation, "catalog_discovery_pending", "needs_query", map[string]any{
+			"recovery": "Call capability_catalog with names=[media.image.generate] for the discovery you selected. This query has no publication or image effect.",
+		})
+		i.trace.Append(invocation, result)
+		return jsonString(map[string]any{"status": result.Status, "output": result.Output}), nil
+	}
 	needsReply := publicationPolicy && conversationLoopNeedsReplyBeforeModelSequence(ctx, modelIdentity.ModelCallSequence)
 	if publicationPolicy && !needsReply {
 		if queries := conversationLoadedQueryPhase(ctx); len(queries) > 0 && !containsString(queries, capabilityName) {

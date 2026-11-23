@@ -90,6 +90,9 @@ func StrictModelSchema(schema map[string]any) map[string]any {
 // the objects' properties, nullable types and server validation are unchanged.
 func ModelToolSchema(definition CapabilityDefinition) map[string]any {
 	wire := StrictModelSchema(definition.InputSchema)
+	if definition.ModelPreserveOptionalRootFields {
+		wire["required"] = append([]any{}, arrayValue(definition.InputSchema["required"])...)
+	}
 	for _, path := range definition.ModelPreserveOptionalObjectPaths {
 		source, sourceOK := modelRequiredObjectAtPath(definition.InputSchema, path)
 		target, targetOK := modelRequiredObjectAtPath(wire, path)

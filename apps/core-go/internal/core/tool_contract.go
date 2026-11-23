@@ -236,13 +236,14 @@ func momentPublishCapabilityDefinition() CapabilityDefinition {
 
 func imageCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
-		Name:          "media.image.generate",
-		Version:       "v1",
-		Type:          CapabilityTypeAction,
-		Description:   "Generate one image from the requested subject. Task ownership does not mean self is visible. Declare media_plan when subjects and capture are known; preserve explicit requirements.",
-		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
-		FailurePolicy: FailurePolicyRequiredForVisibleClaim,
-		InputSchema:   imageCapabilityInputSchema(),
+		Name:                            "media.image.generate",
+		Version:                         "v1",
+		Type:                            CapabilityTypeAction,
+		Description:                     "Generate one image from the requested subject. Task ownership does not mean self is visible. Declare media_plan when subjects and capture are known; preserve explicit requirements. With no supplied reference image, omit reference_asset or set it to null; it is an object when present, never an array or text.",
+		Surfaces:                        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
+		FailurePolicy:                   FailurePolicyRequiredForVisibleClaim,
+		InputSchema:                     imageCapabilityInputSchema(),
+		ModelPreserveOptionalRootFields: true,
 		OutputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
 			"required": []any{"media_intent_id", "target_kind", "target_ref"},
@@ -274,7 +275,7 @@ func imageCapabilityInputSchema() map[string]any {
 	return map[string]any{
 		"type": "object", "additionalProperties": false, "required": []any{"intent"},
 		"properties": map[string]any{
-			"intent":            map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
+			"intent":            map[string]any{"type": "string", "minLength": 1, "maxLength": 4000, "description": "Describe the requested image and capture. intent is the only required field; for a new selfie without supplied reference images, omit reference_asset."},
 			"delivery_target":   map[string]any{"type": "string", "enum": []any{"current_moment"}, "description": "Attach to the Moment published by an earlier completed moment.publish call in this same task. Omit to use the existing request target. Never use for an unconfirmed or earlier unrelated Moment."},
 			"aspect_ratio":      map[string]any{"type": "string", "enum": []any{"1:1", "3:2", "2:3", "16:9", "9:16"}, "description": "Choose the image aspect ratio to suit the requested composition; preserve an explicitly requested ratio. Omit for the portrait default."},
 			"resolution":        map[string]any{"type": "string", "enum": []any{"512", "768", "1024", "1280", "1536", "2048"}, "description": "Choose a supported resolution only when explicitly requested; otherwise omit to use 768."},

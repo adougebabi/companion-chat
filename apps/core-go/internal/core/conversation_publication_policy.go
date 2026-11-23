@@ -16,9 +16,9 @@ import (
 // committed, normal physical requests retain the selected Tool catalog and
 // cannot terminate through final JSON grammar. Media may accompany a reply but cannot
 // replace the private conversation message.
-type conversationPublicationPhysicalRequestPolicy struct{}
+type conversationPublicationPhysicalRequestPolicy struct{ directImageDiscovery bool }
 
-func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(ctx context.Context) (physicalModelRequestDecision, error) {
+func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(ctx context.Context) (physicalModelRequestDecision, error) {
 	if err := ctx.Err(); err != nil {
 		return physicalModelRequestDecision{}, err
 	}
@@ -79,10 +79,22 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
 			AllowedToolNames: []string{conversationReplyCapabilityName}, DisableThinking: true}, nil
 	}
+	if len(results) > 0 && directImageCatalogPending(ctx, results) {
+		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
+			AllowedToolNames: []string{capabilityCatalogName}}, nil
+	}
+	if p.directImageDiscovery {
+		for _, result := range results {
+			if result.CapabilityName == "media.image.generate" && result.Status == "accepted" {
+				return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
+					AllowedToolNames: []string{conversationReplyCapabilityName}}, nil
+			}
+		}
+	}
 	if _, committed := committedMomentResult(adkContext.Trace); committed {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: append([]string{"moment.publish"}, repeatedDiscoveryExclusions(adkContext.Trace)...)}, nil
 	}
-	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: repeatedDiscoveryExclusions(adkContext.Trace)}, nil
+	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: repeatedDiscoveryExclusions(adkContext.Trace), DisableThinking: p.directImageDiscovery && len(results) == 0}, nil
 }
 
 // Count physical model responses, not individual rejected Tool results. Any
