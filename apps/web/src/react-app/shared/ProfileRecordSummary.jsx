@@ -3,7 +3,7 @@ import { profileEnumFields, profileEnumLabel } from "@/approved-ui/behavior-enum
 import { portraitPresentation, profileExpressionTextFields, workingPersonaPresentation } from "@/approved-ui/profile-presentation.mjs";
 import { stateLabel } from "@/v3/domain-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
-import { narrativeFields, readingFields, readingText, selectReadingFields } from "@/approved-ui/reading-fields.mjs";
+import { narrativeFields, readingExtensions, readingFields, readingText, selectReadingFields } from "@/approved-ui/reading-fields.mjs";
 import { readingFieldLabel } from "@/v3/proto/components/reading-fields.js";
 import { creationScaleHints } from "./CreationScaleHint";
 import JsonDetails from "./JsonDetails";
@@ -105,6 +105,34 @@ export function ProfileFieldsSummary({ value, shape = profileShape, identity, ti
 export function ProfileDiagnostic({ value, title }) {
   if (value == null || value === "" || (typeof value === "object" && !Object.keys(value).length)) return null;
   return <JsonDetails value={value} title={title} downloadOnly />;
+}
+
+function ExtensionValue({ value }) {
+  if (Array.isArray(value)) {
+    return <ul className="semantic-list">{value.map((item, index) => (
+      <li key={index}><ExtensionValue value={item} /></li>
+    ))}</ul>;
+  }
+  if (value && typeof value === "object") {
+    return <dl className="approved-facts">{Object.entries(value).map(([field, item]) => {
+      const translated = readingFieldLabel(field);
+      const label = translated === "补充说明" ? field : translated;
+      return <div key={field}>
+        <dt>{/\p{Script=Han}/u.test(label) && !/[a-z\d]+_[a-z\d]+/i.test(label) ? label : "补充说明"}</dt>
+        <dd><ExtensionValue value={item} /></dd>
+      </div>;
+    })}</dl>;
+  }
+  return <span>{typeof value === "boolean" ? (value ? "是" : "否") : value}</span>;
+}
+
+/** @param {{value: unknown}} props */
+export function ProfileExtensionsSummary({ value }) {
+  return [...readingExtensions(value)].map((item, index) => (
+    <dl className="approved-facts" key={index}>
+      <div><dt>补充说明</dt><dd><ExtensionValue value={item} /></dd></div>
+    </dl>
+  ));
 }
 
 export function ProfileTime({ value }) {
@@ -258,13 +286,14 @@ export function CapabilitySummary({ record }) {
   </>;
 }
 
-export function GovernanceHistorySummary({ entry }) {
+export function GovernanceHistorySummary({ entry, showExtensions = false }) {
   const action = { accept: "已接受", reject: "已拒绝", restore: "已恢复", propose: "已提出" }[entry.action];
   const status = entry.status || entry.action;
   return <div className="grid gap-2">
     {status && <p>{action || stateLabel(status, "已记录")}</p>}
     <ProfileTime value={entry.occurred_at || entry.created_at} />
     <ProfileNote value={entry.reason || entry.note} />
+    {showExtensions && <ProfileExtensionsSummary value={entry} />}
     <ProfileDiagnostic value={entry} title="原始治理历史记录（诊断）" />
   </div>;
 }

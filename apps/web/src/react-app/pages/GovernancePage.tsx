@@ -12,7 +12,7 @@ import RecordShell from '../shared/RecordShell';
 import CursorControls from '../shared/CursorControls';
 import CommandDialog from '../shared/CommandDialog';
 import {
-  CapabilitySummary, GovernanceHistorySummary, ProfileDiagnostic, ProfileFieldsSummary,
+  CapabilitySummary, GovernanceHistorySummary, ProfileDiagnostic, ProfileExtensionsSummary, ProfileFieldsSummary,
   ProfileNote, ProfileTime, profileText,
 } from '../shared/ProfileRecordSummary';
 import SelfPage from './SelfPage';
@@ -65,7 +65,7 @@ function GovernanceBody({route}:any){
        <Card>
          <CardHeader><CardTitle>治理历史</CardTitle></CardHeader>
          <CardContent className="grid gap-3">
-           {history.items.map((entry:any,index:number) => <GovernanceHistorySummary key={entry.id || index} entry={entry} />)}
+           {history.items.map((entry:any,index:number) => <GovernanceHistorySummary key={entry.id || index} entry={entry} showExtensions={kind === 'foundation'} />)}
            <CursorControls page={history} label="治理历史" />
          </CardContent>
        </Card>
@@ -75,6 +75,7 @@ function GovernanceBody({route}:any){
          <CardContent className="grid gap-4">
            {kind === 'foundation' ? <>
              <ProfileFieldsSummary value={current} identity={current?.identity} />
+             <ProfileExtensionsSummary value={current} />
              <ProfileDiagnostic value={current} title="原始当前身份记录（诊断）" />
              <Button type="button" className="w-fit max-w-full justify-self-start whitespace-normal" disabled={retired || !read.fresh} onClick={propose}>创建修订提议</Button>
            </> : <p className="text-sm text-muted-foreground">申请来自角色真实运行，审核和执行授权分别处理。</p>}
@@ -117,6 +118,7 @@ export function GovernanceRecord({record,kind,onOpen}:any) {
           <ProfileFieldsSummary value={record.base_snapshot} title="提议时的设定" />
           <ProfileFieldsSummary value={record.changes} title="提议变更" showClears />
           <ProfileFieldsSummary value={record.core_persona || record} title="修订后的身份内容" />
+          <ProfileExtensionsSummary value={record} />
         </> : <CapabilitySummary record={record} />}
         <ProfileTime value={record.created_at} />
         <ProfileDiagnostic value={record} title="原始治理记录（诊断）" />

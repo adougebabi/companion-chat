@@ -12,7 +12,7 @@ import RecordShell from '../shared/RecordShell';
 import CursorControls from '../shared/CursorControls';
 import CommandDialog from '../shared/CommandDialog';
 import {
- ClaimReadingSummary, ClaimValueSummary, ProfileDiagnostic, ProfileFieldsSummary,
+ ClaimReadingSummary, ClaimValueSummary, ProfileDiagnostic, ProfileExtensionsSummary, ProfileFieldsSummary,
  ProfileNote, ProfileTime, WorkingPortraitSummary, personalityShape, profileText,
 } from '../shared/ProfileRecordSummary';
 import {GovernanceNavigation} from './GovernancePage';
@@ -33,6 +33,7 @@ function ClaimCard({claim,onOpen,onAction,retired}:any){
    {claim.source_valid===false&&<Feedback kind="warning">依赖的事实来源已变化，这条认识不作为当前有效上下文。</Feedback>}
    {claim.expired&&<p className="text-sm text-muted-foreground">已超过有效期限。</p>}
    <ClaimReadingSummary claim={claim} category={category} />
+   <ProfileExtensionsSummary value={claim} />
    {claim.owner_review && <p className="text-sm">所有者已复核这条认识。复核不提高证据或置信度。</p>}
    <div className="flex flex-wrap gap-3">
     {onOpen&&<Button type="button" variant="outline" onClick={onOpen}>详情与修订</Button>}
@@ -81,6 +82,7 @@ function SelfClaim({route}:any) {
      <ProfileNote value={entry.reason || entry.candidate?.reason} label="修订理由" />
      <ClaimSnapshot value={entry.before_value} title="修改前的认识" />
      <ClaimSnapshot value={entry.after_value} title="修改后的认识" />
+     <ProfileExtensionsSummary value={entry} />
      <ProfileDiagnostic value={entry} title="原始认识修订记录（诊断）" />
      {canRestoreSelfRevision(entry)&&read.data
       ? <Button type="button" variant="outline" disabled={actions.retired||!read.fresh} onClick={()=>actions.operate(read.data,'restore',entry.revision)}>恢复此版本内容</Button>
@@ -95,6 +97,7 @@ function SelfClaim({route}:any) {
     {reviews.items.map((entry:any,index:number)=><div key={entry.id||index} className="grid gap-2">
      <ProfileNote value={entry.reason} label="复核意见" />
      <ProfileTime value={entry.created_at} />
+     <ProfileExtensionsSummary value={entry} />
      <ProfileDiagnostic value={entry} title="原始复核记录（诊断）" />
     </div>)}
     {!reviews.items.length&&!reviews.loading&&<p>尚无人工复核。正常反思不以人工审核为前提。</p>}
@@ -124,6 +127,7 @@ function SelfSummary({route}:any){const w=useWorkspace(),fid=route.fid,owner=w.s
    <CardContent className="grid gap-4">
     <ProfileFieldsSummary value={personality} shape={personalityShape} title="稳定性格" />
     <WorkingPortraitSummary value={compilation} activeProfileId={detail?.personality_runtime?.active_profile_id} />
+    <ProfileExtensionsSummary value={[personality, compilation]} />
     <ProfileDiagnostic value={personality != null || compilation != null ? {personality, persona_compilation:compilation} : null} title="原始人格快照（诊断）" />
     <h3 className="font-medium">最近的反思</h3>
     {reflections.items.map((entry:any)=><Button key={entry.id} type="button" variant="ghost" className="h-auto justify-start whitespace-normal text-left" onClick={()=>w.navigatePath('/c/'+encodeURIComponent(fid)+'/growth/reflection/'+encodeURIComponent(entry.id))}>
@@ -140,6 +144,7 @@ function SelfSummary({route}:any){const w=useWorkspace(),fid=route.fid,owner=w.s
      <ProfileNote value={proposal.reason} label="提议理由" />
      <ProfileTime value={proposal.created_at} />
      <ProfileFieldsSummary value={proposal.changes} title="提议变更" showClears />
+     <ProfileExtensionsSummary value={proposal} />
      <div className="flex flex-wrap gap-3">
       <Button type="button" variant="outline" disabled={actions.retired||!read.fresh} onClick={()=>decide(proposal,false)}>暂不采纳</Button>
       <Button type="button" disabled={actions.retired||!read.fresh} onClick={()=>decide(proposal,true)}>采纳</Button>

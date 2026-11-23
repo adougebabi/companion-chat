@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea, FieldInput, Disclosure, Badge } from "../controls";
 import {
-  CapabilitySummary, ClaimReadingSummary, GovernanceHistorySummary, ProfileDiagnostic, ProfileFieldsSummary,
+  CapabilitySummary, ClaimReadingSummary, GovernanceHistorySummary, ProfileDiagnostic, ProfileExtensionsSummary, ProfileFieldsSummary,
   ProfileNote, ProfileTime, profileText,
 } from "./ProfileRecordSummary";
 import WorkspaceDialog from "./WorkspaceDialog";
@@ -454,6 +454,7 @@ export default function ProfileGovernance({
                           </div>
                         </div>
                       </Disclosure>
+                      <ProfileExtensionsSummary value={row} />
                       <ProfileDiagnostic value={row} title="原始身份提议记录（诊断）" />
                       {stale && (
                         <WorkspaceInfo>
@@ -648,6 +649,7 @@ export default function ProfileGovernance({
                   {typeof row.source_valid === "boolean" && <p>{row.source_valid ? "来源已核对" : "来源需要重新核对"}</p>}
                   {row.expired && <p>已超过有效期限</p>}
                   <ClaimReadingSummary claim={row} />
+                  <ProfileExtensionsSummary value={row} />
                   <ProfileDiagnostic value={row} title="原始认识记录（诊断）" />
                 </div>
               ))}

@@ -2,6 +2,7 @@ import { isInternalId } from '../v3/internal-id.mjs';
 
 // Open objects are allowed only inside a selected business field.
 export const narrativeFields = Symbol('narrativeFields');
+const extensionFields = Symbol('extensionFields');
 
 export const readingFields = keys => Object.fromEntries(keys.split(' ').map(key => [key, narrativeFields]));
 
@@ -25,12 +26,29 @@ export function selectReadingFields(value, shape = narrativeFields, { showClears
   if (!value || typeof value !== 'object') return undefined;
   if (shape === true) return selectReadingFields(value.value, true, { text });
 
-  const entries = shape === narrativeFields
-    ? Object.keys(value).filter(key => !technicalKey.test(normalizedKey(key))).map(key => [key, narrativeFields])
+  const entries = shape === narrativeFields || shape === extensionFields
+    ? Object.keys(value).filter(key => (
+      (shape === extensionFields && key === 'extensions') || !technicalKey.test(normalizedKey(key))
+    )).map(key => [key, shape])
     : Object.entries(shape);
   const selected = entries.flatMap(([key, child]) => {
     const item = selectReadingFields(value[key], child, { showClears, text });
     return item === undefined ? [] : [[key, item]];
   });
   return selected.length ? Object.fromEntries(selected) : undefined;
+}
+
+export function* readingExtensions(record) {
+  if (Array.isArray(record)) {
+    for (const item of record) yield* readingExtensions(item);
+  } else if (record && typeof record === 'object') {
+    for (const [key, value] of Object.entries(record)) {
+      if (key === 'extensions') {
+        const selected = selectReadingFields(value, extensionFields, { text: text => text.trim() });
+        if (selected !== undefined) yield selected;
+      } else if (!technicalKey.test(normalizedKey(key))) {
+        yield* readingExtensions(value);
+      }
+    }
+  }
 }
