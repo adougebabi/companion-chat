@@ -214,7 +214,7 @@
     },
     {
       "path": "docs/llm-prompt-composition.md",
-      "hash": "21660f5f064fab470ceeae3d93ab093baaab24b9603b0d377de952ecbd5b8b30",
+      "hash": "9f70beb1255b61b620feab6e5b955deaabaef0a4ae83c63b0427b7fa6c4e7c76",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -228,7 +228,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-prompt-composition.md",
-        "hash": "21660f5f064fab470ceeae3d93ab093baaab24b9603b0d377de952ecbd5b8b30",
+        "hash": "9f70beb1255b61b620feab6e5b955deaabaef0a4ae83c63b0427b7fa6c4e7c76",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -292,6 +292,27 @@
         "critical": false,
         "path": "docs/v3-page-acceptance.md",
         "hash": "4db1a6fe5c5ce798c2f1bac8dfafeae64a458b36aa008c8fee7c81f0b385acb9",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "docs/verification/chat-publication-outcome-20261123.md",
+      "hash": "06c7784ddd3313406e051ce3fd3e079cbc556ff7d54a243c6ec67454b0b87e82",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/chat-publication-outcome-20261123.md",
+        "title": "chat-publication-outcome-20261123.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/chat-publication-outcome-20261123.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/chat-publication-outcome-20261123.md",
+        "hash": "06c7784ddd3313406e051ce3fd3e079cbc556ff7d54a243c6ec67454b0b87e82",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -887,7 +908,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 40,
+    "historical": 41,
     "retired": 1
   }
 }
