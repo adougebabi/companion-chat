@@ -6,7 +6,7 @@ import {proxy,snapshot,subscribe} from 'valtio/vanilla';
 import {act,installDOM,mountReact} from './helpers/react-dom.mjs';
 
 const environment=installDOM();
-const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
+const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),envFile:false,appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
 test.after(async()=>{await vite.close();environment.restore();});
 const button=(text,root)=>[...root.querySelectorAll('button')].find(node=>node.textContent.trim()===text);
 const store=state=>({state,subscribe:listener=>subscribe(state,listener),getSnapshot:()=>snapshot(state)});
@@ -23,7 +23,7 @@ test('plugin card shows an explicit version-bound connection check without claim
  try{
   await view.click(view.host.querySelector('[data-testid="config-anchor-能力插件"]'));
   assert.equal(calls,0,'opening the plugin page must not contact the renderer');
-  assert.match(view.host.textContent,/图片 · v1 · 已启用 · 健康状态未检测/);
+  assert.match(view.host.textContent,/图片 · 已启用 · 健康状态未检测/);
   const check=()=>button('检查图片服务连接',view.host);
   assert.ok(check());
   await view.click(check());await view.flush();
@@ -78,7 +78,7 @@ test('saving the first renderer configuration refreshes plugin availability',asy
   await view.click(view.host.querySelector('[data-testid="config-anchor-能力插件"]'));
   assert.equal(writes,1);assert.ok(reads>=2);
   assert.equal(button('检查图片服务连接',view.host).disabled,false);
-  assert.match(view.host.textContent,/图片 · v1 · 已启用 · 健康状态未检测/);
+  assert.match(view.host.textContent,/图片 · 已启用 · 健康状态未检测/);
  }finally{await view.dispose();}
 });
 
@@ -172,7 +172,7 @@ test('re-reading plugin configuration clears old Moment health feedback',async()
   catalog.versions['plugins.domains']=4;catalog.effective_values['plugins.domains'].moment=false;catalog.domain_plugins[0].enabled=false;
   const discard=button('放弃修改',view.host);assert.equal(discard.disabled,false);
   await view.click(discard);await view.flush();
-  assert.match(view.host.textContent,/动态 · v1 · 已停用 · 健康状态未检测/);
+  assert.match(view.host.textContent,/动态 · 已停用 · 健康状态未检测/);
   assert.doesNotMatch(view.host.textContent,/动态列表可读取/,'old global or card feedback remained after a newer read');
   assert.equal(button('测试回执与实际状态',view.host),undefined);
  }finally{await view.dispose();}

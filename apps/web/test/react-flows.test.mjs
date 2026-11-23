@@ -7,6 +7,7 @@ import { act, mountReact, installDOM } from "./helpers/react-dom.mjs";
 const environment = installDOM();
 const vite = await createServer({
   root: fileURLToPath(new URL("../", import.meta.url)),
+  envFile: false,
   appType: "custom",
   logLevel: "silent",
   server: { middlewareMode: true },
@@ -216,8 +217,8 @@ test("React plugin settings save and reread independent Image and Moment switche
     await act(async()=>view.host.querySelector('form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));
     await view.flush();
     assert.deepEqual(writes[0].values["plugins.domains"],{image:false,moment:true});
-    assert.match(view.host.textContent,/图片 · v1 · 已停用 · 图片服务未配置 · 生图需要 ComfyUI/);
-    assert.match(view.host.textContent,/动态 · v1 · 已启用 · 健康状态未检测 · 图片为可选依赖/);
+    assert.match(view.host.textContent,/图片 · 已停用 · 图片服务未配置 · 生图需要 ComfyUI/);
+    assert.match(view.host.textContent,/动态 · 已启用 · 健康状态未检测 · 图片为可选依赖/);
     await view.dispose();
     view=await mountReact(vite,Management,{workspace:w});
     await view.click(view.host.querySelector('[data-testid="config-anchor-能力插件"]'));
