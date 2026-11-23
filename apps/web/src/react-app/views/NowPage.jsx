@@ -4,6 +4,7 @@ import {EmptyMedia} from '@/components/ui/empty';
 import {Surface} from '../controls';
 import WorkspacePageHeader from '../shared/WorkspacePageHeader';
 import ScheduleTimeline from '../shared/ScheduleTimeline';
+import {scheduleItemDisplay} from '../shared/schedule-presentation.mjs';
 import WearingSummary from '../shared/WearingSummary';
 import {nowEmptyText,nowStateSummary,nowStateText,NowStateDownload} from '../shared/NowState';
 import LoadingState from '../shared/LoadingState';
@@ -31,7 +32,8 @@ export default function NowPage({view}){
   ...item,text:nowStateText(item.text,'活动'),
   _source:{...item._source,location:nowStateText(item._source?.location,'地点')},
  }));
- const next=nextScheduleItem(view.schedule.value,now),readingSchedule=!!(w.state.loading.life||w.state.loading.schedule);
+ const next=nextScheduleItem(view.schedule.value.filter(item=>!scheduleItemDisplay(item).unplanned),now),readingSchedule=!!(w.state.loading.life||w.state.loading.schedule);
+ const nextDisplay=next&&scheduleItemDisplay(next);
  const dateParts=Object.fromEntries(new Intl.DateTimeFormat('zh-CN',{timeZone:zone,month:'numeric',day:'numeric',weekday:'long'}).formatToParts(new Date(now)).map(part=>[part.type,part.value]));
  const date=`${dateParts.month} 月 ${dateParts.day} 日　${dateParts.weekday}`;
  const go=page=>view.emit('go',page);
@@ -59,7 +61,7 @@ export default function NowPage({view}){
    {mood&&<div className="lp-runtime-item"><span className="lp-icon-box"><HeartIcon size={17}/></span><div><span className="lp-muted">当前情绪</span><strong className="lp-title">{mood}</strong><span className="lp-muted">随相处和生活自然变化</span></div></div>}
    <div className="lp-runtime-item"><span className="lp-icon-box"><SunIcon size={17}/></span><div><span className="lp-muted">今天的穿着</span><WearingSummary character={c} error={view.readError('wardrobe')} loading={w.state.loading.wardrobe}/><Button variant="link" onClick={()=>go('衣柜')}>打开衣柜<ArrowUpRightIcon size={12}/></Button></div></div>
    <NowStateDownload detail={c.detail} world={world} schedule={view.schedule.value.length?view.schedule.value.map(item=>item._source):undefined}/>
-  </Surface><Surface className="lp-pad"><div className="lp-row lp-between"><span className="lp-label">NEXT LITTLE THING</span><Clock3Icon size={15}/></div><strong className="replica-next-time">{next?.time||'待安排'}</strong><p className="lp-title">{nowStateText(next?.text,'活动')||'接下来的安排尚未确认。'}</p><p className="lp-muted replica-next-note">未来的安排仍会变化，生活留一点余地。</p></Surface>
+  </Surface><Surface className="lp-pad"><div className="lp-row lp-between"><span className="lp-label">NEXT LITTLE THING</span><Clock3Icon size={15}/></div><strong className="replica-next-time">{(nextDisplay?.showTime ? next.time : nextDisplay?.timeNote)||'待安排'}</strong><p className="lp-title">{nowStateText(next?.text,'活动')||'接下来的安排尚未确认。'}</p><p className="lp-muted replica-next-note">未来的安排仍会变化，生活留一点余地。</p></Surface>
   <Button variant="ghost" className="lp-memory-card" onClick={()=>go('日记')}><div className="lp-row"><BookOpenIcon size={16}/><span className="lp-title">{c.name}写下的日常</span><ArrowUpRightIcon size={14}/></div><p className="lp-small">翻开日记，看看没有说出口的日常。</p></Button>
  </div></div></div>;
 }
