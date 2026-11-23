@@ -9,6 +9,7 @@ import { memoryRevisionReason } from "../src/approved-ui/memory-presentation.mjs
 const env = installDOM(),
   vite = await createServer({
     root: fileURLToPath(new URL("../", import.meta.url)),
+    envFile: false,
     appType: "custom",
     logLevel: "silent",
     server: { middlewareMode: true },
@@ -27,6 +28,28 @@ const clone = (v) => JSON.parse(JSON.stringify(v)),
       (n) => n.textContent.trim() === text,
     ),
   dialog = () => [...document.querySelectorAll("[role=dialog]")].at(-1);
+async function assertDownload(v, root, title, expected) {
+  const disclosure = [...root.querySelectorAll("button")].find(node => node.textContent.trim() === title);
+  assert.ok(disclosure, title);
+  await v.click(disclosure);
+  const create = URL.createObjectURL;
+  const revoke = URL.revokeObjectURL;
+  const anchor = window.HTMLAnchorElement.prototype;
+  const click = anchor.click;
+  let blob;
+  try {
+    URL.createObjectURL = value => { blob = value; return "blob:memory-fixture"; };
+    URL.revokeObjectURL = () => {};
+    anchor.click = function () { assert.equal(this.download, "fluctlight-record.json"); };
+    await v.click(button(root, "下载原始记录"));
+    assert.ok(blob);
+    assert.deepEqual(JSON.parse(await blob.text()), expected);
+  } finally {
+    URL.createObjectURL = create;
+    URL.revokeObjectURL = revoke;
+    anchor.click = click;
+  }
+}
 const memory = {
   id: "M",
   owner_fluctlight_id: "A",
@@ -440,7 +463,7 @@ test("an unknown CAS-only correction requires actual current-object review, and 
     assert.match(dialog().textContent, /当前版本已经是这段正文/);
     assert.equal(w.calls.filter((c) => c[0] === "revise").length, 1);
     await v.click(button(dialog(), "取消"));
-    assert.match(dialog().textContent, /第 3 版/);
+    await assertDownload(v, dialog(), "原始记忆记录（诊断）", {...clone(w.m), revision: 3});
     assert.match(dialog().textContent, /实际已经提交的正文/);
     assert.match(v.host.textContent, /实际已经提交的正文/);
     assert.equal(w.calls.filter((c) => c[0] === "revise").length, 1);
@@ -507,7 +530,7 @@ test("a validated readback stays visible when secondary refreshes cannot reread 
       dialog().querySelector(".lp-memory-quote").textContent,
       /已验证的新版本正文/,
     );
-    assert.match(dialog().textContent, /第 3 版/);
+    await assertDownload(v, dialog(), "原始记忆记录（诊断）", {...clone(w.m), revision: 3});
     assert.equal(w.calls.filter((c) => c[0] === "revise").length, 1);
   } finally {
     await v.dispose();
@@ -516,8 +539,10 @@ test("a validated readback stays visible when secondary refreshes cannot reread 
 test("source pagination pins the chosen revision and never marks a returned nonlive source as valid", async () => {
   const w = workspace(),
     source = w.client.memorySources;
+  let lastSource;
   w.client.memorySources = async (id, o) => {
     const page = await source(id, o);
+    lastSource = page.items[0];
     page.next_cursor = o.cursor ? "" : "source-next";
     return page;
   };
@@ -533,14 +558,19 @@ test("source pagination pins the chosen revision and never marks a returned nonl
     );
     await tab(v, dialog(), "修订记录");
     const row = [...dialog().querySelectorAll(".lp-history-item")].find((n) =>
-      n.textContent.startsWith("第 1 版"),
+      n.textContent.startsWith("历史修订") && n.textContent.includes("过去的记忆正文。"),
     );
+    assert.ok(row);
+    const expected = (await w.client.memoryRevisions()).items.find(item => item.revision === 1);
+    await assertDownload(v, row, "原始记忆记录（诊断）", expected);
     await v.click(button(row, "查看此版来源"));
     assert.equal(
       w.calls.filter((c) => c[0] === "sources").at(-1)[2].revision,
       1,
     );
-    assert.match(dialog().textContent, /第 1 版的来源/);
+    assert.match(dialog().textContent, /这次历史修订的来源/);
+    assert.equal(lastSource.memory_revision, 1);
+    await assertDownload(v, dialog(), "原始记忆记录（诊断）", lastSource);
   } finally {
     await v.dispose();
   }
@@ -562,8 +592,11 @@ test("forget cancellation does not write and historical memory restoration appen
     );
     await tab(v, dialog(), "修订记录");
     const row = [...dialog().querySelectorAll(".lp-history-item")].find((n) =>
-      n.textContent.startsWith("第 1 版"),
+      n.textContent.startsWith("历史修订") && n.textContent.includes("过去的记忆正文。"),
     );
+    assert.ok(row);
+    const expected = (await w.client.memoryRevisions()).items.find(item => item.revision === 1);
+    await assertDownload(v, row, "原始记忆记录（诊断）", expected);
     await v.click(button(row, "补偿恢复至此版"));
     await v.input(
       dialog().querySelector('[aria-label="记忆操作说明"]'),
@@ -763,7 +796,10 @@ for (const recovery of ["adopt", "refresh"]) test(`self ${recovery} reconciles d
     } else await v.click(button(dialog(), "刷新当前详情"));
     assert.match(dialog().textContent, /已遗忘/);
     await v.click(button(dialog(), "之前的认识与历史恢复"));
-    assert.ok([...dialog().querySelectorAll("h4")].some(n => n.textContent.startsWith("第 3 版")));
+    const current = [...dialog().querySelectorAll(".lp-history-item")].find(n => n.querySelector("h4").textContent === "当前认识");
+    assert.ok(current);
+    assert.equal(history[0].revision, 3);
+    await assertDownload(v, current, "原始认识记录（诊断）", history[0]);
     await v.click(button(dialog(), "所有者复核记录"));
     assert.match(dialog().textContent, /独立复核记录/);
     assert.equal(w.calls.filter(c => c[0] === "self").length, 0);
@@ -812,7 +848,7 @@ for (const fault of ["unknown", "readback"]) test(`self ${fault} recovery preser
       assert.deepEqual(attempts[1], attempts[0]);
     } else await v.click(button(dialog(), "只读恢复页面结果"));
     assert.match(dialog().textContent, /已遗忘/);
-    assert.match(dialog().textContent, /第 3 版/);
+    await assertDownload(v, dialog(), "原始认识记录（诊断）", {...clone(w.s), revision: 3});
     assert.equal(w.s.revision, 3);
     assert.equal(w.calls.filter(c => c[0] === "self").length, 1);
     assert.equal(attempts.length, fault === "unknown" ? 2 : 1);
