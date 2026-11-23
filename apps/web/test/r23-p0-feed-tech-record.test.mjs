@@ -23,7 +23,7 @@ const wrapped=`我正在生成一条面向动态参与者的生活动态。根�
 
 这条动态基于当前时间（20:08），结合了FT-苏晴作为图书馆管理员的身份特征，提及了她的偏好（旧书与桂花糕），以及当前的实际工作状态。动态正文自主生成，不包含未经授权的图片或媒体内容。`;
 const body='桂花季又到了，想起了那年在旧书架底发现的手抄本。桂花糕的香气和发黄的纸页，这两样古旧物事，总让人生出些微的怀乡之情。\n\n晚间在三楼整理古籍目录。明天的展览需要调整布置，新到的一套明代刻本需要特别标注保护提示。';
-const leak=/我正在生成|面向动态参与者|我将发布以下内容|^\s*---\s*$|\*\*FT-苏晴\*\*|FT-苏晴 20:08 · 图书馆日常|这条动态基于当前时间|动态正文自主生成/m;
+const leak=/我正在生成|面向动态参与者|我将发布以下内容|^\s*---\s*$|\\n---\\n|\*\*FT-苏晴\*\*|FT-苏晴 20:08 · 图书馆日常|这条动态基于当前时间|动态正文自主生成/m;
 
 test('momentRecord cleans the visible body only and keeps stored text unchanged',async()=>{
  const {momentRecord}=await load('v3/moment-reading.mjs');
@@ -35,8 +35,9 @@ test('momentRecord cleans the visible body only and keeps stored text unchanged'
  assert.equal(momentRecord({author_type:'user',text:wrapped}).text,wrapped,'owner-written moments are never rewritten');
 });
 
-test('动态详情保留清理后的阅读正文，诊断下载保留原始正文',async(t)=>{
+test('动态详情和诊断下载使用清理后的正文，原动态保持不变',async(t)=>{
  const {default:FeedPost}=await load('react-app/shared/FeedPost.jsx');
+ const {momentRecord}=await load('v3/moment-reading.mjs');
  const model={w:{state:{session:{actorId:'r23-feed'},characters:[{id:'fl-suqing',name:'FT-苏晴'}]},subscribe:()=>()=>{},getSnapshot:()=>model.w.state,current:{value:{id:'fl-suqing'}},isCurrent:()=>true,services:{mediaClient:{url:id=>'/api/media/'+id}}},service:{comments:async()=>({items:[],next_cursor:''})}};
  const post={id:'suqing-post',owner_fluctlight_id:'fl-suqing',author_actor_id:'fl-suqing',author_type:'fluctlight',author_name:'FT-苏晴',text:wrapped,status:'visible',revision:1,comment_count:0,reaction_count:0,visibility:'participants',media:[]};
  const view=await mountReact(vite,FeedPost,{workspace:model.w,props:{post,model,full:true,onAction(){},onOpen(){}}});
@@ -56,9 +57,12 @@ test('动态详情保留清理后的阅读正文，诊断下载保留原始正�
   assert.equal(view.host.querySelector('pre, .record-facts'),null);
   await view.click(button(view.host,'下载原始记录'));
   assert.equal(blobs.length,1);
-  const downloaded=JSON.parse(await blobs[0].text());
-  assert.deepEqual(downloaded,post);
-  assert.equal(downloaded.text,wrapped);
+  const json=await blobs[0].text();
+  const downloaded=JSON.parse(json);
+  assert.deepEqual(downloaded,momentRecord(post));
+  assert.equal(downloaded.text,body);
+  assert.equal(downloaded.id,'suqing-post');
+  assert.doesNotMatch(json,leak);
   assert.equal(post.text,wrapped,'stored text stays unchanged');
  }finally{await view.dispose();}
 });

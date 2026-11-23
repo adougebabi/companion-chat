@@ -8,7 +8,7 @@ import CharacterAvatar from "./CharacterAvatar";
 import useWorkspaceRead from "./useWorkspaceRead";
 import { FeedReader, FeedTime, feedAuthorName, feedDisplayText } from "./FeedParts";
 import { momentCount } from "@/approved-ui/feed-presentation.mjs";
-import { momentReading } from "@/v3/moment-reading.mjs";
+import { momentReading, momentRecord } from "@/v3/moment-reading.mjs";
 function PostMedia({ asset, model: m, full, onOpen }) {
   const [failed, setFailed] = useState(false);
   if (!asset?.id) return null;
@@ -238,7 +238,7 @@ export default function FeedPost({
               原发布建议与处理结果
             </a>
           )}
-          <JsonDetails value={post} title="原始动态记录（诊断）" downloadOnly />
+          <JsonDetails value={momentRecord(post)} title="原始动态记录（诊断）" downloadOnly />
         </Disclosure>
       ) : (
         <CommentPreview post={post} model={m} />

@@ -119,7 +119,8 @@ test("动态列表显示作者、中文时间、正文和评论预览，缺失�
   }
 });
 
-test("动态详情显示中文互动结果并仅下载完整原始动态和互动记录", async (t) => {
+test("动态详情显示中文互动结果并下载完整字段与清理后的动态正文", async (t) => {
+  const detailPost = { ...post, text: `我正在生成一条动态。\n\n${post.text}` };
   const empty = { id: "pending_private", status: "pending", response: {}, updated_at: null };
   const reaction = {
     id: "reaction_private",
@@ -131,7 +132,7 @@ test("动态详情显示中文互动结果并仅下载完整原始动态和互�
     id: "uncommitted_private",
     response: { decision: "comment", text: "这条评论还没有发布。" },
   };
-  const m = model(post, [comment, { ...comment, id: "second_private", author_name: null, created_at: "" }],
+  const m = model(detailPost, [comment, { ...comment, id: "second_private", author_name: null, created_at: "" }],
     [interaction, failed, empty, reaction, uncommitted]);
   const view = await mountReact(vite, FeedDetail, {
     workspace: m.w,
