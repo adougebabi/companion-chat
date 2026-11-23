@@ -4,18 +4,19 @@ import {Button} from '@/components/ui/button';
 import {Card,CardHeader,CardTitle,CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {Feedback} from '../shared/Presentation';
-import {Label,FieldInput,ChoiceSelect} from '../controls';
+import {Label,FieldInput,ChoiceSelect,Disclosure} from '../controls';
 import {useWorkspace} from '../page';
 import {useDomainRead} from '../hooks/use-domain-read';
 import {useCursorPage} from '../hooks/use-cursor-page';
 import RecordShell from '../shared/RecordShell';
 import CursorControls from '../shared/CursorControls';
 import CommandDialog from '../shared/CommandDialog';
-import JsonDetails from '../shared/JsonDetails';
-import SemanticTree from '../shared/SemanticTree';
+import {
+  CapabilitySummary, GovernanceHistorySummary, ProfileDiagnostic, ProfileFieldsSummary,
+  ProfileNote, ProfileTime, profileText,
+} from '../shared/ProfileRecordSummary';
 import SelfPage from './SelfPage';
 import {stateLabel} from '@/v3/domain-presentation.mjs';
-import {userInstant} from '@/v3/presentation-time.mjs';
 const transitions:Record<string,string[]>={proposed:['reviewing','accepted','rejected','cancelled'],reviewing:['accepted','rejected','cancelled'],accepted:['fulfilled','cancelled']};
 const labels:Record<string,string>={accept:'接受并应用',reject:'拒绝提议',restore:'恢复此版身份内容',reviewing:'开始评估',accepted:'接受需求',rejected:'拒绝需求',cancelled:'取消需求',fulfilled:'记录已交付实现'};
 export default function GovernancePage({route}:any){if(route.feature.params.governanceKind&&!['foundation','capability'].includes(route.feature.params.governanceKind))return <RecordShell title="治理对象类型无效" back={'/c/'+encodeURIComponent(route.fid)+'/profile'} backLabel="返回角色详情"/>;return !route.feature.params.governanceId&&route.query.get('tab')==='developing'?<SelfPage route={route} mode="catalogue"/>:<GovernanceBody route={route}/>;}
@@ -33,6 +34,94 @@ function GovernanceBody({route}:any){
  function operate(operation:string){if(retired||!record||!current||operation==='accept'&&stale)return;const capabilityVersion=(version||record.registered_capability?.version||'').trim();setAction({identity:JSON.stringify([owner,fid,kind,id,operation,capabilityVersion]),scope:[fid,kind,id,operation,capabilityVersion],storageKey:'fluctlight-studio:'+owner+':governance:'+JSON.stringify([owner,fid,kind,id,operation,capabilityVersion]),title:labels[operation],casOnly:kind==='foundation',description:kind==='foundation'?'生效前会校验提议基线，生活状态和历史各自保留。':'审核记录不会安装插件，也不会自动授予工具权限。已交付版本须匹配真实注册实现。',initial:{reason:'',base:kind==='foundation'?current.revision:record.revision},validate:()=>requireWritableCharacter(w,fid),build:(draft:any)=>{if(!draft.reason.trim())throw Error('请填写操作理由');if(operation==='fulfilled'&&!capabilityVersion)throw Error('请填写实际注册的能力版本');return {expectedRevision:draft.base,reason:draft.reason};},execute:(body:any,key:string)=>kind==='foundation'?operation==='restore'?service.restore(fid,record.revision,body):service.decide(fid,id,operation,body):service.review(fid,id,{expectedRevision:body.expectedRevision,note:body.reason,status:operation,...(operation==='fulfilled'?{capabilityVersion}:{})},key),readLatest:()=>kind==='foundation'?service.current(fid):service.capability(fid,id),adoptLatest:(draft:any,fresh:any)=>({...draft,base:fresh.revision}),onSaved:reload,snapshot:record});}
  const actions=record?(kind==='foundation'?(record.status==='proposed'?['accept','reject']:record.status==='accepted'&&record.revision<current?.revision?['restore']:[]):transitions[record.status]||[]):[];
  const statuses=kind==='foundation'?['all','proposed','accepted','rejected']:['all','proposed','reviewing','accepted','fulfilled','rejected','cancelled'];
- return <RecordShell eyebrow="身份与能力" description={kind==='foundation'?'查看当前身份，审阅修订提议与生效历史。':'查看真实运行中的能力需求，分别核对审核与交付进度。'} title={kind==='foundation'?'身份核心与提议':'能力申请与审核'} back={'/c/'+encodeURIComponent(fid)+'/profile'} backLabel="返回角色详情" read={{...read,reload}}><GovernanceNavigation fid={fid} current={kind==='foundation'?'foundation':'capabilities'}/>{id?record&&<><GovernanceRecord record={record} kind={kind}/>{stale&&<Feedback kind="warning">这条提议的基线已经过期，当前不能接受；拒绝操作仍可执行。</Feedback>}{kind==='capability'&&record.status==='accepted'&&<Label htmlFor="registered-capability-version">实际注册的能力版本<FieldInput id="registered-capability-version" value={version||record.registered_capability?.version||''} maxLength={128} onChange={(event:any)=>setVersion(event.target.value)}/></Label>}<div className="flex flex-wrap gap-3">{actions.map(operation=><Button key={operation} type="button" disabled={retired||!read.fresh||operation==='accept'&&stale} onClick={()=>operate(operation)}>{labels[operation]}</Button>)}</div><Card><CardHeader><CardTitle>完整治理历史</CardTitle></CardHeader><CardContent className="grid gap-3">{history.items.map((entry:any,index:number)=><div key={entry.id||index}><p>{stateLabel(entry.action||entry.status,'已记录')} · {userInstant(entry.created_at)}</p><p>{entry.reason||entry.note}</p><JsonDetails value={entry}/></div>)}<CursorControls page={history} label="治理历史"/></CardContent></Card></>:<><Card><CardHeader><CardTitle>{kind==='foundation'?'当前生效身份':'真实能力需求'}</CardTitle></CardHeader><CardContent className="grid gap-4">{kind==='foundation'?<><p>当前身份版本 {current?.revision??'暂未读到'}</p><SemanticTree value={current?.identity}/><JsonDetails value={current} title="当前完整身份与字段"/><Button type="button" className="w-fit max-w-full justify-self-start whitespace-normal" disabled={retired||!read.fresh} onClick={propose}>创建修订提议</Button></>:<p className="text-sm text-muted-foreground">申请来自角色真实运行，审核和执行授权分别处理。</p>}<form className="flex flex-wrap items-end gap-3" role="search" onSubmit={event=>{event.preventDefault();setApplied({q:q.trim(),status});if(q.trim()===applied.q&&status===applied.status)void page.reload();}}><Label>搜索<FieldInput value={q} onChange={(event:any)=>setQ(event.target.value)}/></Label><Label>状态<ChoiceSelect value={status} onChange={(event:any)=>setStatus(event.target.value)}>{statuses.map(value=><option key={value} value={value}>{value==='all'?'全部状态':stateLabel(value)}</option>)}</ChoiceSelect></Label><Button type="submit" variant="outline">查询</Button></form></CardContent></Card>{page.items.map((entry:any)=><GovernanceRecord key={entry.id} record={entry} kind={kind} onOpen={()=>w.navigatePath('/c/'+encodeURIComponent(fid)+'/governance/'+kind+'/'+encodeURIComponent(entry.id))}/>)}{!page.items.length&&!page.loading&&<p>当前筛选没有治理记录。</p>}<CursorControls page={page} label="治理记录"/></>}{action&&<CommandDialog key={action.identity} action={action} onClose={()=>setAction(null)}/>}</RecordShell>;
+ return (
+   <RecordShell
+     eyebrow="身份与能力"
+     description={kind === 'foundation' ? '查看当前身份，审阅修订提议与生效历史。' : '查看真实运行中的能力需求，分别核对审核与交付进度。'}
+     title={kind === 'foundation' ? '身份核心与提议' : '能力申请与审核'}
+     back={'/c/' + encodeURIComponent(fid) + '/profile'}
+     backLabel="返回角色详情"
+     read={{...read,reload}}
+   >
+     <GovernanceNavigation fid={fid} current={kind === 'foundation' ? 'foundation' : 'capabilities'} />
+     {id ? record && <>
+       <GovernanceRecord record={record} kind={kind} />
+       {stale && <Feedback kind="warning">这条提议的基线已经过期，当前不能接受；拒绝操作仍可执行。</Feedback>}
+       {kind === 'capability' && record.status === 'accepted' && (
+         <Disclosure title="编辑交付实现">
+           <Label htmlFor="registered-capability-version">
+             实际注册的能力版本
+             <FieldInput id="registered-capability-version" value={version || record.registered_capability?.version || ''} maxLength={128} onChange={(event:any) => setVersion(event.target.value)} />
+           </Label>
+         </Disclosure>
+       )}
+       <div className="flex flex-wrap gap-3">
+         {actions.map(operation => (
+           <Button key={operation} type="button" disabled={retired || !read.fresh || operation === 'accept' && stale} onClick={() => operate(operation)}>
+             {labels[operation]}
+           </Button>
+         ))}
+       </div>
+       <Card>
+         <CardHeader><CardTitle>治理历史</CardTitle></CardHeader>
+         <CardContent className="grid gap-3">
+           {history.items.map((entry:any,index:number) => <GovernanceHistorySummary key={entry.id || index} entry={entry} />)}
+           <CursorControls page={history} label="治理历史" />
+         </CardContent>
+       </Card>
+     </> : <>
+       <Card>
+         <CardHeader><CardTitle>{kind === 'foundation' ? '当前生效身份' : '真实能力需求'}</CardTitle></CardHeader>
+         <CardContent className="grid gap-4">
+           {kind === 'foundation' ? <>
+             <ProfileFieldsSummary value={current} identity={current?.identity} />
+             <ProfileDiagnostic value={current} title="原始当前身份记录（诊断）" />
+             <Button type="button" className="w-fit max-w-full justify-self-start whitespace-normal" disabled={retired || !read.fresh} onClick={propose}>创建修订提议</Button>
+           </> : <p className="text-sm text-muted-foreground">申请来自角色真实运行，审核和执行授权分别处理。</p>}
+           <form className="flex flex-wrap items-end gap-3" role="search" onSubmit={event => {
+             event.preventDefault();
+             setApplied({q:q.trim(),status});
+             if(q.trim() === applied.q && status === applied.status) void page.reload();
+           }}>
+             <Label>搜索<FieldInput value={q} onChange={(event:any) => setQ(event.target.value)} /></Label>
+             <Label>状态<ChoiceSelect value={status} onChange={(event:any) => setStatus(event.target.value)}>
+               {statuses.map(value => <option key={value} value={value}>{value === 'all' ? '全部状态' : stateLabel(value)}</option>)}
+             </ChoiceSelect></Label>
+             <Button type="submit" variant="outline">查询</Button>
+           </form>
+         </CardContent>
+       </Card>
+       {page.items.map((entry:any) => (
+         <GovernanceRecord key={entry.id} record={entry} kind={kind}
+           onOpen={() => w.navigatePath('/c/' + encodeURIComponent(fid) + '/governance/' + kind + '/' + encodeURIComponent(entry.id))} />
+       ))}
+       {!page.items.length && !page.loading && <p>当前筛选没有治理记录。</p>}
+       <CursorControls page={page} label="治理记录" />
+     </>}
+     {action && <CommandDialog key={action.identity} action={action} onClose={() => setAction(null)} />}
+   </RecordShell>
+ );
 }
-export function GovernanceRecord({record,kind,onOpen}:any){return <Card><CardHeader><CardTitle>{kind==='foundation'?'身份核心修订 · 版本 '+record.revision:record.title||'能力需求'}</CardTitle><Badge variant="secondary">{stateLabel(record.status)}</Badge></CardHeader><CardContent className="grid gap-3"><p>{record.reason||record.description||record.rationale}</p><p className="text-sm text-muted-foreground">{userInstant(record.created_at)}</p>{kind==='foundation'&&<>{record.base_snapshot?<JsonDetails value={record.base_snapshot} title="提议创建时的基线"/>:<p className="text-sm text-muted-foreground">未保存历史基线，不能用当前资料补写。</p>}<JsonDetails value={record.changes} title="提议变更"/><JsonDetails value={record.core_persona} title="该版身份内容"/></>}<JsonDetails value={record} title="来源与完整记录"/>{onOpen&&<Button type="button" variant="outline" onClick={onOpen}>查看详情与审核</Button>}</CardContent></Card>;}
+
+export function GovernanceRecord({record,kind,onOpen}:any) {
+  const foundation = kind === 'foundation';
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{foundation ? (record.source === 'initialization' ? '角色初始资料' : '身份核心修订') : profileText(record.title) || '能力需求'}</CardTitle>
+        {record.status && <Badge variant="secondary">{stateLabel(record.status)}</Badge>}
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        {foundation ? <>
+          <ProfileNote value={record.reason} label="修订原因" />
+          <ProfileFieldsSummary value={record.base_snapshot} title="提议时的设定" />
+          <ProfileFieldsSummary value={record.changes} title="提议变更" showClears />
+          <ProfileFieldsSummary value={record.core_persona || record} title="修订后的身份内容" />
+        </> : <CapabilitySummary record={record} />}
+        <ProfileTime value={record.created_at} />
+        <ProfileDiagnostic value={record} title="原始治理记录（诊断）" />
+        {onOpen && <Button type="button" variant="outline" onClick={onOpen}>查看详情与审核</Button>}
+      </CardContent>
+    </Card>
+  );
+}

@@ -261,6 +261,12 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	if nativeContract {
 		modelDefinition = contract.NativeDefinition()
 	}
+	// The request-bound action uses an empty object as explicit permission
+	// to apply the frozen target. Do not normalize away a proposed target
+	// and turn that different action into consent for this one.
+	if _, bound := capability.(ownerWardrobeCapability); bound && len(decodeObject(arguments)) != 0 {
+		return rejectArguments(errors.New("invalid_arguments: call the request-bound wardrobe tool with an empty object"))
+	}
 	normalizedArguments, normalizeErr := normalizeNativeModelArguments(arguments, modelDefinition)
 	if normalizeErr != nil {
 		return rejectArguments(normalizeErr)

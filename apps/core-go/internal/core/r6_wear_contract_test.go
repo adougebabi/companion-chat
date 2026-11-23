@@ -71,6 +71,12 @@ func TestR6OwnerOutfitNativeDiscoveryActuallyWearsAndReplays(t *testing.T) {
 						t.Errorf("Owner request gained unrelated tool %s", name)
 					}
 				}
+				if scenario == "pretend_success" && calls > 1 {
+					if payload["tool_choice"] != "required" || len(arrayValue(payload["tools"])) != 1 || !r6PayloadHasTool(payload, wardrobeWearCapabilityName) {
+						t.Error("an accepted outfit request must require the scoped wear action")
+					}
+					return fakeProviderResult{Structured: map[string]any{"decision": "accepted", "reason": "仍未实际调用能力"}}
+				}
 				if phase == 0 {
 					if !r6PayloadHasTool(payload, capabilityCatalogName) || len(arrayValue(payload["tools"])) != 1 {
 						t.Error("first native request must expose its scoped discovery tool")
@@ -90,8 +96,9 @@ func TestR6OwnerOutfitNativeDiscoveryActuallyWearsAndReplays(t *testing.T) {
 						return fakeProviderResult{Status: 400}
 					}
 					phase = 2
-					args := map[string]any{"mode": "full", "item_ids": ids}
+					args := map[string]any{}
 					if scenario == "wrong_target" {
+						args["mode"] = "full"
 						args["item_ids"] = append(append([]string{}, ids...), wardrobeItemID(t, f, "银项链"))
 					}
 					return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("r6-wear", capabilitycontract.CapabilityWireName(wardrobeWearCapabilityName), args)}}

@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/cloudwego/eino/schema"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -27,14 +28,96 @@ func ownerLifeExecutionMissing(ctx context.Context, trace *ADKCapabilityTrace, f
 	if !isOwnerLifeRequestKind(kind) {
 		return false
 	}
-	var decision map[string]any
-	if json.Unmarshal([]byte(finalText), &decision) == nil && (decision["decision"] == "rejected" || decision["decision"] == "deferred") {
+	if decision := ownerLifeExplicitDecision(finalText); decision == "rejected" || decision == "deferred" {
 		return false
 	}
 	_, results := trace.Snapshot()
 	effect, _ := ownerLifeEffects(kind, results)
 	satisfied, _ := ownerLifeSatisfiedNoChange(kind, results)
 	return !effect && !satisfied && !ownerPromisePlanningPending(kind, results)
+}
+
+// A model may emit the explicit two-field decision as plain text before
+// the output schema has been applied. Free-form agreement is not a decision.
+func ownerLifeExplicitDecision(text string) string {
+	if decision, ok := parseStructuredCandidate(text, 0); ok {
+		return stringValue(decision["decision"])
+	}
+	var decision string
+	lines := strings.Split(text, "\n")
+	for index, line := range lines {
+		key, value, found := strings.Cut(strings.TrimSpace(line), ":")
+		if !found || key != "decision" {
+			continue
+		}
+		value = strings.TrimSpace(value)
+		if index+1 == len(lines) || !containsString([]string{"accepted", "rejected", "deferred"}, value) || decision != "" && decision != value {
+			return ""
+		}
+		reason, found := strings.CutPrefix(strings.TrimSpace(lines[index+1]), "reason:")
+		if !found || strings.TrimSpace(reason) == "" {
+			return ""
+		}
+		decision = value
+	}
+	return decision
+}
+
+func ownerLifeRequiredRecoveryAction(kind string) string {
+	switch kind {
+	case "wardrobe_wear", "inventory_outfit":
+		return wardrobeWearCapabilityName
+	case "moment_suggestion":
+		return "moment.publish"
+	default:
+		return ""
+	}
+}
+
+// The initial assessment can freely decline or defer. After an explicit
+// acceptance, reuse the normal disclosure and authorization for the exact
+// action, then require a native call on the execution continuation.
+func ownerLifeRequiredExecutionContext(ctx context.Context, trace *ADKCapabilityTrace, action string) (context.Context, error) {
+	if !domainCapabilityEnabled(ctx, action) {
+		return ctx, errOwnerLifeExecutionMissing
+	}
+	if selection := kevSelection(ctx); selection != nil && !publicBaselineTool(action) {
+		loaded, _, err := selection.load(ctx, []string{action})
+		if err != nil {
+			return ctx, err
+		}
+		if !containsString(loaded, action) {
+			return ctx, errOwnerLifeExecutionMissing
+		}
+	}
+	return withPhysicalModelRequestPolicy(ctx, ownerLifePhysicalRequestPolicy(trace, action)), nil
+}
+
+func ownerLifePhysicalRequestPolicy(trace *ADKCapabilityTrace, requiredAction string) physicalModelRequestPolicy {
+	return physicalModelRequestPolicyFunc(func(ctx context.Context) (physicalModelRequestDecision, error) {
+		if !ownerLifeExecutionMissing(ctx, trace, "") {
+			return physicalModelRequestDecision{
+				ToolChoice: schema.ToolChoiceForbidden, AllowedToolNames: []string{},
+				ToolCallFallback: schema.AssistantMessage(renderProviderJSON(map[string]any{
+					"decision": "accepted", "reason": "已取得本次请求的执行回执。",
+				}), nil),
+			}, nil
+		}
+		if requiredAction == "" {
+			return physicalModelRequestDecision{}, nil
+		}
+		_, results := trace.Snapshot()
+		attempts := 0
+		for _, result := range results {
+			if result.CapabilityName == requiredAction {
+				attempts++
+			}
+		}
+		if attempts >= 3 {
+			return physicalModelRequestDecision{}, errOwnerLifeExecutionMissing
+		}
+		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, AllowedToolNames: []string{requiredAction}, DisableThinking: true}, nil
+	})
 }
 
 func isOwnerLifeRequestKind(kind string) bool {
@@ -228,6 +311,27 @@ type ownerLifeCapability struct {
 	request          map[string]any
 }
 
+// The native wardrobe action can use the target already bound by the
+// authenticated request. The ordinary wardrobe contract still validates the
+// bound arguments and enforces the request's exact target and version.
+type ownerWardrobeCapability struct{ ownerLifeCapability }
+
+func (c ownerWardrobeCapability) NativeDefinition() CapabilityDefinition {
+	definition := c.Definition()
+	definition.Description = "Apply the wardrobe change already bound to this exact Owner request. Call with an empty object. Core supplies the approved garment or outfit; do not copy IDs, choose a different item, or supply a mode."
+	definition.InputSchema = objectSchema(map[string]any{}, nil, false)
+	return definition
+}
+
+func (c ownerWardrobeCapability) BindNativeArguments(_ json.RawMessage, _ ContextProjection) (json.RawMessage, error) {
+	if c.kind == "inventory_outfit" {
+		return jsonBytes(map[string]any{"mode": "full", "item_ids": c.request["item_ids"]}), nil
+	}
+	return jsonBytes(map[string]any{"mode": "partial", "item_ids": []string{stringValue(c.request["item_id"])}}), nil
+}
+
+func (ownerWardrobeCapability) NativeOutput(output any, _ ContextProjection) any { return output }
+
 type ownerScheduleRequestKey struct{}
 
 type ownerLifeStaleKey struct{}
@@ -379,10 +483,14 @@ func (a *App) ownerLifeRegistry(owner, fid, kind string, request map[string]any)
 			continue
 		}
 		if entry.Definition().Type == CapabilityTypeAction && kind != "moment_suggestion" {
-			if ownerMediaRequestKind(kind) {
-				entry = ownerMediaCapability{ownerLifeCapability{Capability: entry, app: a, owner: owner, fid: fid, kind: kind, request: request}}
-			} else {
-				entry = ownerLifeCapability{Capability: entry, app: a, owner: owner, fid: fid, kind: kind, request: request}
+			scoped := ownerLifeCapability{Capability: entry, app: a, owner: owner, fid: fid, kind: kind, request: request}
+			switch {
+			case ownerMediaRequestKind(kind):
+				entry = ownerMediaCapability{scoped}
+			case (kind == "wardrobe_wear" || kind == "inventory_outfit") && name == wardrobeWearCapabilityName:
+				entry = ownerWardrobeCapability{scoped}
+			default:
+				entry = scoped
 			}
 		}
 		entries = append(entries, entry)
@@ -413,7 +521,11 @@ func (a *App) runOwnerLifeRequestTask(ctx context.Context, owner, fid, inbox, ki
 		}
 		registry = a.capabilityRegistryForContext(ctx)
 	}
-	rules := []string{providerContextAuthorityRule, "Assess the explicit Owner life request as the character. You may reject or defer; an Owner suggestion is not proof of agreement or execution. Use only the requested target. Inspect actual state as needed. To accept, invoke the corresponding installed Tool and consume its actual receipt. Wear uses partial with only the requested item ID; ordinary item use is separate. Inventory borrow must match the lender and all requested item descriptions exactly: an Owner suggestion is not proof that a lender agreed or a receipt occurred. Return only the exact requested IDs. Remove only the exact requested slots using partial without replacements. Outfit wear uses full with exactly its frozen member IDs and no extra removal. These are virtual-life actions, never external payment or fabricated business completion. Schedule requests must preserve exact requested interval/fields, immutable history, Intention/action_plan links, timezone and original CAS. For cancel call schedule.edit cancel for the exact item. For a promise call intention.decide create with action exactly equal to request.title, a concrete expected_outcome of at most 500 characters and a real goal_ref or meaningful goal. Core binds its exact window and promise identity; planning_requested is still provisional. For promise_reschedule call intention.decide update with exactly the requested intention_id; Core applies only the requested window. Never claim completion or proof of fulfillment. Tool effects are already committed: do not repeat them, and never claim success from prose or a plan. Final reason is a short public explanation, no private reasoning."}
+	assessment := "Assess the explicit Owner life request as the character. You may reject or defer; an Owner suggestion is not proof of agreement or execution. Use only the requested target. Inspect actual state as needed. To accept, invoke the corresponding installed Tool and consume its actual receipt. Wear uses partial with only the requested item ID; ordinary item use is separate. Inventory borrow must match the lender and all requested item descriptions exactly: an Owner suggestion is not proof that a lender agreed or a receipt occurred. Return only the exact requested IDs. Remove only the exact requested slots using partial without replacements. Outfit wear uses full with exactly its frozen member IDs and no extra removal. These are virtual-life actions, never external payment or fabricated business completion. Schedule requests must preserve exact requested interval/fields, immutable history, Intention/action_plan links, timezone and original CAS. For cancel call schedule.edit cancel for the exact item. For a promise call intention.decide create with action exactly equal to request.title, a concrete expected_outcome of at most 500 characters and a real goal_ref or meaningful goal. Core binds its exact window and promise identity; planning_requested is still provisional. For promise_reschedule call intention.decide update with exactly the requested intention_id; Core applies only the requested window. Never claim completion or proof of fulfillment. Tool effects are already committed: do not repeat them, and never claim success from prose or a plan. Final reason is a short public explanation, no private reasoning."
+	if ownerLifeRequiredRecoveryAction(kind) != "" {
+		assessment = "Assess the explicit Owner request as the character. You may reject or defer. To accept, invoke the installed action for the exact requested target and read its actual receipt. Use only authoritative current facts. Do not repeat an executed action or report success without its receipt. Give a short public reason without private reasoning."
+	}
+	rules := []string{providerContextAuthorityRule, assessment}
 	if ownerMediaRequestKind(kind) {
 		rules = append(rules, "For this image request you may refuse or defer. To accept, call media.image.generate exactly once with intent equal to request._render_intent, including its exact source text. Do not invent reference asset IDs. If request.reference_asset is present, Core freezes it; do not put it in Tool arguments. A person reference may depict a fictional other person and cannot certify self identity. It creates a durable image task, never claims pixels are ready. The server binds this Owner request as its target; no conversation or Moment is created. Requested image scenes are imagined and do not move the character; an item image does not acquire, wear or use that item.")
 	}
@@ -421,7 +533,7 @@ func (a *App) runOwnerLifeRequestTask(ctx context.Context, owner, fid, inbox, ki
 		rules = append(rules, "This request only suggests publishing a feed Moment. You may reject or defer. To accept call moment.publish once; the independent persona Writer decides its own text. Suggested text is a topic, never a factual claim or a mandatory draft. Core binds the request and selected attachments. It does not create a conversation, move anyone or establish acquaintance.")
 	}
 	if kind == "inventory_outfit" || kind == "wardrobe_wear" {
-		rules = append(rules, "After deciding to accept, load wardrobe.wear through capability.catalog and invoke it with the exact requested target. Even if the target seems already worn, let that Tool return its authoritative no_change receipt; catalogue and inspection receipts alone do not fulfill the request. A handled no_change receipt means the target was already satisfied, not that a new change happened. You may still reject or defer before accepting.")
+		rules = append(rules, "After accepting, load wardrobe.wear through capability.catalog and invoke it with an empty object. Core already bound the exact requested garment or outfit. Even if it seems already worn, read the Tool's authoritative no_change receipt. Catalogue and inspection do not fulfill this request. A no_change receipt means the target was already satisfied.")
 	}
 	rules = append(rules, "The final response has exactly decision (accepted, rejected, or deferred) and reason (a nonempty short public explanation). Do not emit event_type, action_status, effects, or mutation_committed; Core derives execution state from real Tool receipts, not from the final response.")
 	input := jsonString(map[string]any{"event_type": ownerLifeRequestFactType, "kind": kind, "request": ownerLifePromptView(kind, request)})

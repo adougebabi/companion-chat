@@ -1290,7 +1290,17 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	// ADK itself owns the model/tool/result loop. Upstream transport retries
 	// stay inside each physical Generate/Stream and reuse that call's request
 	// identity, so a retry cannot execute tools again.
-	loopResult, runErr = RunADKLoop(ctx, ADKLoopConfig{
+	const ownerLifeSchema = "owner_life_request_decision"
+	kind, _ := ctx.Value(ownerLifeRequestKindKey{}).(string)
+	var ownerRecoveryAction string
+	loopCtx := ctx
+	if call.SchemaName == ownerLifeSchema {
+		ownerRecoveryAction = ownerLifeRequiredRecoveryAction(kind)
+		if ownerRecoveryAction != "" {
+			loopCtx = withPhysicalModelRequestPolicy(ctx, ownerLifePhysicalRequestPolicy(adkContext.Trace, ""))
+		}
+	}
+	loopResult, runErr = RunADKLoop(loopCtx, ADKLoopConfig{
 		Name: call.Agent.Name, Description: call.Agent.Description,
 		Model: chat, Tools: tools, MaxIterations: call.Agent.MaxIterations,
 		EnableStreaming: call.EnableStreaming,
@@ -1303,34 +1313,70 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 		return einoModelResponse{}, errors.New("adk_final_message_missing")
 	}
 	final := loopResult.FinalMessage
-	if call.SchemaName == "owner_life_request_decision" && ownerLifeExecutionMissing(ctx, adkContext.Trace, final.Content) {
-		// A final answer can end ADK before the accepted action was executed.
-		// This is business continuation, not DTO repair: keep the scoped catalog,
-		// invoker, request policy and native receipts, without replaying effects.
+	var initialOwnerDecision string
+	if ownerRecoveryAction != "" {
+		initialOwnerDecision = ownerLifeExplicitDecision(final.Content)
+	}
+	ownerExecutionContinued := false
+	continueOwnerExecution := func() error {
+		ownerExecutionContinued = true
+		continuationCtx := ctx
+		instruction := "No authoritative execution receipt fulfills this Owner request yet. If you accept, use capability.catalog to load the required capability if needed, then invoke it for the exact requested target and consume its receipt before returning accepted. Catalog and inspection alone do not fulfill the request. Do not repeat committed actions. You may instead reject or defer with an honest public reason. Return the supplied final JSON contract; never describe an uncommitted action as completed."
+		if ownerRecoveryAction != "" {
+			var err error
+			continuationCtx, err = ownerLifeRequiredExecutionContext(ctx, adkContext.Trace, ownerRecoveryAction)
+			if err != nil {
+				return err
+			}
+			instruction = "You accepted this Owner request. Invoke the supplied function through the native tool-call channel, using its schema and the exact target above. Do not write tool syntax in the reply. Read the real receipt before reporting the result. Do not repeat a committed action. Finish with decision and a short public reason."
+		}
 		continuationInput := append([]*schema.Message(nil), input...)
-		continuationInput = append(continuationInput, loopResult.Messages...)
-		kind, _ := ctx.Value(ownerLifeRequestKindKey{}).(string)
-		continuationInput = append(continuationInput, schema.UserMessage(renderProviderJSON(map[string]any{
-			"required_capabilities": ownerLifeActionNames(kind),
-			"instruction":           "No authoritative execution receipt fulfills this Owner request yet. If you accept, use capability.catalog to load the required capability if needed, then invoke it for the exact requested target and consume its receipt before returning accepted. Catalog and inspection alone do not fulfill the request. Do not repeat committed actions. You may instead reject or defer with an honest public reason. Return the supplied final JSON contract; never describe an uncommitted action as completed.",
-		})))
-		continuationCtx := withContinuationPromptSlots(ctx, PromptSlotTrace{SlotID: "owner_life_execution_feedback", Position: PromptSlotCurrentInput, MessageIndex: len(continuationInput) - 1, Source: "core_owner_life_execution_validation", Reason: "required_execution_receipt_missing"})
-		continuation, continuationErr := RunADKLoop(continuationCtx, ADKLoopConfig{
-			Name: call.Agent.Name + "-owner-execution", Description: "Complete an Owner request using authoritative tools",
-			Model: chat, Tools: tools, MaxIterations: call.Agent.MaxIterations, EnableStreaming: call.EnableStreaming,
-		}, continuationInput)
-		loopResult.Messages = append(loopResult.Messages, continuation.Messages...)
-		loopResult.ToolCalls = append(loopResult.ToolCalls, continuation.ToolCalls...)
-		loopResult.ToolResults = append(loopResult.ToolResults, continuation.ToolResults...)
-		loopResult.FinalMessage = continuation.FinalMessage
-		preservePhysicalResponseMetadata(continuation.FinalMessage, unboundChat)
-		if continuationErr != nil {
-			return einoModelResponse{}, continuationErr
+		maxAttempts := 1
+		for _, message := range loopResult.Messages {
+			// The decision is already known. Copy native exchanges, not an
+			// unfulfilled assistant draft that can teach the model to emit
+			// the same textual pseudo-call in the action-only request.
+			if ownerRecoveryAction == "" || message.Role != schema.Assistant || len(message.ToolCalls) > 0 {
+				continuationInput = append(continuationInput, message)
+			}
 		}
-		if continuation.FinalMessage == nil || ownerLifeExecutionMissing(ctx, adkContext.Trace, continuation.FinalMessage.Content) {
-			return einoModelResponse{}, errOwnerLifeExecutionMissing
+		if ownerRecoveryAction != "" {
+			maxAttempts = 2
 		}
-		final = continuation.FinalMessage
+		feedback := PromptSlotTrace{SlotID: "owner_life_execution_feedback", Position: PromptSlotCurrentInput, MessageIndex: len(continuationInput), Source: "core_owner_life_execution_validation", Reason: "required_execution_receipt_missing"}
+		continuationCtx = withContinuationPromptSlots(continuationCtx, feedback)
+		for attempt := 0; attempt < maxAttempts; attempt++ {
+			if attempt > 0 {
+				instruction = "The previous attempt did not produce an execution receipt. You already accepted this request. Use the provided function through the native tool-call channel for the exact Owner target. Do not write a call, XML or tool syntax in assistant text. Read the receipt, then return decision and reason."
+			}
+			messages := append(continuationInput, schema.UserMessage(renderProviderJSON(map[string]any{
+				"required_capabilities": ownerLifeActionNames(kind),
+				"instruction":           instruction,
+			})))
+			continuation, continuationErr := RunADKLoop(continuationCtx, ADKLoopConfig{
+				Name: call.Agent.Name + "-owner-execution", Description: "Complete an Owner request using authoritative tools",
+				Model: chat, Tools: tools, MaxIterations: call.Agent.MaxIterations, EnableStreaming: call.EnableStreaming,
+			}, messages)
+			loopResult.Messages = append(loopResult.Messages, continuation.Messages...)
+			loopResult.ToolCalls = append(loopResult.ToolCalls, continuation.ToolCalls...)
+			loopResult.ToolResults = append(loopResult.ToolResults, continuation.ToolResults...)
+			loopResult.FinalMessage = continuation.FinalMessage
+			preservePhysicalResponseMetadata(continuation.FinalMessage, unboundChat)
+			if continuationErr != nil {
+				return continuationErr
+			}
+			if continuation.FinalMessage != nil && !ownerLifeExecutionMissing(ctx, adkContext.Trace, continuation.FinalMessage.Content) {
+				final = continuation.FinalMessage
+				return nil
+			}
+		}
+		return errOwnerLifeExecutionMissing
+	}
+	if call.SchemaName == ownerLifeSchema && ownerLifeExecutionMissing(ctx, adkContext.Trace, final.Content) &&
+		(ownerRecoveryAction == "" || initialOwnerDecision == "accepted") {
+		if err := continueOwnerExecution(); err != nil {
+			return einoModelResponse{}, err
+		}
 	}
 	if conversationPublicationPolicyEnabled(ctx) && !conversationHasAuthoritativeOutput(adkContext.Trace) {
 		// A Provider may ignore tool_choice=required and return a final answer.
@@ -1397,8 +1443,16 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 			}
 		}
 	}
-	if call.SchemaName == "owner_life_request_decision" && ownerLifeExecutionMissing(ctx, adkContext.Trace, final.Content) {
-		return einoModelResponse{}, errOwnerLifeExecutionMissing
+	if call.SchemaName == ownerLifeSchema && ownerLifeExecutionMissing(ctx, adkContext.Trace, final.Content) {
+		if ownerRecoveryAction == "" || ownerExecutionContinued || initialOwnerDecision == "rejected" || initialOwnerDecision == "deferred" || ownerLifeExplicitDecision(final.Content) != "accepted" {
+			return einoModelResponse{}, errOwnerLifeExecutionMissing
+		}
+		if err := continueOwnerExecution(); err != nil {
+			return einoModelResponse{}, err
+		}
+		if err := validateADKFinalContractForSchema(final, call.Role, call.SchemaName, call.ResponseSchema, adkContext.Refs); err != nil {
+			return einoModelResponse{}, err
+		}
 	}
 	// Final output and executed calls are separate contracts. Intermediate
 	// calls remain in the execution trace and must never be copied onto the
@@ -1407,8 +1461,16 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	if final.ResponseMeta != nil && strings.TrimSpace(final.ResponseMeta.FinishReason) != "" {
 		finishReason = strings.TrimSpace(final.ResponseMeta.FinishReason)
 	}
+	var executedTools []schema.ToolCall
+	for _, toolCall := range loopResult.ToolCalls {
+		// When an Owner action already completed, a tool-free terminal
+		// response can discard a raw model callback call before execution.
+		if _, invoked := adkContext.Trace.FindResult(toolCall.ID); ownerRecoveryAction == "" || invoked {
+			executedTools = append(executedTools, toolCall)
+		}
+	}
 	return einoModelResponse{
-		Message: final, ExecutedToolCalls: append([]schema.ToolCall(nil), loopResult.ToolCalls...),
+		Message: final, ExecutedToolCalls: executedTools,
 		Usage: einoUsage(final), FinishReason: finishReason,
 	}, nil
 }

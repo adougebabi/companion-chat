@@ -8,8 +8,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea, FieldInput, Disclosure, Badge } from "../controls";
-import SemanticTree from "./SemanticTree";
-import JsonDetails from "./JsonDetails";
+import {
+  CapabilitySummary, ClaimReadingSummary, GovernanceHistorySummary, ProfileDiagnostic, ProfileFieldsSummary,
+  ProfileNote, ProfileTime, profileText,
+} from "./ProfileRecordSummary";
 import WorkspaceDialog from "./WorkspaceDialog";
 import WorkspaceCommandDialog from "./WorkspaceCommandDialog";
 import WorkspaceInfo from "./WorkspaceInfo";
@@ -17,7 +19,6 @@ import LoadingState from "./LoadingState";
 import useWorkspaceRead from "./useWorkspaceRead";
 import { EmptyState, InlineFeedback } from "./Presentation";
 import { stateLabel } from "@/v3/domain-presentation.mjs";
-import { userInstant } from "@/v3/presentation-time.mjs";
 const foundationLabels = {
   proposed: "待审阅",
   accepted: "已接受",
@@ -196,6 +197,12 @@ export default function ProfileGovernance({
         reason: d.reason.trim(),
         ...(isRestore ? { targetRevision: row.revision } : {}),
       }),
+      pendingSummary: (value) => <ProfileNote value={value.reason} label="操作说明" />,
+      reviewSummary: ({ detail, proposal }) => <>
+        <ProfileFieldsSummary value={detail} title="当前身份" />
+        <ProfileNote value={proposal.reason} label="提议理由" />
+        <ProfileFieldsSummary value={proposal.changes} title="提议变更" showClears />
+      </>,
       execute: async (value) => {
         if (!m.live() || m.readOnly.value)
           throw Error("角色范围或可写状态已变化。");
@@ -302,6 +309,8 @@ export default function ProfileGovernance({
           ? { capabilityVersion: d.version.trim() }
           : {}),
       }),
+      pendingSummary: (value) => <ProfileNote value={value.note} label="审核说明" />,
+      reviewSummary: (value) => <CapabilitySummary record={value} />,
       execute: async (value, key) => {
         if (!m.live() || m.readOnly.value)
           throw Error("角色范围或可写状态已变化。");
@@ -417,40 +426,35 @@ export default function ProfileGovernance({
                         <h3>
                           {row.source === "initialization"
                             ? "角色初始资料"
-                            : "身份修订 v" + row.revision}
+                            : "身份修订"}
                         </h3>
                         <Badge variant="outline">
                           {foundationLabels[row.status] ||
                             stateLabel(row.status)}
                         </Badge>
                       </div>
-                      <p>
-                        {row.reason || "未提供额外说明。"} ·{" "}
-                        {userInstant(row.created_at)}
-                      </p>
-                      <Disclosure title="变更与当前设定对照">
+                      <ProfileNote value={row.reason} label="提议理由" />
+                      <ProfileTime value={row.created_at} />
+                      <Disclosure title="变更与设定对照">
                         <div className="companion-diff">
                           <div>
-                            <span>
-                              {row.base_snapshot
-                                ? "提议时的基线"
-                                : "当前读到的设定"}
-                            </span>
-                            <SemanticTree
+                            <ProfileFieldsSummary
                               value={before}
                               identity={m.core.value.identity}
+                              title={row.base_snapshot ? "提议时的设定" : "当前读到的设定"}
                             />
                           </div>
                           <div>
-                            <span>本次提议的变更</span>
-                            <SemanticTree
+                            <ProfileFieldsSummary
                               value={row.changes}
                               identity={m.core.value.identity}
+                              title="本次提议的变更"
+                              showClears
                             />
                           </div>
                         </div>
                       </Disclosure>
-                      <JsonDetails value={row} title="完整提议与来源" />
+                      <ProfileDiagnostic value={row} title="原始身份提议记录（诊断）" />
                       {stale && (
                         <WorkspaceInfo>
                           提议基线已经过期，可保留变更并对照当前身份重新提出。
@@ -521,8 +525,7 @@ export default function ProfileGovernance({
             </TabsContent>
             <TabsContent value="capabilities">
               <WorkspaceInfo>
-                申请审核与 Tool
-                授权分别管理。记录已交付需要匹配真实注册的实现版本。
+                申请审核与工具授权分别管理。记录交付前需要核对已注册的实现。
               </WorkspaceInfo>
               <Button
                 variant="ghost"
@@ -542,21 +545,13 @@ export default function ProfileGovernance({
                     <div className="companion-stack">
                       <div className="companion-proposal">
                         <div className="companion-row-between">
-                          <h3>{current.title}</h3>
+                          <h3>{profileText(current.title) || "能力需求"}</h3>
                           <Badge variant="outline">
                             {capabilityLabels[current.status]}
                           </Badge>
                         </div>
-                        <p>{current.description}</p>
-                        <p>{current.rationale}</p>
-                        {current.status === "accepted" && (
-                          <WorkspaceInfo>
-                            {current.registered_capability?.available
-                              ? "已注册实现版本：" +
-                                current.registered_capability.version
-                              : "当前未读到可交付的注册实现。"}
-                          </WorkspaceInfo>
-                        )}
+                        <CapabilitySummary record={current} />
+                        <ProfileTime value={current.created_at} />
                         <div className="companion-action-row">
                           {(transitions[current.status] || []).map(
                             ([status, label]) => (
@@ -582,19 +577,12 @@ export default function ProfileGovernance({
                             ),
                           )}
                         </div>
-                        <JsonDetails
-                          value={current}
-                          title="完整能力申请与来源"
-                        />
+                        <ProfileDiagnostic value={current} title="原始能力申请记录（诊断）" />
                       </div>
                       <Disclosure title="审核历史">
                         <Reader source={history} label="审核历史" />
                         {history.items.map((row, index) => (
-                          <JsonDetails
-                            key={row.id || index}
-                            value={row}
-                            title={row.note || row.reason || "审核记录"}
-                          />
+                          <GovernanceHistorySummary key={row.id || index} entry={row} />
                         ))}
                         {history.cursor && (
                           <Button
@@ -618,8 +606,8 @@ export default function ProfileGovernance({
                         <ShieldCheckIcon size={20} />
                       </span>
                       <div>
-                        <h3>{row.title}</h3>
-                        <p>{row.rationale || row.description}</p>
+                        <h3>{profileText(row.title) || "能力需求"}</h3>
+                        <ProfileNote value={row.rationale || row.description} />
                         <Badge variant="outline">
                           {capabilityLabels[row.status]}
                         </Badge>
@@ -656,12 +644,11 @@ export default function ProfileGovernance({
               <Reader source={claims} label="自我认识" />
               {claims.items.map((row) => (
                 <div className="companion-reading-block" key={row.id}>
-                  <h3>{row.claim}</h3>
-                  <p>
-                    {row.source_valid ? "来源已读到" : "来源需要重新核对"}
-                    {row.expired ? " · 已超过有效期限" : ""}
-                  </p>
-                  <JsonDetails value={row} title="完整认识与证据" />
+                  <h3>{profileText(row.claim) || "成长认识"}</h3>
+                  {typeof row.source_valid === "boolean" && <p>{row.source_valid ? "来源已核对" : "来源需要重新核对"}</p>}
+                  {row.expired && <p>已超过有效期限</p>}
+                  <ClaimReadingSummary claim={row} />
+                  <ProfileDiagnostic value={row} title="原始认识记录（诊断）" />
                 </div>
               ))}
               {claims.ready && !claims.items.length && !claims.error && (

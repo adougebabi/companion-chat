@@ -5,12 +5,30 @@ import {RadioGroup,RadioGroupItem} from "@/components/ui/radio-group";
 import { Surface, Disclosure, FieldInput, Textarea, Badge } from "../controls";
 import WorkspaceCommandDialog from "./WorkspaceCommandDialog";
 import WorkspaceInfo from "./WorkspaceInfo";
+import JsonDetails from "./JsonDetails";
 import useWorkspaceRead from "./useWorkspaceRead";
 import useMediaFollow from "./useMediaFollow";
 import { MediaReader, MediaMore, SavedMedia, MediaById } from "./MediaParts";
 import { requiredText } from "@/approved-ui/media-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
 import { avatarInitial } from "@/lib/avatar-presentation.mjs";
+
+function AvatarHistoryState({ label, value, model }) {
+  const mode = value?.mode;
+  if (!mode) return null;
+  const image = value.selection || value;
+  const canVerifyImage = mode === "asset" && image.asset_id && (image.version || image.sha256 || Number.isSafeInteger(image.asset_revision));
+  return (
+    <div>
+      <p>{label}：{mode === "asset" ? "使用选定的媒体图片" : mode === "canonical" ? "使用生成的头像" : "早期选择的显示方式待确认"}</p>
+      {canVerifyImage && (
+        <Disclosure title={label + "的图片"}>
+          <MediaById id={image.asset_id} expected={image} model={model} />
+        </Disclosure>
+      )}
+    </div>
+  );
+}
 export default function AvatarWorkspace({ model: m }) {
   const fid = m.target,
     [search, setSearch] = useState(""),
@@ -418,16 +436,12 @@ export default function AvatarWorkspace({ model: m }) {
         <MediaReader source={history} label="头像历史" />
         {history.items.map((row, index) => (
           <div className="r-timeline-entry" key={row.id || index}>
-            <b>选择版本 {row.revision}</b>
-            <p>{row.reason}</p>
-            <small>
-              {row.created_at ? userInstant(row.created_at) : "时间未记录"}
-            </small>
-            <Disclosure title="选择来源与前后状态">
-              <pre className="replica-source-record">
-                {JSON.stringify(row, null, 2)}
-              </pre>
-            </Disclosure>
+            <b>已保存头像选择</b>
+            {row.reason?.trim() && <p>{row.reason}</p>}
+            {row.created_at && <small>{userInstant(row.created_at)}</small>}
+            <AvatarHistoryState label="保存前" value={row.before_value} model={m} />
+            <AvatarHistoryState label="保存后" value={row.after_value} model={m} />
+            <JsonDetails title="原始媒体记录（诊断）" value={row} downloadOnly />
           </div>
         ))}
         {history.ready && !history.items.length && <p>尚未保存头像选择。</p>}

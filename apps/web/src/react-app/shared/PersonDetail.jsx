@@ -15,8 +15,8 @@ import WorkspaceInfo from "./WorkspaceInfo";
 import {Feedback} from './Presentation';
 import useWorkspaceRead from "./useWorkspaceRead";
 import { PeopleFact, PeopleReader } from "./PeopleParts";
-import SemanticTree from "./SemanticTree";
 import JsonDetails from "./JsonDetails";
+import { validTimeRange } from "./schedule-presentation.mjs";
 import DateTimeField from "./DateTimeField";
 import PersonRecords from "./PersonRecords";
 import { afterPaint } from "../page";
@@ -29,10 +29,28 @@ import {
 } from "@/approved-ui/people-commands.mjs";
 import {
   relationshipFor,
+  relationshipRoleLabel,
   npcLocation,
 } from "@/approved-ui/people-presentation.mjs";
+import { isInternalId } from "@/v3/internal-id.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
 import { errorMessage } from "@/v3/domain-presentation.mjs";
+const routineDays = new Map([
+  ["daily", "每天"],
+  ["weekday", "工作日"],
+  ["weekend", "周末"],
+]);
+const relationTrends = new Map([
+  ["new", "新建立"],
+  ["improving", "改善"],
+  ["stable", "稳定"],
+  ["declining", "下滑"],
+]);
+const routineTime = (value) =>
+  typeof value === "string" && /^(?:[01]?\d|2[0-3]):[0-5]\d$/.test(value)
+    ? value.padStart(5, "0")
+    : "";
+
 function field(label, child) {
   return (
     <label key={label} className="replica-field">
@@ -84,6 +102,27 @@ export default function PersonDetail({
       fid,
     ),
     location = npc ? npcLocation(npc, places) : null;
+  function placeName(id) {
+    const place = id && places.find((p) => p.id === id);
+    return [place?.alias, place?.name].find(
+      (name) => typeof name === "string" && name.trim() && name.trim() !== id && !isInternalId(name),
+    );
+  }
+  const presencePlace = location?.source === npc?.current_presence
+    ? placeName(npc?.current_presence?.place_id)
+    : undefined;
+  const plan = npc?.planned_position;
+  const plannedPlace = placeName(plan?.place_id);
+  const plannedWindow = validTimeRange(plan?.window_start, plan?.window_end);
+  const homePlace = !plan?.place_id && !presencePlace
+    ? placeName(npc?.home_place_id)
+    : undefined;
+  const confirmedPlace = placeName(npc?.confirmed_place_id);
+  const confirmedAt = Number.isFinite(Date.parse(npc?.confirmed_at))
+    ? userInstant(npc.confirmed_at)
+    : "";
+  const relationRole = relationshipRoleLabel(relation?.role, "");
+  const relationTrend = relationTrends.get(relation?.trend);
   function base(identity) {
     return {
       identity,
@@ -428,29 +467,53 @@ export default function PersonDetail({
               <Badge variant="outline">
                 {relation ? "已经结识" : "尚未读到当前人格的结识记录"}
               </Badge>
-              <p className="companion-body-text">
-                {npc.bio || "背景尚未提供。"}
-              </p>
-              <PeopleFact label={location.label}>{location.name}</PeopleFact>
-              {npc.confirmed_at && (
-                <PeopleFact label="上次实际接触">
-                  {userInstant(npc.confirmed_at)} ·{" "}
-                  {places.find((p) => p.id === npc.confirmed_place_id)?.name ||
-                    "历史地点"}
+              {npc.bio?.trim() && <PeopleFact label="人物背景">{npc.bio}</PeopleFact>}
+              {presencePlace && <PeopleFact label="已读在场地点">{presencePlace}</PeopleFact>}
+              {presencePlace && validTimeRange(npc.current_presence?.start_at, npc.current_presence?.end_at) && (
+                <PeopleFact label="已读在场时段">
+                  <time dateTime={npc.current_presence.start_at}>{userInstant(npc.current_presence.start_at)}</time>
+                  {" 至 "}
+                  <time dateTime={npc.current_presence.end_at}>{userInstant(npc.current_presence.end_at)}</time>
                 </PeopleFact>
               )}
-              <PeopleFact label="目录来源">
+              {plannedPlace && <PeopleFact label="预计地点">{plannedPlace}</PeopleFact>}
+              {plannedWindow && (
+                <PeopleFact label="预计时段">
+                  <time dateTime={plan.window_start}>{userInstant(plan.window_start)}</time>
+                  {" 至 "}
+                  <time dateTime={plan.window_end}>{userInstant(plan.window_end)}</time>
+                </PeopleFact>
+              )}
+              {plan?.activity?.trim() && <PeopleFact label="预计活动">{plan.activity}</PeopleFact>}
+              {homePlace && <PeopleFact label="默认地点">{homePlace}</PeopleFact>}
+              {confirmedPlace && <PeopleFact label="上次确认地点">{confirmedPlace}</PeopleFact>}
+              {confirmedAt && (
+                <PeopleFact label="上次实际接触">
+                  <time dateTime={npc.confirmed_at}>{confirmedAt}</time>
+                </PeopleFact>
+              )}
+              <PersonRoutine routine={npc.routine} placeName={placeName} />
+              {npc.source_resource_id && (
                 <a
                   href={
                     "#/studio/edit/" +
                     encodeURIComponent(npc.source_resource_id)
                   }
                 >
-                  人物定义
-                </a>{" "}
-                · {npc.source_version}
-              </PeopleFact>
-              {relation && <SemanticTree value={relation} />}
+                  查看人物定义
+                </a>
+              )}
+              {relationRole && !isInternalId(relationRole) && (
+                <PeopleFact label="关系称谓">{relationRole}</PeopleFact>
+              )}
+              {relation?.summary?.trim() && (
+                <PeopleFact label="关系摘要">{relation.summary}</PeopleFact>
+              )}
+              {relationTrend && <PeopleFact label="关系趋势">{relationTrend}</PeopleFact>}
+              {typeof relation?.emotional_association === "string" &&
+                relation.emotional_association.trim() && (
+                  <PeopleFact label="情感联想">{relation.emotional_association}</PeopleFact>
+              )}
               <WorkspaceInfo>
                 目录、预计位置、在场与实际结识分别记录，浏览不会建立关系。
               </WorkspaceInfo>
@@ -458,6 +521,7 @@ export default function PersonDetail({
                 key={npc.id + ":" + npc.revision}
                 model={m}
                 npc={npc}
+                placeName={placeName}
                 onUpdated={async () => {
                   const [fresh, authority] = await Promise.all([
                     read(),
@@ -473,7 +537,7 @@ export default function PersonDetail({
                   }
                 }}
               />
-              <JsonDetails value={npc} title="完整人物、生活规律与来源" />
+              <JsonDetails value={npc} title="原始人物记录（诊断）" downloadOnly />
             </>
           )}
         </div>
@@ -530,6 +594,29 @@ export default function PersonDetail({
     </>
   );
 }
+function PersonRoutine({ routine, placeName }) {
+  const slots = (Array.isArray(routine) ? routine : []).flatMap((slot, index) => {
+    const start = routineTime(slot?.start);
+    const end = routineTime(slot?.end);
+    const time = start && end ? start + "–" + end : start || end;
+    const details = [
+      routineDays.get(slot?.day),
+      time,
+      placeName(slot?.place_id),
+      typeof slot?.activity === "string" && slot.activity.trim() && slot.activity,
+    ].filter(Boolean);
+    return details.length ? [{ index, details }] : [];
+  });
+  if (!slots.length) return null;
+  return (
+    <PeopleFact label="生活规律">
+      <ul>
+        {slots.map(({ index, details }) => <li key={index}>{details.join(" · ")}</li>)}
+      </ul>
+    </PeopleFact>
+  );
+}
+
 function NpcFields({ draft: d, edit, places }) {
   const input = (label, key, long = false) =>
     field(
@@ -694,7 +781,9 @@ function NpcFields({ draft: d, edit, places }) {
         >
           添加生活规律
         </Button>
-        <JsonDetails value={d.routine} title="完整规律记录" />
+        {d.routine.length > 0 && (
+          <JsonDetails value={d.routine} title="原始生活规律记录（诊断）" downloadOnly />
+        )}
       </Disclosure>
     </div>
   );

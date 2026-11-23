@@ -3,6 +3,8 @@
 .replica-inbox{display:grid;gap:23px;min-width:0}
 .replica-inbox-toolbar{min-height:55px;display:flex;flex-wrap:nowrap;align-items:center;gap:12px}
 .replica-inbox-toolbar>span{width:145px!important;flex:none!important}
+/* h-9 sets height; override the shared replica control's 39px minimum locally. */
+.replica-inbox-toolbar [data-slot="select-trigger"]{min-height:0}
 .replica-inbox-toolbar [role=tablist]{display:flex;gap:21px;overflow-x:auto;border-bottom:1px solid #e2e7de;margin-bottom:0;scrollbar-width:none;background:transparent;border-radius:0;padding:0}
 .replica-inbox-toolbar [role=tab]{font-size:12px;font-weight:400;height:100%;min-height:0;flex:none;gap:7px;padding:0 2px;color:#7d8872;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;box-shadow:none;--tw-ring-shadow:0 0 #0000}
 .replica-inbox-toolbar [role=tab][data-state=active]{color:#33563d;border-bottom-color:#547b4b;font-weight:600}

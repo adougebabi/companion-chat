@@ -7,6 +7,7 @@ import { React, act, installDOM, mountReact } from "./helpers/react-dom.mjs";
 const env = installDOM(),
   vite = await createServer({
     root: fileURLToPath(new URL("../", import.meta.url)),
+    envFile: false,
     appType: "custom",
     logLevel: "silent",
     server: { middlewareMode: true },
@@ -571,7 +572,7 @@ test('suggestion details retain the submitted interval, place and reason without
  }finally{await v.dispose();}
 });
 
-test('rejected item review emphasizes the frozen proposal and keeps protocol fields in an explicit disclosure',async()=>{
+test('rejected item review emphasizes the frozen proposal and keeps protocol fields in a diagnostic download',async()=>{
  const w=workspace(),original={operation:'update',scheduleId:'schedule',itemId:'slot',request:{expectedRevision:1,expectedLifeContextRevision:'old-context',activity:'在窗边读诗',startAt:today+'T17:30:00+08:00',endAt:today+'T18:30:00+08:00',location:'书店窗边',reason:'保留晚餐前的空档'}};
  w.setPending({idempotencyKey:'rejected-item-key',rejection:{code:'revision_conflict'},value:original});
  let rebased;
@@ -583,7 +584,18 @@ test('rejected item review emphasizes the frozen proposal and keeps protocol fie
   const fields=review.querySelector('.replica-key-values');
   assert.match(fields.textContent,/在窗边读诗/);assert.match(fields.textContent,/17:30/);assert.match(fields.textContent,/18:30/);assert.match(fields.textContent,/书店窗边/);assert.match(fields.textContent,/保留晚餐前的空档/);
   assert.doesNotMatch(review.textContent,/expectedRevision/);assert.equal(rebased,undefined);
-  await v.click(button(review,'原建议的完整请求与版本'));assert.match(review.textContent,/expectedRevision/);
+  await v.click(button(review,'原始日程调整请求（诊断）'));
+  assert.doesNotMatch(review.textContent,/expectedRevision|old-context|日程版本 3/);
+  const create=URL.createObjectURL,revoke=URL.revokeObjectURL,anchor=window.HTMLAnchorElement.prototype,click=anchor.click;
+  let blob,filename;
+  URL.createObjectURL=value=>{blob=value;return 'blob:original-suggestion';};
+  URL.revokeObjectURL=()=>{};
+  anchor.click=function(){filename=this.download;};
+  try{
+   await v.click(button(review,'下载原始记录'));
+   assert.equal(filename,'fluctlight-record.json');
+   assert.deepEqual(JSON.parse(await blob.text()),{original,latest_schedule_revision:3});
+  }finally{URL.createObjectURL=create;URL.revokeObjectURL=revoke;anchor.click=click;}
   await v.click(button(review,'保留原建议并重新提交'));assert.equal(rebased[0],'A');assert.equal(rebased[2],'rejected-item-key');assert.equal(original.request.activity,'在窗边读诗');
  }finally{await v.dispose();}
 });

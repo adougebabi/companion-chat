@@ -75,7 +75,8 @@ test('search and pagination retain their query and cursor; a later failure hides
     fail = true; f.el.querySelector('[data-page-next]').click(); await tick();
     assert.equal(f.calls.at(-1).cursor, 'opaque-cursor');
     assert.equal(f.calls.at(-1).q, '背包'); controlsDisabled(f.el, true);
-    assert.equal(f.el.querySelector('[data-items] a'), null);
+    assert.equal(f.el.querySelector('[data-items] a:not([download])'), null);
+    assert.equal(f.el.querySelector('[data-items] a[download]').textContent, '原始错误记录（诊断）');
     fail = false; f.el.querySelector('[data-panel-retry]').click(); await tick();
     assert.equal(f.calls.at(-1).cursor, 'opaque-cursor'); controlsDisabled(f.el, false);
     assert.match(f.el.textContent, /旅行背包/);

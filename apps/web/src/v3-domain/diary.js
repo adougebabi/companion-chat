@@ -1,4 +1,5 @@
 import {errorMessage} from '../v3/domain-presentation.mjs';
+import {diaryAttemptStatus} from '../approved-ui/diary-generation.mjs';
 import {openPromise} from '../v3/proto/components/promise-catalogue.js';
 import {sourceHref,sourceReturn} from '../v3/proto/components/source-navigation.js';
 import {mountCalendarReading,localDate,reconcileReadingRecord} from '../v3/proto/components/calendar-reading.js';
@@ -7,10 +8,11 @@ import * as store from '../v3/proto/store.js';
 import {asyncPage,instant} from '../v3/proto/components/async-page.js';
 import {CursorPager,bindCursorPager} from '../v3/proto/components/cursor-pager.js';
 import {Field,Tabs,Toggle} from '../v3/proto/components/forms.js';
-import {JsonDetails} from '../v3/proto/components/records.js';
-import {ConflictPanel} from '../v3/proto/components/revisions.js';
+import {RawRecordDownload} from '../v3/proto/components/records.js';
 import {beginDraftSubmission,settleDraftSubmission} from '../v3/proto/components/draft-submission.js';
 import {esc,badge,confirm,drawer,toast} from '../v3/proto/ui.js';
+import {isInternalId} from '../v3/internal-id.mjs';
+import {userInstant} from '../v3/presentation-time.mjs';
 
 const labels={pending:'正在等待日记生成',running:'正在生成',ready:'已生成',no_content:'本次没有日记',failed:'生成失败',inactive:'角色未处于运行状态'};
 const entryHref=(fid,id)=>`#/c/${encodeURIComponent(fid)}/life/diary/${encodeURIComponent(id)}`;
@@ -51,13 +53,56 @@ export function renderRealDiaryList(el,ctx){
  return()=>{active=false;generationDrawer?.close();reader();};
 }
 
-function sourceRows(fid,entry){
- const wanted=new Set(entry.refs);
- return (entry.source_snapshot?.sources||[]).filter(s=>wanted.has(s.ref)).map(source=>{
+function diarySources(fid,entry){
+ const refs=new Set(entry.refs||[]),sources=entry.source_snapshot?.sources||[];
+ const communication=sources.filter(source=>source.kind==='remote_communication').length;
+ const rows=sources.filter(source=>refs.has(source.ref)).map(source=>{
+  const remote=source.kind==='remote_communication';
+  const event=source.kind==='confirmed_life_event'||source.ref.startsWith('event:');
+  if(!remote&&!event)return '';
   const id=source.ref.replace(/^[^:]+:/,'');
-  const link=source.kind==='remote_communication'?`#/c/${encodeURIComponent(fid)}/chat?${new URLSearchParams({conversation:source.conversation_id,message:id})}`:`#/c/${encodeURIComponent(fid)}/world/event/${encodeURIComponent(id)}`;
-  return `<div data-domain-ui="item" class="lrow"><a class="grow" href="${esc(link)}">${esc(source.kind==='remote_communication'?'原交流消息':'已确认生活事件')} ${esc(id)}</a>${source.kind==='remote_communication'?badge('远程交流','plain'):''}${JsonDetails(source,'查看原来源快照')}</div>`;
- }).join('')||'<p class="small muted">还没有已提交正文的引用来源；生成尝试和没有产出的原因见下方。</p>';
+  const link=remote
+   ?(id&&source.conversation_id?`#/c/${encodeURIComponent(fid)}/chat?${new URLSearchParams({conversation:source.conversation_id,message:id})}`:'')
+   :(id?`#/c/${encodeURIComponent(fid)}/world/event/${encodeURIComponent(id)}`:'');
+  const label=remote?'原交流消息':'已确认生活事件';
+  const excerpt=remote?source.text:[source.activity,source.scene,source.location].filter(value=>typeof value==='string'&&value.trim()).join(' · ');
+  const time=remote?source.at:source.start_at;
+  return `<div data-domain-ui="item" class="lrow"><div class="grow">
+   ${link?`<a href="${esc(link)}">${label}</a>`:`<b>${label}</b>`}
+   ${time?`<p class="small muted"><time datetime="${esc(time)}">${esc(instant(time))}</time></p>`:''}
+   ${typeof excerpt==='string'&&excerpt.trim()?`<p class="memory-content">${esc(excerpt)}</p>`:''}
+  </div></div>`;
+ }).join('');
+ return `${sources.length?`<p class="small muted">可用素材 ${sources.length} 条${communication?`（远程交流 ${communication} 条）`:''}</p>`:''}
+  ${refs.size?`<p class="small muted">正文引用来源 ${refs.size} 条</p>`:''}
+  ${rows}
+  ${RawRecordDownload(entry,'原始日记记录（诊断）')}`;
+}
+
+function diaryAttemptRow(attempt,index){
+ const time=attempt.created_at;
+ const reason=typeof attempt.plan?.reason==='string'?attempt.plan.reason.trim():'';
+ const explanation=attempt.error_code
+  ?errorMessage({code:attempt.error_code},'这次整理遇到问题，请查看原任务诊断。')
+  :reason==='no_source_material'?'没有可用于整理的素材。':/^[a-z\d]+(?:[_:][a-z\d]+)+$/i.test(reason)?'':reason;
+ return `<div data-domain-ui="item" class="lrow"><div class="grow">
+  <p>第 ${esc(attempt.attempt??index+1)} 次整理 · ${diaryAttemptStatus(attempt.status)}${time?` · <time datetime="${esc(time)}">${esc(instant(time))}</time>`:''}</p>
+  ${explanation?`<p class="small muted">${esc(explanation)}</p>`:''}
+ </div>${attempt.task_id?`<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" href="#/diag/task/${encodeURIComponent(attempt.task_id)}">查看原任务</a>`:''}</div>`;
+}
+
+function diaryAnnotationConflict(annotation){
+ return `<div data-domain-ui="alert" class="banner err" role="alert" data-test="conflict">已保存的注记或收藏状态已更新。你的草稿已保留。</div>
+  <div class="stack">
+   <b>最新已保存注记</b>
+   <p>${annotation.favorite?'已收藏':'未收藏'}</p>
+   ${annotation.note?`<p class="memory-content">${esc(annotation.note)}</p>`:''}
+   ${RawRecordDownload(annotation,'原始注记记录（诊断）')}
+  </div>
+  <div class="row [margin:8px_0]">
+   <button data-domain-ui="button" type="button" data-domain-variant="outline" data-domain-size="default" data-keep>保留草稿</button>
+   <button data-domain-ui="button" type="button" data-domain-variant="default" data-domain-size="default" data-refresh>采用最新注记并保留草稿</button>
+  </div>`;
 }
 export function renderRealDiaryEntry(el,ctx){
  const fid=ctx.charId,id=ctx.params.entryId,owner=store.get('session')?.actorId,key=JSON.stringify([owner,fid,id]);
@@ -72,20 +117,27 @@ export function renderRealDiaryEntry(el,ctx){
   const draft=drafts.get(key);
   if(!draft.dirty&&!draft.pending.note&&entry.annotation.revision>=draft.base)Object.assign(draft,{note:entry.annotation.note,favorite:entry.annotation.favorite,base:entry.annotation.revision});
   const conflict=draft.base<entry.annotation.revision;
-  el.innerHTML=`<div class="stack reading-workspace"><div class="row reading-page-heading"><h1 class="reading-business-title grow">${esc(entry.date)} · 日记</h1><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-open-note>收藏与注记${draft.dirty?' · 有草稿':''}</button></div><div class="reading-paper life-reading-paper"><div class="row diary-entry-head">${badge('角色主观记录','plain')}${badge(labels[entry.status]||entry.status)}<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-reload>重新读取</button></div><p class="small muted">按日记原日期归档 · 正文来源：独立人物表达 · v${esc(entry.revision)}</p>${entry.body?`<p class="memory-content">${esc(entry.body)}</p>`:`<p>${entry.status==='no_content'?'这次没有足够或适合的素材形成日记。可以继续交流、生活，之后回顾相应日期。':'尚无已提交正文。请查看实际任务和状态，受理不代表已经生成。'}</p>`}${entry.last_error_code?`<p data-domain-ui="alert" class="banner err" role="alert">${esc(errorMessage(entry.last_error_code,'这篇日记没有生成，请查看任务原因后重试。'))}</p>`:''}${['failed','inactive'].includes(entry.status)?'<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-retry>按当前状态重新生成</button>':''}<p data-generation-feedback role="alert"></p></div><section data-domain-ui="card" class="card reading-annotation"><div class="row"><h3 class="grow">你的收藏与注记</h3><span data-saved-favorite>${entry.annotation.favorite?badge('已收藏','plain'):''}</span></div><p class="memory-content" data-saved-note>${esc(entry.annotation.note||'还没有已保存的注记。')}</p><p class="small muted" data-note-receipt>${draft.pending.note?'原注记正在保存，期间的新草稿将保留。':draft.dirty?'你有尚未保存的注记草稿。':'注记属于你，不修改她的主观正文。'}</p></section><details data-domain-ui="disclosure" class="card reading-secondary"><summary>素材与来源</summary>${sourceRows(fid,entry)}${JsonDetails(entry.persona_provenance,'本次表达所用人格版本')}${JsonDetails(entry.model_provenance,'模型来源与关联标识')}</details><details data-domain-ui="disclosure" class="card reading-secondary"><summary>生成尝试与实际任务</summary>${(entry.attempts||[]).map(a=>`<div data-domain-ui="item" class="lrow"><div class="grow"><b>尝试 ${esc(a.attempt)} · ${esc(labels[a.status]||a.status)}</b><p class="small muted">${esc(instant(a.created_at))} · ${esc(a.error_code||a.plan?.reason||'')}</p></div>${a.task_id?`<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" href="#/diag/task/${encodeURIComponent(a.task_id)}">实际任务</a>`:''}</div>`).join('')}${entry.has_more_attempts?'<p class="small muted">显示最近20次尝试；更早执行记录仍保留在任务诊断中。</p>':''}</details><div data-note-host hidden><form class="stack" data-note><h3>你的收藏与注记</h3><p class="small muted">这些字段属于你，不修改她的主观正文。</p>${conflict?ConflictPanel({baseVersion:draft.base,currentVersion:entry.annotation.revision}):''}${Toggle({label:'收藏这篇日记',name:'favorite',checked:draft.favorite})}${Field({label:'你的注记',name:'note',type:'textarea',value:draft.note,attrs:{maxlength:5000}})}<div class="row"><button data-domain-ui="button" type="button" data-domain-variant="outline" data-domain-size="default" data-reset ${draft.pending.note?'disabled':''}>撤销草稿</button><button data-domain-ui="button" data-domain-variant="default" data-domain-size="default" ${conflict||draft.pending.note?'disabled':''}>保存注记</button></div><p data-domain-ui="alert" role="alert" data-note-error></p>${conflict?JsonDetails(entry.annotation,'最新已保存注记（草稿保留）'):''}</form></div><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="${esc(sourceReturn(ctx,`#/c/${fid}/life/diary`))}">${esc(ctx.query.returnLabel||'返回日记')}</a></div>`;
+  el.innerHTML=`<div class="stack reading-workspace">
+   <div class="row reading-page-heading"><h1 class="reading-business-title grow">${esc(entry.date)} · 日记</h1><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-open-note>收藏与注记${draft.dirty?' · 有草稿':''}</button></div>
+   <div class="reading-paper life-reading-paper"><div class="row diary-entry-head">${badge('角色主观记录','plain')}${badge(labels[entry.status]||entry.status)}<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-reload>重新读取</button></div><p class="small muted">按日记原日期归档</p>${entry.body?`<p class="memory-content">${esc(entry.body)}</p>`:`<p>${entry.status==='no_content'?'这次没有足够或适合的素材形成日记。可以继续交流、生活，之后回顾相应日期。':'尚无已提交正文。请查看实际任务和状态，受理不代表已经生成。'}</p>`}${entry.last_error_code?`<p data-domain-ui="alert" class="banner err" role="alert">${esc(errorMessage(entry.last_error_code,'这篇日记没有生成，请查看任务原因后重试。'))}</p>`:''}${['failed','inactive'].includes(entry.status)?'<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-retry>按当前状态重新生成</button>':''}<p data-generation-feedback role="alert"></p></div>
+   <section data-domain-ui="card" class="card reading-annotation"><div class="row"><h3 class="grow">你的收藏与注记</h3><span data-saved-favorite>${entry.annotation.favorite?badge('已收藏','plain'):''}</span></div><p class="memory-content" data-saved-note ${entry.annotation.note?'':'hidden'}>${esc(entry.annotation.note)}</p><p class="small muted" data-note-receipt>${draft.pending.note?'原注记正在保存，期间的新草稿将保留。':draft.dirty?'你有尚未保存的注记草稿。':'注记属于你，不修改她的主观正文。'}</p></section>
+   <details data-domain-ui="disclosure" class="card reading-secondary"><summary>素材与来源</summary>${diarySources(fid,entry)}</details>
+   <details data-domain-ui="disclosure" class="card reading-secondary"><summary>生成尝试与实际任务</summary>${(entry.attempts||[]).map(diaryAttemptRow).join('')}${entry.has_more_attempts?'<p class="small muted">显示最近20次尝试；更早执行记录仍保留在任务诊断中。</p>':''}</details>
+   <div data-note-host hidden><form class="stack" data-note><h3>你的收藏与注记</h3><p class="small muted">这些字段属于你，不修改她的主观正文。</p>${conflict?diaryAnnotationConflict(entry.annotation):''}${Toggle({label:'收藏这篇日记',name:'favorite',checked:draft.favorite})}${Field({label:'你的注记',name:'note',type:'textarea',value:draft.note,attrs:{maxlength:5000}})}<div class="row"><button data-domain-ui="button" type="button" data-domain-variant="outline" data-domain-size="default" data-reset ${draft.pending.note?'disabled':''}>撤销草稿</button><button data-domain-ui="button" data-domain-variant="default" data-domain-size="default" type="submit" ${conflict||draft.pending.note?'disabled':''}>保存注记</button></div><p data-domain-ui="alert" role="alert" data-note-error></p></form></div>
+   <a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="${esc(sourceReturn(ctx,`#/c/${fid}/life/diary`))}">${esc(ctx.query.returnLabel||'返回日记')}</a></div>`;
   el.querySelector('[data-reload]').onclick=reload;
   el.querySelector('[data-retry]')?.addEventListener('click',async event=>{event.target.disabled=true;try{await diaryClient.generate(fid,{localDate:entry.date,timezone:entry.timezone,expectedRevision:entry.revision,reason:'Owner在失败或未运行后明确重试日记'});if(alive())await reload();}catch(error){if(alive()){el.querySelector('[data-generation-feedback]').textContent=errorMessage(error);event.target.disabled=false;}}});
   const note=el.querySelector('[data-note]'),host=el.querySelector('[data-note-host]');let noteDrawer;
   el.querySelector('[data-open-note]').onclick=()=>{noteDrawer=drawer({title:'你的收藏与注记',onClose:()=>{host.append(note);noteDrawer=null;}});noteDrawer.body.append(note);};note.oninput=note.onchange=()=>{draft.note=note.note.value;draft.favorite=note.favorite.checked;draft.dirty=true;el.querySelector('[data-open-note]').textContent='收藏与注记 · 有草稿';if(!draft.pending.note)el.querySelector('[data-note-receipt]').textContent='你有尚未保存的注记草稿。';};
   el.querySelector('[data-reset]').onclick=()=>{if(draft.pending.note)return;draft.dirty=false;void reload();};
   el.querySelector('[data-keep]')?.addEventListener('click',()=>{note.querySelector('[data-note-error]').textContent='注记草稿已保留。';});
-  el.querySelector('[data-refresh]')?.addEventListener('click',async()=>{if(await confirm({title:'核对最新注记后采用新基线',text:'保留当前草稿。请核对上方最新已保存注记，后续保存会基于它的版本。',identity:'所有者修改'})&&alive()){draft.base=entry.annotation.revision;void reload();}});
+  el.querySelector('[data-refresh]')?.addEventListener('click',async()=>{if(await confirm({title:'采用最新注记并保留草稿',text:'请先核对最新已保存的注记和收藏状态。确认后仍可编辑并保存你的草稿。',identity:'所有者修改'})&&alive()){draft.base=entry.annotation.revision;void reload();}});
   const settled=(channel,error,saved)=>{
    if(!alive())return;
    if(channel==='note'){
-    note.querySelector('[data-domain-variant=default]').disabled=draft.base<entry.annotation.revision;
+    note.querySelector('button[type=submit]').disabled=draft.base<entry.annotation.revision;
     note.querySelector('[data-reset]').disabled=false;
-    if(saved){el.querySelector('[data-saved-note]').textContent=saved.note||'还没有已保存的注记。';el.querySelector('[data-saved-favorite]').innerHTML=saved.favorite?badge('已收藏','plain'):'';}
+    if(saved){const savedNote=el.querySelector('[data-saved-note]');savedNote.textContent=saved.note;savedNote.hidden=!saved.note;el.querySelector('[data-saved-favorite]').innerHTML=saved.favorite?badge('已收藏','plain'):'';}
     el.querySelector('[data-note-receipt]').textContent=(error?errorMessage(error):'')||(draft.dirty?'本次提交已保存，期间的新草稿保留。':'注记已保存');
     note.querySelector('[data-note-error]').textContent=(error?errorMessage(error):'')||(draft.dirty?'本次提交已保存，期间的新草稿保留。':'注记已保存');
     if(!error)toast(draft.dirty?'注记已保存，新草稿已保留':'注记已保存');if(error?.status===409||(!error&&!draft.dirty))void reload();
@@ -96,7 +148,7 @@ export function renderRealDiaryEntry(el,ctx){
   note.onsubmit=async event=>{
    event.preventDefault();if(draft.pending.note||draft.base<entry.annotation.revision)return;
    const submission=beginDraftSubmission(draft,'note',{favorite:draft.favorite,note:draft.note});
-   note.querySelector('[data-domain-variant=default]').disabled=true;note.querySelector('[data-reset]').disabled=true;
+   note.querySelector('button[type=submit]').disabled=true;note.querySelector('[data-reset]').disabled=true;
    try{
     const saved=await diaryClient.annotate(fid,id,{...submission.value,expectedRevision:draft.base});
     if(drafts.get(key)!==draft)return;
@@ -108,30 +160,93 @@ export function renderRealDiaryEntry(el,ctx){
   return()=>{clearTimeout(timer);document.removeEventListener('visibilitychange',visible);noteDrawer?.close();if(draft.onSettled===settled)delete draft.onSettled;};
  },{backHref:`#/c/${encodeURIComponent(ctx.charId)}/life/diary`,backLabel:'返回日记'});
 }
+const storyTime=value=>typeof value==='string'&&Number.isFinite(Date.parse(value))?userInstant(value):'';
+const storyText=value=>typeof value==='string'&&value.trim()&&!isInternalId(value)?value:'';
+const footprintLabels={memory:'她记下的事',diary:'她的主观日记',remote_communication:'远程交流',relationship:'关系记录',promise:'约定'};
+const storyPromiseStatuses={awaiting_goal:'等待规划，尚未接受',deferred:'暂缓决定',accepted:'已接受，履行待证据'};
+const storyCards=[['companionship_days','陪伴天数','天'],['completed_turns','完成回复轮次','轮'],['relationship','现在的我们',''],['memories','关于你的记忆','条'],['diaries','她的日记','篇']];
+
+function storyBasis(snapshot,rows,recordsHref,characterName){
+ const from=storyTime(snapshot.first_communication_at),to=storyTime(snapshot.as_of);
+ const turns=snapshot.metrics?.completed_turns;
+ const semantics=snapshot.semantics;
+ const relationship= snapshot.metrics?.relationship?.value;
+ const relationshipRole=storyText(typeof relationship?.role === "string" ? relationship.role : relationship?.role?.label);
+ return `
+  ${from&&to?`<p>交流统计范围：${esc(from)} 至 ${esc(to)}</p>`:to?`<p>统计截至：${esc(to)}</p>`:''}
+  ${turns?.available&&turns.complete&&Number.isFinite(turns.value)?`<p>完成回复轮次：${turns.value} 轮</p>`:''}
+  ${Array.isArray(snapshot.footprints)?`<p>本页回顾记录 ${rows.length} 条，其中远程交流 ${rows.filter(row=>row.kind==='remote_communication').length} 条。</p>`:''}
+  ${relationshipRole?`<p>关系称谓：${esc(relationshipRole)}</p>`:''}
+  ${characterName?`<p>回顾范围：你和${esc(characterName)}。</p>`:''}
+  <p>统计来自同一次读取。${snapshot.footprints_complete===false?'本页只列出部分来源，完整交流可从下方入口查看。':''}</p>
+  ${semantics?.communication==='actual_participation_intervals'?'<p>交流只纳入双方实际参与时段内的消息。</p>':''}
+  ${semantics?.turns==='distinct_conversation_and_turn_with_persisted_owner_input_and_nonempty_character_reply'?'<p>每轮需有已保存的留言和角色的非空回复，同一交流中的同一轮只统计一次。</p>':''}
+  ${semantics?.memories==='active_owner_actor_refs_and_current_source_liveness'?'<p>记忆只统计与您有关且来源仍有效的记录。</p>':''}
+  ${semantics?.diaries==='ready_day_with_nonempty_active_attempt_body'?'<p>日记只统计已生成有效正文的日期。</p>':''}
+  ${semantics?.copresent===false?'<p>远程交流不表示双方曾在同一地点。</p>':''}
+  <p><a href="${esc(recordsHref)}">查看全部交流</a></p>
+  ${RawRecordDownload(snapshot,'原始共同经历记录（诊断）')}`;
+}
+
 export function renderRealShared(el,ctx){
  const fid=ctx.charId;
  if(ctx.query.view==='records'){
   const cursors=[''];let at=0;
   return asyncPage(el,()=>diaryClient.shared(fid,cursors[at]),(page,reload)=>{
-   el.innerHTML=`<div class="stack story-page"><h1 class="reading-business-title">交流记录</h1><p class="small muted">保留双方实际参与时段内的原交流；远程交流不表示物理同场。</p><div class="reading-paper life-reading-paper">${page.items.map(r=>`<div class="story-footprint"><p class="small muted">${esc(instant(r.occurred_at))}</p><p>${esc(r.title)}</p><a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" href="${esc(sourceHref(r.href,ctx,'返回共同交流'))}">查看原交流</a></div>`).join('')||'<p>当前读取范围没有交流记录。</p>'}</div>${CursorPager({more:!!page.next_cursor,previous:at>0,label:'交流'})}<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-story-back>返回共同经历</button></div>`;
+   el.innerHTML=`<div class="stack story-page"><h1 class="reading-business-title">交流记录</h1><p class="small muted">保留双方实际参与时段内的原交流；远程交流不表示物理同场。</p><div class="reading-paper life-reading-paper">${page.items.map(row=>{
+    const time=storyTime(row.occurred_at),title=storyText(row.title);
+    return `<div class="story-footprint">${time?`<p class="small muted">${esc(time)}</p>`:''}${title?`<p>${esc(title)}</p>`:''}<a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" href="${esc(sourceHref(row.href,ctx,'返回共同交流'))}">查看原交流</a></div>`;
+   }).join('')||'<p>当前读取范围没有交流记录。</p>'}</div>${CursorPager({more:!!page.next_cursor,previous:at>0,label:'交流'})}<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-story-back>返回共同经历</button></div>`;
    el.querySelector('[data-story-back]').onclick=ctx.goBack;
    bindCursorPager(el,{next:()=>{cursors[++at]=page.next_cursor;void reload();},previous:()=>{at--;void reload();}});
   });
  }
  const owner=store.get('session')?.actorId;let active=true,busy=false,snapshot=null,failure='',epoch=0;
  const live=()=>active&&el.isConnected&&store.get('session')?.actorId===owner;
+ const recordsHref=`#/c/${encodeURIComponent(fid)}/life/shared?view=records`;
  const metric=name=>snapshot?.metrics?.[name];
  const known=name=>metric(name)?.available&&metric(name)?.complete;
  function paint(){if(!live())return;
   const relation=known('relationship')?metric('relationship').value:null;
-  const cards=[['companionship_days','陪伴天数','天'],['completed_turns','完成回复轮次','轮'],['relationship','现在的我们',''],['memories','关于你的记忆','条'],['diaries','她的日记','篇']];
+  const relationLabel=storyText(relation?.role?.label),relationSummary=storyText(relation?.summary);
+  const cards=storyCards.map(([key,label,unit])=>{
+   if(!known(key))return '';
+   const value=metric(key).value,isRelationship=key==='relationship';
+   if(!isRelationship&&!Number.isFinite(value))return '';
+   const text=isRelationship?relationLabel||relationSummary:`${value} ${unit}`;
+   return `<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" class="story-metric" data-story-metric="${key}"><span>${label}</span>${text?`<strong class="${isRelationship?'story-relationship-value':''}">${esc(text)}</strong>`:''}</button>`;
+  }).join('');
   const targetHref=row=>row.kind==='memory'?`#/c/${fid}/growth/memory/${encodeURIComponent(row.id)}`:row.kind==='diary'?entryHref(fid,row.id):row.kind==='relationship'?`#/c/${fid}/people/owner`:`#/c/${fid}/chat?${new URLSearchParams({conversation:row.conversation_id,message:row.id})}`;
   const sourceHrefFromStory=row=>sourceHref(targetHref(row),ctx,'返回共同经历');
   const rows=[...(snapshot?.footprints||[])].sort((a,b)=>{const time=row=>row.at?Date.parse(row.at):row.local_date?Date.parse(row.local_date+'T00:00:00Z'):null;return (time(b)??-Infinity)-(time(a)??-Infinity);});
-  el.innerHTML=`<div class="stack story-page"><section class="story-overview"><h1 class="reading-business-title">我们</h1><p>${esc(relation?.summary||relation?.role?.label||'从每一次真实交流，慢慢积累共同经历。')}</p><p class="small muted">${snapshot?'截至 '+esc(instant(snapshot.as_of,snapshot.timezone)):'正在读取已有记录…'}</p></section><nav class="row" aria-label="我们的事"><a href="#/c/${encodeURIComponent(fid)}/growth?aboutOwner=true">她记得的事</a><a href="#/c/${encodeURIComponent(fid)}/life/schedule?section=promises">我们的约定</a></nav><details data-domain-ui="disclosure" class="reading-secondary"><summary>共同经历详情</summary><div class="story-metrics">${cards.map(([key,label,unit])=>{let text='—';if(known(key))text=key==='relationship'?(relation?.role?.label||relation?.summary||'尚无关系记录'):String(metric(key).value)+' '+unit;return `<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" class="story-metric" data-story-metric="${key}" ${known(key)?'':'disabled'}><span>${label}</span><strong class="${key==='relationship'?'story-relationship-value':''}">${esc(text)}</strong></button>`;}).join('')}</div></details>${failure?`<p data-domain-ui="alert" class="banner info" role="status">部分概览暂不可读取，已知内容保留：${esc(failure)}</p>`:''}<div class="row"><h3 class="grow">共同经历与原交流</h3><details data-domain-ui="disclosure"><summary>阅读选项</summary><button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-basis ${snapshot?'':'disabled'}>回顾依据</button></details></div><section class="reading-paper life-reading-paper">${rows.map(row=>`<article class="story-footprint"><p class="small muted">${esc(({memory:'她记下的事',diary:'她的主观日记',remote_communication:'远程交流',relationship:'关系记录',promise:'约定'})[row.kind]||'来源记录')} · ${row.local_date?esc(row.local_date):row.at?esc(instant(row.at,snapshot.timezone)):'时间未记录'}${row.revision?' · v'+esc(row.revision):''}</p><p class="story-source-excerpt">${esc(row.title)}</p>${row.kind==='promise'?`<p class="small muted">${esc(row.status==='awaiting_goal'?'等待规划，尚未接受':row.status==='deferred'?'暂缓决定':'已接受，履行待证据')}</p><button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-story-promise="${esc(row.id)}">查看约定</button>`:`<a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" href="${esc(sourceHrefFromStory(row))}">查看记录</a>`}</article>`).join('')||`<p class="muted">${snapshot?'还没有可回顾的足印，可以从真实交流开始。':'已有资料暂未读取。'}</p>`}</section><div class="row"><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${fid}/life/shared?view=records">查看全部交流</a><button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-story-refresh ${busy?'disabled':''}>重新读取概览</button></div></div>`;
+  const footprints=rows.map(row=>{
+   const label=Object.hasOwn(footprintLabels,row.kind)?footprintLabels[row.kind]:'来源记录';
+   const time=storyTime(row.local_date)||storyTime(row.at),title=storyText(row.title);
+   const promiseStatus=Object.hasOwn(storyPromiseStatuses,row.status)?storyPromiseStatuses[row.status]:'';
+   return `<article class="story-footprint">
+    <p class="small muted">${label}${time?' · '+esc(time):''}</p>
+    ${title?`<p class="story-source-excerpt">${esc(title)}</p>`:''}
+    ${row.kind==='promise'?`${promiseStatus?`<p class="small muted">${promiseStatus}</p>`:''}
+     <button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-story-promise="${esc(row.id)}">查看约定</button>`:
+     `<a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" href="${esc(sourceHrefFromStory(row))}">查看记录</a>`}
+   </article>`;
+  }).join('');
+  const asOf=storyTime(snapshot?.as_of);
+  el.innerHTML=`<div class="stack story-page">
+   <section class="story-overview"><h1 class="reading-business-title">我们</h1>
+    <p>${esc(relationSummary||relationLabel||'从每一次真实交流，慢慢积累共同经历。')}</p>
+    ${asOf?`<p class="small muted">截至 ${esc(asOf)}</p>`:busy&&!snapshot?'<p class="small muted">正在读取已有记录…</p>':''}
+   </section>
+   <nav class="row" aria-label="我们的事"><a href="#/c/${encodeURIComponent(fid)}/growth?aboutOwner=true">她记得的事</a><a href="#/c/${encodeURIComponent(fid)}/life/schedule?section=promises">我们的约定</a></nav>
+   ${cards?`<details data-domain-ui="disclosure" class="reading-secondary"><summary>共同经历详情</summary><div class="story-metrics">${cards}</div></details>`:''}
+   ${failure?`<p data-domain-ui="alert" class="banner info" role="status">部分概览暂不可读取，已知内容保留：${esc(failure)}</p>`:''}
+   <div class="row"><h3 class="grow">共同经历与原交流</h3><details data-domain-ui="disclosure"><summary>阅读选项</summary><button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-basis ${snapshot?'':'disabled'}>回顾依据</button></details></div>
+   <section class="reading-paper life-reading-paper">${footprints||`<p class="muted">${snapshot?'还没有可回顾的足印，可以从真实交流开始。':'已有资料暂未读取。'}</p>`}</section>
+   <div class="row"><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="${esc(recordsHref)}">查看全部交流</a><button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-story-refresh ${busy?'disabled':''}>重新读取概览</button></div>
+  </div>`;
   el.querySelectorAll('[data-story-promise]').forEach(button=>button.onclick=()=>openPromise(fid,button.dataset.storyPromise,()=>void load(),live));
   el.querySelector('[data-story-refresh]').onclick=()=>void load();
-  el.querySelector('[data-basis]').onclick=()=>drawer({title:'这次回顾的依据',body:`<p>读取时间：${esc(instant(snapshot.as_of,snapshot.timezone))}</p><p>范围：${esc(store.get('characters',fid)?.name||fid)}与当前所有者，当前人格 ${esc(snapshot.profile_id)}。统计使用同一次只读快照。足印展示最近一部分来源，不代表完整历史。</p>${JsonDetails(snapshot,'统计口径、实际对象与版本')}`});
+  el.querySelector('[data-basis]').onclick=()=>drawer({title:'这次回顾的依据',body:storyBasis(snapshot,rows,recordsHref,storyText(store.get('characters',fid)?.name))});
   el.querySelectorAll('[data-story-metric]').forEach(button=>button.onclick=()=>{const key=button.dataset.storyMetric;if(key==='diaries')ctx.navigate(`#/c/${fid}/life/diary`);else if(key==='memories')ctx.navigate(`#/c/${fid}/growth?aboutOwner=true&status=active`);else if(key==='relationship')ctx.navigate(`#/c/${fid}/people/owner`);else el.querySelector('[data-basis]').click();});
  }
  async function load(){if(busy||!live())return;busy=true;const token=++epoch;paint();try{const value=await diaryClient.overview(fid);if(!live()||token!==epoch)return;if(value.fluctlight_id!==fid||value.actor_id!==owner)throw new Error('共同经历读取范围已经变化，请重新打开');snapshot=value;failure='';}catch(error){if(live()&&token===epoch)failure=errorMessage(error);}finally{busy=false;paint();}}

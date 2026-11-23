@@ -4,7 +4,10 @@ import {readFileSync} from 'node:fs';
 import {requestDecisionText,RequestDecisionSource,RequestFailureLink} from '../src/v3/proto/components/request-failure.js';
 import {esc,badge} from '../src/v3/proto/components/controls.js';
 import {Tabs} from '../src/v3/proto/components/forms.js';
-import {JsonDetails} from '../src/v3/proto/components/records.js';
+import {JsonDetails,RawRecordDownload} from '../src/v3/proto/components/records.js';
+import {isInternalId} from '../src/v3/internal-id.mjs';
+import {ReadingFields} from '../src/v3/proto/components/reading-fields.js';
+import {readingFields} from '../src/approved-ui/reading-fields.mjs';
 import {userInstant} from '../src/v3/presentation-time.mjs';
 import {stateLabel,domainName} from '../src/v3/domain-presentation.mjs';
 
@@ -57,12 +60,21 @@ test('actual dynamic suggestion renderer localizes the exact failure and convert
  assert.match(html,/#\/diag\/request\/original-request/);assert.doesNotMatch(html,/data-retry/);dispose();
 });
 
-test('actual reflection feedback and promise details share localized decisions and original source disclosure',async()=>{
+test('reflection feedback and promise details localize decisions and preserve their original records',async()=>{
  let feedback;const reflectionEl=element();
  const reflection={title:'反思',status:'applied',summary:'一次回顾',at:failed.created_at,dispositions:[],references:[]};
- const {renderRealReflection}=load('../../v3-domain/reflection.js',['renderRealReflection'],{reflectionClient:{read:async()=>reflection},asyncPage:async(_el,read,paint)=>paint(await read(),()=>{},()=>true),mountCursorRecords:(_el,options)=>{feedback=options;return {dispose(){}};}});
+ const {renderRealReflection}=load('../../v3-domain/reflection.js',['renderRealReflection'],{RawRecordDownload,isInternalId,reflectionClient:{read:async()=>reflection},asyncPage:async(_el,read,paint)=>paint(await read(),()=>{},()=>true),mountCursorRecords:(_el,options)=>{feedback=options;return {dispose(){}};}});
  await renderRealReflection(reflectionEl,{charId:'role',params:{refId:'reflection'}});
- const html=feedback.render(failed);checkDecision(html);assert.match(ordinary(html),/认同 · 2026-10-20 23:01 \(北京时间\)/);assert.match(ordinary(html),/执行失败/);
+ const html=feedback.render(failed);
+ const link=/<a [^>]*download="fluctlight-record\.json" href="data:application\/json;charset=utf-8,([^"]+)">原始反馈记录（诊断）<\/a>/;
+ const raw=html.match(link);
+ assert.ok(raw);
+ assert.deepEqual(JSON.parse(decodeURIComponent(raw[1])),failed);
+ const visible=html.replace(link,'');
+ assert.doesNotMatch(visible,/<details\b|failed|The request|2026-10-20T15:01:58/);
+ assert.match(visible,/没有可确认的已提交结果/);
+ assert.match(visible,/认同 · 2026-10-20 23:01 \(北京时间\)/);
+ assert.match(visible,/执行失败/);
  const d={el:element(),close(){}};
  const {openPromise}=load('components/promise-catalogue.js',['openPromise'],{subscribe(){},get:()=>null,drawer:()=>d,lifeClient:{},asyncPage:(_el,_read,paint)=>paint({title:'约定',lifecycle:'failed',legacy_unlinked:true,request:failed},()=>{},()=>true),mountCursorRecords:()=>({dispose(){}})});
  openPromise('role','original-request');checkDecision(d.el.querySelector('[data-promise-detail]').innerHTML);
@@ -80,8 +92,14 @@ test('terminal request receipt keeps original identity and exposes raw diagnosti
 
 test('request detail keeps its complete original record after shared localization',async()=>{
  const el=element();
- const {renderRealRequest}=load('../../v3-domain/operations.js',['renderRealRequest'],{stateLabel,domainName,operationsClient:{request:async()=>failed},asyncPage:async(_el,read,paint)=>paint(await read(),()=>{})});
- await renderRealRequest(el,{params:{requestId:failed.id}});checkDecision(el.innerHTML);
+ const {renderRealRequest}=load('../../v3-domain/operations.js',['renderRealRequest'],{stateLabel,domainName,RawRecordDownload,isInternalId,ReadingFields,readingFields,operationsClient:{request:async()=>failed},asyncPage:async(_el,read,paint)=>paint(await read(),()=>{})});
+ await renderRealRequest(el,{params:{requestId:failed.id}});
+ assert.match(el.innerHTML,/没有可确认的已提交结果/);
+ assert.doesNotMatch(el.innerHTML.replace(/<a [^>]*download=[^>]*>/g,''),/failed|The request|2026-10-20T15:01:58/);
+ assert.doesNotMatch(el.innerHTML,/<details\b/);
+ const raw = el.innerHTML.match(/download="fluctlight-record\.json" href="data:application\/json;charset=utf-8,([^"]+)">原始请求记录（诊断）<\/a>/);
+ assert.ok(raw);
+ assert.deepEqual(JSON.parse(decodeURIComponent(raw[1].replaceAll('&#39;',"'"))),failed);
  assert.match(ordinary(el.innerHTML),/2026-10-20 23:01 \(北京时间\)/);
 });
 

@@ -24,9 +24,69 @@ import {
   requiredText,
 } from "@/approved-ui/media-presentation.mjs";
 import { studioDraftStorage } from "@/v3/proto/components/studio-draft-storage.js";
-import { stateLabel, errorMessage } from "@/v3/domain-presentation.mjs";
+import { visualStageLabel, errorMessage } from "@/v3/domain-presentation.mjs";
+import { isInternalId } from "@/v3/internal-id.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
-import VisualIdentityRecord, { DownloadVisualRecord } from "./VisualIdentityRecord";
+import VisualIdentityRecord, { VisualReviewReading } from "./VisualIdentityRecord";
+import { ProfileNote, profileText } from "./ProfileRecordSummary";
+import JsonDetails from "./JsonDetails";
+
+const reviewSources = {
+  manual: "人工评审",
+  owner_manual: "人工评审",
+  vision: "模型视觉评审",
+  legacy_unknown: "早期评审来源待确认",
+};
+
+const timelineEventTitles = new Map([
+  ["candidate_created", "已创建候选形象"],
+  ["candidate_accepted", "已接受候选形象"],
+  ["candidate_rejected", "候选形象未通过评审"],
+  ["candidate_media_ready", "候选形象图片已生成"],
+  ["candidate_media_failed", "候选形象图片生成失败"],
+  ["character_sheet_media_failed", "角色设定图生成失败"],
+]);
+const snakeCaseCode = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/i;
+
+function timelineText(value) {
+  if (typeof value !== "string") return "";
+  return value.replace(/Visual Identity/g, "形象准备")
+    .replace(/\b[a-z0-9_-]+\b/gi, token => snakeCaseCode.test(token) || isInternalId(token) || /^v\d+$/i.test(token) ? "…" : token)
+    .trim();
+}
+
+function timelineEventReading(row) {
+  const summary = typeof row.summary === "string" ? row.summary.trim() : "";
+  const codeInSummary = snakeCaseCode.test(summary);
+  const eventCode = row.event_type || row.kind || (codeInSummary ? summary : "");
+  const reading = codeInSummary ? "" : timelineText(summary);
+  if (!eventCode) return { title: reading || visualStageLabel(row.stage, "视觉记录") };
+  return {
+    title: timelineEventTitles.get(String(eventCode).replace(/^visual_identity_/, "")) ?? "视觉身份有新的变化",
+    summary: reading,
+  };
+}
+
+function VisualBriefRevision({ row }) {
+  const fields = briefFields.flatMap(([key, label]) => {
+    const before = profileText(row.before_value?.[key]);
+    const saved = row.after_value?.[key];
+    const after = profileText(saved);
+    const cleared = Object.hasOwn(row.after_value ?? {}, key) && (saved == null || (typeof saved === "string" && !saved.trim()));
+    return before !== after && (after || cleared) ? [{ key, label, before, after }] : [];
+  });
+  if (!fields.length) return null;
+  return <dl className="profile-facts">{fields.map(({ key, label, before, after }) => (
+    <div key={key}>
+      <dt>{label}</dt>
+      <dd>
+        <ProfileNote value={before} label="修改前" />
+        <ProfileNote value={after || "已清除"} label="修改后" />
+      </dd>
+    </div>
+  ))}</dl>;
+}
+
 export default function VisualWorkspace({ model: m }) {
   const fid = m.target,
     [action, setAction] = useState(null),
@@ -360,7 +420,7 @@ export default function VisualWorkspace({ model: m }) {
         fields: (d, edit) => (
           <div className="r-form-stack">
             <p>
-              已保存定义 v{d.briefRevision} · 当前规范版本 {d.visualRevision}
+              {d.briefRevision > 0 ? "本次使用已保存的视觉定义。" : "尚未建立视觉定义。"}
             </p>
             <label className="replica-field">
               <span>生成原因</span>
@@ -963,16 +1023,17 @@ export default function VisualWorkspace({ model: m }) {
       <div className="r-two-column">
         <Surface className="panel r-padded">
           <h2 className="r-inline-title">
-            视觉定义 · {definition ? "v" + definition.revision : "待读取"}
+            {definition?.brief ? "当前视觉定义" : definition ? "尚未建立视觉定义" : "视觉定义待读取"}
           </h2>
-          {briefFields.map(([key, label]) => (
-            <div className="profile-key-value" key={key}>
-              <span>{label}</span>
-              <div>
-                {definition ? definition.brief?.[key] || "尚未填写" : "待读取"}
+          {briefFields.map(([key, label]) => {
+            const value = definition?.brief?.[key];
+            return value?.trim() && (
+              <div className="profile-key-value" key={key}>
+                <span>{label}</span>
+                <div>{value}</div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {definition?.brief?.source_resource_id && (
             <a
               href={
@@ -980,46 +1041,41 @@ export default function VisualWorkspace({ model: m }) {
                 encodeURIComponent(definition.brief.source_resource_id)
               }
             >
-              查看定义来源 · {definition.brief.source_version}
+              查看定义来源
             </a>
           )}
           <Button variant="ghost" onClick={() => setHistoryOpen(true)}>
             <History size={13} />
             定义修订
           </Button>
+          {definition?.brief && <JsonDetails title="原始媒体记录（诊断）" value={definition} downloadOnly />}
         </Surface>
         <Surface className="panel r-padded">
           <h2 className="r-inline-title">候选与评审记录</h2>
           <MediaReader source={timeline} label="视觉记录" />
-          {timeline.items.map((row, index) => (
-            <div className="r-timeline-entry" key={row.id || index}>
-              <b>{typeof row.summary === "string" ? row.summary.replace(/Visual Identity/g,"形象准备") : stateLabel(row.stage) || "视觉记录"}</b>
-              <small>
-                {row.occurred_at ? userInstant(row.occurred_at) : "时间未记录"}
-              </small>
-              <p>
-                {row.review?.summary || ""}
-                {row.review?.source
-                  ? " · " +
-                    (["manual", "owner_manual"].includes(row.review.source)
-                      ? "人工评审"
-                      : "记录来源：" + row.review.source)
-                  : ""}
-              </p>
-              {(row.asset_ids || []).map((id) => (
-                <Button
-                  key={id}
-                  variant="ghost"
-                  onClick={(e) => m.openAsset(id, e.currentTarget)}
-                >
-                  查看当时的图片
-                </Button>
-              ))}
-              <Disclosure title="完整视觉记录">
-                <DownloadVisualRecord value={row}/>
-              </Disclosure>
-            </div>
-          ))}
+          {timeline.items.map((row, index) => {
+            const { title, summary } = timelineEventReading(row);
+            return (
+              <div className="r-timeline-entry" key={row.id || index}>
+                <b>{title}</b>
+                {row.occurred_at && <small>{userInstant(row.occurred_at)}</small>}
+                {summary && <p>{summary}</p>}
+                {row.review?.summary && <p>{timelineText(row.review.summary)}</p>}
+                <VisualReviewReading value={row.review} title="评审意见" />
+                {row.review?.source && <p>{Object.hasOwn(reviewSources, row.review.source) ? reviewSources[row.review.source] : "评审来源待确认"}</p>}
+                {(row.asset_ids || []).map((id) => (
+                  <Button
+                    key={id}
+                    variant="ghost"
+                    onClick={(e) => m.openAsset(id, e.currentTarget)}
+                  >
+                    查看当时的图片
+                  </Button>
+                ))}
+                <JsonDetails title="原始事件记录（诊断）" value={row} downloadOnly />
+              </div>
+            );
+          })}
           {timeline.ready && !timeline.items.length && (
             <p>尚无视觉生成与评审记录。</p>
           )}
@@ -1073,11 +1129,11 @@ export default function VisualWorkspace({ model: m }) {
         )}
         {history.items.map((row, index) => (
           <div className="r-timeline-entry" key={row.id || index}>
-            <b>视觉定义 v{row.revision}</b>
-            <p>{row.reason}</p>
-            <Disclosure title="此版本与前后变化">
-              <DownloadVisualRecord value={row}/>
-            </Disclosure>
+            <b>{row.revision === 1 ? "首次保存视觉定义" : "更新视觉定义"}</b>
+            {row.reason?.trim() && <p>{row.reason}</p>}
+            {row.created_at && <small>{userInstant(row.created_at)}</small>}
+            <VisualBriefRevision row={row} />
+            <JsonDetails title="原始媒体记录（诊断）" value={row} downloadOnly />
           </div>
         ))}
         <MediaMore source={history} label="定义修订" />

@@ -1,11 +1,11 @@
-import {errorMessage,stateLabel} from '../v3/domain-presentation.mjs';
+import {errorMessage,errorRecord,errorRecordTitle,readErrorMessage,stateLabel} from '../v3/domain-presentation.mjs';
 import {beijingFilterInput,diagnosticTimeFilter} from '../v3/configuration-feedback.mjs';
 import {ManagementNavigation} from '../v3/proto/components/configuration-summary.js';
 import {get,list} from '../v3/proto/store.js';
 import {diagnosticsClient,operationsClient} from '../v3/proto/services.js';
 import {esc} from '../v3/proto/ui.js';
 import {Field} from '../v3/proto/components/forms.js';
-import {JsonDetails} from '../v3/proto/components/records.js';
+import {JsonDetails,RawRecordDownload} from '../v3/proto/components/records.js';
 import {asyncPage} from '../v3/proto/components/async-page.js';
 import {mountCursorRecords} from '../v3/proto/components/cursor-records.js';
 import {downloadDiagnostics} from '../v3/proto/components/diagnostic-download.js';
@@ -48,7 +48,7 @@ export function renderRealDiagnosticHome(el){
  void operationsClient.pending('','failed_task').then(result=>{if(!alive())return;const group=result.groups.find(g=>g.kind==='failed_task'),node=el.querySelector('[data-service-failures]');node.innerHTML=group?.status==='ok'?group.count?`<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/diag/workflows?status=failed">${Number(group.count)} 条未恢复的失败任务</a><span class="small muted">连接状态和历史任务结果分别显示。</span>`:'没有未恢复的失败任务。':'失败任务数量暂未读到。';}).catch(()=>{if(alive())el.querySelector('[data-service-failures]').textContent='失败记录暂不可读取，连接检查结果单独保留。';});
  const events=mountCursorRecords(el.querySelector('[data-events]'),{alive,label:'生命周期',read:async cursor=>{const value=await diagnosticsClient.page('lifecycle',{cursor,limit:8});if(alive())page=value;return value;},render:card,empty:'当前没有保留的生命周期事件。可检查运行状态及诊断来源。'});
  const tasks=mountCursorRecords(el.querySelector('[data-tasks]'),{alive,label:'工作流任务',read:cursor=>diagnosticsClient.page('workflow-intents',{cursor,limit:8}),render:card,empty:'当前没有持久工作流任务。业务受理后会在这里产生真实任务。'});
- void diagnosticsClient.harm().then(result=>{if(alive())el.querySelector('[data-harm]').textContent=`${result.count} 条 · ${result.coverage_label}`;}).catch(error=>{if(alive())el.querySelector('[data-harm]').textContent='统计读取失败：'+error.message;});
+ void diagnosticsClient.harm().then(result=>{if(alive())el.querySelector('[data-harm]').textContent=`${result.count} 条 · ${result.coverage_label}`;}).catch(error=>{if(alive())el.querySelector('[data-harm]').innerHTML=`<p>${esc(readErrorMessage(error))}</p>${RawRecordDownload(errorRecord(error),errorRecordTitle)}`;});
  el.querySelector('[data-export-all]').onclick=async e=>{if(exporting)return;exporting=true;e.target.disabled=true;try{await downloadDiagnostics({dataset:'all'},{alive,feedback:text=>{if(alive())el.querySelector('[data-feedback]').textContent=text;}});}catch(error){if(alive())el.querySelector('[data-feedback]').textContent=errorMessage(error);}finally{exporting=false;if(alive())e.target.disabled=false;}};
  el.querySelector('[data-clear]').onclick=()=>{if(!page){el.querySelector('[data-feedback]').textContent='请先成功读取诊断快照';return;}diagnosticClear(page,()=>events.reload({reset:true}));};
  return()=>{active=false;events.dispose();tasks.dispose();};

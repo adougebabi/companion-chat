@@ -24,9 +24,15 @@ import {
 } from "../controls";
 import { useWorkspace } from "../page";
 import { jsonValueSnapshot } from "@/state/view-model";
-import { userInstant } from "@/v3/presentation-time.mjs";
-import { memoryRevisionReason as revisionReason } from "@/approved-ui/memory-presentation.mjs";
-import { stateLabel } from "@/v3/domain-presentation.mjs";
+import {
+  labelFor, memoryFacts, memoryRevisionFacts, memorySourceFacts, memoryStatuses,
+  memoryTypes, recordText, recordTime, scoreText, unitScore as number,
+} from "@/approved-ui/memory-record-summary.mjs";
+import {
+  ClaimSummary, claimDownload, claimStatuses, memoryDownload, RecordDownload,
+  ReflectionChanges, ReflectionFeedbackSummary, ReflectionObservations,
+  reflectionDownload, reflectionStatus, reflectionTitle, SummaryFacts,
+} from "./MemoryRecordSummary";
 import {
   canRestoreSelfRevision,
   selfCategoryLabels,
@@ -36,28 +42,9 @@ import WorkspaceDialog from "../shared/WorkspaceDialog";
 import WorkspaceCommandDialog from "../shared/WorkspaceCommandDialog";
 import WorkspaceInfo from "../shared/WorkspaceInfo";
 import RequestStatus from "../shared/RequestStatus";
-import JsonDetails from "../shared/JsonDetails";
 import LoadingState from "../shared/LoadingState";
 import useWorkspaceRead from "../shared/useWorkspaceRead";
 import { EmptyState, InlineFeedback,ReaderFeedback } from "../shared/Presentation";
-const memoryTypes = {
-  episodic: "经历",
-  semantic: "知识",
-  relationship: "关系",
-  autobiographical: "自我",
-};
-const memoryStatuses = {
-  active: "有效记忆",
-  forgotten: "已遗忘",
-  superseded: "已替代",
-  deprecated: "已废弃",
-};
-const claimStatuses = {
-  active: "已记录的认识",
-  uncertain: "仍不确定",
-  forgotten: "已遗忘",
-  superseded: "已有替代",
-};
 function routeState(query = new URLSearchParams()) {
   const tab = ["memory", "reflection", "self"].includes(query.get("tab"))
       ? query.get("tab")
@@ -90,46 +77,15 @@ function routeState(query = new URLSearchParams()) {
       : "active",
   };
 }
-const provenanceLabels = {
-  valid: "有效",
-  invalid: "来源失效",
-  pending: "待核对",
-  legacy_unknown: "旧记录，来源未知",
-};
-const reflectionStatus = (value) =>
-  ({
-    pending: "等待处理",
-    applying: "正在处理",
-    applied: "已处理",
-    failed: "处理未完成",
-    rejected: "暂未采用",
-    superseded: "已有新记录",
-    no_change: "未产生变更",
-  })[value] || stateLabel(value);
-const sourceKinds = {
-  message: "原消息",
-  owner: "所有者说明",
-  event: "事件",
-  reflection: "反思",
-};
 const field = (label, control) => (
   <label className="replica-field lp-wide">
     <span>{label}</span>
     {control}
   </label>
 );
-const number = (value) =>
-  typeof value === "number" &&
-  Number.isFinite(value) &&
-  value >= 0 &&
-  value <= 1
-    ? value
-    : null;
 function Rating({ value }) {
   const score = number(value);
-  return score === null ? (
-    <span className="lp-muted">重要度尚未记录</span>
-  ) : (
+  return score === null ? null : (
     <span
       className="lp-stars"
       role="img"
@@ -349,7 +305,7 @@ export default function MemoryPage({ route }) {
       labels = {
         revise: "纠正这段记忆",
         forget: "不再把这段记忆作为当前认识？",
-        rollback: "补偿恢复至第 " + target?.revision + " 版",
+        rollback: "补偿恢复这段历史记忆",
       };
     setAction({
       identity:
@@ -379,6 +335,12 @@ export default function MemoryPage({ route }) {
         operation === "revise"
           ? "更正正文并追加修订；旧版及原消息仍可查阅。"
           : "追加治理修订，保留历史；相关领域的历史效果以实际记录为准。",
+      pendingSummary: (value) => <SummaryFacts facts={[
+        ["修改后的正文", value.content],
+        ["修订说明", value.evidenceRefs?.[0]?.slice(("owner:" + owner + ":").length)],
+        ["恢复内容", target?.content],
+      ]} />,
+      reviewSummary: (current) => <><p>{current.content}</p><SummaryFacts facts={memoryFacts(current)} /></>,
       initial: {
         content: row.content,
         baseline: row.content,
@@ -460,6 +422,7 @@ export default function MemoryPage({ route }) {
       },
       fields: (d, edit) => (
         <>
+          {operation === "rollback" && <p>{target.content}</p>}
           {operation === "revise" &&
             field(
               "修改后的正文",
@@ -480,8 +443,7 @@ export default function MemoryPage({ route }) {
             />,
           )}
           <WorkspaceInfo>
-            正文修正以本次 Owner
-            说明作为新的支持引用；旧版本的原始来源可按版本查阅。
+            本次说明会作为更正依据。原始来源可在修订记录中查阅。
           </WorkspaceInfo>
         </>
       ),
@@ -505,6 +467,11 @@ export default function MemoryPage({ route }) {
         operation +
         ":" +
         (target?.revision ?? ""),
+      pendingSummary: (value) => <SummaryFacts facts={[
+        ["操作说明", value.reason],
+        ["恢复内容", (target?.after_value?.category ? target.after_value : target?.candidate)?.claim],
+      ]} />,
+      reviewSummary: (current) => <ClaimSummary record={current} />,
       initial: { revision: row.revision, reason: "" },
       title: {
         review: "确认已核对这条认识",
@@ -513,7 +480,7 @@ export default function MemoryPage({ route }) {
       }[operation],
       description:
         operation === "review"
-          ? "记录你已阅读当前版本；复核不改变证据、置信度或人格。"
+          ? "记录你已阅读当前认识，证据、置信度和人格照常保留。"
           : "新增治理修订。恢复仍需校验历史来源、有效期限和谱系。",
       submitLabel: {
         review: "确认已核对",
@@ -601,6 +568,8 @@ export default function MemoryPage({ route }) {
         id +
         ":" +
         stance,
+      pendingSummary: (value) => <ReflectionFeedbackSummary record={{payload:value}} />,
+      reviewSummary: (current) => <ReflectionObservations record={current} />,
       initial: { text: "" },
       title: stance === "agree" ? "赞同这次观察" : "说说不同的看法",
       description: "提交真实反馈请求，是否产生改变以之后的候选和应用结果为准。",
@@ -761,15 +730,15 @@ export default function MemoryPage({ route }) {
                 >
                   <div className="lp-row lp-between">
                     <span className="lp-chip">
-                      {memoryTypes[row.type] || row.type}
+                      {labelFor(memoryTypes, row.type)}
                     </span>
-                    <time className="lp-muted" dateTime={row.created_at} title={userInstant(row.created_at)}>{userInstant(row.created_at).split(' ')[0]}</time>
+                    {recordTime(row.created_at) && <time className="lp-muted" title={recordTime(row.created_at)}>{recordTime(row.created_at).split(" ")[0]}</time>}
                   </div>
                   <p>{row.content}</p>
                   <div className="lp-row lp-between">
-                    <div className="lp-tag-row" title={(memoryStatuses[row.status]||row.status)+' · 第'+row.revision+'版'}>
-                      {(row.tags||[]).filter(tag=>typeof tag==='string'&&tag.trim()).map(tag=><span className="lp-muted" key={tag}>#{tag}</span>)}
-                      {row.status!=='active'&&<span className="lp-muted">{memoryStatuses[row.status]||row.status}</span>}
+                    <div className="lp-tag-row" title={labelFor(memoryStatuses, row.status) || undefined}>
+                      {(row.tags||[]).map(recordText).filter(Boolean).map(tag=><span className="lp-muted" key={tag}>#{tag}</span>)}
+                      {row.status!=='active'&&<span className="lp-muted">{labelFor(memoryStatuses, row.status)}</span>}
                       {["invalid", "pending"].includes(
                         row.provenance_status,
                       ) && <span className="lp-muted">来源待核对</span>}
@@ -878,15 +847,15 @@ export default function MemoryPage({ route }) {
             {reflections.items.map((row) => (
               <Surface className="lp-reflection" key={row.id}>
                 <div className="lp-row lp-between">
-                  <span className="lp-day-stamp">
-                    {userInstant(row.at || row.created_at)}
-                  </span>
-                  <Badge variant="outline">
-                    {reflectionStatus(row.status)}
-                  </Badge>
+                  {(recordTime(row.at) || recordTime(row.created_at)) && <span className="lp-day-stamp">
+                    {recordTime(row.at) || recordTime(row.created_at)}
+                  </span>}
+                  {reflectionStatus(row.status || row.state) && <Badge variant="outline">
+                    {reflectionStatus(row.status || row.state)}
+                  </Badge>}
                 </div>
-                <h3>{row.title}</h3>
-                <p>{row.summary || "尚未提供反思摘要。"}</p>
+                {reflectionTitle(row.title) && <h3>{reflectionTitle(row.title)}</h3>}
+                {recordText(row.summary) && <p>{recordText(row.summary)}</p>}
                 <div className="lp-action-row">
                   <Button
                     variant="outline"
@@ -910,11 +879,16 @@ export default function MemoryPage({ route }) {
               </EmptyState>
             )}
           <More source={reflections} label="反思记录" />
-          {reflections.extra.latest_task && (
-            <JsonDetails
-              value={reflections.extra.latest_task}
-              title="最近反思任务"
-            />
+          {reflections.extra.latest_task && Object.keys(reflections.extra.latest_task).length > 0 && (
+            <Disclosure title="最近反思任务">
+              <SummaryFacts facts={[
+                ["处理状态", reflectionStatus(reflections.extra.latest_task.status)],
+                ["开始时间", recordTime(reflections.extra.latest_task.started_at)],
+                ["完成时间", recordTime(reflections.extra.latest_task.completed_at)],
+                ["下次尝试", recordTime(reflections.extra.latest_task.next_attempt_at)],
+              ]} />
+              <RecordDownload value={reflections.extra.latest_task} title={reflectionDownload} />
+            </Disclosure>
           )}
         </TabsContent>
         <TabsContent value="self">
@@ -967,35 +941,29 @@ export default function MemoryPage({ route }) {
               <article className="lp-claim" key={row.id}>
                 <div className="lp-row lp-between">
                   <span className="lp-chip">
-                    {selfCategoryLabels[row.category] || row.category}
+                    {labelFor(selfCategoryLabels, row.category)}
                   </span>
                   <LeafIcon size={15} />
                 </div>
                 <blockquote>“{row.claim}”</blockquote>
                 <p className="lp-muted">
-                  {claimStatuses[row.status] || row.status}
+                  {labelFor(claimStatuses, row.status)}
                 </p>
-                {(!row.source_valid || row.expired) && (
+                {(row.source_valid === false || row.expired) && (
                   <p className="lp-muted">
-                    {!row.source_valid ? "所依赖来源需要重新核对。" : ""}
+                    {row.source_valid === false ? "所依赖来源需要重新核对。" : ""}
                     {row.expired ? "已超过有效期限。" : ""}
                   </p>
                 )}
-                <Progress
-                  value={
-                    number(row.confidence) === null
-                      ? null
-                      : row.confidence * 100
-                  }
+                {number(row.confidence) !== null && <Progress
+                  value={row.confidence * 100}
                   className="lp-progress"
                   aria-label="认识置信度"
-                />
+                />}
                 <div className="lp-row lp-between">
-                  <span className="lp-muted">
-                    {number(row.confidence) === null
-                      ? "置信度未提供"
-                      : "置信度 " + Math.round(row.confidence * 100) + "%"}
-                  </span>
+                  {scoreText(row.confidence) && <span className="lp-muted">
+                    置信度 {scoreText(row.confidence)}
+                  </span>}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1031,20 +999,14 @@ export default function MemoryPage({ route }) {
           selection?.kind === "memory"
             ? "记忆详情"
             : selection?.kind === "reflection"
-              ? selected?.title || "反思记录"
+              ? reflectionTitle(selected?.title) || "反思记录"
               : "这条认识从哪里来"
         }
         description={
           selection?.kind === "memory"
-            ? "第 " +
-              selected?.revision +
-              " 版 · " +
-              (memoryTypes[selected?.type] || "")
+            ? labelFor(memoryTypes, selected?.type) || undefined
             : selection?.kind === "self"
-              ? "第 " +
-                selected?.revision +
-                " 版 · " +
-                (selfCategoryLabels[selected?.category] || "")
+              ? labelFor(selfCategoryLabels, selected?.category) || undefined
               : "反思、来源和实际处置记录"
         }
         footer={
@@ -1135,21 +1097,10 @@ export default function MemoryPage({ route }) {
                   <blockquote className="lp-memory-quote">
                     {selected.content}
                   </blockquote>
-                  <dl className="replica-key-values">
-                    <dt>状态</dt>
-                    <dd>{memoryStatuses[selected.status]}</dd>
-                    <dt>重要度</dt>
-                    <dd>
-                      <Rating value={selected.importance} />
-                    </dd>
-                    <dt>来源状态</dt>
-                    <dd>
-                      {provenanceLabels[selected.provenance_status] ||
-                        stateLabel(selected.provenance_status)}
-                    </dd>
-                    <dt>记于</dt>
-                    <dd>{userInstant(selected.created_at)}</dd>
-                  </dl>
+                  <SummaryFacts facts={[
+                    ...memoryFacts(selected),
+                    ["重要度", number(selected.importance) === null ? null : <Rating value={selected.importance} />],
+                  ]} />
                   {["invalid", "pending"].includes(
                     selected.provenance_status,
                   ) && (
@@ -1157,25 +1108,16 @@ export default function MemoryPage({ route }) {
                       来源尚未有效，不能把这条记忆当作当前已确认事实。
                     </WorkspaceInfo>
                   )}
-                  <JsonDetails
-                    value={selected}
-                    title="范围、人格理解与完整记录"
-                  />
+                  <RecordDownload value={selected} title={memoryDownload} />
                 </TabsContent>
                 <TabsContent value="source">
                   <p className="lp-muted">
-                    第 {sourceRevision} 版的来源；有效性以当前来源读面为准。
+                    {sourceRevision === selected.revision ? "当前记忆的来源" : "这次历史修订的来源"}，有效性以当前来源状态为准。
                   </p>
                   <ReadStatus source={sources} label="来源" />
                   {sources.items.map((row) => (
                     <div className="lp-source-card" key={row.source_ref}>
-                      <Badge variant="outline">
-                        {row.live ? "来源有效" : "来源失效或未知"}
-                      </Badge>
-                      <p>
-                        {sourceKinds[row.source_kind] || "来源记录"} ·{" "}
-                        {userInstant(row.occurred_at || row.recorded_at)}
-                      </p>
+                      <SummaryFacts facts={memorySourceFacts(row)} />
                       {row.source_kind === "message" &&
                         row.conversation_id &&
                         row.source_id && (
@@ -1197,28 +1139,18 @@ export default function MemoryPage({ route }) {
                             <ArrowUpRightIcon size={14} />
                           </Button>
                         )}
-                      <JsonDetails value={row} title="完整来源引用" />
+                      <RecordDownload value={row} title={memoryDownload} />
                     </div>
                   ))}
-                  {sources.ready && !sources.items.length && !sources.error && (
-                    <p className="lp-muted">
-                      本版没有可追溯来源，保留未知状态。
-                    </p>
-                  )}
                   <More source={sources} label="来源" />
                 </TabsContent>
                 <TabsContent value="history">
                   <ReadStatus source={revisions} label="修订" />
                   {revisions.items.map((row) => (
                     <div className="lp-history-item" key={row.revision}>
-                      <h4>
-                        第 {row.revision} 版 ·{" "}
-                        {row.revision === selected.revision
-                          ? "当前版本"
-                          : userInstant(row.created_at)}
-                      </h4>
+                      <h4>{row.revision === selected.revision ? "当前记录" : "历史修订"}</h4>
                       <p>{row.content}</p>
-                      <p className="lp-muted">{revisionReason(row)}</p>
+                      <SummaryFacts facts={memoryRevisionFacts(row)} />
                       <div className="lp-action-row">
                         <Button
                           variant="ghost"
@@ -1244,48 +1176,20 @@ export default function MemoryPage({ route }) {
                             </Button>
                           )}
                       </div>
-                      <JsonDetails value={row} title="修订来源与谱系" />
+                      <RecordDownload value={row} title={memoryDownload} />
                     </div>
                   ))}
-                  {revisions.ready &&
-                    !revisions.items.length &&
-                    !revisions.error && (
-                      <p className="lp-muted">尚未读到修订记录。</p>
-                    )}
                   <More source={revisions} label="修订" />
                 </TabsContent>
               </Tabs>
             ) : selection?.kind === "reflection" ? (
               <>
-                <p className="lp-copy">{selected.summary}</p>
-                <WorkspaceInfo>
-                  实际状态：{reflectionStatus(selected.status)}
-                  。反馈不会直接采纳候选或改写人格。
-                </WorkspaceInfo>
-                <Disclosure title="她观察到了什么与形成的候选">
-                  <JsonDetails value={selected.proposal} title="原始候选内容" />
-                  <JsonDetails
-                    value={selected.source_window}
-                    title="原始经历窗口"
-                  />
-                  <p className="lp-muted">
-                    {selected.source_window_status ===
-                    "legacy_snapshot_unavailable"
-                      ? "较早记录未保存完整窗口快照。"
-                      : "窗口来源状态：" +
-                        stateLabel(selected.source_window_status)}
-                  </p>
-                </Disclosure>
-                <Disclosure title="实际处置与应用结果">
-                  {selected.dispositions?.map((row, index) => (
-                    <div className="lp-review-card" key={index}>
-                      <p>
-                        {row.domain} · {stateLabel(row.disposition)}
-                      </p>
-                      <JsonDetails value={row} title="实际候选处置" />
-                    </div>
-                  ))}
-                  <JsonDetails value={selected.result} title="实际应用结果" />
+                <ReflectionObservations record={selected} />
+                {reflectionStatus(selected.status || selected.state) && <WorkspaceInfo>
+                  实际状态：{reflectionStatus(selected.status || selected.state)}。反馈不会直接采纳候选或改写人格。
+                </WorkspaceInfo>}
+                <Disclosure title="提议与实际改变">
+                  <ReflectionChanges record={selected} fid={fid} />
                 </Disclosure>
                 {feedbackPointer?.reflectionId === selected.id && (
                   <RequestStatus
@@ -1294,13 +1198,17 @@ export default function MemoryPage({ route }) {
                     requestId={feedbackPointer.request.id}
                     initial={feedbackPointer.request}
                     onTerminal={() => void refreshSelection()}
+                    renderRecord={(record) => <>
+                      <ReflectionFeedbackSummary record={record} />
+                      <RecordDownload value={record} title={reflectionDownload} />
+                    </>}
                   />
                 )}
                 <Disclosure title="所有者反馈与处理记录">
                   <ReadStatus source={feedback} label="反馈记录" />
                   {feedback.items.map((row) => (
                     <div className="lp-source-card" key={row.id}>
-                      <p>{row.payload?.text}</p>
+                      <ReflectionFeedbackSummary record={row} />
                       <Button
                         variant="link"
                         onClick={() =>
@@ -1312,43 +1220,20 @@ export default function MemoryPage({ route }) {
                       >
                         跟进原反馈请求
                       </Button>
-                      <JsonDetails value={row} title="原反馈与处理结果" />
+                      <RecordDownload value={row} title={reflectionDownload} />
                     </div>
                   ))}
                   <More source={feedback} label="反馈记录" />
                 </Disclosure>
-                <JsonDetails value={selected} title="完整反思与来源" />
+                <RecordDownload value={selected} title={reflectionDownload} />
               </>
             ) : (
               <>
-                <blockquote className="lp-memory-quote">
-                  {selected.claim}
-                </blockquote>
-                <dl className="replica-key-values">
-                  <dt>当前状态</dt>
-                  <dd>{claimStatuses[selected.status] || selected.status}</dd>
-                  <dt>置信度</dt>
-                  <dd>
-                    {number(selected.confidence) === null
-                      ? "未提供"
-                      : Math.round(selected.confidence * 100) + "%"}
-                  </dd>
-                  <dt>来源有效</dt>
-                  <dd>{selected.source_valid ? "是" : "来源需要重新核对"}</dd>
-                  <dt>有效期限</dt>
-                  <dd>
-                    {selected.expires_at
-                      ? userInstant(selected.expires_at) +
-                        (selected.expired ? " · 已过期" : "")
-                      : "未设置期限"}
-                  </dd>
-                </dl>
+                <ClaimSummary record={selected} />
                 <WorkspaceInfo>
-                  复核只是你已阅读当前版本的记录，不提高证据或置信度。认识正文由实际反思产生。
+                  复核记录你已阅读当前认识，证据和置信度仍以实际反思为准。认识正文由实际反思产生。
                 </WorkspaceInfo>
-                <Disclosure title="依据与完整认识">
-                  <JsonDetails value={selected} title="完整认识、证据与来源" />
-                </Disclosure>
+                <RecordDownload value={selected} title={claimDownload} />
                 <Disclosure title="之前的认识与历史恢复">
                   <ReadStatus source={revisions} label="认识修订" />
                   {revisions.items.map((row, index) => (
@@ -1356,13 +1241,12 @@ export default function MemoryPage({ route }) {
                       className="lp-history-item"
                       key={row.revision ?? index}
                     >
-                      <h4>
-                        第 {row.revision} 版 · {stateLabel(row.status)}
-                      </h4>
-                      <JsonDetails
-                        value={row.after_value || row.candidate}
-                        title="该版认识快照"
-                      />
+                      <h4>{row.revision === selected.revision ? "当前认识" : "历史认识"}</h4>
+                      <SummaryFacts facts={[
+                        ["修订时间", recordTime(row.created_at)],
+                        ["修订状态", labelFor({accepted:"已采纳", applied:"已应用", rejected:"未采纳", superseded:"已有替代"}, row.status)],
+                      ]} />
+                      <ClaimSummary record={row.after_value?.category ? row.after_value : row.candidate || row.after_value || {}} />
                       {canRestoreSelfRevision(row) &&
                         ["active", "uncertain"].includes(
                           (row.after_value?.category
@@ -1381,7 +1265,7 @@ export default function MemoryPage({ route }) {
                             恢复此版内容
                           </Button>
                         )}
-                      <JsonDetails value={row} title="完整修订来源" />
+                      <RecordDownload value={row} title={claimDownload} />
                     </div>
                   ))}
                   <More source={revisions} label="认识修订" />
@@ -1390,18 +1274,14 @@ export default function MemoryPage({ route }) {
                   <ReadStatus source={reviews} label="复核记录" />
                   {reviews.items.map((row) => (
                     <div className="lp-source-card" key={row.id}>
-                      <p>{row.reason}</p>
-                      <p className="lp-muted">
-                        针对第 {row.claim_revision} 版 ·{" "}
-                        {userInstant(row.created_at)}
-                      </p>
+                      <SummaryFacts facts={[
+                        ["复核说明", recordText(row.reason)],
+                        ["复核时间", recordTime(row.created_at)],
+                        ["复核对象", row.claim_revision === selected.revision ? "当前认识" : "历史认识"],
+                      ]} />
+                      <RecordDownload value={row} title={claimDownload} />
                     </div>
                   ))}
-                  {reviews.ready && !reviews.items.length && !reviews.error && (
-                    <p className="lp-muted">
-                      尚无人工复核；正常反思不以人工审核为前提。
-                    </p>
-                  )}
                   <More source={reviews} label="复核记录" />
                 </Disclosure>
               </>

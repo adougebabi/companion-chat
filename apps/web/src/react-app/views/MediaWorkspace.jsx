@@ -200,11 +200,11 @@ export default function MediaWorkspaceView({ model: m }) {
                     {asset.title || asset.source_filename || "未命名素材"}
                   </h3>
                   <div className="r-card-footer">
-                    <small title={asset.created_at?userInstant(asset.created_at):undefined}>
-                      {asset.created_at
-                        ? compactDateTime(asset.created_at)||userInstant(asset.created_at)
-                        : "时间未记录"}
-                    </small>
+                    {asset.created_at && (
+                      <small title={userInstant(asset.created_at)}>
+                        {compactDateTime(asset.created_at) || userInstant(asset.created_at)}
+                      </small>
+                    )}
                     <small>{mediaSource(asset)}</small>
                   </div>
                 </div>

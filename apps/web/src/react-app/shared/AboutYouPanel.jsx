@@ -42,6 +42,22 @@ import {
 import { userInstant } from "@/v3/presentation-time.mjs";
 const meaningful = (value) =>
   value !== null && value !== undefined && value !== "";
+// Select business fields explicitly; unknown and nested source data stay in the download.
+export function AboutYouSummary({ background, operation, reason }) {
+  const hasValue = (value) =>
+    typeof value === "string" ? !!value.trim() :
+      typeof value === "number" || typeof value === "boolean";
+  return <div className="companion-fact-grid">
+    {[...aboutFields, ...extraAboutFields].map(([key, label]) =>
+      hasValue(background?.[key]) && <PeopleFact key={key} label={label}>
+        {typeof background[key] === "boolean" ? (background[key] ? "是" : "否") : String(background[key])}
+      </PeopleFact>)}
+    {operation === "change" || operation === "correct" ? <PeopleFact label="修改含义">
+      {operation === "correct" ? "之前写错了" : "现在情况变了"}
+    </PeopleFact> : null}
+    {hasValue(reason) && <PeopleFact label="修改说明">{String(reason)}</PeopleFact>}
+  </div>;
+}
 export default function AboutYouPanel({ model: m, section = "you" }) {
   const { w, fid, owner, actorId } = m,
     isOwner = actorId === owner,
@@ -145,6 +161,12 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
         initial: authoredDraft(data),
         validate: (d) => validateAuthoredDraft(d, isOwner),
         build: authoredWrite,
+        pendingSummary: (value) => <AboutYouSummary
+          background={value?.input?.background}
+          operation={value?.input?.operation}
+          reason={value?.input?.reason}
+        />,
+        reviewSummary: (object) => <AboutYouSummary background={object?.background} />,
         preAdmissionConflicts: [
           "actor_user_background_conflict",
           "revision_conflict",

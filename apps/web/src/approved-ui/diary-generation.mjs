@@ -1,3 +1,16 @@
+export const diaryStatuses = Object.freeze({
+  pending: '等待整理',
+  running: '正在回顾',
+  ready: '已经写下',
+  no_content: '无正文',
+  failed: '整理未完成',
+  inactive: '尚未运行',
+});
+
+export function diaryAttemptStatus(status) {
+  return Object.hasOwn(diaryStatuses, status) ? diaryStatuses[status] : '状态待确认';
+}
+
 export function previousDiaryDate(today) {
   const time=Date.parse(today+'T00:00:00Z');
   if(!Number.isFinite(time))return '';

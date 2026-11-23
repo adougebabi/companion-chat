@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge, Disclosure } from "../controls";
-import { InlineFeedback } from "./Presentation";
+import { Feedback } from "./Presentation";
 import LoadingState from "./LoadingState";
 import { jsonValueSnapshot } from "@/state/view-model";
 import { useWorkspace } from "../page";
-import { errorMessage } from "@/v3/domain-presentation.mjs";
+import { errorRecord, readErrorMessage, stateLabel } from "@/v3/domain-presentation.mjs";
 import { requestDecisionText } from "@/v3/proto/components/request-failure.js";
 const ownerLabels = {
   pending: "等待回应",
@@ -32,13 +32,15 @@ export default function RequestStatus({
   initial = null,
   onTerminal,
   ownerScoped = false,
+  renderRecord,
 }) {
   const w = useWorkspace(),
     owner = w.state.session.actorId,
     service = w.services.lifeClient;
+  const readScope = JSON.stringify([owner, fid, requestId, kind, ownerScoped]);
   const [record, setRecord] = useState(initial),
     [loading, setLoading] = useState(false),
-    [error, setError] = useState(""),
+    [error, setError] = useState(null),
     [paused, setPaused] = useState(false);
   const latest = useRef(initial),
     notify = useRef(onTerminal),
@@ -91,22 +93,25 @@ export default function RequestStatus({
           latest.current = jsonValueSnapshot(value);
           setRecord(latest.current);
         }
-        setError("");
+        setError(null);
         if (!pending(latest.current) && !notified) {
           notified = true;
           Promise.resolve(notify.current?.(latest.current)).catch((cause) => {
             if (live())
-              setError(
-                "请求结果已保留，页面读回未完成：" + errorMessage(cause),
-              );
+              setError({
+                scope: readScope,
+                summary: "请求结果已保留，页面读回未完成。" + readErrorMessage(cause),
+                failure: errorRecord(cause),
+              });
           });
         }
       } catch (cause) {
         if (live())
-          setError(
-            "更新失败，保留上次状态。" +
-              errorMessage(cause, "暂时无法读取请求。"),
-          );
+          setError({
+            scope: readScope,
+            summary: (latest.current ? "更新失败，保留上次状态。" : "") + readErrorMessage(cause),
+            failure: errorRecord(cause),
+          });
       } finally {
         inFlight = false;
         reads++;
@@ -159,34 +164,38 @@ export default function RequestStatus({
       {!record && loading && <LoadingState label="正在读取原请求…" />}
       {record && (
         <>
-          <Badge
-            variant="outline"
-            className="lp-status"
-            data-status={record.status}
-          >
-            {labels[record.status] || "状态尚未确认"}
-          </Badge>
-          {record.local_date && (
-            <p className="lp-small">日程日期：{record.local_date}</p>
-          )}
-          {outcome && <p className="lp-small">{outcome}</p>}
-          {kind === "schedule" &&
-            ["failed", "conflict"].includes(record.status) && (
-              <p className="lp-small">
-                {record.error_code === "schedule_scope_changed"
-                  ? "角色、人格或世界已经变化，请核对资料。"
-                  : record.error_code === "schedule_task_stopped"
-                    ? "原任务已停止，已保存的结果仍保留。"
-                    : record.error_code === "schedule_request_date_elapsed"
-                      ? "目标日期已经过去，没有补造历史日程。"
-                      : "本次处理没有形成新的安排，请查看原任务原因。"}
+          {renderRecord ? renderRecord(record) : (
+            <>
+              <Badge
+                variant="outline"
+                className="lp-status"
+                data-status={record.status}
+              >
+                {labels[record.status] || "状态尚未确认"}
+              </Badge>
+              {record.local_date && (
+                <p className="lp-small">日程日期：{record.local_date}</p>
+              )}
+              {outcome && <p className="lp-small">{outcome}</p>}
+              {kind === "schedule" &&
+                ["failed", "conflict"].includes(record.status) && (
+                  <p className="lp-small">
+                    {record.error_code === "schedule_scope_changed"
+                      ? "角色、人格或世界已经变化，请核对资料。"
+                      : record.error_code === "schedule_task_stopped"
+                        ? "原任务已停止，已保存的结果仍保留。"
+                        : record.error_code === "schedule_request_date_elapsed"
+                          ? "目标日期已经过去，没有补造历史日程。"
+                          : "本次处理没有形成新的安排，请查看原任务原因。"}
+                  </p>
+                )}
+              <p className="lp-muted">
+                {kind === "schedule"
+                  ? "关闭此处不会取消后台任务，也不会重新生成。"
+                  : "建议由角色判断，受理回执与实际行动结果分别记录。"}
               </p>
-            )}
-          <p className="lp-muted">
-            {kind === "schedule"
-              ? "关闭此处不会取消后台任务，也不会重新生成。"
-              : "建议由角色判断，受理回执与实际行动结果分别记录。"}
-          </p>
+            </>
+          )}
           {record.tasks_state === "failed" && (
             <p role="status">关联任务尚未完整读到，可以重新读取。</p>
           )}
@@ -208,16 +217,16 @@ export default function RequestStatus({
             {record.tasks?.map((task) => (
               <Button key={task.task_id} variant="link" asChild>
                 <a href={"#/diag/task/" + encodeURIComponent(task.task_id)}>
-                  查看任务 · {task.status}
+                  查看任务 · {renderRecord ? stateLabel(task.status) : task.status}
                 </a>
               </Button>
             ))}
           </div>
-          <Disclosure title="原请求与运行记录">
+          {!renderRecord && <Disclosure title="原请求与运行记录">
             <pre className="replica-source-record">
               {JSON.stringify(record, null, 2)}
             </pre>
-          </Disclosure>
+          </Disclosure>}
         </>
       )}
       {paused && (
@@ -225,7 +234,7 @@ export default function RequestStatus({
           自动更新已暂停，可以点击刷新原请求继续；后台任务仍按实际状态处理。
         </p>
       )}
-      {error && <InlineFeedback role="alert">{error}</InlineFeedback>}
+      {error?.scope === readScope && <Feedback kind="error" failure={error.failure}>{error.summary}</Feedback>}
       <Button
         variant="outline"
         disabled={loading}

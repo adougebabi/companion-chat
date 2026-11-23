@@ -90,7 +90,8 @@ test("media results distinguish failures, pending and missing source records wit
     assert.doesNotMatch(view.host.textContent, /constructor|new_internal_status|null|通过/);
     await view.update({ asset: {} });
     assert.equal(view.host.querySelector('[data-result="pass"]'), null);
-    assert.match(view.host.textContent, /事实属性尚未记录/);
+    assert.equal(row(view.host, "事实属性"), undefined);
+    assert.doesNotMatch(view.host.textContent, /尚未记录/);
   } finally { await view.dispose(); }
 });
 

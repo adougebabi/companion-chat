@@ -42,11 +42,12 @@ func TestOwnerLifeRequestWearNativeConsumptionAndRecovery(t *testing.T) {
 					return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("discover-owner-wear", capabilityCatalogName, map[string]any{"names": []any{wardrobeWearCapabilityName}})}}
 				}
 				wearInvoked = true
-				target := boots
+				args := map[string]any{}
 				if scenario == "target_mismatch" {
-					target = wardrobeItemID(t, f, "银项链")
+					args["mode"] = "partial"
+					args["item_ids"] = []string{wardrobeItemID(t, f, "银项链")}
 				}
-				return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("owner-wear", wardrobeWearCapabilityName, map[string]any{"mode": "partial", "item_ids": []string{target}})}}
+				return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("owner-wear", wardrobeWearCapabilityName, args)}}
 			})
 			f.app.Provider.HTTP = &http.Client{Transport: router}
 			seedCognitiveProviderRole(t, f.ctx, f.repository, "owner-life-endpoint-"+f.suffix)

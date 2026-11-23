@@ -1,3 +1,5 @@
+import { ProfileFieldsSummary } from "../shared/ProfileRecordSummary";
+import { readingFields } from "@/approved-ui/reading-fields.mjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowRightIcon,
@@ -20,6 +22,8 @@ import PageSkeleton from "../shared/PageSkeleton";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
 import WorkspaceDialog from "../shared/WorkspaceDialog";
 import ScheduleTimeline from "../shared/ScheduleTimeline";
+import { scheduleItemDisplay } from "../shared/schedule-presentation.mjs";
+import JsonDetails from "../shared/JsonDetails";
 import WorkspaceInfo from "../shared/WorkspaceInfo";
 import RequestStatus from "../shared/RequestStatus";
 import DateField, { civilDate } from "../shared/DateField";
@@ -39,6 +43,11 @@ const shiftDate = (date, step) => {
   return value.toISOString().slice(0, 10);
 };
 const pendingStatuses = ["pending", "processing", "deferred", "awaiting_goal"];
+const scheduleActionShape = {
+  ...readingFields("description reason desired_hair_color desired_hair_length duration_minutes"),
+  items: readingFields("description name"),
+};
+
 const requestLabels = {
   pending: "等待回应",
   processing: "正在考虑",
@@ -159,6 +168,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
   const rows = (schedule?.items || []).map((item) =>
     scheduleProjection(item, schedule, w.clock),
   );
+  const selectedDisplay = selected && scheduleItemDisplay(selected.item);
   const suggestions = requests.filter(
       (request) => request.kind === "schedule_item_suggestion",
     ),
@@ -240,13 +250,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
         if (
           record &&
           (!Array.isArray(record.items) ||
-            record.items.some(
-              (item) =>
-                !item ||
-                typeof item.id !== "string" ||
-                typeof item.start_at !== "string" ||
-                typeof item.end_at !== "string",
-            ))
+            record.items.some((item) => !item || typeof item.id !== "string"))
         )
           throw Error("日程条目尚未完整读到，保留上次已读取的安排。");
       }
@@ -1274,13 +1278,15 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
                       onChange={(event) => field("scene", event.target.value)}
                     />
                   </Field>
-                  <Field label="地点 ID">
-                    <FieldInput
-                      value={draft.placeId}
-                      disabled={busy || !!itemPending}
-                      onChange={(event) => field("placeId", event.target.value)}
-                    />
-                  </Field>
+                  <Disclosure title="高级地点关联">
+                    <Field label="地点 ID">
+                      <FieldInput
+                        value={draft.placeId}
+                        disabled={busy || !!itemPending}
+                        onChange={(event) => field("placeId", event.target.value)}
+                      />
+                    </Field>
+                  </Disclosure>
                 </section>
               )}
               <WorkspaceInfo>
@@ -1297,19 +1303,16 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
             </div>
           ) : (
             <div className="lp-stack">
-              <h3 className="lp-title">{selected.item.text}</h3>
+              <h3 className="lp-title">{selectedDisplay.title}</h3>
               <dl className="replica-key-values">
-                <dt>时间</dt>
-                <dd>
-                  {userInstant(selected.item._source.start_at)} —{" "}
-                  {userInstant(selected.item._source.end_at)}
-                </dd>
-                <dt>地点</dt>
-                <dd>{selected.item._source.location || "尚未记录"}</dd>
-                <dt>类型</dt>
-                <dd>{selected.item._source.scene || "尚未记录"}</dd>
-                <dt>计划时段</dt>
-                <dd>{planWindowLabel(planWindow(selected.item._source.start_at, selected.item._source.end_at))}</dd>
+                {selectedDisplay.showTime ? <>
+                  <dt>时间</dt>
+                  <dd>{userInstant(selected.item._source.start_at)} — {userInstant(selected.item._source.end_at)}</dd>
+                  <dt>计划时段</dt>
+                  <dd>{planWindowLabel(planWindow(selected.item._source.start_at, selected.item._source.end_at))}</dd>
+                </> : selectedDisplay.timeNote && <><dt>时间</dt><dd>{selectedDisplay.timeNote}</dd></>}
+                {selected.item._source.location && <><dt>地点</dt><dd>{selected.item._source.location}</dd></>}
+                {selected.item._source.scene && <><dt>类型</dt><dd>{selected.item._source.scene}</dd></>}
                 <dt>执行状态</dt>
                 <dd>{selected.item._source.action_status ? stateLabel(selected.item._source.action_status) : "执行尚未确认"}</dd>
               </dl>
@@ -1318,11 +1321,8 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
                   过去和未来的安排供查阅，条目建议面向今天。
                 </p>
               )}
-              <Disclosure title="原日程与来源">
-                <pre className="replica-source-record">
-                  {JSON.stringify(selected.item._source, null, 2)}
-                </pre>
-              </Disclosure>
+              <ProfileFieldsSummary value={selected.item._source.action_plan} shape={scheduleActionShape} title="行动安排" />
+              <JsonDetails title="原始日程记录（诊断）" value={selected.item._source} downloadOnly />
                 <Button
                   variant="outline"
                   disabled={
@@ -1521,8 +1521,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
         }
       >
         <p>
-          将采用最新日程版本 {review?.detail.schedule?.revision ?? "尚未读到"}{" "}
-          核对。时间、地点、内容和原因保持原提交。
+          将依据刚核对的日程重新提交。时间、地点、内容和原因保持原提交。
         </p>
         {review && (
           <div className="lp-stack">
@@ -1539,9 +1538,10 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
               <dt>原因</dt>
               <dd>{review.original.request.reason || "原建议未提供原因"}</dd>
             </dl>
-            <Disclosure title="原建议的完整请求与版本">
-              <pre className="replica-source-record">{JSON.stringify(review.original.request, null, 2)}</pre>
-            </Disclosure>
+            <JsonDetails title="原始日程调整请求（诊断）" value={{
+              original: review.original,
+              latest_schedule_revision: review.detail.schedule?.revision,
+            }} downloadOnly />
           </div>
         )}
         {formError && <InlineFeedback role="alert">{formError}</InlineFeedback>}

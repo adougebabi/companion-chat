@@ -90,7 +90,7 @@ test('读取失败显示中文错误且隐藏原始诊断，重新读取后恢�
   } finally {await context.dispose();}
 });
 
-test('有修订时显示版本列表，翻页失败保留列表并重试原游标', async () => {
+test('有修订时显示中文保存记录，翻页失败保留列表并重试原游标', async () => {
   const context = await openHistory({read: async (url, count) => {
     if (count === 2) throw Error('Internal Server Error private-cursor');
     return url.searchParams.get('cursor')
@@ -98,16 +98,18 @@ test('有修订时显示版本列表，翻页失败保留列表并重试原游�
       : {items: [{id: 'private-newer', revision: 2, reason: '更新发型参考'}], next_cursor: 'private-next'};
   }});
   try {
-    assert.match(dialog().textContent, /视觉定义 v2/);
+    assert.match(dialog().textContent, /更新视觉定义/);
     assert.match(dialog().textContent, /更新发型参考/);
     assert.doesNotMatch(dialog().textContent, emptyText);
     await context.view.click(button(dialog(), '加载更多定义修订'));
-    assert.match(dialog().textContent, /视觉定义 v2/);
+    assert.match(dialog().textContent, /更新视觉定义/);
     assert.match(dialog().textContent, /暂时无法读取/);
     assert.doesNotMatch(dialog().textContent, forbidden);
     await context.view.click(button(dialog(), '重新读取定义修订'));
-    assert.match(dialog().textContent, /视觉定义 v2/);
-    assert.match(dialog().textContent, /视觉定义 v1/);
+    assert.match(dialog().textContent, /更新视觉定义/);
+    assert.match(dialog().textContent, /首次保存视觉定义/);
+    assert.match(dialog().textContent, /首次保存参考说明/);
+    assert.doesNotMatch(dialog().textContent, /\bv\d+\b/);
     assert.deepEqual(context.historyCalls, ['', 'private-next', 'private-next']);
     assert.doesNotMatch(dialog().textContent, forbidden);
     assert.doesNotMatch(dialog().textContent, emptyText);

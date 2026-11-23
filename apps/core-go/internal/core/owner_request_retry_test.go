@@ -125,7 +125,7 @@ func TestOwnerStaleOutfitRequestReassessesCurrentCASAndExecutesAutomatically(t *
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("discover-wear", capabilityCatalogName, map[string]any{"names": []string{wardrobeWearCapabilityName}})}}
 		}
 		if !payloadHasToolResult(payload) || !strings.Contains(jsonString(payload), "retry-wear") {
-			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("retry-wear", wardrobeWearCapabilityName, map[string]any{"mode": "partial", "item_ids": []string{boots}})}}
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("retry-wear", wardrobeWearCapabilityName, map[string]any{})}}
 		}
 		return fakeProviderResult{Structured: map[string]any{"decision": "deferred", "reason": "如果资料失效则等待重新判断"}}
 	})}

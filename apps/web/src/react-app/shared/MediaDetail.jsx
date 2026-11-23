@@ -209,14 +209,14 @@ export default function MediaDetail({ model: m, id, onClose }) {
                   ["来源", mediaSource(asset)],
                   [
                     "创建时间",
-                    asset.created_at ? userInstant(asset.created_at) : "未记录",
+                    asset.created_at ? userInstant(asset.created_at) : null,
                   ],
                   [
                     "类型与大小",
-                    mediaKind(asset.kind) + " · " + mediaBytes(asset.byte_size),
+                    asset.byte_size == null ? mediaKind(asset.kind) : mediaKind(asset.kind) + " · " + mediaBytes(asset.byte_size),
                   ],
                   ["读取状态", mediaReadState(asset)],
-                ].map(([label, value]) => (
+                ].filter(([, value]) => value).map(([label, value]) => (
                   <div className="profile-key-value" key={label}>
                     <span>{label}</span>
                     <div>{value}</div>

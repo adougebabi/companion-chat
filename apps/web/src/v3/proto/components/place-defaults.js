@@ -1,10 +1,13 @@
 import {userInstant} from '../../presentation-time.mjs';
 import {stateLabel} from '../../domain-presentation.mjs';
+import {isInternalId} from '../../internal-id.mjs';
 import {mockWorld} from '../services.js';
 import {get} from '../store.js';
 import {drawer,esc} from '../ui.js';
 import {Field,DiffRows} from './forms.js';
-import {JsonDetails} from './records.js';
+import {JsonDetails,RawRecordDownload} from './records.js';
+import {ReadingFields} from './reading-fields.js';
+import {readingFields} from '../../../approved-ui/reading-fields.mjs';
 import {mountCursorRecords} from './cursor-records.js';
 import {durableCommandDrawer} from './durable-command-drawer.js';
 
@@ -28,8 +31,107 @@ export function placeDefaultsDrawer(fid,wid,pid,{onRestored=()=>{}}={}){
  void load();return d;
 }
 
+const historyActions = new Map([
+ ['initial_saved','首次保存'],
+ ['edit_fields','修改地点字段'],
+ ['set_baseline','保存恢复基准'],
+ ['restore_fields','恢复默认字段'],
+]);
+const historySources = new Map([
+ ['initial_saved','地点首次保存的字段'],
+ ['published_definition','已应用的地点定义'],
+ ['owner_pinned_saved','明确保存的地点字段'],
+]);
+const historyFields = [
+ ['name','正式名称'], ['alias','别名'], ['description','场景描述'],
+ ['group','分组'], ['floor','楼层'], ['atmosphere','氛围'], ['layout','空间布局'],
+ ['furniture','固定陈设'], ['connections','连通描述'], ['room_items','房间物品'],
+ ['scene','场景素材'],
+];
+const historyCollections = new Set(['furniture','connections','room_items']);
+
+function historyText(value) {
+ if (typeof value !== 'string' || isInternalId(value)) return '';
+ return value.replace(/[a-z0-9_-]+/gi, token => isInternalId(token) ? '相关记录' : token).trim();
+}
+
+function historyFieldText(field,value) {
+ if (!historyCollections.has(field)) return historyText(value);
+ const items = Array.isArray(value) ? value : [value];
+ return items.map(item => {
+  if (!item || typeof item !== 'object' || Array.isArray(item)) return historyText(item);
+  const name = historyText(item.name) || historyText(item.label);
+  const description = historyText(item.description);
+  if (name && description && description !== name) return `${name}（${description}）`;
+  return name || description;
+ }).filter(Boolean).join('、');
+}
+
+const collectionDetails = readingFields('quantity position placement material color condition notes details');
+
+function historyCollectionDetails(value) {
+ return (Array.isArray(value) ? value : [value]).map(item => {
+  if (!item || typeof item !== 'object') return '';
+  const details = ReadingFields(item,collectionDetails);
+  if (!details) return '';
+  const name = historyText(item.name) || historyText(item.label);
+  return `${name ? `<p>${esc(name)}</p>` : ''}${details}`;
+ }).join('');
+}
+
+function historyFieldRows(before,after) {
+ if (!after || typeof after !== 'object') return '';
+ const rows = historyFields.map(([field,label]) => {
+  const previous = before?.[field], next = after[field];
+  if (!Object.hasOwn(after,field) || previous === next) return '';
+  let change;
+  if (field === 'scene') {
+   const from = typeof previous === 'string' ? previous.trim() : '';
+   const to = typeof next === 'string' ? next.trim() : '';
+   if (from === to) return '';
+   change = to ? (from ? '已更换' : '已设置') : '已清除';
+  } else {
+   const from = historyFieldText(field,previous);
+   const to = historyFieldText(field,next);
+   const beforeDetails = historyCollections.has(field) ? historyCollectionDetails(previous) : '';
+   const afterDetails = historyCollections.has(field) ? historyCollectionDetails(next) : '';
+   if (from === to && beforeDetails === afterDetails) return '';
+   const cleared = next == null || (typeof next === 'string' && !next.trim()) ||
+    (Array.isArray(next) && next.length === 0);
+   change = from === to ? '' : from && to ? `${from} → ${to}` : to || (cleared ? `${from} → 已清除` : `原值：${from}`);
+   if (beforeDetails !== afterDetails) {
+    const details = `${beforeDetails ? `<p>变更前补充</p>${beforeDetails}` : ''}${afterDetails ? `<p>变更后补充</p>${afterDetails}` : '<p>已清除补充说明</p>'}`;
+    return `<div><dt>${esc(label)}</dt><dd>${esc(change)}${details}</dd></div>`;
+   }
+  }
+  return `<div><dt>${esc(label)}</dt><dd>${esc(change)}</dd></div>`;
+ }).join('');
+ return rows ? `<dl class="record-facts">${rows}</dl>` : '';
+}
+
+function placeHistoryRecord(row) {
+ const {before_value:before,after_value:after,source,operation,created_at:createdAt} = row;
+ const name = historyText(after?.name) || historyText(before?.name) ||
+  historyText(after?.alias) || historyText(before?.alias);
+ const action = historyActions.get(operation) || '地点字段修订';
+ const reason = historyText(row.reason);
+ const time = typeof createdAt === 'string' && Number.isFinite(Date.parse(createdAt));
+ const sourceLabel = historySources.get(source?.source_kind);
+ const baseline = operation === 'set_baseline';
+ const fields = baseline ? historyFieldRows(null,source?.definition) : historyFieldRows(before,after);
+ return `<article data-domain-ui="card" class="card">
+  ${name ? `<h3>${esc(name)}</h3>` : ''}
+  <p><b>${esc(action)}</b></p>
+  ${reason ? `<p>原因：${esc(reason)}</p>` : ''}
+  ${time ? `<p class="small muted">修订时间：<time datetime="${esc(createdAt)}">${esc(userInstant(createdAt))}</time></p>` : ''}
+  ${sourceLabel ? `<p class="small muted">基准来源：${esc(sourceLabel)}</p>` : ''}
+  ${fields ? `<p><b>${baseline ? '恢复基准字段' : '变化的字段'}</b></p>${fields}` : ''}
+  ${RawRecordDownload(row,'原始地点修订记录（诊断）')}
+ </article>`;
+}
+
 export function renderPlaceHistory(el,ctx){
  const owner=get('session')?.actorId;let active=true;const alive=()=>active&&el.isConnected&&get('session')?.actorId===owner;
- el.innerHTML=`<div class="stack"><div class="row"><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/data/revisions">对象修订目录</a><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${encodeURIComponent(ctx.charId)}/worlds">当前世界目录</a></div><div data-domain-ui="card" class="card"><h2>地点字段与默认基准历史</h2><p class="small muted">地点 ${esc(ctx.params.placeId)} · 原世界 ${esc(ctx.params.worldId)}</p><p>这里展示保留的实际修订，已移除地点的记录也可读取。历史字段不代表角色当前位置或当前世界状态。</p></div><div class="stack" data-history></div></div>`;
- const panel=mountCursorRecords(el.querySelector('[data-history]'),{alive,label:'地点历史',read:cursor=>mockWorld.placeDefaultHistory(ctx.charId,ctx.params.worldId,ctx.params.placeId,cursor),render:row=>`<article data-domain-ui="card" class="card"><b>${esc(stateLabel(row.operation,'字段修订'))} · 地点 v${esc(row.place_revision)} · 基准 v${esc(row.default_revision)}</b><p>${esc(row.reason)} · ${esc(userInstant(row.created_at))}</p>${JsonDetails(row,'字段前后值与实际来源')}</article>`,empty:'没有保留的地点字段或恢复基准历史。'});return()=>{active=false;panel.dispose();};
+ el.innerHTML=`<div class="stack"><div class="row"><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/data/revisions">对象修订目录</a><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${encodeURIComponent(ctx.charId)}/worlds">当前世界目录</a></div><div data-domain-ui="card" class="card"><h2>地点字段与默认基准历史</h2><p>这里展示保留的实际修订，已移除地点的记录也可读取。历史字段不代表角色当前位置或当前世界状态。</p></div><div class="stack" data-history></div></div>`;
+ const panel=mountCursorRecords(el.querySelector('[data-history]'),{alive,label:'地点历史',read:cursor=>mockWorld.placeDefaultHistory(ctx.charId,ctx.params.worldId,ctx.params.placeId,cursor),render:placeHistoryRecord,empty:'没有保留的地点字段或恢复基准历史。'});return()=>{active=false;panel.dispose();};
 }

@@ -24,14 +24,40 @@ export function domainName(value,fallback='运行记录'){
 const visualStages={session_created:'生成任务已登记',seed_requested:'正在整理外观设定',seed_ready:'外观设定已整理',image_requested:'正在生成候选图',image_ready:'候选图已生成',vision_requested:'正在检查形象一致性',vision_ready:'形象检查已返回',patch_requested:'正在整理修正',patch_ready:'修正内容已准备',regenerate:'正在重新生成',accepted:'规范参考图已接受',character_sheet_requested:'正在生成角色设定图',character_sheet_ready:'角色设定图已生成',completed:'视觉准备已完成',failed:'本次生成失败'};
 export function visualStageLabel(value,fallback='生成阶段记录'){return visualStages[value]||fallback;}
 
-// A user-facing summary only. Callers retain the original value in technical details.
+export const errorRecordTitle='原始错误记录（诊断）';
+
+// Error.message and Error.stack are own properties but are not enumerable.
+export function errorRecord(error){
+ if(error==null||error==='')return null;
+ if(typeof error!=='object')return {message:String(error)};
+ const keys=Object.getOwnPropertyNames(error);
+ if(!keys.length&&!error.name)return null;
+ return {
+  ...Object.fromEntries(keys.map(key=>[key,error[key]])),
+  name:error.name,
+  message:error.message,
+  stack:error.stack,
+  code:error.code,
+ };
+}
 export function feedbackDiagnostic(cause){
  return {name:cause?.name,code:cause?.code,status:cause?.status,message:String(cause?.message??cause??''),requestId:cause?.requestId??cause?.details?.request_id,correlationId:cause?.correlationId??cause?.details?.correlation_id,stack:cause?.stack};
 }
+export function readErrorMessage(error, fallback='读取失败，请稍后重试。'){
+ return presentError(error,fallback,true);
+}
 export function errorMessage(error, fallback='操作未完成，请稍后重试。') {
+ return presentError(error,fallback,false);
+}
+function presentError(error,fallback,reading) {
  const text=String(error?.message ?? error ?? ''), code=String(error?.code ?? '');
  const source=code+' '+text;
- if(/diagnostic_debug_read_disabled|FLUCTLIGHT_DIAGNOSTIC_DEBUG_READ/.test(source))return '完整诊断未开启，请联系管理员。';
+ if(/diagnostic_debug_read_disabled|FLUCTLIGHT_DIAGNOSTIC_DEBUG_READ/.test(source))return '诊断读取未开启，需要管理员在服务端开启后再查看。';
+ if(reading){
+  if(error?.status===401||code==='unauthorized')return '登录状态已失效，请重新登录后再读取。';
+  if(error?.status===403||code==='forbidden')return '当前账户没有读取此内容的权限。';
+  if(error?.status===408||error?.status===504||/request_timeout|gateway_timeout|context deadline exceeded|timed? ?out|TimeoutError/i.test(source))return '读取超时，请稍后重试。';
+ }
  if(/persona_preparation_failed/.test(source))return '人格资料准备失败，暂时无法聊天。请继续准备人格，完成后再发送；当前输入会保留。';
  if(/persona_preparation_pending/.test(source))return '人格资料正在准备，完成后即可聊天。当前输入会保留，请稍后重新读取准备状态。';
  if(/direct_media_delivery_unresolved|direct_media_delivery_unverified|direct_media_delivery_stale/.test(source))return '回复未发送：图片发送状态与回复内容未能通过核对。请查看被拦内容、判断依据和实际图片记录后重试。';
@@ -65,6 +91,14 @@ export function errorMessage(error, fallback='操作未完成，请稍后重试�
  if(/context canceled|context_cancelled|request_cancelled/.test(source))return '本次处理已中断，请刷新进度确认结果。';
  if(/request_timeout|context deadline exceeded|timed? ?out|TimeoutError/.test(source))return '模型服务响应超时。原消息和提交记录已保留，请刷新进度或检查模型服务。';
  if(/request_failed|Failed to fetch|NetworkError|fetch failed|unavailable/.test(source))return '服务暂时无法连接，请稍后重新读取。';
- if(/[\u3400-\u9fff]/u.test(text))return text.replace(/\b[a-z][a-z0-9]*_[a-z0-9_]+\b/gi,'（详情见技术记录）');
+ if(/[\u3400-\u9fff]/u.test(text)){
+  const hasErrorTrace=/\b[\w.]*(?:Error|Exception)\b|(?:^|\n)\s*at\s/i.test(text);
+  const hasAddress=/\b[a-z][a-z\d+.-]*:\/\/|\b(?:localhost|[\w.-]+\.(?:local|internal)|(?:\d{1,3}\.){3}\d{1,3})\b|\b[\w.-]+:\d{2,5}\b/i.test(text);
+  const hasEnvironmentName=/\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b/.test(text);
+  const hasCode=code&&text.includes(code);
+  if(hasErrorTrace||hasAddress||hasEnvironmentName||hasCode||(reading&&error?.name==='BrowserApiError'))return fallback;
+  const namedField=/\b[a-z][a-z0-9]*_[a-z0-9_]+\b/gi;
+  return reading&&namedField.test(text)?fallback:text.replace(namedField,'（详情见技术记录）');
+ }
  return fallback;
 }

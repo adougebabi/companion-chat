@@ -5,11 +5,12 @@ export function profileDetail({id='fixture-role',status='active',active='warm',r
 export function personaReceipt(fid,body,{status='completed',active=body.targetPersonaId,runtimeRevision=body.expectedRuntimeRevision+1,disposition='applied',requestId='persona-fixture-request'}={}){const value={request_id:requestId,status,disposition,revision:body.expectedRevision,runtime_revision:runtimeRevision,active_profile_id:active,previous_profile_id:'warm',audit_id:'audit-fixture',persona_action_audit_id:null};return {...value,request:{id:requestId,kind:'persona_switch',fluctlight_id:fid,status,revision:1,payload:{target_persona_id:body.targetPersonaId,reason:body.reason,expected_revision:body.expectedRevision,expected_runtime_revision:body.expectedRuntimeRevision},result:value,result_refs:[],created_at:'2026-10-27T00:00:00Z'}};}
 export async function nativeProfileFixture({id='fixture-role',read=async()=>profileDetail({id}),switchPersona=async(fid,body)=>personaReceipt(fid,body)}={}){
  const environment=installDOM();location.hash='#/c/'+id+'/profile';
- const vite=await createServer({root:fileURLToPath(new URL('../../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
+ const vite=await createServer({root:fileURLToPath(new URL('../../',import.meta.url)),appType:'custom',envFile:false,logLevel:'silent',server:{middlewareMode:true}});
  const services=await vite.ssrLoadModule('/src/v3/proto/services.js');
  const {createWorkspace}=await vite.ssrLoadModule('/src/state/workspace.mjs'),store=await vite.ssrLoadModule('/src/v3/proto/store.js');
  const {createProfileModel}=await vite.ssrLoadModule('/src/react-app/pages/CharacterDetailPage.jsx'),{cell}=await vite.ssrLoadModule('/src/state/view-model.ts');
  const w=createWorkspace();store.replaceSnapshot({...store.get(),session:{actorId:'owner'},characters:{[id]:{id,name:'角色',status:'正常'}},ui:{charId:id}});
+ w.client.fetcher=async()=>{throw Error('Unexpected live request in native profile fixture');};
  let lastRequest;w.client.detail=read;w.client.switchPersona=async(...args)=>{const result=await switchPersona(...args);lastRequest=result.request;return result;};services.configureDomainService("life",{request:async()=>structuredClone(lastRequest)});w.client.world=async()=>({world:null});
  const disposers=[];
  const c=createProfileModel({workspace:w,cell,observe(){},onStart(){},onDispose:fn=>disposers.push(fn)});

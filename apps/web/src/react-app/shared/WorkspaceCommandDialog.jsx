@@ -68,6 +68,8 @@ export default function WorkspaceCommandDialog({
         ? "请先同步并核对最新资料，当前输入仍会保留。"
         : "";
   const visibleError = state.error && state.error !== editedError ? state.error : "";
+  const pendingFallback = !action.pendingSummary && state.pending?.value != null;
+  const reviewFallback = !action.reviewSummary && state.review?.object != null;
   const editDraft = (values) => {
     if (!state.pending && !state.readbackPending && !state.needsRebase)
       setEditedError(state.error);
@@ -210,13 +212,22 @@ export default function WorkspaceCommandDialog({
               {action.fields(state.draft, editDraft)}
             </form>
           )}
+          {(pendingFallback || reviewFallback) && (
+            <p className="text-sm text-muted-foreground">这项操作的完整内容可在诊断记录中下载。</p>
+          )}
           {state.pending && (
-            <JsonDetails value={state.pending.value} title="原提交内容" />
+            action.pendingSummary ? <>
+              {action.pendingSummary(state.pending.value)}
+              <JsonDetails value={state.pending.value} title="原始提交内容（诊断）" downloadOnly />
+            </> : pendingFallback && <JsonDetails value={state.pending.value} title="原始提交记录（诊断）" downloadOnly downloadEmpty />
           )}
           {state.review && (
             <section className="lp-stack">
-              <h3 ref={reviewHeading} tabIndex={-1}>核对最新对象与版本</h3>
-              <JsonDetails value={state.review.object} title="最新对象与来源" />
+              <h3 ref={reviewHeading} tabIndex={-1}>核对最新资料</h3>
+              {action.reviewSummary ? <>
+                {action.reviewSummary(state.review.object)}
+                <JsonDetails value={state.review.object} title="最新记录与来源（诊断）" downloadOnly />
+              </> : reviewFallback && <JsonDetails value={state.review.object} title="原始核对记录（诊断）" downloadOnly downloadEmpty />}
               <Button
                 disabled={state.busy}
                 onClick={() => model.confirmLatest()}

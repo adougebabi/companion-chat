@@ -1,5 +1,6 @@
 import {esc,badge} from './controls.js';
-import {JsonDetails} from './records.js';
+import {JsonDetails,RawRecordDownload} from './records.js';
+import {scheduleItemDisplay} from '../../../react-app/shared/schedule-presentation.mjs';
 import {stateLabel} from '../../domain-presentation.mjs';
 import {planWindow} from '../../presentation-time.mjs';
 import {formatZonedTime,formatZonedRange} from '../../../lib/fluctlight-display.ts';
@@ -12,7 +13,6 @@ export function ScheduleTimeRange(start,end,zone){
 }
 
 function ScheduleSummaryRange(start,end,zone){
- if(!Number.isFinite(Date.parse(start))||!Number.isFinite(Date.parse(end)))return ScheduleTimeRange(start,end,zone);
  const day=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}),time=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',hour:'2-digit',minute:'2-digit',hour12:false}),from=new Date(start),to=new Date(end),same=day.format(from)===day.format(to),label=date=>same?time.format(date):day.format(date)+' '+time.format(date),full=formatZonedRange(start,end,zone);
  return `<span class="schedule-range" title="${esc(full)}" aria-label="${esc(full)}"><time datetime="${esc(start)}">${esc(label(from))}</time><span aria-hidden="true"> — </span><time datetime="${esc(end)}">${esc(label(to))}</time></span>`;
 }
@@ -32,9 +32,28 @@ export function refreshPlanWindows(root,items,now=Date.now()){
  });
 }
 
-export function ScheduleTimelineItem(item,zone,{expanded=false,editable=true}={}){
- const window=planWindow(item.start_at,item.end_at);
+export function ScheduleTimelineItem(item,zone,{expanded=false,editable=true,schedule,charId}={}){
+ const {title,showTime,timeNote}=scheduleItemDisplay({_source:item,_schedule:schedule,text:item.activity});
+ const window=showTime?planWindow(item.start_at,item.end_at):'unknown';
  const promise=item.promise_request_id;
+ const planStatus=item.status?stateLabel(item.status):'';
+ const actionStatus=item.action_status?stateLabel(item.action_status):promise?'实际履行另行记录':'';
+ const location=item.location||item.scene;
  const canEdit=editable&&window==='future'&&!['in_progress','completed'].includes(item.action_status);
- return `<details data-domain-ui="disclosure" class="schedule-timeline-item ${window==='current'?'is-current':''}" data-schedule-expand="${esc(item.id)}" ${expanded?'open':''}><summary><span class="schedule-time">${ScheduleSummaryRange(item.start_at,item.end_at,zone)}</span><span class="grow"><span class="schedule-item-heading"><b>${esc(item.activity)}</b>${item.status?badge(stateLabel(item.status)):badge('计划状态未知','plain')}</span><span class="small muted">${esc(item.location||item.scene||'地点未记录')}</span></span><span aria-hidden="true">⌄</span></summary><div class="schedule-timeline-body" data-schedule-slot="${esc(item.id)}"><p class="small muted" data-window-label>${esc(planWindowLabel(window))}</p><div class="row">${item.status?badge(stateLabel(item.status)):badge('计划状态未知')}${item.action_status?badge(stateLabel(item.action_status)):badge(promise?'实际履行另行记录':'执行未知','plain')}</div><p>${esc(item.scene||'场景未记录')}</p>${promise?`<p class="small muted">${item.promise_schedule_valid===false?'这项约定已取消、完成或改变时段；此处保留原安排记录。':'这是已接受约定的时间安排，排入不代表执行或履约。'}</p><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-promise-id="${esc(promise)}">查看原约定与证据</button>`:''}${item.place_id?`<a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="sm" href="${esc('#/c/'+item.charId+'/world/place/'+encodeURIComponent(item.place_id))}">查看地点</a>`:''}${canEdit?`<div class="row"><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-edit="${esc(item.id)}">建议调整</button><button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-cancel="${esc(item.id)}">建议取消</button></div>`:''}${JsonDetails(item,'安排来源与原记录')}</div></details>`;
+ return `<details data-domain-ui="disclosure" class="schedule-timeline-item ${window==='current'?'is-current':''}" data-schedule-expand="${esc(item.id)}" ${expanded?'open':''}>
+  <summary>
+   ${showTime||timeNote?`<span class="schedule-time">${showTime?ScheduleSummaryRange(item.start_at,item.end_at,zone):esc(timeNote)}</span>`:''}
+   <span class="grow"><span class="schedule-item-heading"><b>${esc(title)}</b>${planStatus?`<span class="small muted">${esc(planStatus)}</span>`:''}</span>${location?`<span class="small muted">${esc(location)}</span>`:''}</span>
+   <span aria-hidden="true">⌄</span>
+  </summary>
+  <div class="schedule-timeline-body" ${showTime?`data-schedule-slot="${esc(item.id)}"`:''}>
+   ${showTime?`<p class="small muted" data-window-label>${esc(planWindowLabel(window))}</p>`:''}
+   ${actionStatus?`<div class="row">${badge(actionStatus,item.action_status?undefined:'plain')}</div>`:''}
+   ${item.scene?`<p>${esc(item.scene)}</p>`:''}
+   ${promise?`<p class="small muted">${item.promise_schedule_valid===false?'这项约定已取消、完成或改变时段；此处保留原安排记录。':'这是已接受约定的时间安排，排入不代表执行或履约。'}</p><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-promise-id="${esc(promise)}">查看原约定与证据</button>`:''}
+   ${item.place_id?`<a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="sm" href="${esc('#/c/'+encodeURIComponent(charId)+'/world/place/'+encodeURIComponent(item.place_id))}">查看地点</a>`:''}
+   ${canEdit?`<div class="row"><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-edit="${esc(item.id)}">建议调整</button><button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-cancel="${esc(item.id)}">建议取消</button></div>`:''}
+   ${RawRecordDownload(item,'原始日程记录（诊断）')}
+  </div>
+ </details>`;
 }

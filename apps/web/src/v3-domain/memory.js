@@ -2,11 +2,11 @@ import {errorMessage} from '../v3/domain-presentation.mjs';
 import {sourceHref,sourceReturn} from '../v3/proto/components/source-navigation.js';
 import {mountCalendarReading,localDate,reconcileReadingRecord} from '../v3/proto/components/calendar-reading.js';
 import { memoryClient } from '../v3/proto/services.js';
-import { asyncPage,instant } from '../v3/proto/components/async-page.js';
-import { CursorPager,bindCursorPager } from '../v3/proto/components/cursor-pager.js';
+import { asyncPage } from '../v3/proto/components/async-page.js';
 import { mountCursorRecords } from '../v3/proto/components/cursor-records.js';
 import { Field,Tabs,SearchForm,DiffView } from '../v3/proto/components/forms.js';
-import { JsonDetails } from '../v3/proto/components/records.js';
+import { RawRecordDownload } from '../v3/proto/components/records.js';
+import { labelFor,memoryFacts,memorySourceFacts,memoryRevisionFacts,scoreText } from '../approved-ui/memory-record-summary.mjs';
 import { esc,badge,drawer,toast,requireOwner } from '../v3/proto/ui.js';
 import { get } from '../v3/proto/store.js';
 
@@ -31,22 +31,86 @@ export function renderRealMemoryList(el,ctx) {
    render:(m,date)=>`<article class="reading-paper" data-test="mem-${esc(m.id)}"><div class="row"><span class="paper-date grow">${date?'记于 '+esc(date):''}</span>${m.status!=='active'?badge(statuses[m.status]||m.status,'plain'):''}</div><p class="paper-body">${esc(m.content)}</p><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="${esc(sourceHref(memoryHref(ctx.charId,m.id),ctx,aboutOwner?'返回关于你的记忆':'返回她的记忆'))}">查看或纠正</a></article>`});
 }
 
+const memoryDownload = row => RawRecordDownload(row,'原始记忆记录（诊断）');
+function summaryFacts(facts) {
+  const present=facts.filter(([,value])=>value);
+  return present.length ? `<dl class="record-facts">${present.map(([label,value])=>
+    `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>` : '';
+}
+
 export function renderRealMemory(el,ctx) {
   const id=ctx.params.memId;
   return asyncPage(el,()=>memoryClient.read(ctx.charId,id),(memory,reload,alive)=>{
     reconcileReadingRecord(ctx.charId,'memory',memory,(scope,row)=>(!scope[2]||scope[2]===row.type)&&(!scope[3]||scope[3]===row.status)&&(!scope[4]||row.content.toLocaleLowerCase().includes(scope[4].toLocaleLowerCase()))&&(!scope[5]||(!['pending','invalid'].includes(row.provenance_status)&&row.actor_refs?.includes(get('session')?.actorId))));
     let disposed=false;
-    el.innerHTML=`<div class="stack reading-workspace"><h1 class="reading-business-title">记忆详情</h1>${growthNavigation(ctx.charId,'memory')}<div class="reading-paper"><div class="row"><span class="grow small muted">${esc(types[memory.type])}</span>${badge(statuses[memory.status])}<span class="small muted">第 ${esc(memory.revision)} 版</span></div><p class="memory-content" data-test="memory-content">${esc(memory.content)}</p><p class="small muted">来源状态 ${esc(memory.provenance_status)} · 可见范围 ${esc(memory.visibility)} · 发生时间 ${esc(instant(memory.occurred_at))}</p>${memory.provenance_status==='invalid'||memory.provenance_status==='pending'?'<p data-domain-ui="alert" class="banner warn">来源尚未有效，不能将这条记忆当作当前已确认事实。</p>':''}<div class="row">${memory.status==='active'?'<button data-domain-ui="button" data-domain-variant="default" data-domain-size="default" data-edit data-test="mem-edit">记错了</button><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-forget>别再提</button>':''}<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-reload>重新读取</button></div><div data-editor></div>${JsonDetails({actor_refs:memory.actor_refs,event_refs:memory.event_refs,personality_perspectives:memory.personality_perspectives,confidence:memory.confidence,importance:memory.importance,emotional_significance:memory.emotional_significance,supersedes_memory_id:memory.supersedes_memory_id,superseded_by_memory_id:memory.superseded_by_memory_id},'范围、人格理解与谱系')}</div><div data-domain-ui="card" class="card"><h3>来源</h3><div data-sources role="status" data-domain-ui="skeleton">正在读取来源…</div></div><div data-domain-ui="card" class="card"><h3>修订记录</h3><div data-revisions role="status" data-domain-ui="skeleton">正在读取修订…</div></div><div class="row"><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="${esc(sourceReturn(ctx,`#/c/${ctx.charId}/growth`))}">${esc(ctx.query.returnLabel||'返回记忆库')}</a><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${ctx.charId}/people/owner">关于你</a></div></div>`;
+    el.innerHTML=`<div class="stack reading-workspace">
+      <h1 class="reading-business-title">记忆详情</h1>
+      ${growthNavigation(ctx.charId,'memory')}
+      <div class="reading-paper">
+        <div class="row"><span class="grow small muted">${esc(labelFor(types,memory.type))}</span></div>
+        <p class="memory-content" data-test="memory-content">${esc(memory.content)}</p>
+        ${summaryFacts([...memoryFacts(memory),['重要度',scoreText(memory.importance)]])}
+        ${['invalid','pending'].includes(memory.provenance_status)?'<p data-domain-ui="alert" class="banner warn">来源尚未有效，不能将这条记忆当作当前已确认事实。</p>':''}
+        <div class="row">
+          ${memory.status==='active'?'<button data-domain-ui="button" data-domain-variant="default" data-domain-size="default" data-edit data-test="mem-edit">记错了</button><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-forget>别再提</button>':''}
+          <button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-reload>重新读取</button>
+        </div>
+        <div data-editor></div>
+        ${memoryDownload(memory)}
+      </div>
+      <div data-domain-ui="card" class="card">
+        <h3>来源</h3><p class="small muted" data-source-label>当前记忆的来源</p>
+        <div data-sources role="status" data-domain-ui="skeleton">正在读取来源…</div>
+      </div>
+      <div data-domain-ui="card" class="card">
+        <h3>修订记录</h3><div data-revisions role="status" data-domain-ui="skeleton">正在读取修订…</div>
+      </div>
+      <div class="row">
+        <a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="${esc(sourceReturn(ctx,`#/c/${ctx.charId}/growth`))}">${esc(ctx.query.returnLabel||'返回记忆库')}</a>
+        <a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${ctx.charId}/people/owner">关于你</a>
+      </div>
+    </div>`;
     const current=()=>!disposed&&alive();
-    const sourceBox=el.querySelector('[data-sources]'),revisionBox=el.querySelector('[data-revisions]');
-    function sourceLink(source){if(source.source_kind==='message'&&source.conversation_id)return `<a href="#/c/${ctx.charId}/chat?${new URLSearchParams({conversation:source.conversation_id,message:source.source_id})}">查看原消息</a>`;return `<span class="small muted">${esc(source.source_ref)}</span>`;}
+    const sourceBox=el.querySelector('[data-sources]');
+    const revisionBox=el.querySelector('[data-revisions]');
+    const sourceLabel=el.querySelector('[data-source-label]');
+    function sourceLink(source) {
+      if(source.source_kind!=='message'||!source.conversation_id||!source.source_id)return '';
+      const query=new URLSearchParams({conversation:source.conversation_id,message:source.source_id});
+      return `<a href="${esc(`#/c/${encodeURIComponent(ctx.charId)}/chat?${query}`)}">查看原消息</a>`;
+    }
     let sourceRevision=memory.revision;
-    const sourceLabel=document.createElement('p');sourceLabel.className='small muted';sourceLabel.textContent=`第 ${sourceRevision} 版的来源`;sourceBox.before(sourceLabel);
-    const sources=mountCursorRecords(sourceBox,{alive:current,label:'来源',empty:'本版没有可追溯来源，保留其未知状态。',read:cursor=>memoryClient.sources(ctx.charId,id,sourceRevision,cursor),render:source=>`<div data-domain-ui="item" class="lrow"><div class="grow">${sourceLink(source)}<div class="small muted">${esc(source.source_kind)} · ${esc(instant(source.occurred_at))}${source.superseded_by_ref?' · 已被 '+esc(source.superseded_by_ref)+' 替代':''}</div></div>${badge(source.live?'来源有效':'来源失效或未知')}</div>`});
-    const revisions=mountCursorRecords(revisionBox,{alive:current,label:'修订',empty:'尚无修订记录。',read:cursor=>memoryClient.revisions(ctx.charId,id,cursor),render:r=>`<div data-domain-ui="item" class="lrow" data-test="rev"><b>v${esc(r.revision)}</b><div class="grow"><p>${esc(r.content)}</p><div class="small muted">${esc(r.operation)} · ${esc(r.semantic_reason)} · ${esc(instant(r.created_at))}</div>${JsonDetails(r,'修订来源与处置')}</div><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" data-source-revision="${esc(r.revision)}">第 ${esc(r.revision)} 版来源</button>${r.status==='active'&&r.revision<memory.revision?`<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" data-rollback="${esc(r.revision)}">补偿恢复至此版…</button>`:''}</div>`,bind:box=>{
-      box.querySelectorAll('[data-rollback]').forEach(button=>button.onclick=()=>governMemory(memory,'rollback',Number(button.dataset.rollback),reload));
-      box.querySelectorAll('[data-source-revision]').forEach(button=>button.onclick=()=>{sourceRevision=Number(button.dataset.sourceRevision);sourceLabel.textContent=`第 ${sourceRevision} 版的来源`;void sources.reload({reset:true});});
-    }});
+    const sources=mountCursorRecords(sourceBox,{
+      alive:current,label:'来源',empty:'',
+      read:cursor=>memoryClient.sources(ctx.charId,id,sourceRevision,cursor),
+      render:source=>`<div data-domain-ui="item" class="lrow">
+        <div class="grow">${summaryFacts(memorySourceFacts(source))}${sourceLink(source)}${memoryDownload(source)}</div>
+      </div>`,
+    });
+    const revisions=mountCursorRecords(revisionBox,{
+      alive:current,label:'修订',empty:'',
+      read:cursor=>memoryClient.revisions(ctx.charId,id,cursor),
+      render:row=>`<div data-domain-ui="item" class="lrow" data-test="rev">
+        <div class="grow">
+          <b>${row.revision===memory.revision?'当前记录':'历史修订'}</b>
+          <p>${esc(row.content)}</p>
+          ${summaryFacts(memoryRevisionFacts(row))}${memoryDownload(row)}
+        </div>
+        <button data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" data-source-revision="${esc(row.revision)}">查看此版来源</button>
+        ${row.status==='active'&&row.revision<memory.revision?`<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" data-rollback="${esc(row.revision)}">补偿恢复至此版…</button>`:''}
+      </div>`,
+      bind:(box,page)=>{
+        box.querySelectorAll('[data-rollback]').forEach(button=>button.onclick=()=>{
+          const target=page.items.find(row=>row.revision===Number(button.dataset.rollback));
+          if(target)governMemory(memory,'rollback',target,reload);
+        });
+        box.querySelectorAll('[data-source-revision]').forEach(button=>button.onclick=()=>{
+          sourceRevision=Number(button.dataset.sourceRevision);
+          sourceLabel.textContent=sourceRevision===memory.revision?'当前记忆的来源':'这次历史修订的来源';
+          void sources.reload({reset:true});
+        });
+      },
+    });
     el.querySelector('[data-reload]').onclick=reload;
     el.querySelector('[data-edit]')?.addEventListener('click',()=>editMemory(el.querySelector('[data-editor]'),memory,reload));
     if(drafts.has(draftKey(memory)))editMemory(el.querySelector('[data-editor]'),memory,reload);
@@ -58,7 +122,7 @@ export function renderRealMemory(el,ctx) {
 function editMemory(box,memory,reload) {
   const key=draftKey(memory),draft=drafts.get(key)||{content:memory.content,reason:'',baseRevision:memory.revision};drafts.set(key,draft);
   const needsReview=()=>draft.baseRevision!==memory.revision;
-  box.innerHTML=`<form data-domain-ui="card" class="card tint-accent stack">${needsReview()?`<p data-domain-ui="alert" class="banner warn">已重新读取第 ${esc(memory.revision)} 版，保留了第 ${esc(draft.baseRevision)} 版上的草稿。请核对当前内容与草稿，再确认使用新基线。</p><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" type="button" data-rebase>已核对，使用第 ${esc(memory.revision)} 版作为基线</button>`:''}${Field({label:'修改为',name:'content',value:draft.content,type:'textarea',attrs:{required:true,maxlength:4096,'data-test':'mem-draft'}})}${Field({label:'修订说明',name:'reason',value:draft.reason,attrs:{required:true,maxlength:150}})}<div data-diff></div><p data-domain-ui="alert" class="banner err" role="alert" data-error hidden></p><div class="row"><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" type="button" data-cancel>取消</button><button data-domain-ui="button" data-domain-variant="default" data-domain-size="default" data-test="mem-save" ${needsReview()?'disabled':''}>保存修改</button></div></form>`;
+  box.innerHTML=`<form data-domain-ui="card" class="card tint-accent stack">${needsReview()?`<p data-domain-ui="alert" class="banner warn">已重新读取当前记忆，原草稿仍保留。请核对当前内容与草稿，再确认使用新基线。</p><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" type="button" data-rebase>已核对，使用当前记忆作为基线</button>`:''}${Field({label:'修改为',name:'content',value:draft.content,type:'textarea',attrs:{required:true,maxlength:4096,'data-test':'mem-draft'}})}${Field({label:'修订说明',name:'reason',value:draft.reason,attrs:{required:true,maxlength:150}})}<div data-diff></div><p data-domain-ui="alert" class="banner err" role="alert" data-error hidden></p><div class="row"><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" type="button" data-cancel>取消</button><button data-domain-ui="button" data-domain-variant="default" data-domain-size="default" data-test="mem-save" ${needsReview()?'disabled':''}>保存修改</button></div></form>`;
   const form=box.querySelector('form');
   const paint=()=>{draft.content=form.elements.content.value;draft.reason=form.elements.reason.value;box.querySelector('[data-diff]').innerHTML=DiffView([{field:'当前有效版本 → 未提交草稿',before:memory.content,after:draft.content}],{attrs:{'data-test':'mem-diff'}});};paint();form.oninput=paint;
   box.querySelector('[data-rebase]')?.addEventListener('click',()=>{draft.baseRevision=memory.revision;editMemory(box,memory,reload);});
@@ -69,9 +133,9 @@ function editMemory(box,memory,reload) {
 
 function governMemory(memory,operation,target,reload) {
   let base=memory;
-  const label=operation==='forget'?'忘却记忆':`补偿恢复至第 ${target} 版`;
-  const d=drawer({title:label,body:`<p data-current-content>${esc(memory.content)}</p><p class="small muted">新增一条治理修订，保留原始历史。回滚不会撤销其他领域的历史效果。</p>${Field({label:'操作说明',name:'reason',attrs:{required:true,maxlength:150}})}<p data-domain-ui="alert" role="alert" data-error></p><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-read-current hidden>读取最新版本后重新确认</button>`,footer:'<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-close>取消</button><button data-domain-ui="button" data-domain-variant="default" data-domain-size="default" data-confirm>确认</button>'});
+  const label=operation==='forget'?'忘却记忆':'补偿恢复这段历史记忆';
+  const d=drawer({title:label,body:`<p data-current-content>${esc(memory.content)}</p>${target?`<p>恢复内容：${esc(target.content)}</p>`: ''}<p class="small muted">新增一条治理修订，保留原始历史。回滚不会撤销其他领域的历史效果。</p>${Field({label:'操作说明',name:'reason',attrs:{required:true,maxlength:150}})}<p data-domain-ui="alert" role="alert" data-error></p><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-read-current hidden>读取最新版本后重新确认</button>`,footer:'<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-close>取消</button><button data-domain-ui="button" data-domain-variant="default" data-domain-size="default" data-confirm>确认</button>'});
   d.el.querySelector('[data-close]').onclick=()=>d.close();
-  d.el.querySelector('[data-read-current]').onclick=async event=>{event.target.disabled=true;try{const latest=await memoryClient.read(memory.owner_fluctlight_id,memory.id);if(!d.el.isConnected)return;base=latest;d.el.querySelector('[data-current-content]').textContent=latest.content;d.el.querySelector('[data-error]').textContent=`已读取第 ${latest.revision} 版，操作说明仍保留，请核对后再次确认。`;event.target.hidden=true;}catch(error){if(d.el.isConnected)d.el.querySelector('[data-error]').textContent=errorMessage(error);}finally{event.target.disabled=false;}};
-  d.el.querySelector('[data-confirm]').onclick=async event=>{if(!(await requireOwner()))return;const reason=d.el.querySelector('[name=reason]');if(!reason.reportValidity())return;event.target.disabled=true;try{if(operation==='forget')await memoryClient.forget(memory.owner_fluctlight_id,base,reason.value);else await memoryClient.rollback(memory.owner_fluctlight_id,base,target,reason.value);d.close();toast('治理修订已保存并读回','ok');await reload();}catch(error){if(d.el.isConnected){d.el.querySelector('[data-error]').textContent=error.status===409?'版本或谱系已变化，说明已保留，请重新读取后核对。':errorMessage(error);if(error.status===409)d.el.querySelector('[data-read-current]').hidden=false;event.target.disabled=false;}}};
+  d.el.querySelector('[data-read-current]').onclick=async event=>{event.target.disabled=true;try{const latest=await memoryClient.read(memory.owner_fluctlight_id,memory.id);if(!d.el.isConnected)return;base=latest;d.el.querySelector('[data-current-content]').textContent=latest.content;d.el.querySelector('[data-error]').textContent='已读取当前记忆，操作说明仍保留，请核对后再次确认。';event.target.hidden=true;}catch(error){if(d.el.isConnected)d.el.querySelector('[data-error]').textContent=errorMessage(error);}finally{event.target.disabled=false;}};
+  d.el.querySelector('[data-confirm]').onclick=async event=>{if(!(await requireOwner()))return;const reason=d.el.querySelector('[name=reason]');if(!reason.reportValidity())return;event.target.disabled=true;try{if(operation==='forget')await memoryClient.forget(memory.owner_fluctlight_id,base,reason.value);else await memoryClient.rollback(memory.owner_fluctlight_id,base,target.revision,reason.value);d.close();toast('治理修订已保存并读回','ok');await reload();}catch(error){if(d.el.isConnected){d.el.querySelector('[data-error]').textContent=error.status===409?'版本或谱系已变化，说明已保留，请重新读取后核对。':errorMessage(error);if(error.status===409)d.el.querySelector('[data-read-current]').hidden=false;event.target.disabled=false;}}};
 }

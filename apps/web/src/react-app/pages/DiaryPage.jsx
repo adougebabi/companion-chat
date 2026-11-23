@@ -1,3 +1,4 @@
+import { ProfileNote } from "../shared/ProfileRecordSummary";
 import {ResultFeedback} from '../shared/Presentation';
 import { useEffect, useRef, useState } from "react";
 import {
@@ -17,9 +18,10 @@ import { Surface, FieldInput, Textarea, Disclosure, Badge } from "../controls";
 import { useWorkspace } from "../page";
 import { jsonValueSnapshot } from "@/state/view-model";
 import { day } from "@/state/workspace.mjs";
-import { previousDiaryDate } from "@/approved-ui/diary-generation.mjs";
+import { diaryAttemptStatus, diaryStatuses as statuses, previousDiaryDate } from "@/approved-ui/diary-generation.mjs";
 import { errorMessage } from "@/v3/domain-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
+import { requestDecisionText } from "@/v3/proto/components/request-failure.js";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
 import WorkspaceCommandDialog from "../shared/WorkspaceCommandDialog";
 import RequestStatus from "../shared/RequestStatus";
@@ -27,14 +29,6 @@ import JsonDetails from "../shared/JsonDetails";
 import LoadingState from "../shared/LoadingState";
 import WorkspaceInfo from "../shared/WorkspaceInfo";
 import { EmptyState, InlineFeedback } from "../shared/Presentation";
-const statuses = {
-  pending: "等待整理",
-  running: "正在回顾",
-  ready: "已经写下",
-  no_content: "无正文",
-  failed: "整理未完成",
-  inactive: "尚未运行",
-};
 const empty = () => ({ items: [], cursor: "", ready: false });
 const field = (label, control) => (
   <label className="replica-field">
@@ -58,7 +52,7 @@ export function DiaryProvenance({ entry }) {
       {entry.attempts?.map((attempt, index) => (
         <div className="lp-source-card" key={attempt.id || index}>
           <p>
-            第 {attempt.attempt ?? index + 1} 次整理 · {statuses[attempt.status] || "状态待确认"}
+            第 {attempt.attempt ?? index + 1} 次整理 · {diaryAttemptStatus(attempt.status)}
             {attempt.created_at && <> · <time dateTime={attempt.created_at}>{userInstant(attempt.created_at)}</time></>}
           </p>
           {attempt.task_id && (
@@ -75,6 +69,43 @@ export function DiaryProvenance({ entry }) {
     </Disclosure>
   );
 }
+
+const replyStatuses = {
+  pending: "等待回应",
+  processing: "正在处理",
+  accepted: "已接受，等待实际行动",
+  completed: "留言处理已结束",
+  rejected: "暂未采纳",
+  deferred: "稍后决定",
+  awaiting_goal: "等待目标规划",
+  cancelled: "已取消",
+  failed: "留言处理未完成",
+};
+
+function DiaryReplySummary({ row }) {
+  const text = row.payload?.text;
+  const submitted = typeof row.created_at === "string" && Number.isFinite(Date.parse(row.created_at));
+  const status = Object.hasOwn(replyStatuses, row.status) ? replyStatuses[row.status] : "";
+  const outcome = requestDecisionText(row);
+  const summary = row.result?.summary;
+  const results = row.result_refs ?? row.result?.result_refs;
+  const resultCount = Array.isArray(results) ? new Set(results.filter(Boolean)).size : 0;
+  return (
+    <>
+      {typeof text === "string" && text.trim() && <p>{text}</p>}
+      {submitted && (
+        <p className="lp-muted">提交时间：<time dateTime={row.created_at}>{userInstant(row.created_at)}</time></p>
+      )}
+      {status && <p className="lp-small">处理状态：{status}</p>}
+      {outcome && <p className="lp-small">处理结果：{outcome}</p>}
+      {row.status !== "failed" && typeof summary === "string" && summary.trim() && summary !== outcome &&
+        <ProfileNote value={summary} label="结果说明" />}
+      {resultCount > 0 && <p className="lp-small">关联处理结果 {resultCount} 条</p>}
+      <JsonDetails value={row} title="原始留言处理记录（诊断）" downloadOnly />
+    </>
+  );
+}
+
 export default function DiaryPage() {
   const w = useWorkspace(),
     c = w.current.value,
@@ -854,6 +885,7 @@ export default function DiaryPage() {
                       requestId={replyPointer.request.id}
                       initial={replyPointer.request}
                       onTerminal={() => void readReplies(selected.id)}
+                      renderRecord={(row) => <DiaryReplySummary row={row} />}
                     />
                   )}
                   <section className="replica-diary-replies" aria-label="留言与实际处理记录">
@@ -879,11 +911,7 @@ export default function DiaryPage() {
                     )}
                     {replies.items.map((row) => (
                       <div className="lp-source-card" key={row.id}>
-                        <span className="lp-muted">
-                          你 · {userInstant(row.created_at)}
-                        </span>
-                        <p>{row.payload?.text || "留言原文待读取"}</p>
-                        <JsonDetails value={row} title="原留言请求与处理结果" />
+                        <DiaryReplySummary row={row} />
                         <Button
                           variant="link"
                           onClick={() =>
