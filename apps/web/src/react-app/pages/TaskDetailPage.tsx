@@ -66,7 +66,7 @@ export default function TaskDetailPage({route,embedded=false,onTaskLoaded,onTask
  </div>
  <Tabs value={detailTab} onValueChange={value=>{setDetailTab(value);if(value!=='input')setTechnicalOpen(false);}}><TabsList variant="line"><TabsTrigger value="progress">执行阶段</TabsTrigger><TabsTrigger value="logs">模型调用</TabsTrigger><TabsTrigger value="input">任务信息</TabsTrigger></TabsList>
  <TabsContent value="progress" className="replica-task-progress-panel">{stages.length>0&&<><div className="replica-task-progress" role="progressbar" aria-label="已记录阶段" aria-valuenow={completed} aria-valuemin={0} aria-valuemax={stages.length}><i style={{width:`${completed/stages.length*100}%`}}/></div><ol className="replica-task-stages">{stages.map((entry:any,index:number)=>row(entry,index,true))}</ol></>}<TaskLifecycle task={task} steps={steps}/>{task.has_more_steps&&<Button type="button" variant="link" onClick={()=>w.navigatePath('/diag/lifecycle?intentId='+encodeURIComponent(task.task_id||id))}>查看完整生命周期</Button>}</TabsContent>
- <TabsContent value="logs"><TaskExecutionResults task={task} calls={calls} available={callsAvailable} downloadOnlyModelRecords={isReflection}/></TabsContent>
+ <TabsContent value="logs"><TaskExecutionResults task={task} calls={calls} available={callsAvailable} isReflection={isReflection}/></TabsContent>
  <TabsContent value="input"><DetailFields items={[
   {label:'任务类型',value:taskTypeLabel(task)},
   {label:'关联角色',value:character||(task.fluctlight_id?'角色名称未读到':'未关联角色')},

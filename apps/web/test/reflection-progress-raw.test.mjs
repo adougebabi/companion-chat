@@ -106,7 +106,7 @@ test('原反思运行记录展开后保留执行摘要和完整诊断下载',asy
   const route=featureRoute('/diag/task/'+encodeURIComponent(intent),new URLSearchParams());
   const task={...latestTask,task_id:intent,kind:'reflection.run',status:'failed',runs:2,correlation_id:'private-model-correlation',steps:[]};
   const snapshot={intent:{intent_type:task.kind,status:task.status,payload:{intent_id:intent}},runtime_state:'available',runtime:{run_id:'private-run',status:'failed'},allowed_actions:[],commands:[]};
-  const record={ref:'private-model-ref',data:{id:'private-model-id',status:'failed',sequence:1,started_at:started,prompt:inputWindow,response:{...latestTask},error_code:'request_timeout'}};
+  const record={ref:'private-model-ref',data:{id:'private-model-id',status:'failed',sequence:1,started_at:started,prompt:'回顾最近的交流。',response:'她想先听完对方的想法。',error_code:'request_timeout'},metadata:{inputWindow,latestTask}};
   const state={session:{actorId:'fixture'},characters:[]};
   const taskReads=[];
   const workspace={
@@ -130,9 +130,11 @@ test('原反思运行记录展开后保留执行摘要和完整诊断下载',asy
   const anchor=window.HTMLAnchorElement.prototype,click=anchor.click;
   URL.createObjectURL=blob=>{blobs.push(blob);return 'blob:reflection-fixture';};
   URL.revokeObjectURL=()=>{};
-  anchor.click=function(){assert.equal(this.download,'fluctlight-record.json');};
-  const checkRawDownload=async expected=>{
+  let filename;
+  anchor.click=function(){filename=this.download;};
+  const checkRawDownload=async(expected,expectedFilename='fluctlight-record.json')=>{
     await view.click(button('下载原始记录'));
+    assert.equal(filename,expectedFilename);
     assert.deepEqual(JSON.parse(await blobs.at(-1).text()),expected);
   };
   const checkSummary=()=>{
@@ -146,12 +148,21 @@ test('原反思运行记录展开后保留执行摘要和完整诊断下载',asy
     await tab('模型调用');
     assert.equal(host.querySelector('.replica-task-calls .replica-task-section-head').textContent,'模型调用1 次 · 1 次失败',host.textContent);
     assert.equal(host.querySelector('.replica-task-round-trigger').getAttribute('aria-expanded'),'true');
-    assert.equal(host.querySelector('.replica-raw-content'),null,'reflection model records stay download-only');
+    assert.equal(host.querySelector('.replica-raw-content'),null);
     assert.match(host.textContent,/第 1 轮/);
     assert.match(host.textContent,/模型服务响应超时/);
-    await view.click(button('本轮原始模型调用（诊断）'));
+    assert.match(host.textContent,/回顾最近的交流。/);
+    assert.match(host.textContent,/她想先听完对方的想法。/);
+    await view.click(button('原始任务记录（诊断）'));
     checkSummary();
-    await checkRawDownload(record);
+    await checkRawDownload(record,'reflection-task.json');
+    await view.click(button('原始任务记录（诊断）'));
+    await view.click(button('模型输入（诊断）'));
+    await checkRawDownload(record.data.prompt,'model-input.json');
+    await view.click(button('模型输入（诊断）'));
+    await view.click(button('模型输出（诊断）'));
+    await checkRawDownload(record.data.response,'model-output.json');
+    await view.click(button('模型输出（诊断）'));
 
     await tab('任务信息');
     await view.click(button('查看完整任务记录'));
