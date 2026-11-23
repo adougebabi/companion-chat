@@ -11,6 +11,7 @@ import {
 } from "../controls";
 import WorkspaceCommandDialog from "./WorkspaceCommandDialog";
 import WorkspaceInfo from "./WorkspaceInfo";
+import JsonDetails from "./JsonDetails";
 import useWorkspaceRead from "./useWorkspaceRead";
 import useMediaFollow from "./useMediaFollow";
 import { MediaReader, MediaMore, SavedMedia } from "./MediaParts";
@@ -21,7 +22,13 @@ import {
 } from "@/approved-ui/media-presentation.mjs";
 import { studioDraftStorage } from "@/v3/proto/components/studio-draft-storage.js";
 import { stateLabel, errorMessage } from "@/v3/domain-presentation.mjs";
+import { isInternalId } from "@/v3/internal-id.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
+
+function sourceName(value) {
+  return typeof value === "string" && value.trim() && !isInternalId(value) ? value : "";
+}
+
 function GenerationFields({ model: m, draft: d, edit }) {
   const fid = m.target,
     [query, setQuery] = useState(""),
@@ -115,7 +122,7 @@ function GenerationFields({ model: m, draft: d, edit }) {
           <option value="">不指定地点</option>
           {[...places, ...selectedPlace].map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {sourceName(p.name) || "登记地点"}
               {selectedPlace.includes(p) ? "（原选择，请核对）" : ""}
             </option>
           ))}
@@ -123,7 +130,7 @@ function GenerationFields({ model: m, draft: d, edit }) {
       </label>
       <MediaReader source={locations} label="画面地点" />
       <Disclosure
-        title={"关联登记物品 · " + (d.item?.description || "不关联物品")}
+        title={"关联登记物品 · " + (d.item ? sourceName(d.item.description) || "已选物品" : "不关联物品")}
       >
         <div className="r-form-stack">
           <div className="r-search">
@@ -151,7 +158,7 @@ function GenerationFields({ model: m, draft: d, edit }) {
           {items.items.map((item) => (
             <div className="media-picker-row" key={item.id}>
               <span>
-                {item.description} · v{item.revision}
+                {sourceName(item.description) || "登记物品"}
               </span>
               <Button
                 type="button"
@@ -196,7 +203,7 @@ function GenerationFields({ model: m, draft: d, edit }) {
           {grants.items.map((g) => (
             <div className="media-picker-row" key={g.id}>
               <span>
-                {referencePurposes[g.purpose] || "参考"} · 授权 v{g.revision}
+                {referencePurposes[g.purpose] || "参考"} · 已授权
               </span>
               <Button
                 type="button"
@@ -305,6 +312,16 @@ export default function MediaGeneration({ model: m }) {
       ["failed", "rejected", "cancelled"].includes(ownerRequest?.status) ||
       !!ownerRequest?.result?.error_code),
     complete = media?.status === "completed" && asset?.readable;
+  const requestSource = ownerRequest?.payload;
+  const generationSource = media?.source;
+  const referencePurpose = (generationSource?.reference_asset ?? requestSource?.reference_asset)?.purpose;
+  const generationSummary = [
+    ["画面描述", requestSource?.prompt],
+    ["请求原因", requestSource?.reason],
+    ["关联物品", sourceName((generationSource?.item ?? requestSource?._item_snapshot)?.description)],
+    ["画面地点", sourceName((generationSource?.requested_scene ?? requestSource?._place_snapshot)?.name)],
+    ["参考用途", Object.hasOwn(referencePurposes, referencePurpose) ? referencePurposes[referencePurpose] : null],
+  ].filter(([, value]) => typeof value === "string" && value.trim());
   const action = {
     identity: "media-generation:" + fid + ":" + epoch,
     presentation: "inline",
@@ -453,9 +470,7 @@ export default function MediaGeneration({ model: m }) {
             >
               <span>
                 <b>{r.payload?.prompt || "原图片请求"}</b>
-                <small>
-                  {r.created_at ? userInstant(r.created_at) : "时间未记录"}
-                </small>
+                {r.created_at && <small>{userInstant(r.created_at)}</small>}
               </span>
               <span>{stateLabel(r.status)}</span>
             </button>
@@ -560,11 +575,17 @@ export default function MediaGeneration({ model: m }) {
             {result.paused && (
               <p>自动查询已暂停，后台任务仍保留，可手动继续查询。</p>
             )}
-            <Disclosure title="冻结来源、实际任务与图片结果">
-              <pre className="replica-source-record">
-                {JSON.stringify(record, null, 2)}
-              </pre>
-            </Disclosure>
+            {generationSummary.length > 0 && (
+              <dl aria-label="图片请求摘要">
+                {generationSummary.map(([label, value]) => (
+                  <div className="profile-key-value" key={label}>
+                    <dt>{label}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            <JsonDetails title="原始媒体记录（诊断）" value={record} downloadOnly />
           </div>
         )}
       </Surface>

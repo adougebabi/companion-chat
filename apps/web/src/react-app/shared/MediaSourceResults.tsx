@@ -117,12 +117,14 @@ function resultGroups(asset: RecordValue) {
       value: asset.hidden === true ? "已在素材库隐藏" : asset.hidden === false ? "在素材库显示" : "展示状态尚未确认",
       outcome: "info",
     },
-    {
-      label: "事实属性",
-      value: asset.factual === false ? "不作为角色生活事实" : asset.factual === true ? "标记为角色生活事实" : "事实属性尚未记录",
-      outcome: "info",
-    },
   ];
+  if (typeof asset.factual === "boolean") {
+    library.push({
+      label: "事实属性",
+      value: asset.factual ? "标记为角色生活事实" : "不作为角色生活事实",
+      outcome: "info",
+    });
+  }
   return [
     { title: "资产可用性", rows: availability },
     { title: "生成时来源", rows: source },

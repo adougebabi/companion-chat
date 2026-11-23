@@ -10,44 +10,45 @@ const vite = await createServer({root:fileURLToPath(new URL('../', import.meta.u
 const {default:Record} = await vite.ssrLoadModule('/src/react-app/shared/VisualIdentityRecord.jsx');
 const button = (host, text) => [...host.querySelectorAll('button')].find(node => node.textContent.trim() === text);
 const forbidden = /adapter_version|chest-cup|fluctlight_id|renderer_constraints|schema_version|private-|unknown_extension|sql:|null/;
+const diagnosticTitle = '原始媒体记录（诊断）';
 const raw = {
   schema_version:'visual-identity.v1', current_revision:0, id:'private-identity', fluctlight_id:'private-character',
   adapter_version:'chest-cup-adapter.v1', identity_snapshot:{},
   renderer_constraints:{adapter_version:'chest-cup-adapter.v1',chest_cup:null}, generated_reviews:{}, session:null,
 };
 test.after(async () => {await vite.close(); env.restore();});
-async function open(value) {
+async function mount(value) {
   const view = await mountReact(vite, Record, {props:{value}});
   assert.equal(view.host.querySelector('dl'), null, 'summary starts collapsed');
-  await view.click(button(view.host, '规范来源、渲染约束与完整会话'));
   return view;
 }
 function facts(view) {
   return Object.fromEntries([...view.host.querySelectorAll('dl > div')].map(node => [node.querySelector('dt').textContent, node.querySelector('dd').textContent]));
 }
-test('empty visual identity uses Chinese labels and missing values without raw keys or adapter names', async () => {
-  const view = await open(raw);
+test('a saved visual record with no business fields shows only the diagnostic entry', async () => {
+  const view = await mount(raw);
   try {
-    assert.equal(facts(view)['规范版本'], '第 0 版');
-    assert.equal(facts(view)['记录格式版本'], '第 1 版');
-    for (const key of ['渲染约束','会话状态','候选评审状态','头像评审状态','角色设定图评审状态']) assert.equal(facts(view)[key], '尚未记录');
+    assert.ok(button(view.host, diagnosticTitle));
+    assert.deepEqual(facts(view), {});
+    assert.doesNotMatch(view.host.textContent, /规范版本|记录格式版本|第 \d+ 版|渲染约束|会话状态|评审状态|尚未记录/);
     assert.doesNotMatch(view.host.textContent, forbidden);
     assert.equal(view.host.querySelector('pre'), null);
   } finally {await view.dispose();}
 });
 test('known constraints and current attempt preserve zero and false without exposing unknown values', async () => {
-  const view = await open({...raw,current_revision:3,renderer_constraints:{chest_cup:'not_applicable',chest_lora_weight:0,chest_lora_applicable:false,unknown_extension:'private-constraint'},session:{status:'completed',current_attempt:2,last_error:'sql: private-error',attempts:[{attempt_number:1,decision:'rejected'},{attempt_number:2,decision:'accepted'}]},generated_reviews:{avatar:{status:'rejected'},character_sheet:{status:'awaiting_review'}}});
+  const view = await mount({...raw,current_revision:3,renderer_constraints:{chest_cup:'not_applicable',chest_lora_weight:0,chest_lora_applicable:false,unknown_extension:'private-constraint'},session:{status:'completed',current_attempt:2,last_error:'sql: private-error',attempts:[{attempt_number:1,decision:'rejected'},{attempt_number:2,decision:'accepted'}]},generated_reviews:{avatar:{status:'rejected'},character_sheet:{status:'awaiting_review'}}});
   try {
-    assert.deepEqual(facts(view), {'规范版本':'第 3 版','记录格式版本':'第 1 版','渲染约束':'已记录身体比例约束','胸部尺寸':'不适用','比例调整权重':'0','比例调整是否适用':'否','会话状态':'本次准备已完成','候选评审状态':'已通过','头像评审状态':'未通过','角色设定图评审状态':'待评审'});
+    await view.click(button(view.host, '渲染约束与视觉会话'));
+    assert.deepEqual(facts(view), {'渲染约束':'已记录身体比例约束','胸部尺寸':'不适用','比例调整权重':'0','比例调整是否适用':'否','会话状态':'本次准备已完成','候选评审状态':'已通过','头像评审状态':'未通过','角色设定图评审状态':'待评审'});
     assert.doesNotMatch(view.host.textContent, forbidden);
     await view.update({value:{...raw,schema_version:'private-schema',session:{status:'private-status',current_attempt:1,attempts:[{attempt_number:1,status:'private-review'}]},renderer_constraints:{chest_cup:'private-size'}}});
     assert.doesNotMatch(view.host.textContent, forbidden);
-    assert.equal(facts(view)['记录格式版本'], '尚未记录');
+    assert.equal(facts(view)['记录格式版本'], undefined);
     assert.equal(facts(view)['候选评审状态'], '评审状态待确认');
   } finally {await view.dispose();}
 });
 test('original record downloads unchanged without rendering raw JSON', async () => {
-  const view = await open(raw);
+  const view = await mount(raw);
   const create = URL.createObjectURL, revoke = URL.revokeObjectURL;
   const anchor = window.HTMLAnchorElement.prototype, click = anchor.click;
   let blob, filename;
@@ -55,18 +56,20 @@ test('original record downloads unchanged without rendering raw JSON', async () 
   URL.revokeObjectURL = () => {};
   anchor.click = function () {filename = this.download;};
   try {
+    await view.click(button(view.host, diagnosticTitle));
     await view.click(button(view.host,'下载原始记录'));
     assert.deepEqual(JSON.parse(await blob.text()), raw);
-    assert.equal(filename, '视觉身份原始记录.json');
+    assert.equal(filename, 'fluctlight-record.json');
     assert.doesNotMatch(view.host.textContent, forbidden);
     assert.equal(view.host.querySelector('pre'), null);
   } finally {URL.createObjectURL=create; URL.revokeObjectURL=revoke; anchor.click=click; await view.dispose();}
 });
-test('unavailable identity keeps missing labels and disables download', async () => {
-  const view = await open(undefined);
+test('unavailable identity omits empty fields and diagnostic controls', async () => {
+  const view = await mount(undefined);
   try {
-    assert.ok(Object.values(facts(view)).every(value => value === '尚未记录'));
-    assert.ok(button(view.host,'下载原始记录').disabled);
+    assert.equal(view.host.textContent, '');
+    assert.equal(button(view.host, diagnosticTitle), undefined);
+    assert.equal(button(view.host,'下载原始记录'), undefined);
   } finally {await view.dispose();}
 });
 for (const scoped of [false, true]) test(`${scoped ? 'character route' : 'media tab'} uses safe summary and performs only reads`, async () => {
@@ -91,9 +94,10 @@ for (const scoped of [false, true]) test(`${scoped ? 'character route' : 'media 
       await act(async () => [...view.host.querySelectorAll('[role=tab]')].find(node=>node.textContent.startsWith('视觉身份')).dispatchEvent(new window.MouseEvent('mousedown',{bubbles:true,button:0})));
       await view.flush();
     }
-    await view.click(button(view.host,'规范来源、渲染约束与完整会话'));
-    assert.match(view.host.textContent,/规范版本/);
-    assert.match(view.host.textContent,/第 0 版/);
+    await view.click(button(view.host, diagnosticTitle));
+    assert.match(view.host.textContent,/尚未建立视觉定义/);
+    assert.doesNotMatch(view.host.textContent,/规范版本|第 \d+ 版|尚未记录/);
+    assert.ok(button(view.host, '下载原始记录'));
     assert.doesNotMatch(view.host.textContent,forbidden);
     assert.equal(view.host.querySelector('pre'),null);
     assert.equal(api.calls.filter(row=>row.method!=='GET').length,0);
