@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { DetailDrawer } from "../components";
 import { Disclosure } from "../controls";
-import { chatFailureText } from "@/v3/chat-feedback.mjs";
+import { chatFailureText, chatFailureStage } from "@/v3/chat-feedback.mjs";
 import {errorMessage,stateLabel,feedbackDiagnostic} from '@/v3/domain-presentation.mjs';
 import type { BrowserMessage } from "@fluctlight/browser-client";
 import type { ConversationController } from "@/state/conversation";
@@ -32,7 +32,7 @@ export default function ChatTurnFeedback({
   const settling=message.turnRetryable===false&&message.turnErrorCode!=='agent_partial_committed';
   const reason = settling?message.turnStatus==='cancelled'
     ?'这次回应已停止，原消息已保留，暂时不能重试。'
-    :'这次回应未完成，原消息已保留，暂时不能重试。':
+    :chatFailureText(message.turnErrorCode||store.error, messages.some(row=>row.kind==='assistant'&&row.turnId===message.turnId))+' 当前暂时不能重试，可先重新核对状态。':
     message.turnErrorCode === "agent_partial_committed"
       ? "部分操作已执行，不能直接重试。请先查看实际结果。"
       : chatFailureText(
@@ -73,6 +73,8 @@ export default function ChatTurnFeedback({
         <Card><CardContent className="grid gap-4 pt-5">
           <p>{reason}</p>
           <dl className="grid min-w-0 gap-3 text-sm">
+            <div><dt className="text-muted-foreground">消息结果</dt><dd>{messages.some(row=>row.kind==='assistant'&&row.turnId===message.turnId)?'回复已发送，后续处理未完成':'本次回复未发送'}</dd></div>
+            {message.turnStatus==='failed'&&<div><dt className="text-muted-foreground">失败环节</dt><dd>{chatFailureStage(message.turnErrorCode||'')}</dd></div>}
             <div><dt className="text-muted-foreground">错误标识</dt><dd className="break-all font-mono">{message.turnErrorCode||'未记录'}</dd></div>
             <div><dt className="text-muted-foreground">关联回应</dt><dd className="break-all font-mono">{message.turnId||'未记录'}</dd></div>
             {checkError&&<div><dt className="text-muted-foreground">最近状态读取</dt><dd>{checkError}</dd></div>}

@@ -43,6 +43,13 @@ func TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies
 		name, input, reply, deliveredIntent, subject, quote string
 		claim, publish                                      bool
 	}{
+		{name: "intent_share", input: "什么图片？", reply: "是张配色图，想分享给你看。", quote: "是张配色图，想分享给你看。", claim: true, publish: true},
+		{name: "text_narration", input: "什么图片？", reply: "是张配色图，想分享给你看。（发完后，看着对话框，又补了一句。）", quote: "是张配色图，想分享给你看。", claim: true, publish: true},
+		{name: "text_narration_partial_quote", input: "什么图片？", reply: "是张配色图，想分享给你看。（发完后，看着对话框，又补了一句。）", quote: "发完后", claim: true, publish: true},
+		{name: "image_description", input: "什么图片？", reply: "是张色卡。", quote: "是张色卡。", claim: true, publish: true},
+		{name: "intent_then_false_completion", input: "照片呢？", reply: "我想分享给你看，照片已经发给你了。", claim: true},
+		{name: "description_with_delivery", input: "照片呢？", reply: "这是我投递给你的照片。", claim: true},
+		{name: "multi_subject_quote", input: "照片呢？", reply: "黑猫照片发给你了，白狗照片发给你了。", quote: "黑猫照片发给你了，白狗照片发给你了。", deliveredIntent: "黑猫照片", subject: "黑猫", claim: true},
 		{name: "ordinary", input: "今天怎么样？", reply: "今天的风很舒服。", publish: true},
 		{name: "discuss_photo", input: "这张照片怎么样？", reply: "照片里的天空很漂亮。", publish: true},
 		{name: "user_sent_photo", input: "这张照片怎么样？", reply: "你发给我的照片很好看。", publish: true},
@@ -129,6 +136,15 @@ func TestDirectMediaClaimChecksSpecificCommittedDeliveryAndAllowsOrdinaryReplies
 				}
 			} else if turnErr == nil || !strings.Contains(turnErr.Error(), "direct_media_delivery_unresolved") || messages != 0 || mainCalls != 3 || checkerCalls != 3 {
 				t.Fatalf("unsupported delivery was published or failed for an unrelated reason: messages=%d main=%d checker=%d error=%v", messages, mainCalls, checkerCalls, turnErr)
+			}
+			if tc.name == "no_delivery" && ConversationTurnFailureCode(turnErr) != "direct_media_delivery_unresolved" {
+				t.Fatalf("business failure was hidden: %v", turnErr)
+			}
+			if tc.name == "intent_share" {
+				var count int
+				if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.diagnostic_events WHERE event_type='reply.media_delivery.checked' AND correlation_id=$1 AND payload->>'status'='passed' AND payload->>'candidate'=$2`, "turn:claim-"+tc.name, tc.reply).Scan(&count); err != nil || count != 1 {
+					t.Fatalf("checker not linked to source turn: count=%d err=%v", count, err)
+				}
 			}
 			if tc.name == "ordinary" && (mainCalls != 1 || checkerCalls != 0) {
 				t.Fatalf("ordinary chat gained a fixed checker: main=%d checker=%d", mainCalls, checkerCalls)

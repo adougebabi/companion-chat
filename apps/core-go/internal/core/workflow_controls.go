@@ -128,6 +128,13 @@ func (a *App) OwnerWorkflowInspection(ctx context.Context, owner, wf string) (ma
 		input["studio_resource_id"] = resource
 	}
 	result := map[string]any{"intent": map[string]any{"intent_id": i.ID, "workflow_id": i.Workflow, "intent_type": i.Kind, "status": i.Status, "last_error": boundedLifecycleCause(i.LastError), "revision": i.Revision, "task_queue": i.Queue, "payload": redactDiagnostic(input)}, "recovery": workflowRecovery(i.Kind, input), "runtime": nil, "runtime_state": "unavailable", "allowed_actions": []string{}, "control_semantics": "暂停在已有检查点生效，不中断正在运行的Activity；取消请求也不撤销已提交副作用；Runtime终态和业务结果独立核对"}
+	if i.Kind == "cognition.processing" {
+		var outcome []byte
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT `+cognitionTaskOutcomeProjectionSQL("i")+` FROM public.platform_workflow_intents i WHERE i.intent_id=$1 AND i.workflow_id=$2`, i.ID, i.Workflow).Scan(&outcome); err != nil {
+			return nil, err
+		}
+		applyCognitionTaskOutcome(mapValue(result["intent"]), decodeObject(outcome))
+	}
 	commands, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT jsonb_build_object('id',id,'source_run_id',source_run_id,'intent_revision',intent_revision,'action',action,'reason',reason,'status',status,'result',result,'created_at',created_at,'updated_at',updated_at) FROM public.workflow_control_commands WHERE owner_actor_id=$1 AND workflow_id=$2 ORDER BY created_at DESC,id DESC LIMIT 51`, owner, i.Workflow)
 	if err != nil {
 		return nil, err

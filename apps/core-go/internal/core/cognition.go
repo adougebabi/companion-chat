@@ -73,7 +73,11 @@ func (a *App) processCognitionInbox(ctx context.Context, inboxID string) (map[st
 		return map[string]any{"inbox_id": inboxID, "status": "processed"}, nil
 	}
 	if status == "failed" {
-		return map[string]any{"inbox_id": inboxID, "status": "failed"}, nil
+		var code string
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT COALESCE(error_code,'conversation_turn_failed') FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&code); err != nil {
+			return nil, err
+		}
+		return map[string]any{"inbox_id": inboxID, "status": "failed", "error_code": firstString(safeStreamTurnErrorCode(code), "conversation_turn_failed")}, nil
 	}
 	ctx = context.WithValue(ctx, directTurnClaimKey{}, directTurnClaim{InboxID: inboxID, Owner: claimOwner})
 	claimSettled := false

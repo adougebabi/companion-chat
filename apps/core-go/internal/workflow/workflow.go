@@ -425,6 +425,11 @@ func CognitionProcessingWorkflow(ctx workflow.Context, input Input) (map[string]
 		}
 		return nil, workflow.NewContinueAsNewError(ctx, CognitionProcessingWorkflow, input)
 	}
+	// Old histories keep their recorded successful completion; new executions
+	// must not turn a durable business failure into Temporal success.
+	if workflow.GetVersion(ctx, "cognition-business-outcome-v1", workflow.DefaultVersion, 1) >= 1 && stringValue(result["status"]) == "failed" {
+		return nil, temporal.NewNonRetryableApplicationError("聊天回合未完成", "cognition_business_failed", nil, stringValue(result["error_code"]))
+	}
 	return result, nil
 }
 
@@ -2086,8 +2091,25 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				}
 			}
 		}
-		command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status=$2::varchar,completed_at=COALESCE(completed_at,now()),last_error=CASE WHEN $2::varchar='failed' THEN COALESCE(NULLIF(last_error,''),NULLIF($3,''),'workflow_terminal_failure') ELSE last_error END WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','started','cancel_requested','retry','failed'))
-			AND (intent_type NOT IN ('conversation.daily_memory','conversation.segment') OR (status IN ('started','cancel_requested','failed') AND attempt_count=$4 AND payload=$5::jsonb))`, intentID, intentStatus, terminalFailure, attemptCount, payload)
+		// A completed execution can carry a failed durable inbox (including
+		// pre-fix workflow histories). Consult the exact current intent/source.
+		if intentType == "cognition.processing" && intentStatus == "completed" && input.InboxID != "" {
+			var businessStatus, businessError string
+			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT c.status,COALESCE(c.error_code,'') FROM public.cognition_inbox c JOIN public.platform_workflow_intents w ON w.payload->>'inbox_id'=c.id AND w.payload->>'fluctlight_id'=c.fluctlight_id WHERE w.intent_id=$1 AND w.workflow_id=$2 AND c.id=$3`, intentID, workflowID, input.InboxID).Scan(&businessStatus, &businessError); err != nil {
+				if errors.Is(err, pgx.ErrNoRows) {
+					continue
+				}
+				return count, err
+			}
+			if businessStatus == "failed" {
+				intentStatus, terminalFailure = "failed", firstString(businessError, "conversation_turn_failed")
+				if businessError == "user_cancelled" {
+					intentStatus = "cancelled"
+				}
+			}
+		}
+		command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status=$2::varchar,completed_at=COALESCE(completed_at,now()),last_error=CASE WHEN $2::varchar='failed' THEN COALESCE(NULLIF(last_error,''),NULLIF($3,''),'workflow_terminal_failure') ELSE last_error END WHERE intent_id=$1 AND workflow_id=$6 AND (status IS NULL OR status IN ('pending','started','cancel_requested','retry','failed'))
+			AND (intent_type NOT IN ('conversation.daily_memory','conversation.segment','cognition.processing') OR (status IN ('started','cancel_requested','failed') AND attempt_count=$4 AND payload=$5::jsonb))`, intentID, intentStatus, terminalFailure, attemptCount, payload, workflowID)
 		if err != nil {
 			return count, err
 		}

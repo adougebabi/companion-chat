@@ -26,6 +26,7 @@ func (a *App) OwnerTask(ctx context.Context, owner, id string) (map[string]any, 
 		return nil, err
 	}
 	input := decodeObject(payload)
+	outcome := map[string]any{}
 	source := compactStateMap(input, []string{"deletion_id", "asset_id", "inbox_id", "request_id", "source_fact_id", "action_id", "media_intent_id", "goal_id", "local_date", "correlation_id", "diary_attempt_id"})
 	if kind == "world.events.generate" {
 		source["world_id"], source["clock_status"] = input["world_id"], status
@@ -58,6 +59,19 @@ func (a *App) OwnerTask(ctx context.Context, owner, id string) (map[string]any, 
 		var raw []byte
 		if err := a.DB.Pool().QueryRow(ctx, `SELECT payload FROM public.cognition_inbox WHERE id=$1 AND fluctlight_id=$2`, input["inbox_id"], input["fluctlight_id"]).Scan(&raw); err != nil {
 			return nil, err
+		}
+		var outcomeJSON []byte
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT `+cognitionTaskOutcomeProjectionSQL("i")+` FROM public.platform_workflow_intents i WHERE i.intent_id=$1 AND i.workflow_id=$2`, intent, workflow).Scan(&outcomeJSON); err != nil {
+			return nil, err
+		}
+		outcome = decodeObject(outcomeJSON)
+		if businessStatus := stringValue(outcome["status"]); businessStatus != "" {
+			status = businessStatus
+		}
+		for _, key := range []string{"workflow_status", "turn_status", "inbox_status", "error_code", "last_error", "turn_id", "reply_delivered"} {
+			if value, ok := outcome[key]; ok {
+				source[key] = value
+			}
 		}
 		fact := decodeObject(raw)
 		if fact["event_type"] == npcMomentFactType {
@@ -110,13 +124,15 @@ func (a *App) OwnerTask(ctx context.Context, owner, id string) (map[string]any, 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	correlationID := firstString(input["correlation_id"], intent)
+	correlationID := firstString(outcome["correlation_id"], firstString(input["correlation_id"], intent))
 	if kind == "media.generation" {
 		if mediaIntentID := stringValue(input["intent_id"]); mediaIntentID != "" {
 			correlationID = "media:" + mediaIntentID
 		}
 	}
-	return map[string]any{"task_id": intent, "workflow_id": workflow, "fluctlight_id": input["fluctlight_id"], "kind": kind, "type": kind, "title": kind, "state": status, "status": status, "runs": attempts, "steps": steps, "has_more_steps": hasMore, "created_at": created.Format(time.RFC3339Nano), "started_at": started, "completed_at": completed, "next_attempt_at": next, "correlation_id": correlationID, "source": source}, nil
+	result := map[string]any{"task_id": intent, "workflow_id": workflow, "fluctlight_id": input["fluctlight_id"], "kind": kind, "type": kind, "title": kind, "state": status, "status": status, "runs": attempts, "steps": steps, "has_more_steps": hasMore, "created_at": created.Format(time.RFC3339Nano), "started_at": started, "completed_at": completed, "next_attempt_at": next, "correlation_id": correlationID, "source": source}
+	applyCognitionTaskOutcome(result, outcome)
+	return result, nil
 }
 
 // Resolve pointers from durable intent inputs rather than manufacturing a
@@ -125,7 +141,7 @@ func (a *App) OwnerRequestTasks(ctx context.Context, owner, fid, requestID, inbo
 	if _, err := a.DB.GetFluctlight(ctx, fid, owner); err != nil {
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT intent_id,workflow_id,intent_type,status,attempt_count FROM public.platform_workflow_intents WHERE payload->>'fluctlight_id'=$1 AND (payload->>'request_id'=$2 OR ($3<>'' AND payload->>'inbox_id'=$3)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT i.intent_id,i.workflow_id,i.intent_type,i.status,i.attempt_count,`+cognitionTaskOutcomeProjectionSQL("i")+` FROM public.platform_workflow_intents i WHERE payload->>'fluctlight_id'=$1 AND (payload->>'request_id'=$2 OR ($3<>'' AND payload->>'inbox_id'=$3)
  OR payload->>'intention_id'=(SELECT p.intention_id FROM public.owner_promise_links p WHERE p.request_id=$2 AND p.fluctlight_id=$1 AND p.owner_actor_id=$4)
  OR intent_id=(SELECT pr.id FROM public.owner_promise_links p JOIN public.goal_planning_events e ON e.fluctlight_id=p.fluctlight_id AND e.source_key=p.planning_source_key JOIN public.goal_planning_runs pr ON pr.fluctlight_id=e.fluctlight_id AND (pr.id=e.processed_run_id OR (e.processed_run_id IS NULL AND pr.watermark>=e.seq AND (pr.profile_id='' OR pr.profile_id=p.profile_id))) WHERE p.request_id=$2 AND p.fluctlight_id=$1 AND p.owner_actor_id=$4 ORDER BY pr.created_at DESC,pr.id DESC LIMIT 1)) ORDER BY created_at,intent_id`, fid, requestID, inboxID, owner)
 	if err != nil {
@@ -136,10 +152,13 @@ func (a *App) OwnerRequestTasks(ctx context.Context, owner, fid, requestID, inbo
 	for rows.Next() {
 		var id, workflow, kind, status string
 		var attempts int
-		if err := rows.Scan(&id, &workflow, &kind, &status, &attempts); err != nil {
+		var outcomeJSON []byte
+		if err := rows.Scan(&id, &workflow, &kind, &status, &attempts, &outcomeJSON); err != nil {
 			return nil, err
 		}
-		tasks = append(tasks, map[string]any{"task_id": id, "workflow_id": workflow, "kind": kind, "status": status, "attempt_count": attempts})
+		row := map[string]any{"task_id": id, "workflow_id": workflow, "kind": kind, "status": status, "attempt_count": attempts}
+		applyCognitionTaskOutcome(row, decodeObject(outcomeJSON))
+		tasks = append(tasks, row)
 	}
 	return tasks, rows.Err()
 }

@@ -1458,6 +1458,12 @@ func adkTerminationReason(err error) string {
 	if err == nil {
 		return "final_message"
 	}
+	var capabilityFailure *CapabilityError
+	if errors.As(err, &capabilityFailure) {
+		if code := safeStreamTurnErrorCode(capabilityFailure.Code); code != "" {
+			return code
+		}
+	}
 	if errors.Is(err, errProviderRequestFailed) {
 		return providerRunErrorCode(err)
 	}

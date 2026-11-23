@@ -21,6 +21,8 @@ export const taskRunningStaleAfterMs=15*60*1000;
 export function taskStatusPresentation(task={},now=Date.now()){
  const rawStatus=typeof task.status==='string'?task.status:'',kind=task.kind||task.intent_type||task.type;
  let status=rawStatus;
+ const turnStatus=task.turn_status||task.source?.turn_status;
+ if(kind==='cognition.processing'&&['failed','cancelled','pending','running','completed'].includes(turnStatus))status=turnStatus;
  if(kind==='world.events.generate'&&['started','running','processing','generating','waiting'].includes(status)){
   const cycle=task.payload?.cycle_status||task.source?.last_cycle_status||task.last_cycle_status;
   if(cycle==='generating')status='generating';
@@ -34,7 +36,13 @@ export function taskStatusPresentation(task={},now=Date.now()){
  const started=times.map(value=>Date.parse(value||'')).find(Number.isFinite);
  const stale=group==='running'&&Number.isFinite(started)&&now-started>taskRunningStaleAfterMs;
  const statusLabel=taskStatusLabel(status),groupLabel={attention:'需要处理',running:'进行中',waiting:'等待开始',completed:'已完成',ended:'已经结束'};
- const label=group==='unknown'?'状态待确认':status==='generating'?'生成中':status==='waiting'&&kind!=='world.events.generate'?'等待中':statusLabel==='状态待确认'?groupLabel[group]:statusLabel;
+ let label=group==='unknown'?'状态待确认':status==='generating'?'生成中':status==='waiting'&&kind!=='world.events.generate'?'等待中':statusLabel==='状态待确认'?groupLabel[group]:statusLabel;
+ const turnId=task.turn_id||task.source?.turn_id,delivered=task.reply_delivered??task.source?.reply_delivered;
+ if(kind==='cognition.processing'&&turnId){
+  if(status==='failed')label=delivered===true?'回复已发送，后续处理失败':'回复未发送';
+  else if(status==='completed'&&delivered===true)label='回复已发送';
+  else if(status==='completed'&&delivered===false)label='本轮未发送回复';
+ }
  /** @type {'neutral'|'green'|'amber'|'red'|'blue'} */
  const tone=stale?'amber':({attention:'red',running:'blue',completed:'green',unknown:'amber'})[group]||'neutral';
  return {status,rawStatus,group,label,tone,stale,warning:stale?'运行超过 15 分钟，请核对执行记录':''};
@@ -158,7 +166,7 @@ export function taskModelFailureReason(call){
 }
 export function taskFailureReason(task,preparation){
  const current=preparation?.task_id===task?.task_id?preparation:null;
- const raw=task?.source?.last_error||task?.last_error;
+ const raw=task?.source?.error_code||task?.error_code||task?.source?.last_error||task?.last_error;
  const isMedia=(task?.kind||task?.type)==='media.generation';
  const transport=recordedProviderFailure(raw);if(transport)return transport;
  if((task?.kind||task?.type)==='goal.plan'&&/^\s*sql:\s*no rows in result set\s*$/i.test(String(raw||'')))return ['failed','dead_letter'].includes(task?.status)?'规划任务没有找到对应资料，已停止。':'规划任务没有找到对应资料，请重新读取任务状态。';

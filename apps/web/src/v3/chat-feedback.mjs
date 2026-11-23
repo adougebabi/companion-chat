@@ -9,6 +9,11 @@ export function chatFailureText(value, delivered = false) {
   if(delivered)return '回复已经保存，后续处理尚未完成。可以查看本次运行。';
   const text=String(value || '');
   if(!text)return '';
+  if(/direct_media_delivery_unresolved|direct_media_delivery_unverified|direct_media_delivery_stale/.test(text))return '回复未发送：图片发送状态与回复内容未能通过核对。原消息已保留，可查看本次回应中的被拦内容和校验依据后重试。';
+  if(/direct_media_delivery_check_failed/.test(text))return '回复未发送：图片发送状态检查未完成。原消息已保留，可查看本次运行后重试。';
+  if(/direct_media_reply_stalled/.test(text))return '回复未发送：图片与文字处理未能继续，已停止重复尝试。原消息已保留，请查看本次运行。';
+  if(/direct_reply_arguments_unresolved/.test(text))return '回复未发送：模型多次未能提供可用的回复参数。原消息已保留，请查看本次运行后重试。';
+  if(/adk_run_failed|agent_run_failed/.test(text))return '回复未发送：生成或发送前处理失败。原消息已保留，请查看本次回应的失败环节；执行结束不表示回复已送达。';
   if(/persona_preparation_(?:failed|pending)/.test(text))return errorMessage({message:text});
   if(text==='取消请求结果尚未确认，请刷新进度核对。原消息已保留。')return text;
   if(/reply_media_no_progress/.test(text))return '图片准备尚未推进，原消息和草稿已保留。请查看本次运行后恢复。';
@@ -23,6 +28,15 @@ export function chatFailureText(value, delivered = false) {
   if(/unavailable|http_error|request_failed/.test(text))return '暂时没能回应：模型服务连接失败，请检查模型通道后重试。';
   if(/已取消|cancelled|canceled/.test(text))return '已停止等待这次回应。';
   return '暂时没能回应。可以稍后再试一次。';
+}
+
+export function chatFailureStage(code='') {
+ if(/direct_media_delivery|direct_media_reply/.test(code))return '发送前核对图片状态';
+ if(/direct_reply_arguments/.test(code))return '核对回复参数';
+ if(/agent_cognition_settlement/.test(code))return '保存本轮处理结果';
+ if(/agent_output_publication/.test(code))return '发布回复';
+ if(/timeout|provider_|request_failed/.test(code))return '调用模型服务';
+ return '生成或发送前处理';
 }
 
 export function chatDiagnosticTurn(state){

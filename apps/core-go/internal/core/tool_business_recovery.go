@@ -70,6 +70,11 @@ func recoverToolBusinessResult(inv CapabilityInvocation, result CapabilityResult
 	}
 	if code == "direct_media_delivery_unverified" || code == "direct_media_delivery_stale" {
 		output["detail"] = "This reply was not published: the claimed image delivery lacks matching current evidence. Reconsider the reply using actual results; do not invent delivery."
+		var rejection *directMediaClaimRejection
+		if errors.As(err, &rejection) {
+			output["rejected_claim"], output["rejection_reason"] = rejection.Quote, rejection.Reason
+			output["detail"] = "This text was not published. Check rejected_claim and rejection_reason against the actual delivery receipts. If no image was sent, say so or express only future intent; do not repeat an unsupported completion claim. Ordinary image descriptions and text-message narration do not prove image delivery."
+		}
 		if inv.CapabilityName == "moment.publish" {
 			output["detail"] = "This Moment was not published: the claimed image delivery lacks matching current evidence. Reconsider the post using actual results; do not invent delivery."
 		}

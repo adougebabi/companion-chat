@@ -839,6 +839,8 @@ func ConversationTurnFailureCode(err error) string {
 func safeStreamTurnErrorCode(value string) string {
 	code := strings.TrimSpace(value)
 	switch code {
+	case "direct_media_delivery_unresolved", "direct_media_delivery_unverified", "direct_media_delivery_check_failed", "direct_media_delivery_stale", "direct_media_reply_stalled", "direct_reply_arguments_unresolved":
+		return code
 	case "reply_media_no_progress", "persona_preparation_failed", "persona_preparation_pending":
 		return code
 	case "provider_gateway_timeout", "reply_gateway_timeout", "reply_quality_repair_failed", "adk_final_message_missing", "adk_final_output_invalid", "adk_final_output_missing", "adk_final_text_missing",
