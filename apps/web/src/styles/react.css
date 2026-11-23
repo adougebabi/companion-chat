@@ -128,6 +128,15 @@ body {
   width: min(540px, calc(100vw - 16px));
   max-width: none;
 }
+.schedule-settings-sheet [data-section="today"] > [data-schedule-suggestions] {
+  margin-bottom: 20px;
+}
+.schedule-settings-sheet .schedule-item-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+}
 /* Keep a usable outside-dismiss area without changing desktop sheet widths. */
 @media (width < 640px) {
   .product-sheet.schedule-settings-sheet {

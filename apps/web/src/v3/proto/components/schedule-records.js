@@ -33,10 +33,10 @@ export function refreshPlanWindows(root,items,now=Date.now()){
 }
 
 export function ScheduleTimelineItem(item,zone,{expanded=false,editable=true,schedule,charId}={}){
- const {title,showTime,timeNote}=scheduleItemDisplay({_source:item,_schedule:schedule,text:item.activity});
+ const {title,showTime,timeNote,unplanned}=scheduleItemDisplay({_source:item,_schedule:schedule,text:item.activity});
  const window=showTime?planWindow(item.start_at,item.end_at):'unknown';
  const promise=item.promise_request_id;
- const planStatus=item.status?stateLabel(item.status):'';
+ const planStatus=!unplanned&&item.status?stateLabel(item.status):'';
  const actionStatus=item.action_status?stateLabel(item.action_status):promise?'实际履行另行记录':'';
  const location=item.location||item.scene;
  const canEdit=editable&&window==='future'&&!['in_progress','completed'].includes(item.action_status);
