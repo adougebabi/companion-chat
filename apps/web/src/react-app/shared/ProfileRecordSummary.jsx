@@ -4,6 +4,7 @@ import { stateLabel } from "@/v3/domain-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
 import { narrativeFields, readingFields, readingText, selectReadingFields } from "@/approved-ui/reading-fields.mjs";
 import { readingFieldLabel } from "@/v3/proto/components/reading-fields.js";
+import { creationScaleHints } from "./CreationScaleHint";
 import JsonDetails from "./JsonDetails";
 import SemanticTree, { hasVisibleSemanticValue } from "./SemanticTree";
 
@@ -81,9 +82,10 @@ export function profileFieldsForReading(value, fields, showClears = false) {
   });
 }
 
-/** @param {{value: any, shape?: object | true | typeof narrativeFields, identity?: object, title?: string, showClears?: boolean}} props */
-export function ProfileFieldsSummary({ value, shape = profileShape, identity, title, showClears }) {
-  const summary = profileFieldsForReading(value, shape, showClears);
+/** @param {{value: any, shape?: object | true | typeof narrativeFields, identity?: object, title?: string, showClears?: boolean, present?: (value: any) => any}} props */
+export function ProfileFieldsSummary({ value, shape = profileShape, identity, title, showClears, present }) {
+  const selected = profileFieldsForReading(value, shape, showClears);
+  const summary = present ? present(selected) : selected;
   if (!hasVisibleSemanticValue(summary, "", identity)) return null;
   return <>
     {title && <h4 className="font-medium">{title}</h4>}
@@ -118,6 +120,53 @@ const portraitPolicyValues = {
   intimacy_expression: { reserved: "含蓄" },
 };
 
+const degreeLabels = ["很低", "较低", "适中", "较高", "很高"];
+const expressionDegrees = {
+  emoji_frequency: [creationScaleHints.emoji_frequency[0], "较少使用表情", "适中", "较常使用表情", "经常使用表情"],
+  sarcasm_tendency: [creationScaleHints.sarcasm_tendency[0], "较少调侃", "适中", "较常调侃", "经常调侃"],
+  directness: ["很委婉", creationScaleHints.directness[0], "适中", creationScaleHints.directness[1], "很直接"],
+  initiative: degreeLabels,
+  topic_initiation: ["很少开启话题", creationScaleHints.topic_initiation[0], "适中", creationScaleHints.topic_initiation[1], "经常开启话题"],
+  silence_tolerance: degreeLabels,
+  emotional_expression: ["很克制", creationScaleHints.emotional_expression[0], "适中", creationScaleHints.emotional_expression[1], "情绪表达很明显"],
+};
+
+function scaleNumber(value) {
+  return typeof value === "string" && /^\d+(?:\.\d+)?$/.test(value) ? Number(value) : value;
+}
+
+function expressionValue(field, value) {
+  const score = scaleNumber(value);
+  if (!Number.isFinite(score) || score < 0) return value;
+  if (field === "response_delay") {
+    if (score === 0) return "即时回复";
+    if (score < 1) return "不到 1 秒";
+    const seconds = Math.round(score);
+    if (seconds < 60) return `约 ${seconds} 秒`;
+    const remainder = seconds % 60;
+    return `约 ${Math.floor(seconds / 60)} 分钟${remainder ? ` ${remainder} 秒` : ""}`;
+  }
+  if (!Object.hasOwn(expressionDegrees, field) || score > 1) return value;
+  const index = [0.2, 0.4, 0.6, 0.8].filter(bound => score >= bound).length;
+  return expressionDegrees[field][index];
+}
+
+export function describeProfileExpression(value, field = "") {
+  if (Array.isArray(value)) return value.map(item => describeProfileExpression(item, field));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, describeProfileExpression(item, key)]));
+  }
+  return expressionValue(field, value);
+}
+
+export function describeProfileMood(mood) {
+  return scaleNumber(mood?.intensity) === 0 ? { ...mood, intensity: "平稳" } : mood;
+}
+
+export function describeProfileCurrentState(state) {
+  return state?.mood ? { ...state, mood: describeProfileMood(state.mood) } : state;
+}
+
 /** @param {{ value: any, identity?: object, activeProfileId?: string | null, localizePolicy?: boolean }} props */
 export function WorkingPortraitSummary({ value, identity, activeProfileId, localizePolicy = false }) {
   const working = workingPersonaPresentation(value);
@@ -142,14 +191,16 @@ export function WorkingPortraitSummary({ value, identity, activeProfileId, local
     return text ? [{ text }] : [];
   });
   if (!reading.length) {
-    return <ProfileFieldsSummary value={working?.working_persona ?? working} shape={personalityShape} identity={identity} />;
+    return <ProfileFieldsSummary value={working?.working_persona ?? working} shape={personalityShape} identity={identity}
+      present={localizePolicy ? describeProfileExpression : undefined} />;
   }
   return <div data-testid="current-working-portrait">
     {reading.map((line, index) => {
       if (!line.field) return <p key={index}>{line.text}</p>;
       const policy = localizePolicy && Object.hasOwn(behavioralFields, line.field);
       const labels = (policy && portraitPolicyValues[line.field]) || {};
-      const value = Object.hasOwn(labels, line.value) ? labels[line.value] : line.value;
+      const value = Object.hasOwn(labels, line.value) ? labels[line.value]
+        : policy ? expressionValue(line.field, line.value) : line.value;
       return <p key={index}>
         {line.userSource && <span>用户原文 · </span>}
         <b>{readingFieldLabel(line.field)}：</b>

@@ -36,6 +36,7 @@ import {
   ProfileDiagnostic, ProfileFieldsSummary, ProfileNote, ProfileTime, profileText,
   profileFieldsForReading, personalityShape, behaviorShape, lifeShape,
   systemShape, currentStateShape, WorkingPortraitSummary,
+  describeProfileExpression, describeProfileMood, describeProfileCurrentState,
 } from "../shared/ProfileRecordSummary";
 import RequestStatus from "../shared/RequestStatus";
 import WearingSummary from "../shared/WearingSummary";
@@ -495,7 +496,7 @@ export default function CharacterDetailPageView({ model: m }) {
                 >
                   <OverviewFacts identity={identity} entries={[["回复风格","response_style",policyFact("response_style")],["消息长短","message_length",policyFact("message_length")],["分歧处理","conflict_style",policyFact("conflict_style")],["拒绝方式","refusal_style",policyFact("refusal_style")]]}/>
                   {hasVisibleSemanticValue(identity.core_values)&&<Block title="核心价值观" value={identity.core_values} identity={identity}/>}
-                  <ProfileFieldsSummary value={extraPolicy} shape={behaviorShape} identity={identity} />
+                  <ProfileFieldsSummary value={extraPolicy} shape={behaviorShape} identity={identity} present={describeProfileExpression} />
                 </Section>
               </div>
               <div className="companion-stack">
@@ -523,7 +524,7 @@ export default function CharacterDetailPageView({ model: m }) {
                       当前尚未提供可读取的性格维度，这里保留留白。
                     </p>
                   )}
-                  <ProfileFieldsSummary value={personality} shape={personalityShape} identity={identity} />
+                  <ProfileFieldsSummary value={personality} shape={personalityShape} identity={identity} present={describeProfileExpression} />
                   <ProfileDiagnostic value={personality} title="原始性格记录（诊断）" />
                 </Section>
                 <Surface className="companion-portrait-note">
@@ -583,7 +584,7 @@ export default function CharacterDetailPageView({ model: m }) {
                               : "人格档案"}
                           </Badge>
                         </div>
-                        <ProfileFieldsSummary value={m.personaValue(p)} identity={identity} />
+                        <ProfileFieldsSummary value={m.personaValue(p)} identity={identity} present={describeProfileExpression} />
                         <ProfileDiagnostic value={p} title="原始人格档案（诊断）" />
                       </article>
                     ))}
@@ -696,7 +697,7 @@ export default function CharacterDetailPageView({ model: m }) {
                   />
                   <Fact
                     label="心情"
-                    value={profileFieldsForReading(d.inner_state?.mood || d.current_state?.mood, currentStateShape.mood)}
+                    value={describeProfileMood(profileFieldsForReading(d.inner_state?.mood || d.current_state?.mood, currentStateShape.mood))}
                     identity={identity}
                   />
                   <div className="profile-key-value">
@@ -707,7 +708,7 @@ export default function CharacterDetailPageView({ model: m }) {
                       error={w.state.errors?.wardrobe || ""}
                     />
                   </div>
-                  <ProfileFieldsSummary value={d.current_state} shape={currentStateShape} identity={identity} title="实际外观与状态" />
+                  <ProfileFieldsSummary value={d.current_state} shape={currentStateShape} identity={identity} title="实际外观与状态" present={describeProfileCurrentState} />
                   <ProfileDiagnostic value={d.current_state} title="原始当前状态记录（诊断）" />
                   <div className="companion-action-row">
                     <Button
@@ -1142,7 +1143,7 @@ export default function CharacterDetailPageView({ model: m }) {
         description="查看当前正式档案和创建来源。"
       >
         <ProfileNote value={initialization} label="初始来源" />
-        <ProfileFieldsSummary value={{ ...core, personality }} identity={identity} />
+        <ProfileFieldsSummary value={{ ...core, personality }} identity={identity} present={describeProfileExpression} />
         <ProfileDiagnostic value={d} title="原始角色档案（诊断）" />
       </WorkspaceDialog>
       {!m.editing.value && tab !== "persona" && (
