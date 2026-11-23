@@ -92,7 +92,7 @@ test('inbox previews and detail filter raw model sections without restoring an e
   assert.doesNotMatch(ui.host.textContent,/内部认知|事务记录|使用工具|# 回复/);
   await ui.click(ui.host.querySelector('.replica-notice-main'));
   assert.equal(document.querySelector('.replica-inbox-body').textContent,'我在这里陪着你。');
-  const disclosure=[...document.querySelectorAll('summary')].find(node=>node.textContent.includes('通知来源与标识'));if(disclosure)await ui.click(disclosure);
+  const dialog=document.querySelector('[role=dialog]');const disclosure=button(dialog,'原始通知记录（诊断）');assert.ok(disclosure);await ui.click(disclosure);assert.ok(button(dialog,'下载原始记录'));
   assert.doesNotMatch(document.querySelector('[role=dialog]').textContent,/内部认知|事务记录|使用工具|# 回复/);
  }finally{await ui.dispose();}
 });
@@ -113,7 +113,7 @@ test('r23 inbox cards hide leaked chat protocol and clamp summaries to two lines
   const summaries=[...ui.host.querySelectorAll('.replica-notice-main p.replica-notice-summary')];assert.equal(summaries.length,2);
   assert.doesNotMatch(ui.host.textContent,/运行协议|working_persona|interpretation_boundary|portrait_text|persona\.detail|人工智能助手/);
   await ui.click(ui.host.querySelector('.replica-notice-main'));
-  const disclosure=[...document.querySelectorAll('summary')].find(node=>node.textContent.includes('通知来源与标识'));if(disclosure)await ui.click(disclosure);
+  const dialog=document.querySelector('[role=dialog]');const disclosure=button(dialog,'原始通知记录（诊断）');assert.ok(disclosure);await ui.click(disclosure);assert.ok(button(dialog,'下载原始记录'));
   assert.doesNotMatch(document.querySelector('[role=dialog]').textContent,/运行协议|working_persona|interpretation_boundary|portrait_text/);
  }finally{await ui.dispose();}
  const css=await import('node:fs').then(fs=>fs.readFileSync(new URL('../src/styles/replica-management.css',import.meta.url),'utf8'));
