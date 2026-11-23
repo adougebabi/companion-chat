@@ -30,6 +30,15 @@ import { useWorkspace } from "../page";
 import { readValue, jsonValueSnapshot } from "@/state/view-model";
 import { garmentView, slots } from "@/state/workspace.mjs";
 import { errorMessage } from "@/v3/domain-presentation.mjs";
+import { isInternalId } from "@/v3/internal-id.mjs";
+import { userInstant } from "@/v3/presentation-time.mjs";
+import {
+  clothingSeasons,
+  clothingTypeOf,
+  clothingTypeOptions,
+  wardrobeAvailabilityOptions,
+  wardrobeOwnershipOptions,
+} from "@/lib/wardrobe-form";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
 import WorkspaceDialog from "../shared/WorkspaceDialog";
 import WardrobeItemArt from "../shared/WardrobeItemArt";
@@ -107,6 +116,91 @@ const field = (label, control, group = false) => {
   );
 };
 const art = (g, showStatus = false, allowRetry = false) => <WardrobeItemArt type={types[g.type] || g.type} name={g.name} media={g._source?.media || g.media} urlForAsset={mediaClient.url} showStatus={showStatus} allowRetry={allowRetry} />;
+
+function recordText(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  if (isInternalId(text) || /^(?:outfit|inventory|wardrobe|item|profile)_[a-z0-9_-]+$/i.test(text)) return "";
+  return text ? value : "";
+}
+
+function recordTime(value) {
+  return typeof value === "string" && Number.isFinite(Date.parse(value)) ? userInstant(value) : "";
+}
+
+function RecordFacts({ facts, title }) {
+  const visible = facts.filter(([, value]) => value);
+  if (!visible.length) return null;
+  return (
+    <div className="r-muted">
+      {title && <h4>{title}</h4>}
+      {visible.map(([label, value]) => <p key={label}>{label}：{value}</p>)}
+    </div>
+  );
+}
+
+function WardrobeRecordDownload({ value, kind, history = false }) {
+  if (!value || !Object.keys(value).length) return null;
+  const outfit = kind === "outfit";
+  return (
+    <JsonDetails
+      value={value}
+      title={outfit ? "原始穿搭方案（诊断）" : "原始服装记录（诊断）"}
+      filename={`wardrobe-${outfit ? "outfit" : "item"}${history ? "-history" : ""}.json`}
+      downloadOnly
+    />
+  );
+}
+
+function revisionFacts(value, kind) {
+  if (!value) return [];
+  if (kind === "outfit") {
+    const tags = Array.isArray(value.tags) ? value.tags.map(recordText).filter(Boolean) : [];
+    const members = Array.isArray(value.items)
+      ? value.items.map((item) => recordText(item?.description) || recordText(item?.name)).filter(Boolean)
+      : [];
+    return [
+      ["方案名称", recordText(value.name)],
+      ["场景", tags.join("、")],
+      ["搭配成员", members.join("、")],
+    ];
+  }
+  const clothingType = clothingTypeOf(value);
+  const seasons = Array.isArray(value.seasons)
+    ? clothingSeasons.filter(({ value: season }) => value.seasons.includes(season)).map(({ label }) => label)
+    : [];
+  return [
+    ["服装描述", recordText(value.description) || recordText(value.name)],
+    ["服装类型", clothingTypeOptions.find(({ value: type }) => type === clothingType)?.label],
+    ["适合季节", seasons.join("、")],
+    ["拥有关系", wardrobeOwnershipOptions.find(({ value: state }) => state === value.ownership)?.label],
+    ["可用状态", wardrobeAvailabilityOptions.find(({ value: state }) => state === value.availability)?.label],
+    ["归档时间", recordTime(value.archived_at)],
+    ["使用活动", recordText(value.activity)],
+  ];
+}
+
+function WardrobeRevision({ item, kind }) {
+  const useEvent = item.kind === "use_event";
+  const reason = recordText(item.reason);
+  const auditReason = recordText(item.owner_audit?.reason);
+  const usageLabel = item.operation === "start" ? "开始使用" : item.operation === "stop" ? "结束使用" : "使用记录";
+  const title = useEvent ? usageLabel : kind === "outfit" ? "方案修订" : "服装修订";
+  return (
+    <article>
+      <h4>{title}</h4>
+      <RecordFacts facts={[
+        [useEvent ? "发生时间" : "修订时间", recordTime(item.occurred_at) || recordTime(item.created_at)],
+        ["修订原因", reason || auditReason],
+        ["修正说明", reason && reason !== auditReason ? auditReason : ""],
+        ["使用活动", useEvent ? recordText(item.payload?.activity) : ""],
+      ]} />
+      <RecordFacts title="变更前" facts={revisionFacts(item.before_value, kind)} />
+      <RecordFacts title="变更后" facts={revisionFacts(item.after_value, kind)} />
+      <WardrobeRecordDownload value={item} kind={kind} history />
+    </article>
+  );
+}
+
 function RecordHistory({ fid, id, kind }) {
   const w = useWorkspace(),
     scope = w.currentScope(),
@@ -168,12 +262,8 @@ function RecordHistory({ fid, id, kind }) {
           </Button>
         </InlineFeedback>
       )}
-      {page.items.map((item, index) => (
-        <JsonDetails
-          key={item.id || index}
-          value={item}
-          title={item.reason || "修订记录"}
-        />
+      {page.items.map((item, index) => item && Object.keys(item).length > 0 && (
+        <WardrobeRevision key={item.id || index} item={item} kind={kind} />
       ))}
       {page.ready && !page.items.length && !error && (
         <p className="r-muted">当前读取范围没有修订记录。</p>
@@ -586,8 +676,8 @@ export function WardrobePageView({ view, route, preparation = null }) {
                       .map((id) => {
                         const g = c.garments.find((g) => g.id === id) || {
                           name:
-                            o._source?.items?.find((g) => g.id === id)
-                              ?.description || "衣物名称待读取",
+                            recordText(o._source?.items?.find((g) => g.id === id)
+                              ?.description) || "衣物名称待读取",
                           type: "配饰",
                         };
                         return (
@@ -607,8 +697,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
                   <div className="r-card-body">
                     <h3>{o.name}</h3>
                     <p>
-                      {Object.values(o.items).flat().length} 件服装 · v
-                      {o._source?.revision ?? "待核对"}
+                      {Object.values(o.items).flat().length} 件服装
                     </p>
                     {!validOutfit(o) && (
                       <small className="r-warning">
@@ -732,7 +821,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        aria-label={"移除" + (g?.name || id)}
+                        aria-label={"移除" + (g?.name || "这件衣物")}
                         onClick={() =>
                           (view.items.value[slot] = view.items.value[
                             slot
@@ -953,8 +1042,14 @@ export function WardrobePageView({ view, route, preparation = null }) {
             </div>
             {draft._source && (
               <>
+                <RecordFacts facts={[
+                  ["服装描述", draft._source.description !== draft.name ? recordText(draft._source.description) : ""],
+                  ["登记时间", recordTime(draft._source.acquired_at)],
+                  ["最近修改", recordTime(draft._source.updated_at)],
+                  ["归档时间", recordTime(draft._source.archived_at)],
+                ]} />
                 <RecordHistory fid={fid} id={draft.id} kind="garment" />
-                <JsonDetails value={draft._source} title="完整服装与来源" />
+                <WardrobeRecordDownload value={draft._source} kind="garment" />
                 {draft._source.archived_at ? (
                   <p className="r-muted">
                     这件衣服已归档，历史和方案引用仍保留。
@@ -1021,8 +1116,8 @@ export function WardrobePageView({ view, route, preparation = null }) {
                       <span>
                         <b>
                           {g?.name ||
-                            preview._source?.items?.find((g) => g.id === id)
-                              ?.description ||
+                            recordText(preview._source?.items?.find((g) => g.id === id)
+                              ?.description) ||
                             "衣物名称待读取"}
                         </b>
                         <small>{g?.type || "当前目录未找到"}</small>
@@ -1064,8 +1159,13 @@ export function WardrobePageView({ view, route, preparation = null }) {
               </Button>
             </div>
             <view.ActionFeedback labels={["衣柜", "换装"]} />
+            <RecordFacts facts={[
+              ["场景", preview.tags?.slice(1).map((tag) => recordText(view.tagLabel(tag))).filter(Boolean).join("、")],
+              ["保存时间", recordTime(preview._source?.created_at)],
+              ["最近修改", recordTime(preview._source?.updated_at)],
+            ]} />
             <RecordHistory fid={fid} id={preview.id} kind="outfit" />
-            <JsonDetails value={preview._source} title="完整方案与来源" />
+            <WardrobeRecordDownload value={preview._source} kind="outfit" />
           </div>
         )}
       </WorkspaceDialog>
