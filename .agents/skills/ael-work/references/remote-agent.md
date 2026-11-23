@@ -67,6 +67,8 @@ execute change/pass 示例请求如下，summary、路径和知识结论按实�
 
 execute 的 change 责任提交 pass 时，至少一个 result.artifacts 附件须绑定候选中的实际交付文件路径，附件 SHA-256 与候选哈希相同。上述 app.txt 是示例候选路径。常规提交入口自动生成这些绑定。单独 artifact upload 使用 --lease-file 时也自动处理源码扩展名，保留原始字节。每次重新领取后，附件需属于新的 attempt、候选与租约。
 
+已提交结果出现 CI 失败或其他反馈时，按 [FEEDBACK](workflow.md#10-feedback修正与独立新工作) 核对实际原因和范围。已完成任务的交付修正可在原任务下追加普通附件，沿用 [命令与恢复](commands.md#已完成任务的交付修正) 的修订与鉴权校验。需要远端 CI 成功的交付以最终提交或合并候选的实际结果为准。
+
 `runner run`、`runner resume-result`、`runner recover-claim` 明确不支持；不要用它们恢复新模式。稳定本地 Managed/Attached 仍是显式本地功能，不作为远程前置。合并/发布交给外部 Git/CI/部署工具与用户授权，AEL 保存目标与回执，不能将 verified 偷换为 merged/released。没有活跃外部 Agent 就等待接手，不声称后台自动编码。
 
 ## 双客户端、断网与恢复
