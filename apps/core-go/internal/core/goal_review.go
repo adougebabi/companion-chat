@@ -90,7 +90,7 @@ func queueGoalReviewsTx(ctx context.Context, tx pgx.Tx, owner, profile, reason s
 	pending := []string{}
 	for _, id := range ids {
 		reviewID := "goal_review_" + stableDigest(id+"\x1f"+date)
-		tag, err := tx.Exec(ctx, `INSERT INTO public.goal_reviews(id,fluctlight_id,goal_id,local_date,timezone,window_start,window_end,source_watermark) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(goal_id,local_date,strategy_version) DO UPDATE SET status='pending',source_watermark=EXCLUDED.source_watermark,revision=goal_reviews.revision+1,updated_at=now() WHERE goal_reviews.source_watermark<EXCLUDED.source_watermark`, reviewID, owner, id, date, timezone, start, end, watermark)
+		tag, err := tx.Exec(ctx, `INSERT INTO public.goal_reviews(id,fluctlight_id,goal_id,local_date,timezone,window_start,window_end,source_watermark) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(goal_id,local_date,strategy_version) DO UPDATE SET status='pending',source_watermark=GREATEST(goal_reviews.source_watermark,EXCLUDED.source_watermark),revision=goal_reviews.revision+CASE WHEN goal_reviews.source_watermark<EXCLUDED.source_watermark THEN 1 ELSE 0 END,updated_at=now() WHERE goal_reviews.source_watermark<EXCLUDED.source_watermark OR ($9::boolean AND goal_reviews.status='pending')`, reviewID, owner, id, date, timezone, start, end, watermark, reason == "daily_03")
 		if err != nil {
 			return "", err
 		}

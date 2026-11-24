@@ -316,6 +316,9 @@ func (r *Runner) Apply(ctx context.Context) error {
 	if _, err := tx.Exec(ctx, goalEvaluationQuietPeriodSchemaSQL); err != nil {
 		return fmt.Errorf("apply Goal evaluation quiet period: %w", err)
 	}
+	if _, err := tx.Exec(ctx, goalDailyReviewSchemaSQL); err != nil {
+		return fmt.Errorf("apply Goal daily review clock: %w", err)
+	}
 	if _, err := tx.Exec(ctx, ownerSurfaceSchemaSQL); err != nil {
 		return fmt.Errorf("apply owner surface schema: %w", err)
 	}

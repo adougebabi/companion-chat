@@ -982,6 +982,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	providerCtx := WithPromptDiagnostics(WithProviderCancellationKey(WithProviderCorrelation(WithProviderScenario(ctx, "wake_up"), correlationID), WakeUpProviderCancellationMarker(fluctlightID, cycle)), replyRunDiagnostics(ctx, assembly.Diagnostics))
 	providerCtx = a.bindProjectionRefresh(providerCtx, projectionRequest, ProviderContextSurfaceWakeUp, "cognitive_assessment", operationRules, currentInput, definitions, "wake_up_response", schema, decorateProjection)
 	assembly.ResponseFormat = schema
+	providerCtx = withPhysicalModelRequestPolicy(providerCtx, wakeUpPhysicalRequestPolicy{})
 	run, runErr := a.RunFormalAgent(providerCtx, FormalAgentWakeUp, FormalAgentRunInput{
 		Prompt: assembly, Definitions: definitions,
 		SchemaName: "wake_up_response", EnableThinking: structuredThinkingEnabledForSchema("wake_up_response"),
@@ -1175,6 +1176,19 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 // bindIntentionDueFact replaces the pre-transition reference with the exact
 // due revision visible in this Agent projection. The durable fact remains the
 // audit source; neither a Provider-supplied ref nor a guessed token is trusted.
+func decisionReferencesDueEntity(refs []string, current ContextReferenceIndex, expected ContextReference) bool {
+	if expected.EntityID == "" {
+		return false
+	}
+	for _, ref := range refs {
+		entry, ok := current.ByRef[ref]
+		if ok && entry.Kind == expected.Kind && entry.EntityID == expected.EntityID {
+			return true
+		}
+	}
+	return false
+}
+
 func (a *App) bindIntentionDueFact(ctx context.Context, fluctlightID string, payload []byte, projection ContextProjection) ([]byte, map[string]any, error) {
 	fact := decodeObject(payload)
 	candidate := mapValue(fact["candidate"])
@@ -1324,6 +1338,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "native_cognition_agent_failed", runErr)
 		return runErr
 	}
+	initialReferences := projection.ReferenceIndex
 	projection = taskResult.Projection
 	stages, semanticStages, err := normalizeCognitiveStages(taskResult.Completion.Structured, len(outcome.Invocations) > 0)
 	if err != nil {
@@ -1347,7 +1362,10 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		dueFact := mapValue(factPayload["candidate"])
 		goalRef := strings.TrimSpace(stringValue(dueFact["goal_ref"]))
 		intentionRef := strings.TrimSpace(stringValue(dueFact["intention_ref"]))
-		if goalRef == "" || intentionRef == "" || !containsString(decisionServiceRefValues(stages["goal_refs"]), goalRef) || !containsString(decisionServiceRefValues(stages["intention_refs"]), intentionRef) {
+		// A committed Tool can revise the Intention and refresh its opaque ref.
+		// The final influences must still name the same authorized entities, not
+		// a token whose revision existed before that Tool committed.
+		if goalRef == "" || intentionRef == "" || !decisionReferencesDueEntity(decisionServiceRefValues(stages["goal_refs"]), projection.ReferenceIndex, initialReferences.ByRef[goalRef]) || !decisionReferencesDueEntity(decisionServiceRefValues(stages["intention_refs"]), projection.ReferenceIndex, initialReferences.ByRef[intentionRef]) {
 			err := errors.New("intention_due_service_influences_required")
 			_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, "intention_due_service_influences_required", err)
 			return err
@@ -1449,7 +1467,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if localDate == "" {
 		localDate = a.now().In(location).Format("2006-01-02")
 	}
-	reviewAt, err := time.ParseInLocation("2006-01-02", localDate, location)
+	_, err = time.ParseInLocation("2006-01-02", localDate, location)
 	if err != nil {
 		return nil, errors.New("daily_review_date_invalid")
 	}
@@ -1560,9 +1578,8 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		if err := insertReflectionIntentTx(ctx, tx, "reflection_intent:daily:"+actionID, "reflection:daily:"+actionID, map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID}); err != nil {
 			return err
 		}
-		if _, err := queueGoalReviewsTx(ctx, tx, fluctlightID, taskResult.Projection.ReferenceIndex.ActiveProfileID, "daily_review", reviewAt); err != nil {
-			return err
-		}
+		// Goal daily review has its own durable local 03:00 clock. Accepting a
+		// schedule or finishing DailyReview must not mint another evaluation.
 		return appendOutboxTx(ctx, tx, "autonomy.result.recorded", "fluctlight", fluctlightID, fluctlightID, actionID, "daily-review-result:"+actionID, "daily-review-result:"+actionID, payload)
 	})
 	if err != nil {

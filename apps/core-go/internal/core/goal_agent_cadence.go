@@ -20,7 +20,7 @@ func goalEvaluationAllowsNoNewActivity(reason string) bool {
 	if goalEvaluationQuietWindowBypassed(reason) {
 		return true
 	}
-	return reason == "tool_evaluation" || strings.HasPrefix(reason, "goal_review:") || reason == "assessment_batch_remainder" || reason == "assessment_source_remainder"
+	return reason == "assessment_batch_remainder" || reason == "assessment_source_remainder"
 }
 
 // Goal lifecycle changes that do not create a goal_source_event still count as
@@ -43,12 +43,13 @@ func admitGoalEvaluationCycleTx(ctx context.Context, tx pgx.Tx, owner, request s
 	var lastActivity *time.Time
 	var activityRevision, evaluatedRevision int64
 	var lastRequest string
-	if err := tx.QueryRow(ctx, `SELECT now(),GREATEST(evaluation_next_at,$2::timestamptz),last_activity_at,activity_revision,evaluation_activity_revision,COALESCE(evaluation_request_id,'') FROM public.goal_agent_cadence WHERE fluctlight_id=$1 FOR UPDATE`, owner, available).Scan(&now, &next, &lastActivity, &activityRevision, &evaluatedRevision, &lastRequest); err != nil {
+	var dailyRequest string
+	if err := tx.QueryRow(ctx, `SELECT now(),GREATEST(evaluation_next_at,$2::timestamptz),last_activity_at,activity_revision,evaluation_activity_revision,COALESCE(evaluation_request_id,''),COALESCE(daily_review_request_id,'') FROM public.goal_agent_cadence WHERE fluctlight_id=$1 FOR UPDATE`, owner, available).Scan(&now, &next, &lastActivity, &activityRevision, &evaluatedRevision, &lastRequest, &dailyRequest); err != nil {
 		return time.Time{}, false, err
 	}
 	newActivity := activityRevision > evaluatedRevision
 	sameCycleRetry := attempts > 0 && lastRequest == request
-	if !newActivity && !sameCycleRetry && !goalEvaluationAllowsNoNewActivity(reason) {
+	if !newActivity && !sameCycleRetry && dailyRequest != request && !goalEvaluationAllowsNoNewActivity(reason) {
 		return time.Time{}, true, nil
 	}
 	if !goalEvaluationQuietWindowBypassed(reason) && lastActivity != nil {
@@ -126,6 +127,15 @@ func (a *App) RepairGoalEvaluationCadence(ctx context.Context, limit int) (int, 
 	}
 	repaired := 0
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var now time.Time
+		if err := tx.QueryRow(ctx, `SELECT now()`).Scan(&now); err != nil {
+			return err
+		}
+		daily, err := queueDailyGoalReviewsTx(ctx, tx, now, limit)
+		if err != nil {
+			return err
+		}
+		repaired += daily
 		rows, err := tx.Query(ctx, `SELECT f.id FROM public.fluctlights f JOIN public.goal_agent_cadence c ON c.fluctlight_id=f.id WHERE f.status='active' AND c.last_activity_at+interval '30 minutes'<=now() AND c.evaluation_next_at<=now() AND c.activity_revision>c.evaluation_activity_revision AND EXISTS(SELECT 1 FROM public.fluctlight_goals g WHERE g.fluctlight_id=f.id AND g.status IN ('active','paused') AND (g.profile_id IS NULL OR g.profile_id=COALESCE((SELECT active_profile_id FROM public.fluctlight_personality_runtime WHERE fluctlight_id=f.id),'default'))) AND NOT EXISTS(SELECT 1 FROM public.goal_evaluation_requests r WHERE r.fluctlight_id=f.id AND r.status IN ('pending','processing','retry')) ORDER BY f.id LIMIT $1`, limit)
 		if err != nil {
 			return err

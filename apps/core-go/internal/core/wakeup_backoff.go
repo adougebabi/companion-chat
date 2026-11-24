@@ -35,13 +35,16 @@ func resetWakeUpBackoff(payload map[string]any) {
 
 func wakeUpBackoffForOutcome(ctx context.Context, registry *CapabilityRegistry, projection ContextProjection, outcome agentCommittedOutcome, status, reason string, now time.Time) wakeUpBackoffDecision {
 	decision := wakeUpBackoffDecision{}
-	if (status != "no_op" && status != "completed") || reason == "sleeping" {
+	if (status != "no_op" && status != "completed" && !(status == "failed" && reason == "agent_run_failed")) || reason == "sleeping" {
 		return decision
 	}
 	if obligations, _ := ctx.Value(goalExecutionObligationsKey{}).([]map[string]any); len(obligations) > 0 {
 		return decision
 	}
 	for _, result := range outcome.Results {
+		if result.Status == "handled" && mapValue(result.Output)["effect_applied"] == false {
+			continue
+		}
 		if result.Status != "completed" && result.Status != "accepted" {
 			return decision
 		}

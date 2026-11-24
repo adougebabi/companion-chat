@@ -206,9 +206,15 @@ func normalizeScheduleResponse(result map[string]any, localDate, timezone string
 // are accepted here. A missing separator and a single seconds digit are
 // mechanical; letters, invalid fields and ambiguous dates remain errors.
 var mechanicalScheduleTimestamp = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2})(?:T| )?(\d{2}:\d{2})(?::(\d{1,2}))?$`)
+var bracketScheduleTimestamp = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2})\[(\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?)\]$`)
 
 func parseScheduleTimeInLocation(value string, day time.Time, location *time.Location) (time.Time, error) {
 	value = strings.TrimSpace(value)
+	// The brackets are mechanical punctuation. Retain the explicit offset:
+	// 15:00+00:00 means 23:00 in Shanghai, never 15:00 local time.
+	if parts := bracketScheduleTimestamp.FindStringSubmatch(value); parts != nil {
+		value = parts[1] + "T" + parts[2]
+	}
 	if parts := mechanicalScheduleTimestamp.FindStringSubmatch(value); parts != nil {
 		value = parts[1] + "T" + parts[2]
 		if parts[3] != "" {

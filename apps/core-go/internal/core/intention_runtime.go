@@ -188,6 +188,9 @@ func (a *App) ProcessIntentionTrigger(ctx context.Context, intentionID string) (
 func loadIntentionAuthorityByIDTx(ctx context.Context, tx pgx.Tx, intentionID string) (IntentionAuthority, error) {
 	var lockOwner string
 	if err := tx.QueryRow(ctx, `SELECT fluctlight_id FROM public.fluctlight_intentions WHERE id=$1`, intentionID).Scan(&lockOwner); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return IntentionAuthority{}, newCapabilityError("intention_not_found", false, ErrNotFound)
+		}
 		return IntentionAuthority{}, err
 	}
 	if err := lockLifeContextTx(ctx, tx, lockOwner); err != nil {

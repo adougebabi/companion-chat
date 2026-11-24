@@ -4,6 +4,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -158,9 +159,24 @@ func startDueShoppingThroughNative(t *testing.T, failFinal ...bool) (independent
 	modelCalls := 0
 	router := newFakeProviderRouter().on("native_cognition_response", func(payload map[string]any) fakeProviderResult {
 		modelCalls++
+		// Read the live runtime user context, excluding historical assistant
+		// tool arguments that still contain the pre-start intention ref.
+		for _, raw := range arrayValue(payload["messages"]) {
+			message := mapValue(raw)
+			content := stringValue(message["content"])
+			if message["role"] != "user" || !strings.Contains(content, "\"intentions\"") {
+				continue
+			}
+			if refs := regexp.MustCompile(`goal:ctx_[a-f0-9]{32}`).FindAllString(content, -1); len(refs) > 0 {
+				goalRef = refs[len(refs)-1]
+			}
+			if refs := regexp.MustCompile(`intention:ctx_[a-f0-9]{32}`).FindAllString(content, -1); len(refs) > 0 {
+				intentionRef = refs[len(refs)-1]
+			}
+		}
 		if modelCalls == 1 {
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("due-start-shopping", lifeActivityStartCapabilityName, map[string]any{
-				"kind": "virtual_shopping", "intention_id": intentionID, "duration_minutes": 15,
+				"kind": "virtual_shopping", "intention_ref": intentionRef, "duration_minutes": 15,
 				"category": "boots", "slot": "shoes", "description": "黑色短靴", "reason": "已有到期意愿，安排一次购物",
 			})}}
 		}

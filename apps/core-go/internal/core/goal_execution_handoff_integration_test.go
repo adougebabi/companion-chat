@@ -113,18 +113,28 @@ func TestGoalExecutionHandoffWakeWithoutUserMessageQualifiesAndAcquires(t *testi
 	nativeCalls := 0
 	router.on("native_cognition_response", func(payload map[string]any) fakeProviderResult {
 		nativeCalls++
-		if nativeCalls == 1 {
-			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("handoff-start", lifeActivityStartCapabilityName, map[string]any{"kind": "virtual_shopping", "intention_id": intentionID, "duration_minutes": 15, "category": "boots", "slot": "shoes", "description": "黑色短靴", "reason": "已确认资格的目标活动"})}}
-		}
 		// Starting the activity refreshes Intention state and its reference. Use
 		// only the actual current refs offered to this physical continuation.
-		wire := jsonString(payload["messages"])
-		if refs := regexp.MustCompile(`goal:ctx_[a-f0-9]{32}`).FindAllString(wire, -1); len(refs) > 0 {
-			goalRef = refs[len(refs)-1]
+		for _, raw := range arrayValue(payload["messages"]) {
+			message := mapValue(raw)
+			if message["role"] != "user" {
+				continue
+			}
+			content := stringValue(message["content"])
+			if !strings.Contains(content, "\"intentions\"") {
+				continue
+			}
+			if refs := regexp.MustCompile(`goal:ctx_[a-f0-9]{32}`).FindAllString(content, -1); len(refs) > 0 {
+				goalRef = refs[len(refs)-1]
+			}
+			if refs := regexp.MustCompile(`intention:ctx_[a-f0-9]{32}`).FindAllString(content, -1); len(refs) > 0 {
+				intentionRef = refs[len(refs)-1]
+			}
 		}
-		if refs := regexp.MustCompile(`intention:ctx_[a-f0-9]{32}`).FindAllString(wire, -1); len(refs) > 0 {
-			intentionRef = refs[len(refs)-1]
+		if nativeCalls == 1 {
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("handoff-start", lifeActivityStartCapabilityName, map[string]any{"kind": "virtual_shopping", "intention_ref": intentionRef, "duration_minutes": 15, "category": "boots", "slot": "shoes", "description": "黑色短靴", "reason": "已确认资格的目标活动"})}}
 		}
+
 		return fakeProviderResult{Structured: map[string]any{"attention": "活动执行中", "thought": "等待真实结果", "desire": "取得物品", "agency": "尚未完成目标", "appraisal": map[string]any{"relevance": 0.8, "goal_congruence": 0.8, "reward": 0.4, "loss": 0.0, "social_threat": 0.0, "controllability": 0.7, "responsibility": 0.6, "relationship_significance": 0.0, "expected_effect": 0.6, "evidence_refs": []any{}, "event_kind": "intention_due", "direction": "positive", "drive_signals": []any{}}, "influences": []any{map[string]any{"ref": goalRef, "role": "motivates", "confidence": 0.9, "note": "当前目标"}, map[string]any{"ref": intentionRef, "role": "grounds", "confidence": 0.9, "note": "到期意愿"}}}}
 	})
 	if _, err := f.app.ProcessCognitionInbox(f.ctx, stringValue(due["inbox_id"])); err != nil {

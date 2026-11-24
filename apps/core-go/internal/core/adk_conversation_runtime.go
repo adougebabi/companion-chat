@@ -337,6 +337,9 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 			return "", errors.New("adk_tool_result_missing")
 		}
 	}
+	if i.request.Surface == CapabilitySurfaceWakeUp && wakeUpRepeatedRejectedArguments(i.trace, capabilityName, arguments) {
+		return "", newCapabilityError("tool_progress_stalled", false, errors.New("tool_progress_stalled: identical arguments were rejected with retry_same_arguments=false"))
+	}
 	if selection := kevSelection(ctx); selection != nil && selection.permits(ctx, capabilityName) {
 		selection.mu.Lock()
 		loaded := selection.loaded[capabilityName]
