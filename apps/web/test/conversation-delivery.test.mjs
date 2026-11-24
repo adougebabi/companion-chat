@@ -605,6 +605,7 @@ async function withRetryFixture(clock, run) {
 	const user = { id: "persisted-retry-user", conversationId: conversation.id, sequence: 1, authorActorId: "participant", kind: "user", text: "原始消息", attachmentRefs: ["asset-original"], createdAt: "2026-09-11T00:00:01Z", turnId: "original-turn", idempotencyKey: "original-key", turnStatus: "failed", turnErrorCode: "conversation_native_output_missing", turnRetryable: true, ...clock };
 	const page = { conversation, participants: [], messages: [user], nextBeforeSequence: null };
 	const requests = [];
+	const replyRecoveries = [];
  let cancelResponse=async()=>Response.json({status:"cancelled"});
 	let turnResponse = async () => {
 		user.turnStatus = "completed";
@@ -613,6 +614,12 @@ async function withRetryFixture(clock, run) {
 	globalThis.fetch = async (input, init = {}) => {
 		const url = String(input);
  if(url.endsWith("/cancel"))return cancelResponse();
+		if (url.endsWith("/retry-reply")) {
+			replyRecoveries.push({url:new URL(url, globalThis.window.location.origin).pathname, method:init.method, body:JSON.parse(String(init.body))});
+			user.turnStatus = "pending";
+			user.turnReplyRetryable = false;
+			return new Response(null, {status:204});
+		}
 		if (url.endsWith("/turn")) {
 			requests.push(JSON.parse(String(init.body)));
 			return turnResponse(init);
@@ -629,7 +636,7 @@ async function withRetryFixture(clock, run) {
 		const store = createConversationController();
 		store.fluctlights = [{ id: "fluctlight-retry-clock", identity: { name: "摇光" }, status: "active" }];
 		await store.selectFluctlight("fluctlight-retry-clock");
-		await run({ store, server, page, user, requests, values, setCancelResponse:response=>{cancelResponse=response;}, setTurnResponse: (response) => { turnResponse = response; } });
+		await run({ store, server, page, user, requests, replyRecoveries, values, setCancelResponse:response=>{cancelResponse=response;}, setTurnResponse: (response) => { turnResponse = response; } });
 	} finally {
 		await server.close();
 		Object.assign(globalThis, originals);
@@ -991,6 +998,21 @@ test("a partial committed failure stays non-retryable and does not claim it will
 		assert.match(html, /部分操作已执行，不能直接重试/);
         assert.doesNotMatch(html, /重试原回应/);
 		assert.doesNotMatch(html, /本次生成正在结束|重试回复/);
+	});
+});
+
+test("reply-only recovery schedules the original turn without sending another message", async () => {
+	await withRetryFixture({}, async ({store, server, user, requests, replyRecoveries}) => {
+		Object.assign(user, {turnErrorCode:"agent_partial_committed", turnRetryable:false, turnReplyRetryable:true});
+		store.messages = [{...user}];
+		const {default:ChatTurnFeedback} = await server.ssrLoadModule("/src/react-app/components/ChatTurnFeedback.tsx");
+		const html = renderToStaticMarkup(React.createElement(ChatTurnFeedback,{message:store.messages[0],messages:store.messages,store}));
+		assert.match(html,/仅重试回复/);
+		assert.doesNotMatch(html,/重试原回应/);
+		await store.retryReply(user.id);
+		assert.deepEqual(replyRecoveries,[{url:"/api/conversations/conversation-retry-clock/turn/original-turn/retry-reply",method:"POST",body:{}}]);
+		assert.equal(requests.length,0);
+		assert.equal(store.messages.filter(message=>message.kind==="user").length,1);
 	});
 });
 

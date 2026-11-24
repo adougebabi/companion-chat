@@ -83,7 +83,7 @@ const schema = {
           attachmentRefs: { type: "array", items: { type: "string" } }, createdAt: { type: "string", format: "date-time" },
           senderTimezone: nullableString, senderUtcOffsetMinutes: { anyOf: [{ type: "integer" }, { type: "null" }] }, senderSentAt: nullableString,
           turnId: { type: "string" }, idempotencyKey: { type: "string" }, turnStatus: { type: "string", enum:["pending","running","completed","failed","cancelled"] },
-          turnErrorCode: { type: "string" }, turnRetryable: { type: "boolean" },
+          turnErrorCode: { type: "string" }, turnRetryable: { type: "boolean" }, turnReplyRetryable: { type: "boolean" },
           identity: nullableString, actor: nullableString, recall: {}, memoryRef: {}, goalRef: {}, actionId: nullableString, link: {},
         },
         required: ["id", "conversationId", "sequence", "authorActorId", "kind", "text", "attachmentRefs", "createdAt"],
@@ -412,6 +412,7 @@ const schema = {
     "/api/conversations/{conversationId}/read": { post: { operationId: "markConversationRead" } },
     "/api/conversations/{conversationId}/turn": { post: { operationId: "conversationTurn", ...requestBody("BrowserConversationTurnRequest") } },
     "/api/conversations/{conversationId}/turn/{turnId}/cancel": { post: { operationId: "cancelConversationTurn" } },
+    "/api/conversations/{conversationId}/turn/{turnId}/retry-reply": { post: { operationId: "retryConversationReply" } },
     "/api/diagnostics": { get: { operationId: "readDiagnostics" }, delete: { operationId: "clearDiagnostics" } },
     "/api/diagnostics/kev-decisions": {
       get: { operationId:"kevDecisions", parameters:["actor_self","actor_user","agent","decision_point","id","request_id","policy_outcome","call_status","application_status","correlation_id","run_id","from","to","limit","cursor"].map(name=>({name,in:"query",schema:{type:"string"}})), ...jsonResponse("BrowserKevDecisionPage") }

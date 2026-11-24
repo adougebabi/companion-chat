@@ -15,6 +15,7 @@ import (
 type directMainReplyCapability struct {
 	app         *App
 	publication *ToolPublicationService
+	replyOnly   bool
 }
 
 // The direct private conversation presents its directory as the next step
@@ -39,6 +40,12 @@ func (c directMainReplyCapability) Definition() CapabilityDefinition {
 	properties := map[string]any{
 		"text":     map[string]any{"type": "string", "minLength": 1, "maxLength": 32000, "description": "Your final private message to the other person."},
 		"decision": directMainDecisionSchema(),
+	}
+	if c.replyOnly {
+		d.Description = "Publish the missing private reply for the original user message. Confirm only real results. Supply text and decision with action_type=reply, a short response_intent and influences=[]."
+		decision := mapValue(properties["decision"])
+		original := mapValue(decision["properties"])
+		properties["decision"] = objectSchema(map[string]any{"action_type": original["action_type"], "response_intent": original["response_intent"], "influences": original["influences"]}, []string{"action_type", "response_intent", "influences"}, false)
 	}
 	d.InputSchema = objectSchema(properties, []string{"text", "decision"}, false)
 	return d
@@ -146,7 +153,11 @@ func (c directMainReplyCapability) Prepare(ctx context.Context, invocation Capab
 		if err != nil {
 			return invocation, newCapabilityError("direct_media_delivery_check_failed", true, err)
 		}
-		mediaRefs, err = c.app.checkDirectMediaDeliveryClaims(ctx, projection, run.CurrentInput, text, deliveries, directCurrentMediaIntents(bridge.Trace, invocation))
+		currentMedia := directCurrentMediaIntents(bridge.Trace, invocation)
+		if retry := directReplyRetryFromContext(ctx); retry.intentID != "" {
+			currentMedia[retry.intentID] = true
+		}
+		mediaRefs, err = c.app.checkDirectMediaDeliveryClaims(ctx, projection, run.CurrentInput, text, deliveries, currentMedia)
 		if err != nil {
 			return invocation, err
 		}
@@ -233,5 +244,6 @@ func (c directMainReplyCapability) SettleToolTx(ctx context.Context, tx pgx.Tx, 
 		return err
 	}
 	outcome := agentCommittedOutcome{Invocations: invocations, Results: results}
-	return c.app.settleAgentConversationTurnTx(ctx, tx, sourceFactID, turnID, request.FluctlightID, firstString(request.SubjectActorID, request.AuthorizationActorID), projection, decision, plan, map[string]any{"id": messageID}, mediaIntentFromCommittedResults(results), outcome, true)
+	mediaID := firstString(mediaIntentFromCommittedResults(results), directReplyRetryFromContext(ctx).intentID)
+	return c.app.settleAgentConversationTurnTx(ctx, tx, sourceFactID, turnID, request.FluctlightID, firstString(request.SubjectActorID, request.AuthorizationActorID), projection, decision, plan, map[string]any{"id": messageID}, mediaID, outcome, true)
 }

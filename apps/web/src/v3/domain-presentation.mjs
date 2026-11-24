@@ -63,6 +63,7 @@ function presentError(error,fallback,reading) {
  if(/direct_media_delivery_unresolved|direct_media_delivery_unverified|direct_media_delivery_stale/.test(source))return '回复未发送：图片发送状态与回复内容未能通过核对。请查看被拦内容、判断依据和实际图片记录后重试。';
  if(/direct_media_delivery_check_failed/.test(source))return '回复未发送：图片发送状态检查失败，原消息已保留。';
  if(/direct_media_reply_stalled|direct_reply_arguments_unresolved/.test(source))return '回复未发送：模型多次未能完成回复处理，已停止重复尝试。请查看本次运行。';
+ if(/conversation_reply_retry_unavailable/.test(source))return '这条回复当前无法补发，请查看原回合状态。';
  if(/adk_run_failed|agent_run_failed/.test(source))return '回复处理失败；模型生成内容或任务结束不代表消息已发送。请查看同一回合的失败环节。';
  if(/vision_disabled/.test(source))return '视觉理解未启用；候选图片已保存，尚未经视觉检验。请到设置开启视觉理解并选择独立视觉模型，或提交人工评审。';
  if(/diary_model_snapshot_missing/.test(source))return '旧日记任务未记录原模型配置，未继续生成。已保存的素材和阶段结果仍在，可核对模型设置后重试。';

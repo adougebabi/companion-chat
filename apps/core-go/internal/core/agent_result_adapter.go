@@ -291,7 +291,10 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	}
 
 	var attemptCount, retryCount int
-	_ = a.DB.Pool().QueryRow(ctx, `SELECT COALESCE(attempt_count,0),COALESCE((payload->>'retry_count')::int,0) FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&attemptCount, &retryCount)
+	var replyRetryMediaID string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT COALESCE(attempt_count,0),COALESCE((payload->>'retry_count')::int,0),COALESCE(payload->'agent_partial'->>$2,'') FROM public.cognition_inbox WHERE id=$1`, inboxID, directReplyRetryKey).Scan(&attemptCount, &retryCount, &replyRetryMediaID); err != nil {
+		return TurnResult{}, err
+	}
 	runID := "turn:" + turnID
 	if attemptCount > 0 {
 		runID = fmt.Sprintf("turn:%s:attempt:%d", turnID, attemptCount)
@@ -301,6 +304,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		runID = fmt.Sprintf("%s:retry:%d", runID, retryCount)
 	}
 	runCtx := context.WithValue(WithProviderCorrelation(ctx, "turn:"+turnID), directMainConversationKey{}, true)
+	if replyRetryMediaID != "" {
+		runCtx = context.WithValue(runCtx, directReplyRetryContextKey{}, directReplyRetryReceipt{intentID: replyRetryMediaID})
+	}
 	if claimOwner != "" {
 		runCtx = context.WithValue(runCtx, directTurnClaimKey{}, directTurnClaim{InboxID: inboxID, Owner: claimOwner})
 	}
@@ -548,7 +554,14 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 		}
 		// A direct turn's model binding is runtime metadata, not a committed
 		// effect. Keep it across failure while replacing the partial receipts.
-		command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='failed',processed_at=now(),claimed_by=NULL,claimed_at=NULL,error_code=$2,payload=jsonb_set(payload,'{agent_partial}',$3::jsonb || CASE WHEN jsonb_typeof(payload->'agent_partial')='object' AND (payload->'agent_partial') ? $4::text THEN jsonb_build_object($4::text,payload->'agent_partial'->$4::text) ELSE '{}'::jsonb END,true) WHERE id=$1 AND status IN ('pending','claimed')`, inboxID, code, jsonBytes(map[string]any{"capability_invocations": outcome.Invocations, "capability_results": outcome.Results}), directTurnModelSnapshotKey)
+		partial := map[string]any{"capability_invocations": outcome.Invocations, "capability_results": outcome.Results}
+		previous := mapValue(decodeObject(payload)["agent_partial"])
+		for _, key := range []string{directTurnModelSnapshotKey, directReplyRetryKey} {
+			if value, ok := previous[key]; ok {
+				partial[key] = value
+			}
+		}
+		command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='failed',processed_at=now(),claimed_by=NULL,claimed_at=NULL,error_code=$2,payload=jsonb_set(payload,'{agent_partial}',$3::jsonb,true) WHERE id=$1 AND status IN ('pending','claimed')`, inboxID, code, jsonBytes(partial))
 		if err != nil {
 			return err
 		}

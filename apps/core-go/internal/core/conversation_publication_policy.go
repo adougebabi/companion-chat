@@ -79,6 +79,10 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
 			AllowedToolNames: []string{conversationReplyCapabilityName}, DisableThinking: true}, nil
 	}
+	if directReplyRetryFromContext(ctx).intentID != "" {
+		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
+			AllowedToolNames: []string{conversationReplyCapabilityName}}, nil
+	}
 	if len(results) > 0 && directImageCatalogPending(ctx, results) {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
 			AllowedToolNames: []string{capabilityCatalogName}}, nil
@@ -270,6 +274,9 @@ func conversationPublicationOmission(ctx context.Context, message *schema.Messag
 		bridge, ok := adkCapabilityContext(ctx)
 		if finish != "stop" || run == nil || run.Settings.Mode != "direct" || !ok || bridge.Trace == nil {
 			return false
+		}
+		if directReplyRetryFromContext(ctx).intentID != "" {
+			return true
 		}
 		_, results := bridge.Trace.Snapshot()
 		for _, result := range results {

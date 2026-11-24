@@ -289,6 +289,11 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner strin
 // Existing reply drafts and already published replies have their own recovery
 // contracts and must continue to use them.
 func (a *App) stopAbandonedConversationPartialTx(ctx context.Context, tx pgx.Tx, inboxID, fluctlightID string, payload map[string]any) (bool, error) {
+	// Only the explicit recovery command writes this marker. The cognition
+	// run rechecks the durable receipt and exposes only the reply capability.
+	if directReplyRetryMediaID(payload) != "" {
+		return false, nil
+	}
 	var leaseOwner string
 	err := tx.QueryRow(ctx, `SELECT owner_token FROM public.logical_agent_leases WHERE fluctlight_id=$1 AND expires_at>now()`, fluctlightID).Scan(&leaseOwner)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {

@@ -230,7 +230,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		}
 		if conversationPublicationOmission(ctx, result) && m.publicationCorrectionUsed != nil && m.publicationCorrectionUsed.CompareAndSwap(false, true) {
 			correctionCtx := context.WithValue(ctx, conversationPublicationCorrectionKey{}, true)
-			corrected := conversationPublicationCorrectionInput(originalInput)
+			corrected := conversationPublicationCorrectionInput(ctx, originalInput)
 			correctionCtx = withContinuationPromptSlots(correctionCtx, PromptSlotTrace{SlotID: "publication_correction_feedback", Position: PromptSlotCurrentInput, MessageIndex: len(corrected) - 1, Source: "core_publication_check", Reason: "missing_publication_correction"})
 			return m.Generate(correctionCtx, corrected, originalOpts...)
 		}
@@ -390,7 +390,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 			}
 			if conversationPublicationOmission(ctx, candidate) && m.publicationCorrectionUsed != nil && m.publicationCorrectionUsed.CompareAndSwap(false, true) {
 				correctionCtx := context.WithValue(ctx, conversationPublicationCorrectionKey{}, true)
-				corrected := conversationPublicationCorrectionInput(originalInput)
+				corrected := conversationPublicationCorrectionInput(ctx, originalInput)
 				correctionCtx = withContinuationPromptSlots(correctionCtx, PromptSlotTrace{SlotID: "publication_correction_feedback", Position: PromptSlotCurrentInput, MessageIndex: len(corrected) - 1, Source: "core_publication_check", Reason: "missing_publication_correction"})
 				return m.Stream(correctionCtx, corrected, originalOpts...)
 			}
@@ -2086,7 +2086,11 @@ func einoInputParts(parts []any) ([]schema.MessageInputPart, string, error) {
 	return result, text.String(), nil
 }
 
-func conversationPublicationCorrectionInput(input []*schema.Message) []*schema.Message {
+func conversationPublicationCorrectionInput(ctx context.Context, input []*schema.Message) []*schema.Message {
 	corrected := append([]*schema.Message(nil), input...)
-	return append(corrected, schema.UserMessage(renderProviderJSON(map[string]any{"validation_feedback": "private_reply_not_published", "instruction": "The previous response ended without publishing a private reply. Publish the reply now through the native conversation.reply Tool using the authorized conversation context and real Tool results. Generate its arguments yourself. Do not return final prose or cognition JSON in this request."})))
+	instruction := "The previous response ended without publishing a private reply. Publish the reply now through the native conversation.reply Tool using the authorized conversation context and real Tool results. Generate its arguments yourself. Do not return final prose or cognition JSON in this request."
+	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" {
+		instruction += ` Supply text and decision with action_type="reply", a short response_intent and influences=[]. Omit extra fields. A submitted image is still pending unless there is real delivery evidence.`
+	}
+	return append(corrected, schema.UserMessage(renderProviderJSON(map[string]any{"validation_feedback": "private_reply_not_published", "instruction": instruction})))
 }

@@ -83,6 +83,9 @@ func browserMessage(message map[string]any) map[string]any {
 	}
 	if status := stringValue(message["turn_status"]); status == "failed" || status == "cancelled" {
 		result["turnRetryable"] = message["turn_retryable"]
+		if message["turn_reply_retryable"] == true {
+			result["turnReplyRetryable"] = true
+		}
 	}
 	return result
 }

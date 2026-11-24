@@ -72,6 +72,7 @@ type Message struct {
 	TurnStatus             string     `json:"turn_status,omitempty"`
 	TurnErrorCode          string     `json:"turn_error_code,omitempty"`
 	TurnRetryable          bool       `json:"turn_retryable"`
+	TurnReplyRetryable     bool       `json:"turn_reply_retryable,omitempty"`
 }
 
 type ConversationPage struct {

@@ -362,6 +362,9 @@ export class BrowserClient {
   async cancelTurn(conversationId: string, turnId: string): Promise<void> {
     await this.json(\`/api/conversations/\${encodeURIComponent(conversationId)}/turn/\${encodeURIComponent(turnId)}/cancel\`, { method: "POST", body: {} });
   }
+  async retryReply(conversationId: string, turnId: string): Promise<void> {
+    await this.json("/api/conversations/" + encodeURIComponent(conversationId) + "/turn/" + encodeURIComponent(turnId) + "/retry-reply", { method: "POST", body: {} });
+  }
   async turn(conversationId: string, body: { text: string; fluctlightId: string; senderActorId?: string; attachmentRefs?: string[]; idempotencyKey: string; turnId?: string; senderTimezone?: string; senderUtcOffsetMinutes?: number; senderSentAt?: string }, signal?: AbortSignal): Promise<Response> {
     const response = await this.fetcher(this.url(\`/api/conversations/\${encodeURIComponent(conversationId)}/turn\`), {
       method: "POST", credentials: "include", headers: { "content-type": "application/json", accept: "application/x-ndjson", ...this.csrfHeaders() }, body: JSON.stringify(body), signal,
