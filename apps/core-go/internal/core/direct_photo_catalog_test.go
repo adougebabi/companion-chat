@@ -18,16 +18,23 @@ func TestDirectPhotoCatalogStallAllowsTheOfferedReply(t *testing.T) {
 		}).
 		otherwise(func(payload map[string]any) fakeProviderResult {
 			calls++
-			if calls == 5 && (len(arrayValue(payload["tools"])) != 1 || !r6PayloadHasTool(payload, conversationReplyCapabilityName)) {
+			if (calls == 5 || calls == 6) && (len(arrayValue(payload["tools"])) != 1 || !r6PayloadHasTool(payload, conversationReplyCapabilityName)) {
 				t.Error("the fourth attempt should expose only the reply tool after three ineffective calls")
 			}
-			if calls > 5 {
+			if calls == 5 {
+				return fakeProviderResult{}
+			}
+			if calls > 6 {
 				t.Error("the reply tool offered after discovery stalled did not publish")
 				return fakeProviderResult{Status: 400}
 			}
+			text := replyText
+			if calls >= 2 && calls <= 4 {
+				text = fmt.Sprintf("我想想怎么拍，候选 %d。", calls)
+			}
 			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall(
 				fmt.Sprintf("catalog-stall-reply-%d", calls), conversationReplyCapabilityName, map[string]any{
-					"text": replyText, "decision": map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}},
+					"text": text, "decision": map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}},
 				})}}
 		})
 	ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "direct-photo-catalog-stall", router)
@@ -44,7 +51,7 @@ func TestDirectPhotoCatalogStallAllowsTheOfferedReply(t *testing.T) {
 		}
 	}
 	var images int
-	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE conversation_id=$1`, conversation).Scan(&images); err != nil || images != 0 || calls != 5 {
+	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE conversation_id=$1`, conversation).Scan(&images); err != nil || images != 0 || calls != 6 {
 		t.Fatalf("expected one completed follow-up without a fabricated image: calls=%d images=%d err=%v", calls, images, err)
 	}
 }

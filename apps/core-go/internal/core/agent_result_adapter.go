@@ -362,7 +362,11 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			code = "agent_final_contract_invalid"
 			err = fmt.Errorf("%w: %w", errAgentFinalContractInvalid, err)
 		}
-		_ = a.failAgentTurnAfterRun(ctx, inboxID, outcome, code, err)
+		if errors.Is(a.failAgentTurnAfterRun(ctx, inboxID, outcome, code, err), errDirectReplyCapacityDeferred) {
+			claimSettled = true
+			return TurnResult{ReplyStatus: "retry_scheduled", UserMessage: user, TurnID: turnID,
+				CorrelationID: "turn:" + turnID, MediaIntentID: mediaIntentFromCommittedResults(outcome.Results)}, nil
+		}
 		if len(assistantMessages) > 0 {
 			a.recordDiagnosticEvent(ctx, "cognition.turn.degraded", "warning", fluctlightID, inboxID, "turn:"+turnID, map[string]any{"error_code": "agent_run_failed_after_reply", "safe_cause": boundedLifecycleCause(err.Error())})
 			_ = emitCommittedAssistantMessages(callbacks, assistantMessages, "turn:"+turnID)
@@ -484,6 +488,9 @@ func (a *App) replayCommittedAgentTurn(ctx context.Context, user map[string]any,
 	if status == "waiting_reply" {
 		return &TurnResult{ReplyStatus: "waiting_reply", UserMessage: user, Assistant: map[string]any{}, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil, nil
 	}
+	if status == "pending" && directReplyCapacityWait(decodeObject(payload), a.now()) > 0 {
+		return &TurnResult{ReplyStatus: "retry_scheduled", UserMessage: user, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil, nil
+	}
 	if status == "failed" {
 		var assistantExists bool
 		if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE conversation_id=$1 AND (idempotency_key=$2 OR (turn_id=$3 AND kind='assistant')))`, conversationID, "assistant:"+turnID, turnID).Scan(&assistantExists); err == nil && assistantExists {
@@ -532,6 +539,7 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
 	var fluctlightID, correlationID string
+	var deferredReply bool
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&fluctlightID); err != nil {
 		return err
 	}
@@ -546,20 +554,31 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,COALESCE(correlation_id,''),payload FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&fluctlightID, &correlationID, &payload); err != nil {
 			return err
 		}
-		if !conversationBudgetMatches(ctx, inboxID, decodeObject(payload)) {
+		data := decodeObject(payload)
+		if !conversationBudgetMatches(ctx, inboxID, data) {
 			return ErrConflict
-		}
-		if err := a.settleDueAgentFailureTx(ctx, tx, inboxID, fluctlightID, payload, outcome, code); err != nil {
-			return err
 		}
 		// A direct turn's model binding is runtime metadata, not a committed
 		// effect. Keep it across failure while replacing the partial receipts.
 		partial := map[string]any{"capability_invocations": outcome.Invocations, "capability_results": outcome.Results}
-		previous := mapValue(decodeObject(payload)["agent_partial"])
+		previous := mapValue(data["agent_partial"])
 		for _, key := range []string{directTurnModelSnapshotKey, directReplyRetryKey} {
 			if value, ok := previous[key]; ok {
 				partial[key] = value
 			}
+		}
+		if len(causes) > 0 && providerCapacityError(causes[0]) && len(outcome.Results) > 0 {
+			last := outcome.Results[len(outcome.Results)-1]
+			if last.CapabilityName == conversationReplyCapabilityName && last.ErrorCode == "direct_media_delivery_check_failed" {
+				var retryErr error
+				deferredReply, retryErr = a.deferDirectReplyCapacityTx(ctx, tx, inboxID, fluctlightID, data, partial)
+				if retryErr != nil || deferredReply {
+					return retryErr
+				}
+			}
+		}
+		if err := a.settleDueAgentFailureTx(ctx, tx, inboxID, fluctlightID, payload, outcome, code); err != nil {
+			return err
 		}
 		command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='failed',processed_at=now(),claimed_by=NULL,claimed_at=NULL,error_code=$2,payload=jsonb_set(payload,'{agent_partial}',$3::jsonb,true) WHERE id=$1 AND status IN ('pending','claimed')`, inboxID, code, jsonBytes(partial))
 		if err != nil {
@@ -577,6 +596,11 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 	})
 	if err != nil {
 		return err
+	}
+	if deferredReply {
+		a.recordDiagnosticEvent(ctx, "reply.capacity_retry.scheduled", "info", fluctlightID, inboxID, correlationID,
+			map[string]any{"status": "retry", "reason_code": "provider_capacity_transient"})
+		return errDirectReplyCapacityDeferred
 	}
 
 	stage := "agent_run"

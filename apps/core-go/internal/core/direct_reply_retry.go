@@ -4,11 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
 
 const directReplyRetryKey = "direct_reply_retry_media_intent"
+const directReplyCapacityRetryAtKey = "direct_reply_capacity_retry_at"
+
+var errDirectReplyCapacityDeferred = errors.New("direct_reply_capacity_deferred")
+
 const directReplyRetryFailureEvidenceSQL = `CASE WHEN i.status='failed' AND i.error_code IN ('adk_run_failed','agent_run_failed') THEN
 	COALESCE((SELECT e.payload->>'failure_code'
 		FROM public.diagnostic_events e WHERE e.causation_id=i.id AND e.fluctlight_id=i.fluctlight_id
@@ -40,7 +45,7 @@ func directReplyRetryFailure(code, workflowStatus, underlyingFailure string) boo
 		return false
 	}
 	switch code {
-	case "agent_partial_committed", "agent_final_contract_invalid", "direct_reply_arguments_unresolved", "direct_media_delivery_unresolved", "provider_request_failed":
+	case "agent_partial_committed", "agent_final_contract_invalid", "direct_reply_arguments_unresolved", "direct_media_delivery_unresolved", "direct_media_delivery_check_failed", "provider_request_failed":
 		return true
 	case "adk_run_failed", "agent_run_failed":
 		// Older Workers stored a generic inbox code. Use the actual internal
@@ -48,6 +53,62 @@ func directReplyRetryFailure(code, workflowStatus, underlyingFailure string) boo
 		return underlyingFailure == "provider_request_failed"
 	}
 	return false
+}
+
+func directReplyCapacityWait(payload map[string]any, now time.Time) time.Duration {
+	at, err := time.Parse(time.RFC3339Nano, stringValue(payload[directReplyCapacityRetryAtKey]))
+	if err != nil {
+		return 0
+	}
+	return max(0, at.Sub(now))
+}
+
+// The active cognition workflow waits and continues as new. Install the
+// reply-only checkpoint before releasing the current claim, within the
+// original deadline and only when exactly one standalone image committed.
+func (a *App) deferDirectReplyCapacityTx(ctx context.Context, tx pgx.Tx, inboxID, fluctlightID string, payload, partial map[string]any) (bool, error) {
+	const attemptsKey = "direct_reply_capacity_attempts"
+	attempts := intValue(payload[attemptsKey])
+	if attempts >= 2 {
+		return false, nil
+	}
+	now := a.now()
+	nextAttempt := now.Add(time.Duration(attempts+1) * 30 * time.Second)
+	budget := mapValue(payload["reply_budget"])
+	deadline, err := time.Parse(time.RFC3339Nano, stringValue(budget["deadline_at"]))
+	if err != nil || !nextAttempt.Before(deadline) {
+		return false, nil
+	}
+	conversationID, turnID := stringValue(payload["conversation_id"]), stringValue(payload["turn_id"])
+	var owner string
+	err = tx.QueryRow(ctx, `
+		SELECT d.owner_actor_id FROM public.fluctlight_direct_conversations d
+		JOIN public.conversation_messages m ON m.conversation_id=d.conversation_id
+		  AND m.author_actor_id=d.owner_actor_id AND m.kind='user' AND m.source_fact_id=$1 AND m.turn_id=$4
+		JOIN public.conversation_participants p ON p.conversation_id=d.conversation_id
+		  AND p.actor_id=d.owner_actor_id AND p.status='active'
+		WHERE d.conversation_id=$2 AND d.fluctlight_actor_id=$3
+		  AND NOT EXISTS(SELECT 1 FROM public.conversation_messages n WHERE n.conversation_id=d.conversation_id
+		     AND ((n.kind='user' AND n.sequence>m.sequence) OR (n.kind='assistant' AND n.turn_id=$4)))`,
+		inboxID, conversationID, fluctlightID, turnID).Scan(&owner)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	receipt, err := directReplyRetryImage(ctx, tx, a.capabilityRegistry(), inboxID, owner, fluctlightID, conversationID)
+	if err != nil || receipt.intentID == "" {
+		return false, err
+	}
+	retry := intValue(payload["retry_count"]) + 1
+	budget["attempt"] = retry
+	partial[directReplyRetryKey] = receipt.intentID
+	payload["agent_partial"], payload["retry_count"] = partial, retry
+	payload[attemptsKey], payload[directReplyCapacityRetryAtKey] = attempts+1, nextAttempt.UTC().Format(time.RFC3339Nano)
+	command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='pending',error_code=NULL,processed_at=NULL,
+		claimed_by=NULL,claimed_at=NULL,attempt_count=0,payload=$2::jsonb WHERE id=$1 AND status='claimed'`, inboxID, jsonBytes(payload))
+	return err == nil && command.RowsAffected() == 1, err
 }
 
 // Reuse only an accepted standalone image from the original Owner's native

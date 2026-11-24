@@ -280,6 +280,9 @@ func conversationPublicationOmission(ctx context.Context, message *schema.Messag
 			return true
 		}
 		_, results := bridge.Trace.Snapshot()
+		if directImageCatalogPending(ctx, results) && conversationLoopNeedsReply(ctx) {
+			return true
+		}
 		for _, result := range results {
 			if result.CapabilityName == "media.image.generate" && result.Status == "accepted" {
 				return true

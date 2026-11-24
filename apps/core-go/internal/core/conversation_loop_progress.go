@@ -62,16 +62,22 @@ func conversationNoProgressAttempts(ctx context.Context, currentSequence uint64,
 			continue
 		}
 		arguments := decodeObject(call.Arguments)
-		unauthorized := noEffect && stringValue(out["warning_code"]) == "capability_not_authorized"
-		momentMediaRejected := noEffect && result.CapabilityName == "moment.publish" && (stringValue(out["warning_code"]) == "direct_media_delivery_unverified" || stringValue(out["warning_code"]) == "direct_media_delivery_stale" || stringValue(out["warning_code"]) == "moment_media_delivery_stale")
-		roundBounded := unauthorized || momentMediaRejected
+		warning := stringValue(out["warning_code"])
+		unauthorized := noEffect && warning == "capability_not_authorized"
+		awaitingCatalog := noEffect && warning == "catalog_discovery_pending"
+		momentMediaRejected := noEffect && result.CapabilityName == "moment.publish" && (warning == "direct_media_delivery_unverified" || warning == "direct_media_delivery_stale" || warning == "moment_media_delivery_stale")
+		roundBounded := unauthorized || awaitingCatalog || momentMediaRejected
 		if physicalRoundsOnly && !roundBounded {
 			continue
 		}
 		if roundBounded {
 			arguments = nil
 		}
-		fingerprint := jsonString(map[string]any{"name": result.CapabilityName, "arguments": arguments, "status": result.Status, "output": result.Output})
+		name := result.CapabilityName
+		if awaitingCatalog {
+			name = capabilityCatalogName
+		}
+		fingerprint := jsonString(map[string]any{"name": name, "arguments": arguments, "status": result.Status, "output": result.Output})
 		if roundBounded {
 			sequences := conversationCallSequences(bridge.Trace, bridge.Refresh, call.CallID, result.CapabilityName)
 			if deniedRounds[fingerprint] == nil {

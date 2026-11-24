@@ -749,6 +749,11 @@ func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorI
 		slog.Default().Error("Go Core conversation turn lifecycle settlement failed after visible output", "error_type", fmt.Sprintf("%T", err), "error_code", errorCode, "turn_id", turnID)
 		return writeFrame("error", map[string]any{"status": "failed", "code": errorCode})
 	}
+	if result.ReplyStatus == "retry_scheduled" {
+		// The durable Worker owns the pending reply. An empty completed
+		// frame would incorrectly report that this turn has ended.
+		return nil
+	}
 	messageIDs := make([]string, 0, 1)
 	if messageID := stringValue(result.Assistant["id"]); messageID != "" {
 		messageIDs = append(messageIDs, messageID)

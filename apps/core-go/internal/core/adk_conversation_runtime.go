@@ -191,6 +191,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 			"recovery": "Call capability_catalog with names=[media.image.generate] for the discovery you selected. This query has no publication or image effect.",
 		})
 		i.trace.Append(invocation, result)
+		i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, "catalog_discovery_pending", argumentsJSON)
 		return jsonString(map[string]any{"status": result.Status, "output": result.Output}), nil
 	}
 	if publicationPolicy && !needsReply {

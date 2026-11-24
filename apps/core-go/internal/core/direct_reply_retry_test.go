@@ -1,10 +1,13 @@
 package core
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDirectReplyRetryRequiresTerminalWorkflow(t *testing.T) {
@@ -26,16 +29,17 @@ func TestDirectReplyRetryRequiresTerminalWorkflow(t *testing.T) {
 }
 
 func TestDirectReplyRetryUsesExistingMediaWithoutReplayingTurn(t *testing.T) {
-	t.Run("missing native reply", func(t *testing.T) { testDirectReplyRetryUsesExistingMedia(t, false) })
-	t.Run("legacy provider failure", func(t *testing.T) { testDirectReplyRetryUsesExistingMedia(t, true) })
+	t.Run("missing native reply", func(t *testing.T) { testDirectReplyRetryUsesExistingMedia(t, "missing") })
+	t.Run("legacy provider failure", func(t *testing.T) { testDirectReplyRetryUsesExistingMedia(t, "provider") })
+	t.Run("automatic capacity recovery", func(t *testing.T) { testDirectReplyRetryUsesExistingMedia(t, "capacity") })
 }
 
-func testDirectReplyRetryUsesExistingMedia(t *testing.T, providerFailure bool) {
+func testDirectReplyRetryUsesExistingMedia(t *testing.T, failureMode string) {
 	t.Helper()
 	const recovered = "自拍任务已经提交，等图片生成后再发。"
 	mainCalls := 0
 	recoveryRound := 6
-	if providerFailure {
+	if failureMode != "missing" {
 		recoveryRound = 5
 	}
 	router := newFakeProviderRouter().
@@ -71,7 +75,10 @@ func testDirectReplyRetryUsesExistingMedia(t *testing.T, providerFailure bool) {
 				plan["capture_method"], plan["viewpoint"], plan["framing"], plan["camera_angle"] = "handheld_selfie", "subject_facing", "full_body", "eye_level"
 				return invoke("retry-image", "media.image.generate", map[string]any{"intent": "拍一张当前自拍", "media_plan": plan})
 			case 4, 5:
-				if providerFailure {
+				if failureMode == "capacity" {
+					return reply("retry-capacity-check", recovered)
+				}
+				if failureMode == "provider" {
 					return fakeProviderResult{Status: http.StatusBadRequest}
 				}
 				return fakeProviderResult{Text: "模型输出文字但没有调用原生发布工具。"}
@@ -80,7 +87,25 @@ func testDirectReplyRetryUsesExistingMedia(t *testing.T, providerFailure bool) {
 				return fakeProviderResult{Status: 500}
 			}
 		})
-	ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "direct-reply-only-recovery", router)
+	injectCapacityFailure := false
+	transport := providerErrorTestTransport(func(request *http.Request) (*http.Response, error) {
+		if injectCapacityFailure {
+			body, err := io.ReadAll(request.Body)
+			if err != nil {
+				return nil, err
+			}
+			request.Body = io.NopCloser(bytes.NewReader(body))
+			if providerWireSchemaName(decodeObject(body)) == directMediaDeliveryCheckSchema {
+				injectCapacityFailure = false
+				return embeddingHTTPResponse(request, http.StatusBadRequest,
+					`{"error":{"message":"Prompt (2340 tokens) requires ~1687MB GPU memory but only ~0MB is available"}}`), nil
+			}
+		}
+		return router.RoundTrip(request)
+	})
+	ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "direct-reply-only-recovery", transport)
+	now := time.Now()
+	app.Clock = func() time.Time { return now }
 	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, owner, fid, conversation); err != nil {
 		t.Fatal(err)
 	}
@@ -99,8 +124,22 @@ func testDirectReplyRetryUsesExistingMedia(t *testing.T, providerFailure bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, failure := app.ProcessCognitionInbox(ctx, accepted.InboxID)
-	if providerFailure {
+	injectCapacityFailure = failureMode == "capacity"
+	first, failure := app.ProcessCognitionInbox(ctx, accepted.InboxID)
+	if failureMode == "capacity" {
+		if failure != nil || first["status"] != "retry_scheduled" {
+			t.Fatalf("the temporary verification failure should schedule reply-only recovery: status=%v err=%v", first["status"], failure)
+		}
+		early, err := app.ProcessCognitionInbox(ctx, accepted.InboxID)
+		if err != nil || early["status"] != "retry_scheduled" || mainCalls != recoveryRound-1 {
+			t.Fatalf("capacity retry started before its delay elapsed: status=%v calls=%d err=%v", early["status"], mainCalls, err)
+		}
+		replayed, err := app.HandleTurn(ctx, owner, conversation, payload)
+		if err != nil || replayed.ReplyStatus != "retry_scheduled" || mainCalls != recoveryRound-1 {
+			t.Fatalf("direct replay bypassed the retry delay: status=%v calls=%d err=%v", replayed.ReplyStatus, mainCalls, err)
+		}
+		now = now.Add(31 * time.Second)
+	} else if failureMode == "provider" {
 		var code string
 		if err := repo.Pool().QueryRow(ctx, `SELECT error_code FROM public.cognition_inbox WHERE id=$1`, accepted.InboxID).Scan(&code); err != nil ||
 			failure == nil || code != "provider_request_failed" {
@@ -112,28 +151,30 @@ func testDirectReplyRetryUsesExistingMedia(t *testing.T, providerFailure bool) {
 	} else if failure == nil || !strings.Contains(failure.Error(), "conversation_native_output_missing") {
 		t.Fatalf("expected an accepted media operation with no native reply, got %v", failure)
 	}
-	// The fixture invokes the activity directly. In production the dispatcher
-	// records this terminal state before making the retry available.
-	if _, err := repo.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',completed_at=now() WHERE intent_id=$1`, "cognition_intent:"+accepted.InboxID); err != nil {
-		t.Fatal(err)
-	}
-	page, err := repo.History(ctx, conversation, owner, nil, 10)
-	if err != nil || len(page.Messages) != 3 || !page.Messages[2].TurnReplyRetryable || page.Messages[2].TurnRetryable {
-		t.Fatalf("failed turn did not expose only reply recovery: %#v, %v", page.Messages, err)
-	}
-	if err := app.RetryDirectReply(ctx, "different-owner", conversation, accepted.TurnID); !errors.Is(err, ErrNotFound) {
-		t.Fatalf("wrong actor could request recovery: %v", err)
-	}
-	if _, err := app.AcceptTurn(ctx, owner, conversation, payload); err != nil {
-		t.Fatal(err)
-	}
-	var status string
-	if err := repo.Pool().QueryRow(ctx, `SELECT status FROM public.cognition_inbox WHERE id=$1`, accepted.InboxID).Scan(&status); err != nil || status != "failed" {
-		t.Fatalf("ordinary replay reopened the partial turn: status=%s err=%v", status, err)
-	}
-	for range 2 {
-		if err := app.RetryDirectReply(ctx, owner, conversation, accepted.TurnID); err != nil {
+	if failureMode != "capacity" {
+		// The fixture invokes the activity directly. In production the dispatcher
+		// records this terminal state before making the retry available.
+		if _, err := repo.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',completed_at=now() WHERE intent_id=$1`, "cognition_intent:"+accepted.InboxID); err != nil {
 			t.Fatal(err)
+		}
+		page, err := repo.History(ctx, conversation, owner, nil, 10)
+		if err != nil || len(page.Messages) != 3 || !page.Messages[2].TurnReplyRetryable || page.Messages[2].TurnRetryable {
+			t.Fatalf("failed turn did not expose only reply recovery: %#v, %v", page.Messages, err)
+		}
+		if err := app.RetryDirectReply(ctx, "different-owner", conversation, accepted.TurnID); !errors.Is(err, ErrNotFound) {
+			t.Fatalf("wrong actor could request recovery: %v", err)
+		}
+		if _, err := app.AcceptTurn(ctx, owner, conversation, payload); err != nil {
+			t.Fatal(err)
+		}
+		var status string
+		if err := repo.Pool().QueryRow(ctx, `SELECT status FROM public.cognition_inbox WHERE id=$1`, accepted.InboxID).Scan(&status); err != nil || status != "failed" {
+			t.Fatalf("ordinary replay reopened the partial turn: status=%s err=%v", status, err)
+		}
+		for range 2 {
+			if err := app.RetryDirectReply(ctx, owner, conversation, accepted.TurnID); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 	if _, err := app.ProcessCognitionInbox(ctx, accepted.InboxID); err != nil {
@@ -142,7 +183,7 @@ func testDirectReplyRetryUsesExistingMedia(t *testing.T, providerFailure bool) {
 	if err := app.RetryDirectReply(ctx, owner, conversation, accepted.TurnID); err != nil {
 		t.Fatalf("repeating an already completed recovery should report success: %v", err)
 	}
-	page, err = repo.History(ctx, conversation, owner, nil, 10)
+	page, err := repo.History(ctx, conversation, owner, nil, 10)
 	if err != nil || len(page.Messages) != 4 || page.Messages[2].TurnStatus != "completed" || page.Messages[3].Text != recovered ||
 		page.Messages[2].ID != stringValue(accepted.UserMessage["id"]) {
 		t.Fatalf("reply recovery did not finish the original turn: %#v, %v", page.Messages, err)
