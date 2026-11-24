@@ -1,0 +1,234 @@
+/*
+ * Fluctlight shared overlay + form layout patterns.
+ *
+ * This file owns the geometry of ResponsiveSheet and the reusable responsive
+ * form patterns. It is imported LAST by react.css so the rules here win over
+ * legacy replica/business styles. Business CSS must not redefine width,
+ * height, padding, overflow or position of `[data-responsive-sheet]` or its
+ * parts. Change tokens here (with a design review) instead. See .impeccable.md.
+ */
+:root {
+  /* Breakpoints (documented; CSS media queries cannot read custom properties):
+     phone < 640px, tablet 640–1023px, desktop >= 1024px. */
+  --overlay-sheet-width: 540px;
+  --overlay-sheet-width-wide: 860px;
+  --overlay-pad-x: 24px;
+  --overlay-pad-x-compact: 16px;
+  --overlay-pad-y: 20px;
+  --control-height: 40px;
+  --control-height-primary: 44px;
+  --touch-target: 44px;
+  --form-gap: 12px;
+  --form-section-gap: 20px;
+}
+
+/* ---------------------------------------------------------------- Sheet -- */
+[data-slot="sheet-content"][data-responsive-sheet] {
+  width: min(var(--overlay-sheet-width), 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  padding: 0;
+  gap: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* The sheet carries .react-workspace, whose stable gutter would reserve an
+     empty strip on a container that never scrolls. */
+  scrollbar-gutter: auto;
+  outline: none;
+}
+[data-slot="sheet-content"][data-responsive-sheet][data-size="wide"] {
+  width: min(var(--overlay-sheet-width-wide), 100vw);
+}
+[data-responsive-sheet] > [data-responsive-sheet-part="header"] {
+  flex: none;
+  min-width: 0;
+  padding: var(--overlay-pad-y) calc(var(--overlay-pad-x) + var(--touch-target)) 16px var(--overlay-pad-x);
+  border-bottom: 1px solid var(--border);
+}
+[data-responsive-sheet] > [data-responsive-sheet-part="header"] [data-slot="sheet-title"] {
+  overflow-wrap: anywhere;
+}
+[data-responsive-sheet] > [data-responsive-sheet-part="body"] {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--overlay-pad-y) var(--overlay-pad-x) calc(var(--overlay-pad-y) + env(safe-area-inset-bottom, 0px));
+  overflow-wrap: anywhere;
+  /* Column so short content still pins its footer to the sheet bottom. */
+  display: flex;
+  flex-direction: column;
+}
+/* Only the legacy drawer wrapper fills the body (to pin its footer). Other
+   content keeps its natural height: stretching a grid would spread the free
+   space between its rows and open blank gaps. */
+[data-responsive-sheet] > [data-responsive-sheet-part="body"] > * {
+  flex: none;
+}
+[data-responsive-sheet] > [data-responsive-sheet-part="body"] > :has(> .domain-overlay-content) {
+  flex: 1 0 auto;
+}
+[data-responsive-sheet] > [data-responsive-sheet-part="body"] > * > .domain-overlay-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+[data-responsive-sheet] .domain-overlay-content > .body {
+  flex: 1 0 auto;
+  padding-bottom: var(--form-section-gap);
+}
+[data-responsive-sheet] > [data-responsive-sheet-part="footer"] {
+  flex: none;
+  margin-top: 0;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px var(--overlay-pad-x) calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
+  background: var(--popover);
+}
+/* Close button: 44px hit area at every viewport. */
+[data-responsive-sheet] > [data-slot="sheet-close"] {
+  top: 12px;
+  right: 12px;
+  width: var(--touch-target);
+  height: var(--touch-target);
+}
+/* Legacy drawer() content keeps its own <footer>; pin it to the bottom of the
+   only scroller so primary actions stay reachable while the form scrolls. */
+[data-responsive-sheet] .domain-overlay-content > footer {
+  position: sticky;
+  /* Chromium insets sticky bounds by the scroller's padding; offset by it so
+     the footer meets the sheet's bottom edge. */
+  bottom: calc(-1 * (var(--overlay-pad-y) + env(safe-area-inset-bottom, 0px)));
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: var(--form-section-gap) calc(-1 * var(--overlay-pad-x)) calc(-1 * (var(--overlay-pad-y) + env(safe-area-inset-bottom, 0px)));
+  margin-top: auto;
+  padding: 12px var(--overlay-pad-x) calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
+  background: var(--popover);
+}
+
+@media (width < 640px) {
+  /* Touch targets inside sheets: >= --control-height. Radix triggers rename
+     data-slot, so match the shadcn button variant attribute instead. Icon
+     buttons get their 44px hit plane from react.css. */
+  [data-responsive-sheet] :is(button, a)[data-variant]:not([data-size^="icon"]):not([data-day]),
+  [data-responsive-sheet] [role="combobox"],
+  [data-responsive-sheet] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, [data-slot="select-trigger"]) {
+    min-height: var(--control-height);
+  }
+  [data-slot="sheet-content"][data-responsive-sheet],
+  [data-slot="sheet-content"][data-responsive-sheet][data-size="wide"] {
+    width: 100vw;
+    border-left: 0;
+  }
+  [data-responsive-sheet] {
+    --overlay-pad-x: var(--overlay-pad-x-compact);
+    --overlay-pad-y: 16px;
+  }
+  [data-responsive-sheet] > [data-responsive-sheet-part="footer"],
+  [data-responsive-sheet] .domain-overlay-content > footer {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+  }
+  [data-responsive-sheet] > [data-responsive-sheet-part="footer"] :is(button, a)[data-variant],
+  [data-responsive-sheet] .domain-overlay-content > footer :is(button, a)[data-variant] {
+    width: 100%;
+  }
+}
+
+/* ------------------------------------------------------ Form section -- */
+.ui-stack {
+  display: grid;
+  gap: var(--form-gap);
+  min-width: 0;
+}
+.ui-stack > * {
+  min-width: 0;
+}
+
+/* ------------------------------------------------- Responsive form row -- */
+/* A field (or field group) followed by its actions. Wraps to one column on
+   phones; the field never shrinks below a usable width. */
+.ui-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--form-gap);
+  min-width: 0;
+}
+.ui-form-row > .ui-form-row__field {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.ui-form-row > .ui-form-row__field > * {
+  width: 100%;
+}
+
+/* ------------------------------------------------------ Action group -- */
+/* Wrapping group of buttons/links. Items never overflow the container; on
+   phones every item gets at least the touch target height. */
+.ui-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+.ui-actions > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.ui-actions :is(button, a)[data-variant] {
+  max-width: 100%;
+}
+@media (width < 640px) {
+  .ui-actions--stretch > * {
+    flex: 1 1 auto;
+  }
+  .ui-actions--stretch :is(button, a)[data-variant] {
+    width: 100%;
+  }
+}
+
+/* --------------------------------------------------- Responsive tabs -- */
+/* Single scrollable row. The active tab is scrolled into view by the
+   component; edges fade only while more tabs are hidden in that direction. */
+[data-responsive-tabs] {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 8px;
+  scrollbar-width: none;
+}
+[data-responsive-tabs]::-webkit-scrollbar {
+  display: none;
+}
+[data-responsive-tabs][data-overflow-start="true"][data-overflow-end="true"] {
+  mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+}
+[data-responsive-tabs][data-overflow-start="true"][data-overflow-end="false"] {
+  mask-image: linear-gradient(to right, transparent, #000 24px);
+}
+[data-responsive-tabs][data-overflow-start="false"][data-overflow-end="true"] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+}
+[data-responsive-tabs] [data-slot="tabs-trigger"] {
+  min-height: var(--control-height);
+}
+/* The list scrolls (and therefore clips); keep the focus ring inside it. */
+[data-responsive-tabs] [data-slot="tabs-trigger"]:focus-visible {
+  outline-offset: -2px;
+}
