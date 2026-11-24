@@ -182,7 +182,8 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	}, i.request.FluctlightID, i.request.ConversationID, i.request.SourceFactID, i.request.SourceFactID, len(invocations))
 	invocation.ActionID = i.request.ActionID
 	publicationPolicy := conversationPublicationPolicyEnabled(ctx)
-	if publicationPolicy && capabilityName != capabilityCatalogName && directImageCatalogPending(ctx, priorResults) {
+	needsReply := publicationPolicy && conversationLoopNeedsReplyBeforeModelSequence(ctx, modelIdentity.ModelCallSequence)
+	if publicationPolicy && !needsReply && capabilityName != capabilityCatalogName && directImageCatalogPending(ctx, priorResults) {
 		if previous, found := i.trace.FindResult(callID); found {
 			return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), i.trace.ResultFailure(callID)
 		}
@@ -192,7 +193,6 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		i.trace.Append(invocation, result)
 		return jsonString(map[string]any{"status": result.Status, "output": result.Output}), nil
 	}
-	needsReply := publicationPolicy && conversationLoopNeedsReplyBeforeModelSequence(ctx, modelIdentity.ModelCallSequence)
 	if publicationPolicy && !needsReply {
 		if queries := conversationLoadedQueryPhase(ctx); len(queries) > 0 && !containsString(queries, capabilityName) {
 			if previous, found := i.trace.FindResult(callID); found {
@@ -207,7 +207,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		if previous, found := i.trace.FindResult(callID); found {
 			return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), i.trace.ResultFailure(callID)
 		}
-		result := handledCapabilityResult(invocation, "turn_action_window_closed", "awaiting_reply", map[string]any{"recovery": "The same query/rejection has repeated without new facts. No further action executed. Call conversation.reply using the existing actual results; do not invent completion or another action."})
+		result := handledCapabilityResult(invocation, "turn_action_window_closed", "awaiting_reply", map[string]any{"recovery": "The same query/rejection has repeated without new facts. No further action executed. Call conversation_reply using the existing actual results; do not invent completion or another action."})
 		i.trace.Append(invocation, result)
 		return jsonString(map[string]any{"status": result.Status, "output": result.Output}), nil
 	}
@@ -224,7 +224,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		if knownCapability {
 			availability.ErrorCode = "capability_not_authorized"
 		}
-		recovery := "No action executed. Discover exact installed names with capability.catalog; reuse the names and schemas returned. Preserve earlier actual results and finish through conversation.reply."
+		recovery := "No action executed. Discover exact installed names with capability_catalog; reuse the names and schemas returned. Preserve earlier actual results and finish through conversation_reply."
 		if availability.ErrorCode == "capability_not_authorized" {
 			recovery = "No action executed. This capability is not authorized for the current run or surface; do not request installation or repeat it. Preserve earlier actual results and continue only with permitted capabilities."
 		}

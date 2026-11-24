@@ -61,32 +61,49 @@ func directImageDiscoveryFocus(ctx context.Context) []*schema.Message {
 }
 
 func directImageDiscoveryPhaseInput(ctx context.Context, input []*schema.Message) []*schema.Message {
-	focus := directImageDiscoveryFocus(ctx)
+	if !conversationPublicationPolicyEnabled(ctx) {
+		return input
+	}
 	bridge, ok := adkCapabilityContext(ctx)
-	if len(focus) == 0 || !ok || bridge.Trace == nil {
+	if !ok || bridge.Trace == nil {
 		return input
 	}
 	if correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool); correcting {
 		return input
 	}
+	focus := directImageDiscoveryFocus(ctx)
 	invocations, results := bridge.Trace.Snapshot()
-	for _, result := range results {
-		if result.CapabilityName == "media.image.generate" && result.Status == "accepted" {
-			for i, message := range input {
-				if message != nil && message.Role == schema.System {
-					updated := append([]*schema.Message(nil), input...)
-					system := *message
-					system.Content = directImageAcceptedReplyRule + "\n\n" + system.Content
-					updated[i] = &system
-					return updated
-				}
+	if directImageReplyPending(ctx, results) {
+		for i, message := range input {
+			if message != nil && message.Role == schema.System {
+				updated := append([]*schema.Message(nil), input...)
+				system := *message
+				system.Content = directImageAcceptedReplyRule + "\n\n" + system.Content
+				updated[i] = &system
+				return updated
 			}
 		}
 	}
-	if len(invocations) != 0 || len(results) != 0 {
+	if len(focus) == 0 || len(invocations) != 0 || len(results) != 0 {
 		return input
 	}
 	return focus
+}
+
+func directImageReplyPending(ctx context.Context, results []CapabilityResult) bool {
+	main, _ := ctx.Value(directMainConversationKey{}).(bool)
+	run := replyRunFromContext(ctx)
+	if !main || run == nil || run.Settings.Mode != "direct" {
+		return false
+	}
+	for _, result := range results {
+		output := mapValue(result.Output)
+		if result.CapabilityName == "media.image.generate" && result.Status == "accepted" &&
+			output["target_kind"] == "conversation" && stringValue(output["media_intent_id"]) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func directImageDiscoveryPrompt(projection ContextProjection, currentInput string) []*schema.Message {

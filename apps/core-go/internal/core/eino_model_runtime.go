@@ -2088,7 +2088,7 @@ func einoInputParts(parts []any) ([]schema.MessageInputPart, string, error) {
 
 func conversationPublicationCorrectionInput(ctx context.Context, input []*schema.Message) []*schema.Message {
 	corrected := append([]*schema.Message(nil), input...)
-	instruction := "The previous response ended without publishing a private reply. Publish the reply now through the native conversation.reply Tool using the authorized conversation context and real Tool results. Generate its arguments yourself. Do not return final prose or cognition JSON in this request."
+	instruction := "The previous response ended without publishing a private reply. Publish the reply now through the native conversation_reply Tool using the authorized conversation context and real Tool results. Generate its arguments yourself. Do not return final prose or cognition JSON in this request."
 	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" {
 		instruction += ` Put the character's natural reply in text. Use tool receipts internally and keep processing language out of the reply. Report delivery only with real delivery evidence. Supply decision with action_type="reply", a short response_intent and influences=[]. Omit extra fields.`
 	}

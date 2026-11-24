@@ -34,8 +34,16 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 	if conversationHasAuthoritativeOutput(adkContext.Trace) {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
 	}
+	_, results := adkContext.Trace.Snapshot()
+	imageReplyPending := directImageReplyPending(ctx, results)
+	replyRequest := physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
+		AllowedToolNames: []string{conversationReplyCapabilityName}}
+	if imageReplyPending {
+		replyRequest.ToolInputSchemas = map[string]map[string]any{
+			conversationReplyCapabilityName: (directMainReplyCapability{replyOnly: true}).Definition().InputSchema,
+		}
+	}
 	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" {
-		_, results := adkContext.Trace.Snapshot()
 		for _, result := range results {
 			if result.CapabilityName == conversationReplyCapabilityName && result.Status == "handled" && stringValue(mapValue(result.Output)["warning_code"]) == "reply_expression_suggestion_stale" {
 				// The model saw a frozen suggestion that is no longer valid.
@@ -57,7 +65,8 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 		if conversationClosedActionAttempts(adkContext.Trace, adkContext.Refresh) >= 2 || conversationNoProgressAttempts(ctx, 0, true) >= 5 {
 			return physicalModelRequestDecision{}, newCapabilityError("tool_progress_stalled", false, errors.New("tool_progress_stalled"))
 		}
-		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, AllowedToolNames: []string{conversationReplyCapabilityName}, DisableThinking: true}, nil
+		replyRequest.DisableThinking = true
+		return replyRequest, nil
 	}
 	if queries := conversationLoadedQueryPhase(ctx); len(queries) > 0 {
 		if conversationClosedActionAttempts(adkContext.Trace, adkContext.Refresh) >= 2 {
@@ -68,7 +77,6 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 	if repeatedDiscoveryLoadCount(adkContext.Trace) >= 3 || repeatedDiscoveryResultCount(adkContext.Trace) >= 3 {
 		return physicalModelRequestDecision{}, newCapabilityError("tool_discovery_no_progress", false, errors.New("tool_discovery_no_progress"))
 	}
-	_, results := adkContext.Trace.Snapshot()
 	for _, result := range results {
 		if result.CapabilityName == conversationReplyCapabilityName &&
 			(result.ErrorCode == "reply_action_outcome_conflict" || result.ErrorCode == "reply_action_check_failed") {
@@ -78,24 +86,15 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 		}
 	}
 	if correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool); correcting {
-		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
-			AllowedToolNames: []string{conversationReplyCapabilityName}, DisableThinking: true}, nil
+		replyRequest.DisableThinking = true
+		return replyRequest, nil
 	}
-	if directReplyRetryFromContext(ctx).intentID != "" {
-		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
-			AllowedToolNames: []string{conversationReplyCapabilityName}}, nil
+	if imageReplyPending || directReplyRetryFromContext(ctx).intentID != "" {
+		return replyRequest, nil
 	}
 	if len(results) > 0 && directImageCatalogPending(ctx, results) {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
 			AllowedToolNames: []string{capabilityCatalogName}}, nil
-	}
-	if len(p.directImageDiscoveryPrompt) != 0 {
-		for _, result := range results {
-			if result.CapabilityName == "media.image.generate" && result.Status == "accepted" {
-				return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
-					AllowedToolNames: []string{conversationReplyCapabilityName}}, nil
-			}
-		}
 	}
 	if _, committed := committedMomentResult(adkContext.Trace); committed {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: append([]string{"moment.publish"}, repeatedDiscoveryExclusions(adkContext.Trace)...)}, nil

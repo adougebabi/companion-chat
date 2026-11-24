@@ -25,6 +25,8 @@ type physicalModelRequestDecision struct {
 	// AllowedToolNames narrows this physical request's installed catalog only.
 	// Nil preserves the task's catalog; it never grants a new capability.
 	AllowedToolNames []string
+	// Overrides apply only to installed tools that remain in the physical catalog.
+	ToolInputSchemas map[string]map[string]any
 	// Exclusions remove an already fulfilled action while retaining real pending
 	// media/context tools. They never expand the physical installed catalog.
 	ExcludedToolNames []string
@@ -55,7 +57,7 @@ func (m *queuedToolCallingChatModel) physicalRequestOptions(ctx context.Context,
 		copyModel.toolCallFallback = decision.ToolCallFallback
 		m = &copyModel
 	}
-	if decision.AllowedToolNames != nil || len(decision.ExcludedToolNames) > 0 {
+	if decision.AllowedToolNames != nil || len(decision.ExcludedToolNames) > 0 || len(decision.ToolInputSchemas) > 0 {
 		allowed := map[string]bool{}
 		excluded := map[string]bool{}
 		for _, name := range decision.ExcludedToolNames {
@@ -67,6 +69,9 @@ func (m *queuedToolCallingChatModel) physicalRequestOptions(ctx context.Context,
 		definitions := []CapabilityDefinition{}
 		for _, d := range m.definitions {
 			if !excluded[d.Name] && (decision.AllowedToolNames == nil || allowed[d.Name]) {
+				if input, ok := decision.ToolInputSchemas[d.Name]; ok {
+					d.InputSchema = input
+				}
 				definitions = append(definitions, d)
 				delete(allowed, d.Name)
 			}

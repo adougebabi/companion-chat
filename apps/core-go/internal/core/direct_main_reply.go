@@ -29,7 +29,7 @@ func (c directMainCatalogCapability) Definition() CapabilityDefinition {
 }
 
 const directMainConversationProtocol = `本回合的第一步是选择下一步原生工具。判断对话中用户在期待什么，以及你是否愿意现在采取行动。若用户正在追问尚未发来的照片，而且你会继续拍摄，那么下一步是 capability_catalog，names 填 media.image.generate；接下来获得图片工具并继续。决定不行动时直接 conversation_reply，说明真实选择。
-以生效人格自然表达，长短随情境，括号动作可选。不要假设双方同处，也不要把愿望或过去的承诺当成现状。真正执行后消费回执再回复，受理不表示已送达。终稿用 conversation.reply 的 text 提交，decision 按原生 schema 只提供本轮有依据的信息和有效引用。没有依据的可选字段省略。`
+以生效人格自然表达，长短随情境，括号动作可选。不要假设双方同处，也不要把愿望或过去的承诺当成现状。真正执行后消费回执再回复，受理不表示已送达。终稿用 conversation_reply 的 text 提交，decision 按原生 schema 只提供本轮有依据的信息和有效引用。没有依据的可选字段省略。`
 
 func (c directMainReplyCapability) Definition() CapabilityDefinition {
 	d := conversationReplyCapabilityDefinition()
