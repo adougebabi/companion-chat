@@ -12,7 +12,10 @@
     "build": "vite build && node scripts/verify-product-build.mjs && node scripts/verify-react-stack.mjs",
     "test:ui": "playwright test -c e2e/playwright.config.ts",
     "test:ui:install": "playwright install chromium",
-    "ui-lab": "vite --open /ui-lab/"
+    "ui-lab": "vite --open /ui-lab/",
+    "ui:gate": "node scripts/ui-gate.mjs",
+    "ui:gate:full": "node scripts/ui-gate.mjs --full",
+    "ui:baselines": "node scripts/ui-baselines.mjs"
   },
   "dependencies": {
     "@fluctlight/browser-client": "workspace:*",

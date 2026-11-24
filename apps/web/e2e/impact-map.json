@@ -1,0 +1,57 @@
+{
+  "$comment": "Which browser checks a changed file needs. Paths are relative to apps/web. 'shared' changes run every spec (layout + visual). 'areas' maps files to Playwright tags. 'nonUi' files need no browser check. Any other file under src/ is reported as UNCOVERED (unverified), never silently passed. Keep this map honest: list a file under an area only if that area's specs actually render it.",
+  "shared": [
+    "src/styles/**",
+    "src/components/**",
+    "src/lib/utils.ts",
+    "src/react-app/controls.tsx",
+    "src/react-app/components.tsx",
+    "src/react-app/page.tsx",
+    "src/react-app/shared/DomainPrimitives.tsx",
+    "src/react-app/shared/OverlayHost.tsx",
+    "src/react-app/shared/Presentation.tsx",
+    "src/react-app/shared/LoadingState.tsx",
+    "src/react-app/shared/WorkspacePageHeader.tsx",
+    "src/react-app/shared/ControlHint.tsx",
+    "src/react-app/shared/DateField.tsx",
+    "src/react-app/shared/TaskRecordDialog.tsx",
+    "src/state/overlays.ts",
+    "src/v3/proto/components/overlay.js",
+    "src/v3/proto/components/forms.js",
+    "src/v3/proto/components/controls.js",
+    "src/v3/proto/ui.js",
+    "e2e/**",
+    "ui-lab/**",
+    "index.html",
+    "vite.config.ts",
+    "package.json",
+    "tsconfig*.json"
+  ],
+  "areas": {
+    "@schedule": [
+      "src/v3-domain/life-schedule.js",
+      "src/v3/proto/components/schedule-records.js",
+      "src/v3/proto/components/schedule-request.js",
+      "src/v3/proto/components/promise-catalogue.js",
+      "src/v3/proto/components/cards.js",
+      "src/v3/proto/components/cursor-records.js",
+      "src/v3/proto/components/async-page.js",
+      "src/v3/presentation-time.mjs",
+      "src/v3/zoned-input.mjs",
+      "src/react-app/pages/DomainPage.tsx"
+    ],
+    "@overlay": [
+      "src/react-app/shared/PeopleSourceSheet.jsx"
+    ]
+  },
+  "nonUi": [
+    "test/**",
+    "scripts/**",
+    "**/*.md",
+    "Dockerfile",
+    "nginx.conf",
+    "public/**",
+    "src/v3/proto/services.js",
+    "src/v3/proto/store.js"
+  ]
+}

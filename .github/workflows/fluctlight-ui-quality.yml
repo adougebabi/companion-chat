@@ -1,0 +1,142 @@
+name: Fluctlight UI Quality
+
+# Real-browser UI gate (Playwright Chromium). Independent of image publishing
+# and business test jobs in fluctlight-ci.yml. Not yet a required check: it is
+# made required only after it has proven reliable (docs/frontend-ui-quality.md).
+#
+# Visual baselines are never committed. CI baselines come from an approved
+# `approve-baselines` run (GitHub environment `ui-baseline-approval`, with
+# required reviewers = design review). That run's id and manifest digest are
+# recorded in the committed text file apps/web/e2e/visual-baselines.lock.json.
+# Missing/expired/mismatched baselines make the gate UNVERIFIED, never green.
+
+on:
+  pull_request:
+    paths: ['apps/web/**', 'pnpm-lock.yaml', '.github/workflows/fluctlight-ui-quality.yml']
+  push:
+    branches: [main, master, codex/fluctlight-meromero-plugin-humanization]
+    paths: ['apps/web/**', 'pnpm-lock.yaml', '.github/workflows/fluctlight-ui-quality.yml']
+  schedule:
+    - cron: '30 18 * * *' # 02:30 Beijing: full site visual + layout run
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'affected | full (release check) | approve-baselines (needs design review)'
+        type: choice
+        options: [full, affected, approve-baselines]
+        default: full
+      reason:
+        description: 'approve-baselines: reviewed design change (required)'
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ui-quality-${{ github.ref }}-${{ inputs.mode || github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CI: 'true'
+  UI_BASELINE_ENV: ci-linux
+
+jobs:
+  ui-gate:
+    if: github.event_name != 'workflow_dispatch' || inputs.mode != 'approve-baselines'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm --filter @fluctlight/web exec playwright install --with-deps chromium
+
+      - name: Read approved baseline lock
+        id: lock
+        run: |
+          node -e '
+            const l=require("./apps/web/e2e/visual-baselines.lock.json");
+            const out=require("fs").createWriteStream(process.env.GITHUB_OUTPUT,{flags:"a"});
+            out.write(`run_id=${l.run_id||""}\nartifact=${l.artifact||""}\n`);'
+      - name: Restore approved CI baselines
+        if: steps.lock.outputs.run_id != ''
+        continue-on-error: true # absence is reported by the gate as UNVERIFIED
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.lock.outputs.artifact }}
+          run-id: ${{ steps.lock.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .ui-baselines/ci-linux
+
+      - name: Run UI gate
+        id: gate
+        env:
+          UI_BASELINE_LOCK: apps/web/e2e/visual-baselines.lock.json
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] || { [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.mode }}" = "full" ]; }; then
+            args="--full"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            args="--base origin/${{ github.base_ref }}"
+          elif [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            args="--base ${{ github.event.before }}"
+          else
+            args="--full"
+          fi
+          node apps/web/scripts/ui-gate.mjs $args
+
+      - name: Upload UI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-gate-${{ github.run_id }}
+          path: |
+            apps/web/test-results/
+            apps/web/playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  approve-baselines:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'approve-baselines'
+    runs-on: ubuntu-latest
+    environment: ui-baseline-approval # configure required reviewers in repo settings
+    timeout-minutes: 60
+    steps:
+      - name: Require a review reason
+        env:
+          REASON: ${{ inputs.reason }}
+        run: |
+          if [ "${#REASON}" -lt 8 ]; then echo "::error::approve-baselines 需要 reason 说明已审核的设计变更"; exit 1; fi
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @fluctlight/web exec playwright install --with-deps chromium
+      - name: Record approved baselines
+        env:
+          REASON: ${{ inputs.reason }}
+        run: node apps/web/scripts/ui-baselines.mjs approve --reason "$REASON" --approver "$GITHUB_ACTOR"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ui-baselines-ci-linux
+          path: .ui-baselines/ci-linux
+          retention-days: 90
+          if-no-files-found: error
+      - name: Lock file to commit
+        run: |
+          node -e '
+            const m=require("./.ui-baselines/ci-linux/manifest.json");
+            const lock={schema:1,env:"ci-linux",run_id:process.env.GITHUB_RUN_ID,artifact:"ui-baselines-ci-linux",digest:m.digest,files:Object.keys(m.files).length,approved_at:m.approved_at,approver:m.approver,reason:m.reason,commit:m.commit};
+            const text=JSON.stringify(lock,null,2);
+            require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,"### 提交以下内容到 apps/web/e2e/visual-baselines.lock.json\n\n```json\n"+text+"\n```\n");
+            console.log(text);'

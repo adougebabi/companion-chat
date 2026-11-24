@@ -15,7 +15,7 @@ async function open(page: Page, component: string, state: string) {
 }
 
 for (const [id, entry] of Object.entries(GALLERY_CATALOG)) {
-  test.describe(`${entry.title} (${id})`, () => {
+  test.describe(`${entry.title} (${id})`, { tag: ['@patterns', ...(id.startsWith('migrated-') ? ['@overlay'] : [])] }, () => {
     for (const state of entry.states) {
       test(`${state}: renders without layout defects`, async ({ page }) => {
         await open(page, id, state);
@@ -39,14 +39,14 @@ for (const [id, entry] of Object.entries(GALLERY_CATALOG)) {
   });
 }
 
-test('gallery index lists every component and links to its first state', async ({ page }) => {
+test('gallery index lists every component and links to its first state', { tag: '@patterns' }, async ({ page }) => {
   await page.goto('/ui-lab/?fixture=gallery');
   const list = page.getByRole('list', { name: '组件列表' });
   await expect(list.getByRole('listitem')).toHaveCount(Object.keys(GALLERY_CATALOG).length);
   await expectNoLayoutDefects(page, page.locator('[data-ui-lab-page]'), { minTarget: isPhone(page) ? 40 : 0 });
 });
 
-test.describe('interactions', () => {
+test.describe('interactions', { tag: ['@patterns', '@overlay'] }, () => {
   test('new settings form built from shared patterns submits native form data', async ({ page }) => {
     await open(page, 'settings-form', 'normal');
     const sheet = page.getByRole('dialog', { name: '通知偏好设置' });

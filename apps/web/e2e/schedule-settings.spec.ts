@@ -24,7 +24,7 @@ async function shot(page: Page, name: string) {
   await page.screenshot({ path: test.info().outputPath(`${name}.png`) });
 }
 
-test.describe('约定与日程设置 sheet', () => {
+test.describe('约定与日程设置 sheet', { tag: ['@schedule', '@overlay'] }, () => {
   test('geometry: full width on phones, side sheet on wider screens; no overflow', async ({ page }) => {
     const sheet = await open(page);
     const vw = page.viewportSize()!.width, vh = page.viewportSize()!.height;

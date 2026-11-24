@@ -4,7 +4,7 @@ import { findLayoutDefects } from './support/layout';
 // The gate must FAIL on known-bad layouts. If any of these stop reporting a
 // defect, the checker has lost its teeth and the UI gate must not be trusted.
 
-test('detects clipped controls, page overflow and spilled button text', async ({ page }) => {
+test('detects clipped controls, page overflow and spilled button text', { tag: '@gate' }, async ({ page }) => {
   await page.setContent(`<!doctype html><meta name=viewport content="width=device-width">
     <body style="margin:0">
       <section id=box style="width:200px;overflow:hidden;display:flex;gap:8px">
@@ -20,7 +20,7 @@ test('detects clipped controls, page overflow and spilled button text', async ({
   expect(spilled.map(d => d.kind)).toContain('content-overflow');
 });
 
-test('re-introducing the old schedule-sheet CSS is reported as a defect', async ({ page }) => {
+test('re-introducing the old schedule-sheet CSS is reported as a defect', { tag: ['@gate', '@schedule'] }, async ({ page }) => {
   test.skip(page.viewportSize()!.width >= 640, 'the regression is phone-only');
   await page.clock.setFixedTime(new Date('2026-11-16T10:30:00+08:00'));
   await page.goto('/ui-lab/?fixture=schedule-settings&section=today');

@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "env": "ci-linux",
+  "run_id": "",
+  "artifact": "",
+  "digest": "",
+  "files": 0,
+  "approved_at": null,
+  "approver": null,
+  "reason": "尚未在 CI 审核视觉基准：运行 Fluctlight UI Quality（mode=approve-baselines）并经 ui-baseline-approval 审核后，把其摘要中的 JSON 提交到此文件。在此之前 CI 视觉比对报告为未验证。",
+  "commit": null
+}
