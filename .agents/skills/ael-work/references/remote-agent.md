@@ -24,33 +24,33 @@ init 默认共用机器级 CLI，支持 `--prefix DIR --from CLIENT_PACKAGE`。�
 
 ### 常规领取与提交
 
-`runner claim --runner RUNNER --file PRIVATE_CLAIM_JSON --out PRIVATE_CLAIM_RECEIPT` 返回的私有文件直接用于后续命令的 `--lease-file`。CLI 从该文件读取 task、attempt、token、fence 和冻结领取版本。`task show.revision` 与 `recovery.source_revision` 用于当前任务状态查询；attempt 写入由 CLI 使用 claim_revision。heartbeat 使用同一文件并更新其中租约期限。
+`runner claim --runner RUNNER --file PRIVATE_CLAIM_JSON --out PRIVATE_CLAIM_RECEIPT` 返回的私有文件可直接用于 `--lease-file`。CLI 从中读取任务、领取版本和租约；检查方式可从领取的检查定义取得。heartbeat 的私有请求只需 operation_id、idempotency_key，成功后更新同一租约文件。
+
+普通实施与分析在 summary 写明改了什么、如何处理、已验证和待验证事项。简单任务一两句即可。完整提交后读取 next_action，继续尚未满足的必需检查。
 
 ```sh
-./ael runner heartbeat --runner RUNNER --lease-file PRIVATE_CLAIM_RECEIPT --file PRIVATE_HEARTBEAT_JSON --session HOST_SESSION_ID --json
-./ael runner submit --runner RUNNER --lease-file PRIVATE_CLAIM_RECEIPT --repository REPO --file PRIVATE_RESULT_JSON --session HOST_SESSION_ID --json
+./ael runner submit --lease-file PRIVATE_CLAIM_RECEIPT --repository REPO \
+  --status pass --summary '修复空参数返回 500 的问题，在入口校验并返回明确提示。已检查正常与空参数，远端 CI 尚未运行。' \
+  --session HOST_SESSION_ID --json
+# 领取 command 检查后，用实际退出码和观察登记
+./ael runner submit --lease-file PRIVATE_CHECK_RECEIPT --repository REPO \
+  --status pass --exit-code 0 --summary '回归命令检查了正常和空参数，两项均返回预期状态。' \
+  --session HOST_SESSION_ID --json
 ```
 
-heartbeat 文件只需 operation_id、idempotency_key。submit 文件提供 operation_id、idempotency_key、result，以及当前检查实际需要的 method、exit_code、inputs。result.artifacts 填选定的原仓库相对文件路径，如 `apps/web/src/views/Page.tsx`。CLI 固定当前候选和选定字节，完成 observe、上传、finalize、绑定后提交。源码扩展名由 CLI 处理，Agent 使用实际交付文件路径。result.knowledge.artifacts 同样接受路径。原始字节、候选、租约与子操作保存在仓库外私有操作记录中。
+提交检查时用真实 pass、fail 或 blocked。未运行的检查保持未运行，确实受阻时说明原因。用 `--candidate HASH` 指定已有观察的受检版本，CLI 核对当前工作区；Server 再核对领取候选、检查配置及定义和计划修订。场景或模型检查可在说明中写出操作与观察，按需用 `--inputs PATH1,PATH2` 关联受检路径。Agent 上报与独立人工确认、CI 实际结果各有自己的来源。
 
-execute change/pass 示例请求如下，summary、路径和知识结论按实际工作填写。
+需要文件时，任务定义的 deliverables、检查的 artifacts 或专项证据约定给出要求。使用 `runner submit --lease-file PRIVATE_CLAIM_RECEIPT --repository REPO --file PRIVATE_RESULT_JSON`，result 含 status、summary、artifacts；artifacts 是选定的项目相对路径或 `runtime:` 路径。运行材料位于项目外私有目录，附加 `--artifacts-dir ABSOLUTE_DIRECTORY`。CLI 冻结候选与选定字节，登记 observe 并上传绑定文件。普通 JSON 请求可写 `"artifacts": []`，也可省略可选的 knowledge 和附件。私有请求文件是协议输入，无需登记为附件。`--dry-run` 仅核对本机候选和选定文件。
 
-```json
-{
-  "operation_id": "execute-result-unique",
-  "idempotency_key": "execute-result-unique",
-  "result": {
-    "status": "pass",
-    "summary": "已完成本次修复并提供实际源码",
-    "artifacts": ["apps/web/src/views/Page.tsx"],
-    "knowledge": {"status": "unchanged", "reason": "本次修复沿用现行规范", "artifacts": []}
-  }
-}
-```
+### 规范版本与共享
 
-选定的报告、日志和截图放在项目外目录，引用如 `runtime:report.json`、`runtime:desktop.png`，命令增加 `--artifacts-dir ABSOLUTE_DIRECTORY`。verify 的 report.json 由执行 Agent 根据真实检查产生，candidate/check/definition_revision/plan_revision/method/source/observations/covers 按下方协议填写。先用 `runner observe --lease-file PRIVATE_CLAIM_RECEIPT --repository REPO --file PRIVATE_OPERATION_JSON` 获取候选，再据此执行检查和形成报告，submit 会核对当前 checkout。`--dry-run` 只校验本地候选和选定字节并展示文件路径，不执行网络写入。
+先在本机读取适用的 AGENTS.md、CLAUDE.md 和项目规范，再索引并准备候选。普通 `context publish` 登记所用路径、哈希和依据，复用本任务已共享的相同版本。未共享的正文留在工作区。获授权共享精确原文时，在独立的规范操作中显式使用 `context publish ... --share-source 项目相对路径`。限制只上传验收材料时省略该参数。规范改动可以在实施说明中交代，正文的共享沿此入口处理。
 
-`runner submit --repository` 模式中省略 bindings 与服务器附件 ID。完整手写请求继续使用下方低层接口。通信失败沿返回 operation_file 执行 `runner retry --pending FILE`，重试使用已固定字节，已接受结果可在租约结束后查询原回执。请求内容变化使用新的操作键。提交后消费 next.next_action，下一单元重新领取并使用新的私有回执文件。到期或撤权继续使用显式恢复流程。
+### 恢复已有结果
+
+沿用原任务和已登记候选。原租约有效时，可直接提交准确的实施说明；租约结束时，先核对回执与工作区，再按 recovery check 指引交接并重新领取原责任。已有附件继续保留。此时记录的工作区可能包含未提交内容，候选中的 HEAD 仅指向已存在的 Git 提交。正式当前检查继续使用现有结果；已运行但尚未正式登记的检查，在领取对应检查后核对实际受检候选及配置，确认匹配后上报原观察。只上传材料或登记诊断上下文报告的记录仍需正式提交。输入或检查要求变化时重做受影响的检查。
+
+网络结果未知时，按 operation_file 执行 `runner retry --pending FILE` 或查询原回执；重试使用原操作和冻结字节。修改请求内容时使用新键。旧会话仍使用原 CLI 和 Skill，按已有机制核对在途责任并交接，结束原工具绑定后用更新过的客户端和项目入口开启新会话。通过 `session show` 核对实际 CLI 构建、Skill 路径和哈希，再 `recovery check` 继续原任务。
 
 ### 低层接口与证据约束
 
@@ -61,11 +61,11 @@ execute change/pass 示例请求如下，summary、路径和知识结论按实�
 5. 由 Agent 从私有 claim 文件取 attempt.id/token/fence，以私有 JSON 请求调用 `runner heartbeat` / `runner progress` / `runner interrupt`。共有 task_id、attempt_id、token、fence、operation_id、idempotency_key；progress 另含 summary/next/stage，interrupt 另含 reason。续租按当前租约期限进行，无常驻助手也可工作。撤权/过期停止提交有效结果；停工是 Agent 的责任，AEL 不杀宿主进程。失联展示最后上报/未知。
 6. 自行使用宿主工具完成本责任。只验收任务不得修改源码。结果产生后 `runner observe --runner ID --repository REPO --file PRIVATE_JSON` 读取本项目候选并提交已有 Attempt observe；文件含共有租约字段及领取时 expected_revision。也可在文件中提供 candidate，此时不传 repository。observe 不启动检查或复制工作区。
 7. `artifact upload --task ID --attempt AT --candidate HASH --file LOCAL --lease-file PRIVATE_JSON --expected-revision CLAIM_REV --operation-id OP --idempotency-key KEY`。lease-file 含 runner_id、task_id、attempt_id、token、fence、expected_revision、lease_until（RFC3339；续租后更新）。上传后原件固定。只选任务所需依据、报告、日志与截图；不默认上传所有源码、HOME、聊天或密钥。
-8. `runner submit --runner ID --file PRIVATE_JSON`：共有租约字段及 expected_revision（领取时版本）、candidate_id、result、bindings、method、exit_code、inputs。result 含 status(pass|fail|blocked)、summary、artifacts（已 finalized 的 ID）；execute pass 必须有候选中的真实交付文件及 knowledge:{status:unchanged|updated,reason,artifacts:[]}。bindings 为 [{path:"app.txt"或"runtime:report.json",artifact_id:"ID"}]。非 verify 阶段 method 留空，不传 exit_code/inputs；verify 使用声明的 method 和实际 inputs。command 的 exit_code 必须符合 pass/fail。
-9. verify 非 blocked 必须上传并绑定 `runtime:report.json`，内容为 {candidate,check,definition_revision,plan_revision,method,source,observations,covers}。source 为 `external-command:RUNNER` / `external-model:RUNNER` / `external-scenario:RUNNER`，observations 是实际观察，covers 完整覆盖本检查的验收项。UI 仍需真实图片。哈希只证明字节一致，不能证明命令真实运行；Agent 不得冒充独立人工审批。必需报告/产物、旧候选、旧验收或权限不符继续被拒绝。
+8. `runner submit --runner ID --file PRIVATE_JSON` 的低层请求含共有租约字段、expected_revision、candidate_id、result、bindings。result.artifacts 可为空；提交实际文件时列出已 finalized 的 ID，bindings 填各 ID 对应的路径。文件的任务、attempt、候选、租约和哈希仍会校验。非 verify 阶段省略 method、exit_code、inputs。
+9. verify 使用定义声明的 method 和实际 status，命令的 exit_code 必须与 pass/fail 相符。summary 记录观察。显式约定的附件仍需上传；沿用旧式 `runtime:report.json` 时仍校验 candidate、check、definition_revision、plan_revision、method、source、observations 和 covers。旧式 source 是 `external-METHOD:RUNNER`。
 10. 提交后消费 `next.next_action`：repair 留在同一叶子修复；continue 领取下一个当前责任；completed 后读取父范围后继，能力授权满足则继续。交接结束当前角色，由已有外部 Bot 自行领取。等待环境/人工时记录恢复条件，不循环伪进展。`runner receipt --runner ID --idempotency-key KEY` 查原提交回执；重复同一 submit 返回相同结果，不重复推进。旧回执不是新写授权。达到重复失败预算按既有复核规则停止，不改类别规避。
 
-execute 的 change 责任提交 pass 时，至少一个 result.artifacts 附件须绑定候选中的实际交付文件路径，附件 SHA-256 与候选哈希相同。上述 app.txt 是示例候选路径。常规提交入口自动生成这些绑定。单独 artifact upload 使用 --lease-file 时也自动处理源码扩展名，保留原始字节。每次重新领取后，附件需属于新的 attempt、候选与租约。
+已提交结果出现 CI 失败或其他反馈时，按 [FEEDBACK](workflow.md#10-feedback修正与独立新工作) 核对实际原因和范围。已完成任务的交付修正可在原任务下追加普通附件，沿用 [命令与恢复](commands.md#已完成任务的交付修正) 的修订与鉴权校验。需要远端 CI 成功的交付以最终提交或合并候选的实际结果为准。
 
 已提交结果出现 CI 失败或其他反馈时，按 [FEEDBACK](workflow.md#10-feedback修正与独立新工作) 核对实际原因和范围。已完成任务的交付修正可在原任务下追加普通附件，沿用 [命令与恢复](commands.md#已完成任务的交付修正) 的修订与鉴权校验。需要远端 CI 成功的交付以最终提交或合并候选的实际结果为准。
 
@@ -127,7 +127,7 @@ runner 写命令和显式 artifact upload 在网络写入前，将完整请求�
 
 ## 人工裁定交接
 
-human 检查交由项目 reviewer/admin 登录中央 Dashboard 完成。外部 Agent 通过原 artifact upload 上传实际截图、基准及报告，并记录来源和受检候选。页面支持明确基准比较，人工结论仍绑定候选/定义/计划。普通令牌不能伪装成人工记录人。人工 fail 留修复方向，blocked 留恢复条件，pass 后继续读取 next_action 和其余门禁。意见与正式检查分别保存，旧候选意见需针对新候选重新记录。
+human 检查交由项目 reviewer/admin 登录中央 Dashboard 完成。普通检查可在任务页直接点击验收通过，说明与附件可选；发现问题只需描述问题，暂无法验证只需原因。明确约定的截图、对照图、专项报告及 Check.Artifacts 仍需真实附件。外部 Agent 按需要通过原 artifact upload 上传证据并记录来源和受检候选。页面支持明确基准比较，人工结论绑定候选/定义/计划并记录 direct_observation 或 observation_with_attachments，不等于发布。普通令牌不能伪装成人工记录人。fail 后由 Agent 核对修复，blocked 等待实际条件解除；pass 后继续读取 next_action 和其余门禁。意见与正式检查分别保存，旧候选意见需针对新候选重新记录。
 
 ## 发现、修复任务与复验
 
@@ -169,3 +169,42 @@ human 检查交由项目 reviewer/admin 登录中央 Dashboard 完成。外部 A
 父候选中的源码输出须与已验收叶子的内容哈希及执行位匹配。同一输出被后续工作改写时，先更新并验收受影响叶子，取得可核对的当前输出，再准备父集成。
 
 达到重复失败阈值时，保存真实调查材料并上传为同任务 finalized 附件。调用 `ael task review-failure --task ID --file PRIVATE_REVIEW_JSON --expected-revision REV --operation-id OP --idempotency-key KEY --json`。文件包含 `tried,excluded,hypothesis,next,recovery,evidence`，evidence 为中央附件 ID，actor 由认证身份确定。每次至多 32 个引用和 64 MiB 总量。成功后按返回版本显式 resume，失败次数保留。复核后再次失败进入 blocked，再次复核需要此前未审阅过的证据内容。宿主自行停止旧工作并保留现场。
+
+## 导入历史的核对与接管
+
+先逐项读取最新 task/next，不根据上次失败或任务标题判断整批都需要人工恢复：
+
+- `continue` / `repair`：已可工作，按原协议准备或刷新 context 并 claim，不再要求浏览器恢复。
+- `recovery_action=resume`，或旧响应中可核实已有准确当前定义/计划的真实 restore approve、confirmation为空、仅剩导入暂停且无后续人工暂停/失败/责任：直接由 executor 调用 `resume --task ID --expected-revision REV --operation-id OP --idempotency-key KEY --json`。没有旧责任时不添加 ack-stopped。消费回执后重新获取 task/candidate/context，再 claim；普通 resume 已在旧客户端提供，无需仅为这个步骤再次找人确认。
+- 没有当前恢复批准时，按下述 reconcile-import 的受限来源规则处理；未知旧归档缺授权只报告具体缺口，不把该限制套到已经批准或已经可继续的其他任务。
+
+核对 `version --check`、Server metadata 与当前会话实际 CLI/Skill 的 build/路径；同为0.1.31可能一个包含新接管命令、另一个仍是旧代码。新命令缺失先按受管更新与明确交接处理，不改写冻结会话，不冒充人工，也不把客户端不支持统一说成用户必须网页恢复。
+
+在既有用户执行授权内，先读取 task show、原导入历史和现行工程依据，capture 当前候选并 publish/show context。若仅有导入恢复阻塞，调用 `task reconcile-import --task ID --context CONTEXT --reason "核对的事实与差异" --start "具体继续起点" --expected-revision REV --operation-id OP --idempotency-key KEY`。身份来自执行令牌；它只记录 Agent 核对，不产生人工 approval 或当前验收。成功后立即消费返回 next.next_action，刷新候选/context 的任务版本并 runner claim，实际实施、上报结果，再继续 next；不要只输出建议结束。
+
+IMPORT_NOT_ACTIVE：等待导入负责人激活；IMPORT_PAUSE_PROTECTED：按具体 blocker/未决决定/其他责任处理，不反复恢复；IMPORT_CONTEXT_REQUIRED：补当前候选和依据；IMPORT_SOURCE_UNKNOWN：缺少可信暂停或决定来源，给出任务页和缺失的恢复范围，请 reviewer 按准确版本确认。原来已有可信恢复批准时可沿用，不能由 Agent 自述用户同意来替代。重复请求保留原 operation/key 查询原回执，任务版本变化须重新核对。
+
+工作单元完成、检查失败、阻塞变化、恢复、交接及交付时，及时用 runner progress 回报已完成/尝试的事实、实际结果、具体 next；此上报是当前工作说明，不冒充交付物。实际成果仍通过原 runner submit 与真实文件/验收结论形成。心跳不算进展，长时间无成果不代表宿主 Agent 已退出。
+
+## 排队归属（外部队列与 AEL 的协作标记）
+
+排队归属只说明「某执行者已把当前待执行责任放进自己的队列、尚未领取」。它不创建 Attempt、租约或进度，不改变任务修订、定义、计划、候选或检查结果；实际执行、编译、测试与队列排序仍由外部 Agent/Bot 负责。记录保存在 Server，所有客户端读取同一份。
+
+```sh
+# 入队：只有返回成功回执才算取得安排；失败或 AGENT_OPERATION_PENDING 时不能假定已安排
+./ael runner queue --runner RUNNER --task TASK --operation-id OP --idempotency-key KEY [--scope runner|executor] [--expected-version absent|VERSION] --json
+# 准备执行：重新读取，再按常规 runner claim 领取；QUEUE_RESERVED/NOT_RUNNABLE/TERMINAL 等拒绝时跳过并移除本地队列项
+./ael runner queue-list --runner RUNNER --task TASK --json
+# 主动移出尚未开始的任务
+./ael runner queue-release --holder RUNNER --task TASK --expected-version VERSION [--reason TEXT] --operation-id OP --idempotency-key KEY --json
+# 转交尚未开始的任务（持有者账号或项目管理员；原持有者无需在线）
+./ael runner queue-transfer --holder RUNNER --task TASK --expected-version VERSION --to TARGET_RUNNER --reason TEXT --operation-id OP --idempotency-key KEY --json
+# 查询：--state unassigned|queued|started|claimable；带 --runner 时 claimable 按该 runner 计算
+./ael runner queue-list --runner RUNNER --state claimable --json
+```
+
+- `--scope runner`（默认）只允许该 runner 领取；`executor` 允许同一执行者账号下的任一 runner 领取（多工作槽的 Bot）。Bot 与本地 Codex 必须使用不同执行者账号，否则 executor 范围无法区分二者。
+- 再次 `runner queue` 携带当前 `--expected-version` 用于 Bot 重启后的同步刷新；版本不符返回 `QUEUE_VERSION_CONFLICT`，应重新读取。
+- 他人持有有效安排时普通领取返回 `QUEUE_RESERVED`；任务已开始时释放/转交返回 `QUEUE_STARTED`，此时只能走上文显式工作区交接。
+- 暂停、取消、完成、步骤/定义/计划/候选变化或领取开始后，安排自动失效并记事件 `remote_queue_cleared`。
+- 超时或断网：用原命令或 `runner retry --pending FILE` 以同一幂等键查询/重放，不换键重做。长时间没有更新只说明等待时长，不说明 Bot 已停止。

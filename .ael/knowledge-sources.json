@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": "AGENTS.md",
-      "hash": "6b2c739b1765f4f56e0adc75db699fc974a36036ce35db74138891e0bb5b12b1",
+      "hash": "b2929b3cf331800d753e71412ac78c697bf5253338ebd81a506c31cfd0c74471",
       "action": "connected",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -17,14 +17,14 @@
         "tasks": null,
         "critical": true,
         "path": "AGENTS.md",
-        "hash": "6b2c739b1765f4f56e0adc75db699fc974a36036ce35db74138891e0bb5b12b1",
+        "hash": "b2929b3cf331800d753e71412ac78c697bf5253338ebd81a506c31cfd0c74471",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
     },
     {
       "path": "CLAUDE.md",
-      "hash": "3f99d246734a7143c894e3394c1fbbd2104629ee7580036d47a8be5a7d52535b",
+      "hash": "0e12e22f253cf1a94e79d4fee6a1c484a629e85ebd9d9a146f8303cc0589b051",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -38,7 +38,7 @@
         "tasks": null,
         "critical": false,
         "path": "CLAUDE.md",
-        "hash": "3f99d246734a7143c894e3394c1fbbd2104629ee7580036d47a8be5a7d52535b",
+        "hash": "0e12e22f253cf1a94e79d4fee6a1c484a629e85ebd9d9a146f8303cc0589b051",
         "body": "",
         "reason": "managed entry contains no project-specific rules"
       }
