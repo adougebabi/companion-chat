@@ -35,7 +35,7 @@ func directReplyRetryFailure(code, workflowStatus string) bool {
 		return false
 	}
 	switch code {
-	case "agent_partial_committed", "agent_final_contract_invalid", "direct_reply_arguments_unresolved":
+	case "agent_partial_committed", "agent_final_contract_invalid", "direct_reply_arguments_unresolved", "direct_media_delivery_unresolved":
 		return true
 	}
 	return false

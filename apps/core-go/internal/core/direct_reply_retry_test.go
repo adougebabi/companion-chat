@@ -10,6 +10,9 @@ func TestDirectReplyRetryRequiresTerminalWorkflow(t *testing.T) {
 	if !directReplyRetryFailure("agent_final_contract_invalid", "failed") {
 		t.Fatal("terminal missing reply should qualify")
 	}
+	if !directReplyRetryFailure("direct_media_delivery_unresolved", "failed") {
+		t.Fatal("terminal delivery check failure should qualify after a committed image")
+	}
 	for _, status := range []string{"", "pending", "started", "running", "paused", "cancel_requested"} {
 		if directReplyRetryFailure("agent_final_contract_invalid", status) {
 			t.Errorf("active or unknown workflow %q qualified for recovery", status)
