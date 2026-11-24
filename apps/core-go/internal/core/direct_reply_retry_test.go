@@ -51,7 +51,9 @@ func TestDirectReplyRetryUsesExistingMediaWithoutReplayingTurn(t *testing.T) {
 				return fakeProviderResult{Text: "模型输出文字但没有调用原生发布工具。"}
 			case 6:
 				tools := arrayValue(payload["tools"])
-				if len(tools) != 1 || !r6PayloadHasTool(payload, conversationReplyCapabilityName) || !strings.Contains(jsonString(payload["messages"]), "reply_recovery") {
+				wire := jsonString(payload["messages"])
+				if len(tools) != 1 || !r6PayloadHasTool(payload, conversationReplyCapabilityName) ||
+					!strings.Contains(wire, "reply_recovery") || !strings.Contains(wire, "把任务回执、后台和传输过程留在内部") {
 					t.Error("retry did not offer only the native reply tool with the actual media status")
 				}
 				return reply("retry-recovered", recovered)

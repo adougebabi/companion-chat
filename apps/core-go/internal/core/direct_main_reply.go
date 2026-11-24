@@ -34,7 +34,7 @@ const directMainConversationProtocol = `本回合的第一步是选择下一步�
 func (c directMainReplyCapability) Definition() CapabilityDefinition {
 	d := conversationReplyCapabilityDefinition()
 	d.Version = "direct-main.v1"
-	d.Description = "Publish the final private reply after any action you choose is done or has a real receipt. If the user is following up on a photo and you choose to make it now, call capability_catalog first to load the image action. For an accepted private image task, reply that it was submitted or is pending. Use only valid current reference IDs; for a simple receipt acknowledgment use decision with action_type=reply, a short response_intent and influences=[]. Omit optional decision fields that are unnecessary."
+	d.Description = "Publish a natural private reply in the character's voice after any chosen action returns a real receipt. To take a photo, load the image tool through capability_catalog first. Ground facts in the receipt and keep processing language internal. Use valid current references; a simple reply can use action_type=reply, a short response_intent and influences=[]. Omit unsupported optional fields."
 	d.Surfaces = []CapabilitySurface{CapabilitySurfaceConversation}
 	d.ModelPreserveOptionalObjectPaths = []string{"decision"}
 	properties := map[string]any{
@@ -42,7 +42,7 @@ func (c directMainReplyCapability) Definition() CapabilityDefinition {
 		"decision": directMainDecisionSchema(),
 	}
 	if c.replyOnly {
-		d.Description = "Publish the missing private reply for the original user message. Confirm only real results. Supply text and decision with action_type=reply, a short response_intent and influences=[]."
+		d.Description = "Publish the character's natural reply to the original user message. Use real results for factual grounding and keep processing language internal. Supply text and decision with action_type=reply, a short response_intent and influences=[]."
 		decision := mapValue(properties["decision"])
 		original := mapValue(decision["properties"])
 		properties["decision"] = objectSchema(map[string]any{"action_type": original["action_type"], "response_intent": original["response_intent"], "influences": original["influences"]}, []string{"action_type", "response_intent", "influences"}, false)

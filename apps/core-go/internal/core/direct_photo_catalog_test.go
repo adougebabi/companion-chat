@@ -77,13 +77,19 @@ func TestDirectPhotoFollowupLoadsImageBeforeReply(t *testing.T) {
 				plan["capture_method"], plan["viewpoint"], plan["framing"], plan["camera_angle"] = "handheld_selfie", "subject_facing", "full_body", "eye_level"
 				return invoke("photo-execute", "media.image.generate", map[string]any{"intent": "拍一张当前自拍", "media_plan": plan})
 			case 5:
+				wire := jsonString(payload["messages"])
+				if !strings.Contains(wire, "把任务回执、后台和传输过程留在内部") ||
+					strings.Contains(wire, "告诉对方已提交并等结果") {
+					t.Error("accepted image request requires backend narration in the private reply")
+				}
 				return fakeProviderResult{}
 			case 6, 7, 8:
 				receipts := nativePersonaToolMessages(payload)
 				if !strings.Contains(receipts, "accepted") {
 					t.Error("model did not receive an actual accepted image intent receipt")
 				}
-				if mainCalls == 6 && (!strings.Contains(jsonString(payload["messages"]), "private_reply_not_published") ||
+				if mainCalls == 6 && (!strings.Contains(jsonString(payload["messages"]), "keep processing language out of the reply") ||
+					!strings.Contains(jsonString(payload["messages"]), "private_reply_not_published") ||
 					len(arrayValue(payload["tools"])) != 1 || !r6PayloadHasTool(payload, conversationReplyCapabilityName)) {
 					t.Error("empty stop did not lead to a reply-only correction")
 				}

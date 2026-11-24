@@ -2090,7 +2090,7 @@ func conversationPublicationCorrectionInput(ctx context.Context, input []*schema
 	corrected := append([]*schema.Message(nil), input...)
 	instruction := "The previous response ended without publishing a private reply. Publish the reply now through the native conversation.reply Tool using the authorized conversation context and real Tool results. Generate its arguments yourself. Do not return final prose or cognition JSON in this request."
 	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" {
-		instruction += ` Supply text and decision with action_type="reply", a short response_intent and influences=[]. Omit extra fields. A submitted image is still pending unless there is real delivery evidence.`
+		instruction += ` Put the character's natural reply in text. Use tool receipts internally and keep processing language out of the reply. Report delivery only with real delivery evidence. Supply decision with action_type="reply", a short response_intent and influences=[]. Omit extra fields.`
 	}
 	return append(corrected, schema.UserMessage(renderProviderJSON(map[string]any{"validation_feedback": "private_reply_not_published", "instruction": instruction})))
 }

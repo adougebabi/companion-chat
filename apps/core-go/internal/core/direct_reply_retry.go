@@ -9,7 +9,7 @@ import (
 )
 
 const directReplyRetryKey = "direct_reply_retry_media_intent"
-const directReplyRetryProtocol = `主人明确请求补发原回合的文字回复。以生效人格回应原消息。图片任务已在原回合受理，reply_recovery 给出它现在的真实状态和是否已经送达。只用原生 conversation_reply 发布文字。不要再创建图片任务，也不要把受理、生成中或失败说成送达。decision 填 action_type="reply"、简短的 response_intent、influences=[]。`
+const directReplyRetryProtocol = `主人明确请求补发原回合的文字回复。图片任务已在原回合受理，reply_recovery 给出它现在的真实状态和是否已经送达。只用原生 conversation_reply 发布文字。` + directPhotoReplyStyle + `decision 填 action_type="reply"、简短的 response_intent、influences=[]。`
 
 type directReplyRetryContextKey struct{}
 
