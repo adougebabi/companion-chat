@@ -89,7 +89,7 @@ func TestScheduleGenerationFinalProviderRequestOmitsStorageIDs(t *testing.T) {
 			}
 		}
 		return fakeProviderResult{Structured: map[string]any{"items": []any{map[string]any{
-			"start_at": "2026-09-28T00:00:00+08:00", "end_at": "2026-09-29T00:00:00+08:00", "activity": "练习钢琴", "scene": "琴房", "location": "家", "item_type": "planned", "status": "planned", "priority": 0.5, "flexibility": 0.5, "interruption_cost": 0.5,
+			"end_minute": 1440, "activity": "练习钢琴", "scene": "琴房", "location": "家", "item_type": "planned", "priority": 0.5, "flexibility": 0.5, "interruption_cost": 0.5,
 		}}, "reschedule_policy": map[string]any{}}}
 	})
 	app := newTestApp(t, repository, router)

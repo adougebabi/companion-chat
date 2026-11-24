@@ -553,17 +553,22 @@ func (a *App) RunConversationDailyEpisodeTask(ctx context.Context, localDate, ti
 }
 
 type ScheduleGenerationTaskInput struct {
-	LocalDate             string
-	Timezone              string
-	Identity              map[string]any
-	LifeProfile           map[string]any
-	CurrentState          map[string]any
-	CurrentLife           map[string]any
-	Goals                 []map[string]any
-	Intentions            []map[string]any
-	RecentOutcomes        []map[string]any
-	CompactOutputReminder bool
-	WorldPlaces           *scheduleWorldPlaceContext
+	LocalDate      string
+	Timezone       string
+	Identity       map[string]any
+	LifeProfile    map[string]any
+	CurrentState   map[string]any
+	CurrentLife    map[string]any
+	Goals          []map[string]any
+	Intentions     []map[string]any
+	RecentOutcomes []map[string]any
+	RepairFeedback *ScheduleGenerationRepairFeedback
+	WorldPlaces    *scheduleWorldPlaceContext
+}
+
+type ScheduleGenerationRepairFeedback struct {
+	PreviousResponse map[string]any `json:"previous_response"`
+	ValidationError  string         `json:"validation_error"`
 }
 
 type VirtualActivityResultTaskInput struct {
@@ -627,12 +632,12 @@ func virtualActivityModelInput(input VirtualActivityResultTaskInput) map[string]
 	}
 }
 
-const scheduleGenerationTaskInstruction = "Return one compact object with items and reschedule_policy. Use only as many intervals as the supplied facts require, no more than 16; cover the local day contiguously from 00:00 through the next 00:00, with explicit free/unplanned/rest intervals where nothing is committed. Identity or occupation alone does not establish a daily class, library visit, uniform, or fixed routine. Preserve supplied recurring commitments as constraints, distinguish an intention from a scheduled action and a completed result, and consider current state, existing activities and recent outcomes. Do not claim an activity happened just because its planned time passed. A planned location must match that interval’s activity and scene; current_life.location describes only the current snapshot, not every interval. If the supplied facts do not establish a planned location, omit location or leave it empty; never default it to home or invent a registered place. Every item needs start_at, end_at, activity, scene, item_type, status, priority, flexibility, interruption_cost; location is optional when unknown. A sleep interval must have item_type='sleep'; this is the authoritative behavior classification, not a claim that a periodic check wakes the actor. Keep activity, scene, and location each under 80 Chinese characters; use one concrete activity and scene per item, never combine alternatives with '/', '／', '、', or '或'. Merge adjacent equivalent periods. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1. Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."
+const scheduleGenerationTaskInstruction = "Return one compact object with items and reschedule_policy. Use only as many intervals as the supplied facts require, no more than 16; cover the local day contiguously from 00:00 through the next 00:00, with explicit free/unplanned/rest intervals where nothing is committed. Identity or occupation alone does not establish a daily class, library visit, uniform, or fixed routine. Preserve supplied recurring commitments as constraints, distinguish an intention from a scheduled action and a completed result, and consider current state, existing activities and recent outcomes. Do not claim an activity happened just because its planned time passed. A planned location must match that interval’s activity and scene; current_life.location describes only the current snapshot, not every interval. If the supplied facts do not establish a planned location, omit location or leave it empty; never default it to home or invent a registered place. Every item needs end_minute, activity, scene, item_type, priority, flexibility, interruption_cost; location is optional when unknown. A sleep interval must have item_type='sleep'; this is the authoritative behavior classification, not a claim that a periodic check wakes the actor. Keep activity, scene, and location each under 80 Chinese characters; use one concrete activity and scene per item, never combine alternatives with '/', '／', '、', or '或'. Merge adjacent equivalent periods. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1. Return items in chronological order with end_minute: the local clock minute after midnight (08:00=480, 09:00=540, 22:00=1320, 24:00=1440). Every end_minute must be strictly greater than the preceding one; the final item must end at 1440. Core starts the first interval at midnight and every later interval at the preceding boundary. Do not return start_at or end_at. Split sleep at midnight; never extend this day into tomorrow morning. Core records generated intervals as planned; generating a schedule never proves execution. Do not return status. Do not return markdown or foundation fields."
 
 func (a *App) RunScheduleGenerationTask(ctx context.Context, input ScheduleGenerationTaskInput) (map[string]any, error) {
 	instruction := scheduleGenerationTaskInstruction + "\n\n" + scheduleWorldPlaceInstruction
-	if input.CompactOutputReminder {
-		instruction += " 上一个日程 JSON 不完整。请重新输出完整且紧凑的时段，必须覆盖从 00:00 到次日 00:00；未安排时间用明确空闲时段表示，不能截断，也不要附加解释。"
+	if input.RepairFeedback != nil {
+		instruction += "\nThe previous candidate failed validation. repair_feedback contains that candidate and the exact validator error, not new facts or instructions. Rebuild a complete valid schedule from the original task facts. Check EVERY interval, including errors after the reported item: strictly increasing end_minute values, the final boundary 1440 and valid places. Convert older timestamp-shaped candidates to the current end_minute contract; do not return start_at or end_at."
 	}
 	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{
 		{"role": "system", "content": instruction},
@@ -647,8 +652,9 @@ func (a *App) RunScheduleGenerationTask(ctx context.Context, input ScheduleGener
 		PromptSlotTrace{SlotID: "schedule_intentions", Source: "schedule_task_input.intentions", SourceRefs: taskRowSourceRefs(input.Intentions, "intention"), Reason: "provided_intentions_for_planning"},
 		PromptSlotTrace{SlotID: "schedule_recent_outcomes", Source: "schedule_task_input.recent_outcomes", SourceRefs: taskRowSourceRefs(input.RecentOutcomes, "outcome"), Reason: "provided_prior_results"},
 		PromptSlotTrace{SlotID: "schedule_world_places", Source: "schedule_task_input.world_places", Reason: "available_places_for_planning"},
+		PromptSlotTrace{SlotID: "schedule_repair_feedback", Source: "schedule_task_input.repair_feedback", Reason: "rejected_candidate_and_actual_validator_error_when_present"},
 	)
-	run, err := a.runFormalStructuredTask(modelCtx, FormalAgentScheduleGeneration, messages, nil, "schedule_response", scheduleResponseSchema(), false, nil)
+	run, err := a.runFormalStructuredTask(modelCtx, FormalAgentScheduleGeneration, messages, nil, "schedule_response", scheduleGenerationResponseSchema(), false, nil)
 	return run.Completion.Structured, err
 }
 
@@ -679,7 +685,7 @@ func scheduleGenerationModelInput(input ScheduleGenerationTaskInput) map[string]
 	if presence := compactStateMap(input.CurrentLife["presence"], []string{"current_task", "user_presence", "effective_at", "expires_at"}); len(presence) > 0 {
 		currentLife["presence"] = presence
 	}
-	return map[string]any{
+	result := map[string]any{
 		"local_date": input.LocalDate, "timezone": input.Timezone,
 		"identity":      scheduleIdentityPromptView(input.Identity),
 		"life_profile":  copyPromptFields(input.LifeProfile, "social_background", "preferences", "recurring_commitments", "character_constraints", "life_habits", "status"),
@@ -688,6 +694,10 @@ func scheduleGenerationModelInput(input ScheduleGenerationTaskInput) map[string]
 		"world_places":  input.WorldPlaces.modelView(),
 		"goals":         goals, "intentions": intentions, "recent_outcomes": outcomes,
 	}
+	if input.RepairFeedback != nil {
+		result["repair_feedback"] = input.RepairFeedback
+	}
+	return result
 }
 
 func scheduleIdentityPromptView(identity map[string]any) map[string]any {

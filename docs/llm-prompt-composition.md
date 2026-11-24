@@ -760,3 +760,5 @@ Conversation Cognition 的原生 Stream。输入组装、Tools、模型绑定、
 `life.activity.start` 的模型契约使用 `intention_ref` / `schedule_item_ref`，由当前授权投影绑定到 canonical direct ID；模型不能用任意数据库 ID 扩大范围。其他购物、地点与活动参数保留原契约。WakeUp 在原生工具回执明确禁止相同参数重试时终止重复调用；不强制发送私聊、不伪造完成，也不设置输入或输出 token 上限。
 
 Goal 自动评估保留真实新活动后的 30 分钟静默；日程接受、日常回顾和重复请求本身不构成新证据。无新活动的每日回顾由角色本地 03:00 的持久入口创建，回顾前一完整本地日，同日和重启均复用已登记请求；Owner 显式重评和同轮恢复保留。
+
+初始日程修正请求使用相同任务事实，并在动态 JSON 的 `repair_feedback` 中保留完整上一候选与精确校验错误。固定协议不再把所有语义失败误称为 JSON 不完整；生成专用模型 schema 只返回按顺序递增的 `end_minute`（角色本地午夜后的时钟分钟，末段为 1440）；Core 由上一段结束边界计算下一段起点，并按原 timezone/DST 规则生成正式时间戳。相邻边界在模型输出中只出现一次，不猜测或修改活动时长。存储、Direct/Replan 契约及原有 RFC3339 输入归一化继续保留，分钟契约与时间戳契约不得混用。修正仍走同一生成、地点校验和接受边界；没有新增 token 上限或按长度截断。私有真实请求回放由 `TestLiveInitialScheduleFromPrivateCapture` 显式启用，输入和证据保留在仓库外。
