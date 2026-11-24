@@ -2,27 +2,42 @@ package core
 
 import (
 	"errors"
+	"net/http"
 	"strings"
 	"testing"
 )
 
 func TestDirectReplyRetryRequiresTerminalWorkflow(t *testing.T) {
-	if !directReplyRetryFailure("agent_final_contract_invalid", "failed") {
+	if !directReplyRetryFailure("agent_final_contract_invalid", "failed", "") {
 		t.Fatal("terminal missing reply should qualify")
 	}
-	if !directReplyRetryFailure("direct_media_delivery_unresolved", "failed") {
+	if !directReplyRetryFailure("direct_media_delivery_unresolved", "failed", "") {
 		t.Fatal("terminal delivery check failure should qualify after a committed image")
 	}
+	if !directReplyRetryFailure("adk_run_failed", "failed", "provider_request_failed") ||
+		directReplyRetryFailure("adk_run_failed", "failed", "") {
+		t.Fatal("generic terminal code must have scoped provider failure evidence")
+	}
 	for _, status := range []string{"", "pending", "started", "running", "paused", "cancel_requested"} {
-		if directReplyRetryFailure("agent_final_contract_invalid", status) {
+		if directReplyRetryFailure("agent_final_contract_invalid", status, "") {
 			t.Errorf("active or unknown workflow %q qualified for recovery", status)
 		}
 	}
 }
 
 func TestDirectReplyRetryUsesExistingMediaWithoutReplayingTurn(t *testing.T) {
+	t.Run("missing native reply", func(t *testing.T) { testDirectReplyRetryUsesExistingMedia(t, false) })
+	t.Run("legacy provider failure", func(t *testing.T) { testDirectReplyRetryUsesExistingMedia(t, true) })
+}
+
+func testDirectReplyRetryUsesExistingMedia(t *testing.T, providerFailure bool) {
+	t.Helper()
 	const recovered = "自拍任务已经提交，等图片生成后再发。"
 	mainCalls := 0
+	recoveryRound := 6
+	if providerFailure {
+		recoveryRound = 5
+	}
 	router := newFakeProviderRouter().
 		on(directImageDiscoverySchema, func(map[string]any) fakeProviderResult {
 			return fakeProviderResult{Structured: map[string]any{"needed_tool": "media.image.generate"}}
@@ -39,6 +54,14 @@ func TestDirectReplyRetryUsesExistingMediaWithoutReplayingTurn(t *testing.T) {
 				return invoke(id, conversationReplyCapabilityName, map[string]any{"text": text, "decision": map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}}})
 			}
 			switch mainCalls {
+			case recoveryRound:
+				tools := arrayValue(payload["tools"])
+				wire := jsonString(payload["messages"])
+				if len(tools) != 1 || !r6PayloadHasTool(payload, conversationReplyCapabilityName) ||
+					!strings.Contains(wire, "reply_recovery") || !strings.Contains(wire, "把任务回执、后台和传输过程留在内部") {
+					t.Error("retry did not offer only the native reply tool with the actual media status")
+				}
+				return reply("retry-recovered", recovered)
 			case 1:
 				return reply("retry-prior", "拍好自拍再发给你。")
 			case 2:
@@ -48,15 +71,10 @@ func TestDirectReplyRetryUsesExistingMediaWithoutReplayingTurn(t *testing.T) {
 				plan["capture_method"], plan["viewpoint"], plan["framing"], plan["camera_angle"] = "handheld_selfie", "subject_facing", "full_body", "eye_level"
 				return invoke("retry-image", "media.image.generate", map[string]any{"intent": "拍一张当前自拍", "media_plan": plan})
 			case 4, 5:
-				return fakeProviderResult{Text: "模型输出文字但没有调用原生发布工具。"}
-			case 6:
-				tools := arrayValue(payload["tools"])
-				wire := jsonString(payload["messages"])
-				if len(tools) != 1 || !r6PayloadHasTool(payload, conversationReplyCapabilityName) ||
-					!strings.Contains(wire, "reply_recovery") || !strings.Contains(wire, "把任务回执、后台和传输过程留在内部") {
-					t.Error("retry did not offer only the native reply tool with the actual media status")
+				if providerFailure {
+					return fakeProviderResult{Status: http.StatusBadRequest}
 				}
-				return reply("retry-recovered", recovered)
+				return fakeProviderResult{Text: "模型输出文字但没有调用原生发布工具。"}
 			default:
 				t.Errorf("unexpected model round %d", mainCalls)
 				return fakeProviderResult{Status: 500}
@@ -81,8 +99,18 @@ func TestDirectReplyRetryUsesExistingMediaWithoutReplayingTurn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := app.ProcessCognitionInbox(ctx, accepted.InboxID); err == nil || !strings.Contains(err.Error(), "conversation_native_output_missing") {
-		t.Fatalf("expected an accepted media operation with no native reply, got %v", err)
+	_, failure := app.ProcessCognitionInbox(ctx, accepted.InboxID)
+	if providerFailure {
+		var code string
+		if err := repo.Pool().QueryRow(ctx, `SELECT error_code FROM public.cognition_inbox WHERE id=$1`, accepted.InboxID).Scan(&code); err != nil ||
+			failure == nil || code != "provider_request_failed" {
+			t.Fatalf("provider request failure did not survive settlement: failure=%v code=%s err=%v", failure, code, err)
+		}
+		if _, err := repo.Pool().Exec(ctx, `UPDATE public.cognition_inbox SET error_code='adk_run_failed' WHERE id=$1`, accepted.InboxID); err != nil {
+			t.Fatal(err)
+		}
+	} else if failure == nil || !strings.Contains(failure.Error(), "conversation_native_output_missing") {
+		t.Fatalf("expected an accepted media operation with no native reply, got %v", failure)
 	}
 	// The fixture invokes the activity directly. In production the dispatcher
 	// records this terminal state before making the retry available.
@@ -120,7 +148,7 @@ func TestDirectReplyRetryUsesExistingMediaWithoutReplayingTurn(t *testing.T) {
 		t.Fatalf("reply recovery did not finish the original turn: %#v, %v", page.Messages, err)
 	}
 	var intents int
-	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE conversation_id=$1`, conversation).Scan(&intents); err != nil || intents != 1 || mainCalls != 6 {
+	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE conversation_id=$1`, conversation).Scan(&intents); err != nil || intents != 1 || mainCalls != recoveryRound {
 		t.Fatalf("reply retry produced additional work: images=%d calls=%d err=%v", intents, mainCalls, err)
 	}
 }

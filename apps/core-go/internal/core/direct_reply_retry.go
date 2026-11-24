@@ -9,6 +9,11 @@ import (
 )
 
 const directReplyRetryKey = "direct_reply_retry_media_intent"
+const directReplyRetryFailureEvidenceSQL = `CASE WHEN i.status='failed' AND i.error_code IN ('adk_run_failed','agent_run_failed') THEN
+	COALESCE((SELECT e.payload->>'failure_code'
+		FROM public.diagnostic_events e WHERE e.causation_id=i.id AND e.fluctlight_id=i.fluctlight_id
+		  AND e.event_type='agent.run.termination'
+		ORDER BY e.created_at DESC,e.id DESC LIMIT 1),'') ELSE '' END`
 const directReplyRetryProtocol = `主人明确请求补发原回合的文字回复。图片任务已在原回合受理，reply_recovery 给出它现在的真实状态和是否已经送达。只用原生 conversation_reply 发布文字。` + directPhotoReplyStyle + `decision 填 action_type="reply"、简短的 response_intent、influences=[]。`
 
 type directReplyRetryContextKey struct{}
@@ -28,15 +33,19 @@ func directReplyRetryMediaID(payload map[string]any) string {
 	return stringValue(mapValue(payload["agent_partial"])[directReplyRetryKey])
 }
 
-func directReplyRetryFailure(code, workflowStatus string) bool {
+func directReplyRetryFailure(code, workflowStatus, underlyingFailure string) bool {
 	switch workflowStatus {
 	case "completed", "failed", "dead_letter", "cancelled":
 	default:
 		return false
 	}
 	switch code {
-	case "agent_partial_committed", "agent_final_contract_invalid", "direct_reply_arguments_unresolved", "direct_media_delivery_unresolved":
+	case "agent_partial_committed", "agent_final_contract_invalid", "direct_reply_arguments_unresolved", "direct_media_delivery_unresolved", "provider_request_failed":
 		return true
+	case "adk_run_failed", "agent_run_failed":
+		// Older Workers stored a generic inbox code. Use the actual internal
+		// termination diagnosis to recognize the original provider failure.
+		return underlyingFailure == "provider_request_failed"
 	}
 	return false
 }
@@ -85,11 +94,11 @@ func directReplyRetryImage(ctx context.Context, q lifeContextQuerier, registry *
 // preserves the user message, media job, operation identities and receipts.
 func (a *App) RetryDirectReply(ctx context.Context, actorID, conversationID, turnID string) error {
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var source, fluctlightID, status, code, workflowStatus string
+		var source, fluctlightID, status, code, workflowStatus, underlyingFailure string
 		var raw []byte
 		var hasReply, newerUser bool
 		err := tx.QueryRow(ctx, `
-			SELECT i.id,i.fluctlight_id,i.status,COALESCE(i.error_code,''),COALESCE(w.status,''),i.payload,
+			SELECT i.id,i.fluctlight_id,i.status,COALESCE(i.error_code,''),COALESCE(w.status,''),i.payload,`+directReplyRetryFailureEvidenceSQL+`,
 			       EXISTS(SELECT 1 FROM public.conversation_messages r WHERE r.conversation_id=$2 AND r.turn_id=$3 AND r.kind='assistant'),
 			       EXISTS(SELECT 1 FROM public.conversation_messages n WHERE n.conversation_id=$2 AND n.kind='user' AND n.sequence>m.sequence)
 			FROM public.conversation_messages m
@@ -99,7 +108,7 @@ func (a *App) RetryDirectReply(ctx context.Context, actorID, conversationID, tur
 			     AND d.owner_actor_id=$1 AND d.fluctlight_actor_id=i.fluctlight_id
 			JOIN public.conversation_participants p ON p.conversation_id=m.conversation_id AND p.actor_id=$1 AND p.status='active'
 			WHERE m.conversation_id=$2 AND m.turn_id=$3 AND m.kind='user' AND m.author_actor_id=$1
-			FOR UPDATE OF i,w`, actorID, conversationID, turnID).Scan(&source, &fluctlightID, &status, &code, &workflowStatus, &raw, &hasReply, &newerUser)
+			FOR UPDATE OF i,w`, actorID, conversationID, turnID).Scan(&source, &fluctlightID, &status, &code, &workflowStatus, &raw, &underlyingFailure, &hasReply, &newerUser)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
 		}
@@ -110,7 +119,7 @@ func (a *App) RetryDirectReply(ctx context.Context, actorID, conversationID, tur
 		if hasReply || directReplyRetryMediaID(payload) != "" && (status == "pending" || status == "claimed") {
 			return nil
 		}
-		if status != "failed" || newerUser || !directReplyRetryFailure(code, workflowStatus) || len(mapValue(payload["agent_result"])) != 0 {
+		if status != "failed" || newerUser || !directReplyRetryFailure(code, workflowStatus, underlyingFailure) || len(mapValue(payload["agent_result"])) != 0 {
 			return ErrConflict
 		}
 		config, _, err := a.conversationReplySettings(ctx)

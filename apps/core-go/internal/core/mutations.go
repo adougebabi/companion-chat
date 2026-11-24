@@ -843,7 +843,7 @@ func safeStreamTurnErrorCode(value string) string {
 		return code
 	case "reply_media_no_progress", "persona_preparation_failed", "persona_preparation_pending":
 		return code
-	case "provider_gateway_timeout", "reply_gateway_timeout", "reply_quality_repair_failed", "adk_final_message_missing", "adk_final_output_invalid", "adk_final_output_missing", "adk_final_text_missing",
+	case "provider_request_failed", "provider_gateway_timeout", "reply_gateway_timeout", "reply_quality_repair_failed", "adk_final_message_missing", "adk_final_output_invalid", "adk_final_output_missing", "adk_final_text_missing",
 		"adk_run_failed", "agent_run_failed", "agent_turn_failed", "agent_final_contract_invalid", "agent_output_publication_failed", "agent_cognition_settlement_failed", "capability_prepare_failed", "capability_settlement_failed",
 		"fluctlight_inactive", "fluctlight_paused",
 		"cognition_visible_text_missing", "conversation_not_found", "conversation_settlement_failed",

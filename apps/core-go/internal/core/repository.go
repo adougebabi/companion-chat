@@ -210,7 +210,7 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 			SELECT 1 FROM public.conversation_messages a
 			WHERE a.conversation_id=m.conversation_id AND a.kind='assistant' AND a.turn_id=m.turn_id
 		) ELSE false END,
-		COALESCE(i.id,''),COALESCE(i.fluctlight_id,''),
+		COALESCE(i.id,''),COALESCE(i.fluctlight_id,''),` + directReplyRetryFailureEvidenceSQL + `,
 		CASE WHEN m.kind='user' AND i.status='failed' THEN EXISTS(
 			SELECT 1 FROM public.conversation_messages n WHERE n.conversation_id=m.conversation_id AND n.kind='user' AND n.sequence>m.sequence
 		) ELSE false END
@@ -242,8 +242,8 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 		var attachmentJSON, partialJSON []byte
 		var inboxStatus, inboxError, workflowStatus string
 		var assistantExists, newerUser bool
-		var source, fluctlightID string
-		if err := messageRows.Scan(&item.ID, &item.ConversationID, &item.Sequence, &item.AuthorActorID, &item.Kind, &item.Text, &attachmentJSON, &item.CreatedAt, &item.SenderTimezone, &item.SenderUTCOffsetMinutes, &item.SenderSentAt, &item.TurnID, &item.IdempotencyKey, &inboxStatus, &inboxError, &workflowStatus, &partialJSON, &assistantExists, &source, &fluctlightID, &newerUser); err != nil {
+		var source, fluctlightID, underlyingFailure string
+		if err := messageRows.Scan(&item.ID, &item.ConversationID, &item.Sequence, &item.AuthorActorID, &item.Kind, &item.Text, &attachmentJSON, &item.CreatedAt, &item.SenderTimezone, &item.SenderUTCOffsetMinutes, &item.SenderSentAt, &item.TurnID, &item.IdempotencyKey, &inboxStatus, &inboxError, &workflowStatus, &partialJSON, &assistantExists, &source, &fluctlightID, &underlyingFailure, &newerUser); err != nil {
 			return ConversationPage{}, fmt.Errorf("scan Core message: %w", err)
 		}
 		if item.Kind == "user" && item.TurnID != "" {
@@ -271,7 +271,7 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 				item.TurnRetryable = false
 			}
 			if item.TurnStatus == "failed" && item.AuthorActorID == actorID && conversation.CreatedByActor == actorID &&
-				!newerUser && directReplyRetryFailure(inboxError, workflowStatus) && len(mapValue(decodeObject(partialJSON)["agent_result"])) == 0 {
+				!newerUser && directReplyRetryFailure(inboxError, workflowStatus, underlyingFailure) && len(mapValue(decodeObject(partialJSON)["agent_result"])) == 0 {
 				retryCandidate.index, retryCandidate.source, retryCandidate.fluctlightID = len(messages), source, fluctlightID
 			}
 		} else {
