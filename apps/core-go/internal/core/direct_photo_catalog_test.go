@@ -9,6 +9,7 @@ import (
 func TestDirectPhotoFollowupLoadsImageBeforeReply(t *testing.T) {
 	const queued = "已经提交拍摄任务，等有结果再发给你。"
 	mainCalls, discoveryCalls := 0, 0
+	checkedQueuedReply := false
 	router := newFakeProviderRouter().
 		on(directImageDiscoverySchema, func(payload map[string]any) fakeProviderResult {
 			discoveryCalls++
@@ -21,7 +22,25 @@ func TestDirectPhotoFollowupLoadsImageBeforeReply(t *testing.T) {
 			}
 			return fakeProviderResult{Structured: map[string]any{"needed_tool": neededTool}}
 		}).
-		on(directMediaDeliveryCheckSchema, func(map[string]any) fakeProviderResult {
+		on(directMediaDeliveryCheckSchema, func(payload map[string]any) fakeProviderResult {
+			checkerProtocol := false
+			for _, raw := range arrayValue(payload["messages"]) {
+				message := mapValue(raw)
+				content := stringValue(message["content"])
+				if message["role"] == "system" {
+					checkerProtocol = checkerProtocol || strings.Contains(content, "你执行媒体交付声明提取")
+					if strings.Contains(content, directImageDiscoveryNextRule) {
+						t.Error("nested delivery checker received the main loop's directory prompt")
+					}
+				}
+				packet := decodeObject([]byte(content))
+				if message["role"] == "user" && packet["candidate"] == queued {
+					_, checkedQueuedReply = packet["committed_deliveries"]
+				}
+			}
+			if !checkerProtocol {
+				t.Error("nested delivery checker did not receive its own protocol")
+			}
 			return fakeProviderResult{Structured: map[string]any{"claims": []any{}}}
 		}).
 		otherwise(func(payload map[string]any) fakeProviderResult {
@@ -108,6 +127,9 @@ func TestDirectPhotoFollowupLoadsImageBeforeReply(t *testing.T) {
 	}
 	followup := map[string]any{"fluctlight_id": fid, "text": "还没发哦", "idempotency_key": "photo-followup", "attachment_refs": []any{}}
 	result, err := app.HandleTurn(ctx, owner, conversation, followup)
+	if !checkedQueuedReply {
+		t.Error("delivery checker did not receive the actual queued reply candidate and evidence")
+	}
 	var intents int
 	queryErr := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE conversation_id=$1 AND owner_fluctlight_id=$2 AND kind='image'`, conversation, fid).Scan(&intents)
 	if err != nil || queryErr != nil || intents != 1 || stringValue(result.Assistant["text"]) != queued || mainCalls != 8 {

@@ -16,7 +16,9 @@ import (
 // committed, normal physical requests retain the selected Tool catalog and
 // cannot terminate through final JSON grammar. Media may accompany a reply but cannot
 // replace the private conversation message.
-type conversationPublicationPhysicalRequestPolicy struct{ directImageDiscovery bool }
+type conversationPublicationPhysicalRequestPolicy struct {
+	directImageDiscoveryPrompt []*schema.Message
+}
 
 func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(ctx context.Context) (physicalModelRequestDecision, error) {
 	if err := ctx.Err(); err != nil {
@@ -87,7 +89,7 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
 			AllowedToolNames: []string{capabilityCatalogName}}, nil
 	}
-	if p.directImageDiscovery {
+	if len(p.directImageDiscoveryPrompt) != 0 {
 		for _, result := range results {
 			if result.CapabilityName == "media.image.generate" && result.Status == "accepted" {
 				return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
@@ -98,7 +100,7 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 	if _, committed := committedMomentResult(adkContext.Trace); committed {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: append([]string{"moment.publish"}, repeatedDiscoveryExclusions(adkContext.Trace)...)}, nil
 	}
-	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: repeatedDiscoveryExclusions(adkContext.Trace), DisableThinking: p.directImageDiscovery && len(results) == 0}, nil
+	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: repeatedDiscoveryExclusions(adkContext.Trace), DisableThinking: len(p.directImageDiscoveryPrompt) != 0 && len(results) == 0}, nil
 }
 
 // Count physical model responses, not individual rejected Tool results. Any

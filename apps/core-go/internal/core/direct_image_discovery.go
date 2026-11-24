@@ -50,10 +50,16 @@ func (a *App) directImageDiscoveryNeeded(ctx context.Context, projection Context
 	return result.Completion.Structured["needed_tool"] == "media.image.generate"
 }
 
-type directImageDiscoveryPromptKey struct{}
+// The prompt belongs to the main loop's physical policy. An isolated model
+// call clears that policy, so a fresh child trace cannot use this prompt.
+func directImageDiscoveryFocus(ctx context.Context) []*schema.Message {
+	policy, _ := physicalModelRequestPolicyFromContext(ctx)
+	publication, _ := policy.(conversationPublicationPhysicalRequestPolicy)
+	return publication.directImageDiscoveryPrompt
+}
 
 func directImageDiscoveryPhaseInput(ctx context.Context, input []*schema.Message) []*schema.Message {
-	focus, _ := ctx.Value(directImageDiscoveryPromptKey{}).([]*schema.Message)
+	focus := directImageDiscoveryFocus(ctx)
 	bridge, ok := adkCapabilityContext(ctx)
 	if len(focus) == 0 || !ok || bridge.Trace == nil {
 		return input
@@ -93,8 +99,7 @@ func directImageDiscoveryPrompt(projection ContextProjection, currentInput strin
 // This follows the model's discovery decision and the native directory
 // receipt. It does not inspect message text or commit an image action.
 func directImageCatalogPending(ctx context.Context, results []CapabilityResult) bool {
-	focus, _ := ctx.Value(directImageDiscoveryPromptKey{}).([]*schema.Message)
-	if len(focus) == 0 {
+	if len(directImageDiscoveryFocus(ctx)) == 0 {
 		return false
 	}
 	for _, result := range results {
