@@ -855,6 +855,29 @@ func TestMediaNormalizedPromptUsesProviderSchema(t *testing.T) {
 	}
 }
 
+func TestMediaNormalizedPromptSchemaLimitsReferenceIDs(t *testing.T) {
+	for _, test := range []struct {
+		name, assetID   string
+		allowed, denied []any
+	}{
+		{"without reference", "", []any{}, []any{"self"}},
+		{"with reference", "asset-authorized", []any{"asset-authorized"}, []any{"asset-unrelated"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			schema := mediaNormalizationSchemaForReference(test.assetID)
+			format := providerResponseFormatForSchema("media_prompt", "media_prompt_normalized", schema)
+			wire := mapValue(mapValue(format["json_schema"])["schema"])
+			refs := mapValue(mapValue(wire["properties"])["used_reference_ids"])
+			if err := validateCapabilitySchemaValue(test.allowed, refs); err != nil {
+				t.Fatalf("allowed references rejected: %v", err)
+			}
+			if err := validateCapabilitySchemaValue(test.denied, refs); err == nil {
+				t.Fatal("unauthorized reference still matched the wire schema")
+			}
+		})
+	}
+}
+
 func TestMediaBranchExplicitCountAndStrictNormalizerShape(t *testing.T) {
 	concept := mediaPreparedConcept(t, "无人街景", mediaTestPlan("landscape", "none", "no", "unknown"), CapabilityContext{})
 	concept["human_count"] = 0

@@ -24,6 +24,7 @@ test('disabled diagnostic summary is safe for structured and legacy message-only
  assert.equal(errorMessage({message:raw,status:403}),'诊断读取未开启，需要管理员在服务端开启后再查看。');
  assert.equal(errorMessage({status:403,message:'forbidden'}),'当前账户没有执行此操作的权限。');
  assert.match(errorMessage({message:'media_workflow_unclassified_lora_forbidden'}),/LoRA.*尚未提交渲染/);
+ assert.match(errorMessage({message:'media_prompt_reference_forbidden'}),/参考图引用.*尚未提交渲染/);
 });
 test('three confirmed pending tasks count despite two debug source failures, with one error and download-only raw details',async()=>{
  const v=await mount();try{

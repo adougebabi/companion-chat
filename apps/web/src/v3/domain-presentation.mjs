@@ -76,6 +76,7 @@ function presentError(error,fallback,reading) {
   return model+reason+'。请核对模型用途和服务连接，原资料与已完成步骤会保留。';
  }
  if(/media_subject_not_authorized/.test(source))return '图片中的人物范围未通过校验，生成尚未开始。请核对原任务中的人物引用后恢复。';
+ if(/media_prompt_reference_forbidden/.test(source))return '模型给出的参考图引用不适用于本次任务，尚未提交渲染。';
  if(/media_workflow_unclassified_lora_forbidden/.test(source))return '工作流中有 LoRA 未分类或不适用于本次图片，尚未提交渲染。请核对启用的槽位和分类。';
  if(/memory_embedding_unconfigured/.test(source))return '记忆正文已保存；尚未配置记忆检索向量模型，向量索引未完成。请到模型用途配置后恢复原任务。';
  if(/structured_response_truncated/.test(source))return '模型以长度终止状态结束了本次处理，完整结果尚未确认，请查看原任务后重试。';
