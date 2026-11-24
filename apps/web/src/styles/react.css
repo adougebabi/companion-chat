@@ -16,7 +16,8 @@
 @import "./replica-studio.css";
 @import "./replica-creation.css";
 @import "./replica-management.css";
-/* Shared overlay geometry and responsive form patterns: must stay last. */
+/* Business UI patterns, then shared overlay geometry: must stay last. */
+@import "./patterns.css";
 @import "./overlay.css";
 
 @theme inline {
@@ -126,10 +127,7 @@ body {
   border: 0;
   box-shadow: none;
 }
-.product-sheet {
-  width: min(540px, calc(100vw - 16px));
-  max-width: none;
-}
+/* Sheet geometry: ResponsiveSheet only (styles/overlay.css). */
 .schedule-settings-sheet [data-section="today"] > [data-schedule-suggestions] {
   margin-bottom: 20px;
 }
@@ -173,13 +171,11 @@ body {
 
 }
 
-.react-workspace.product-dialog,
-.react-workspace.product-sheet {
+.react-workspace.product-dialog {
   min-height: 0;
 }
 .react-workspace[data-slot="dialog-content"],
-.react-workspace[data-slot="alert-dialog-content"],
-.react-workspace[data-slot="sheet-content"] {
+.react-workspace[data-slot="alert-dialog-content"] {
   min-height: 0;
 }
 .product-sheet .drawer-form {

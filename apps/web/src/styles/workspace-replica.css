@@ -389,7 +389,7 @@
 .replica-overlay :is(button,a,input,textarea,[role="combobox"]):focus-visible{outline:2px solid #96ad80;outline-offset:3px}
 .replica-overlay[data-slot="dialog-content"]{width:calc(100vw - 34px);max-width:590px;max-height:89dvh;padding:26px;overflow-y:auto;border-radius:15px;border-color:#dfe6da;box-shadow:0 25px 100px #1c33292b}
 /* Wide sheets: ResponsiveSheet size="wide" owns the width (styles/overlay.css). */
-@media(max-width:700px){.replica-overlay[data-slot="dialog-content"]{max-height:92dvh;padding:22px}.replica-overlay[data-slot="sheet-content"]{padding:22px}}
+@media(max-width:700px){.replica-overlay[data-slot="dialog-content"]{max-height:92dvh;padding:22px}}
 
 /* Explicit business feedback, audited independently from command variants. */
 :where(.replica-workspace,.replica-dialog,.replica-overlay) .replica-feedback { padding:12px 14px;border:1px solid #e2e7de;border-radius:9px;background:#fff;color:#556450;font-size:12px;line-height:1.65;gap:8px;box-shadow:none; }

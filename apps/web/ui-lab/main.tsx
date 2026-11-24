@@ -10,7 +10,9 @@ import DomainPage from '@/react-app/pages/DomainPage';
 import OverlayHost from '@/react-app/shared/OverlayHost';
 import * as store from '@/v3/proto/store.js';
 import { renderRealSchedule } from '@/v3-domain/life-schedule.js';
-import { installScheduleFixture, events } from './fixtures/schedule-settings';
+import { installScheduleFixture } from './fixtures/schedule-settings';
+import { events } from './fixtures/events';
+import { Gallery } from './fixtures/gallery';
 
 const params = new URLSearchParams(location.search);
 const fixture = params.get('fixture') || 'schedule-settings';
@@ -41,7 +43,17 @@ function ScheduleSettingsFixture() {
   );
 }
 
-const fixtures: Record<string, ComponentType> = { 'schedule-settings': ScheduleSettingsFixture };
+function GalleryFixture() {
+  return (
+    <div className="react-workspace replica-workspace">
+      <main className="workspace-page replica-page" data-ui-lab-page>
+        <Gallery component={params.get('component')} state={params.get('state')} />
+      </main>
+    </div>
+  );
+}
+
+const fixtures: Record<string, ComponentType> = { 'schedule-settings': ScheduleSettingsFixture, gallery: GalleryFixture };
 if (fixture === 'schedule-settings') installScheduleFixture(variant);
 const Fixture = fixtures[fixture];
 const host = document.getElementById('app')!;

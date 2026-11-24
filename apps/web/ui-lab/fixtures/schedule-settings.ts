@@ -21,8 +21,8 @@ function items(day: string, variant: Variant) {
   ];
 }
 
-export type FixtureEvent = { action: string; args: unknown[] };
-export const events: FixtureEvent[] = [];
+import { events } from './events';
+export { events };
 const record = (action: string, args: unknown[]) => { events.push({ action, args: JSON.parse(JSON.stringify(args ?? null)) }); };
 
 export function installScheduleFixture(variant: Variant) {

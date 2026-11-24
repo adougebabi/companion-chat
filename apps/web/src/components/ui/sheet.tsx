@@ -48,11 +48,13 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  closeButtonProps,
   portalContainer,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left";
   showCloseButton?: boolean;
+  closeButtonProps?: React.ComponentProps<typeof Button>;
   portalContainer?: React.ComponentProps<typeof SheetPrimitive.Portal>["container"];
 }) {
   return (
@@ -74,6 +76,8 @@ function SheetContent({
               variant="ghost"
               className="absolute top-3 right-3"
               size="icon"
+              aria-label="关闭"
+              {...closeButtonProps}
             >
               <XIcon />
               <span className="sr-only">关闭</span>

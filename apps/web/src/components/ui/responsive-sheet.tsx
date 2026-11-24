@@ -34,6 +34,8 @@ export type ResponsiveSheetProps = {
   description?: React.ReactNode;
   /** Keep the description for assistive technology only. */
   hideDescription?: boolean;
+  /** Keep title + description for assistive technology only (content renders its own heading). */
+  hideHeader?: boolean;
   footer?: React.ReactNode;
   size?: ResponsiveSheetSize;
   portalContainer?: React.ComponentProps<typeof SheetContent>["portalContainer"];
@@ -41,6 +43,11 @@ export type ResponsiveSheetProps = {
   bodyClassName?: string;
   bodyRef?: React.Ref<HTMLDivElement>;
   children?: React.ReactNode;
+  /** While busy the sheet cannot be dismissed (Escape, outside, close). */
+  busy?: boolean;
+  showCloseButton?: boolean;
+  closeTestId?: string;
+  "data-testid"?: string;
 } & Pick<
   React.ComponentProps<typeof SheetContent>,
   "onCloseAutoFocus" | "onOpenAutoFocus" | "onEscapeKeyDown" | "onInteractOutside"
@@ -53,6 +60,7 @@ export function ResponsiveSheet({
   title,
   description,
   hideDescription = false,
+  hideHeader = false,
   footer,
   size = "default",
   portalContainer,
@@ -60,6 +68,11 @@ export function ResponsiveSheet({
   bodyClassName,
   bodyRef,
   children,
+  busy = false,
+  showCloseButton = true,
+  closeTestId,
+  onEscapeKeyDown,
+  onInteractOutside,
   ...contentProps
 }: ResponsiveSheetProps) {
   return (
@@ -70,10 +83,15 @@ export function ResponsiveSheet({
         portalContainer={portalContainer}
         data-responsive-sheet=""
         data-size={size}
+        aria-busy={busy || undefined}
         className={cn("responsive-sheet", className)}
+        showCloseButton={showCloseButton && !busy}
+        closeButtonProps={closeTestId ? ({ "data-testid": closeTestId } as React.ComponentProps<"button">) : undefined}
+        onEscapeKeyDown={(event) => { if (busy) event.preventDefault(); onEscapeKeyDown?.(event); }}
+        onInteractOutside={(event) => { if (busy) event.preventDefault(); onInteractOutside?.(event); }}
         {...contentProps}
       >
-        <SheetHeader data-responsive-sheet-part="header">
+        <SheetHeader data-responsive-sheet-part="header" className={hideHeader ? "sr-only" : undefined}>
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription className={hideDescription ? "sr-only" : undefined}>
             {description ?? "查看资料并完成当前操作。"}

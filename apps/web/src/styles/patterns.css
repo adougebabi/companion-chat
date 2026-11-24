@@ -1,0 +1,159 @@
+/*
+ * Fluctlight business UI patterns (src/components/patterns). Uses only the
+ * tokens in react.css / overlay.css. Imported by react.css right before
+ * overlay.css. Pages compose these components instead of restating layout.
+ */
+
+/* ---------------------------------------------------------------- Page -- */
+.ui-page {
+  display: grid;
+  gap: var(--form-section-gap);
+  width: 100%;
+  min-width: 0;
+  max-width: 960px;
+  margin-inline: auto;
+}
+.ui-page[data-width="wide"] { max-width: 1360px; }
+.ui-page[data-width="full"] { max-width: none; }
+.ui-page__content {
+  display: grid;
+  gap: var(--form-section-gap);
+  min-width: 0;
+}
+.ui-page-section {
+  display: grid;
+  gap: var(--form-gap);
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+.ui-page-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--form-gap);
+  min-width: 0;
+}
+.ui-page-section__title { min-width: 0; flex: 1 1 240px; }
+.ui-page-section__title h2 { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.ui-page-section__title p { margin: 2px 0 0; font-size: 12px; color: var(--muted-foreground); overflow-wrap: anywhere; }
+@media (width < 640px) {
+  .ui-page-section { padding: 16px; }
+}
+
+/* ---------------------------------------------------------------- Form -- */
+.ui-form-section {
+  display: grid;
+  gap: var(--form-gap);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.ui-form-section + .ui-form-section {
+  padding-top: var(--form-section-gap);
+  /* Not border-top: a fieldset's rendered legend sits on (and cuts) its top border. */
+  box-shadow: inset 0 1px 0 var(--border);
+}
+.ui-form-section__title {
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.ui-form-section__description { margin: 0; font-size: 12px; line-height: 1.7; color: var(--muted-foreground); }
+.ui-form-section__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--form-gap);
+  min-width: 0;
+}
+@media (width >= 768px) {
+  .ui-form-section[data-columns="2"] > .ui-form-section__fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ui-form-section[data-columns="2"] .ui-form-field[data-wide] { grid-column: 1 / -1; }
+}
+.ui-form-field { display: grid; gap: 6px; min-width: 0; }
+.ui-form-field > :is(input, select, textarea, button, [data-slot]) { width: 100%; min-width: 0; }
+.ui-form-field__label { font-size: 13px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+.ui-form-field__required { color: var(--destructive); }
+.ui-form-field__inline { display: flex; align-items: center; gap: 10px; min-height: var(--control-height); cursor: pointer; }
+.ui-form-field__inline > :first-child { flex: none; }
+.ui-form-field[data-inline] { gap: 0; }
+.ui-form-section__fields:has(> .ui-form-field[data-inline]) { row-gap: 4px; }
+.ui-form-field__hint { margin: 0; font-size: 12px; line-height: 1.6; color: var(--muted-foreground); overflow-wrap: anywhere; }
+.ui-form-field__error { margin: 0; font-size: 12px; line-height: 1.6; color: var(--destructive); overflow-wrap: anywhere; }
+.ui-form-field[data-invalid] :is(input, select, textarea, [data-slot="select-trigger"]) { border-color: var(--destructive); }
+.ui-edit-form__fields { margin: 0; padding: 0; border: 0; min-width: 0; }
+.ui-edit-form__fields:disabled { opacity: 0.7; }
+
+.ui-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--form-gap);
+  min-width: 0;
+  padding-top: var(--form-gap);
+  border-top: 1px solid var(--border);
+}
+.ui-form-actions__status { flex: 1 1 200px; min-width: 0; font-size: 12px; color: var(--muted-foreground); overflow-wrap: anywhere; }
+.ui-form-actions[data-sticky] { position: sticky; bottom: 0; z-index: 2; padding-bottom: var(--form-gap); background: var(--background); }
+@media (width < 640px) {
+  .ui-form-actions > .ui-actions { flex: 1 1 100%; }
+  .ui-form-actions > .ui-actions > * { flex: 1 1 0%; }
+  .ui-form-actions :is(button, a)[data-variant] { width: 100%; min-height: var(--control-height); }
+}
+
+/* --------------------------------------------------------- Records ----- */
+.ui-record-list { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 0; list-style: none; }
+.ui-record-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--form-gap);
+  min-width: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+.ui-record-item__main { flex: 1 1 240px; display: grid; gap: 4px; min-width: 0; }
+.ui-record-item__heading { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
+.ui-record-item__title { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.ui-record-item__meta { font-size: 12px; color: var(--muted-foreground); overflow-wrap: anywhere; }
+.ui-record-item__actions { flex: none; max-width: 100%; }
+@media (width < 640px) {
+  .ui-record-item__actions { flex: 1 1 100%; }
+  .ui-record-item__actions :is(button, a)[data-variant] { min-height: var(--control-height); }
+}
+
+.ui-detail-fields { display: grid; gap: 0; min-width: 0; margin: 0; }
+.ui-detail-fields__row {
+  display: grid;
+  grid-template-columns: minmax(96px, 160px) minmax(0, 1fr);
+  gap: 4px var(--form-gap);
+  padding-block: 10px;
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+.ui-detail-fields__row:last-child { border-bottom: 0; }
+.ui-detail-fields dt { font-size: 12px; font-weight: 500; color: var(--muted-foreground); overflow-wrap: anywhere; }
+.ui-detail-fields dd { margin: 0; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+@media (width < 640px) {
+  .ui-detail-fields__row { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ------------------------------------------------------ Touch targets -- */
+/* Phones: every text button/link inside a shared pattern (and the shared
+   Feedback actions) is at least --control-height tall. Legacy pages adopt
+   this by moving onto the patterns, not by a global override. */
+@media (width < 640px) {
+  :is(.ui-page, .ui-actions, .ui-stack, .ui-record-item, .ui-form-actions, .replica-feedback) :is(button, a)[data-variant]:not([data-size^="icon"]):not([data-day]),
+  .ui-form-field :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, [data-slot="select-trigger"], [role="combobox"]) {
+    min-height: var(--control-height);
+  }
+}

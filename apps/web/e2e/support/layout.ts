@@ -23,7 +23,8 @@ export async function findLayoutDefects(
   const handle = await container.elementHandle();
   if (!handle) return [{ kind: 'missing-container', target: String(container), detail: 'container not found' }];
   // Measure settled geometry only: wait for enter/exit animations to finish.
-  await page.waitForFunction(el => (el as Element).getAnimations({ subtree: true }).every(a => a.playState !== 'running'), handle, { timeout: 5000 });
+  // Infinite animations (skeleton pulse, spinners) never finish; ignore them.
+  await page.waitForFunction(el => (el as Element).getAnimations({ subtree: true }).every(a => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity), handle, { timeout: 5000 });
   return handle.evaluate((root: Element, minTarget: number) => {
     const defects: { kind: string; target: string; detail: string }[] = [];
     const vw = document.documentElement.clientWidth, vh = window.innerHeight;
@@ -35,7 +36,9 @@ export async function findLayoutDefects(
     if (document.documentElement.scrollWidth > vw + 1)
       defects.push({ kind: 'page-overflow', target: 'document', detail: `scrollWidth ${document.documentElement.scrollWidth} > viewport ${vw}` });
     const box = root.getBoundingClientRect();
-    if (box.left < -1 || box.right > vw + 1 || box.top < -1 || box.bottom > vh + 1)
+    // Vertical extent matters only for fixed overlays; page regions may scroll.
+    const fixed = getComputedStyle(root).position === 'fixed';
+    if (box.left < -1 || box.right > vw + 1 || (fixed && (box.top < -1 || box.bottom > vh + 1)))
       defects.push({ kind: 'container-outside-viewport', target: name(root), detail: `box ${r(box.left)},${r(box.top)}–${r(box.right)},${r(box.bottom)} viewport ${vw}x${vh}` });
     const visible = (el: Element) => {
       const style = getComputedStyle(el);
@@ -67,14 +70,33 @@ export async function findLayoutDefects(
       // fit inside the control's own box: catches text spilling out of a
       // fixed-height button and overlapping its neighbours.
       if (!['INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName) && getComputedStyle(el).overflow === 'visible') {
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        const rects = [...range.getClientRects()].filter(q => q.width > 0 && q.height > 0);
+        // Visually hidden text (sr-only: 1px clipped box) is not rendered content.
+        const rects: DOMRect[] = [];
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          const parent = node.parentElement!;
+          const pr = parent.getBoundingClientRect();
+          const ps = getComputedStyle(parent);
+          if ((pr.width <= 1 || pr.height <= 1) && ps.position === 'absolute') continue;
+          if (ps.clipPath !== 'none' || (ps.clip && ps.clip !== 'auto')) continue;
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          rects.push(...[...range.getClientRects()].filter(q => q.width > 0 && q.height > 0));
+        }
+        for (const child of el.querySelectorAll('*')) {
+          const cs = getComputedStyle(child);
+          if (cs.display === 'none' || cs.position === 'absolute' || cs.position === 'fixed') continue;
+          const cr = child.getBoundingClientRect();
+          if (cr.width > 0 && cr.height > 0 && child.children.length === 0 && !child.textContent?.trim()) rects.push(cr);
+        }
         const spill = rects.find(q => q.left < rect.left - 2 || q.right > rect.right + 2 || q.top < rect.top - 2 || q.bottom > rect.bottom + 2);
         if (spill)
           defects.push({ kind: 'content-overflow', target: name(el), detail: `content ${r(spill.left)},${r(spill.top)}–${r(spill.right)},${r(spill.bottom)} box ${r(rect.left)},${r(rect.top)}–${r(rect.right)},${r(rect.bottom)}` });
       }
-      if (minTarget && rect.height < minTarget - 0.5 && !el.matches('a:not([data-slot=button])'))
+      // A control wrapped by its <label> is hit through the whole label row.
+      const label = el.closest('label');
+      const hitHeight = Math.max(rect.height, label ? label.getBoundingClientRect().height : 0);
+      if (minTarget && hitHeight < minTarget - 0.5 && !el.matches('a:not([data-slot=button])'))
         defects.push({ kind: 'touch-target', target: name(el), detail: `height ${r(rect.height)} < ${minTarget}` });
     }
     return defects;

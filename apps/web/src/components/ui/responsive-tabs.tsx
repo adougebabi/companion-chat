@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { TabsList } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 /**
  * ResponsiveTabsList — a single-row tab list that never wraps or clips tabs out
@@ -50,5 +50,55 @@ export function ResponsiveTabsList({
       )}
       {...props}
     />
+  );
+}
+
+export type ResponsiveTabItem = {
+  value: string;
+  label: React.ReactNode;
+  disabled?: boolean;
+  content: React.ReactNode;
+};
+
+/** ResponsiveTabs — tabs + panels for native React pages. */
+export function ResponsiveTabs({
+  label,
+  items,
+  value,
+  defaultValue,
+  onValueChange,
+  className,
+}: {
+  label: string;
+  items: ResponsiveTabItem[];
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
+  className?: string;
+}) {
+  const [internal, setInternal] = React.useState(defaultValue ?? items[0]?.value ?? "");
+  const current = value ?? internal;
+  return (
+    <Tabs
+      value={current}
+      onValueChange={(next) => {
+        if (value === undefined) setInternal(next);
+        onValueChange?.(next);
+      }}
+      className={cn("min-w-0 w-full", className)}
+    >
+      <ResponsiveTabsList value={current} aria-label={label}>
+        {items.map((item) => (
+          <TabsTrigger key={item.value} value={item.value} disabled={item.disabled} className="shrink-0 flex-none whitespace-nowrap">
+            {item.label}
+          </TabsTrigger>
+        ))}
+      </ResponsiveTabsList>
+      {items.map((item) => (
+        <TabsContent key={item.value} value={item.value} className="min-w-0">
+          {item.content}
+        </TabsContent>
+      ))}
+    </Tabs>
   );
 }
