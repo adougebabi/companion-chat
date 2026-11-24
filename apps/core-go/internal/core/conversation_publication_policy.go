@@ -255,13 +255,29 @@ func conversationPublicationProposal(ctx context.Context) bool {
 	return ok && !conversationHasAuthoritativeOutput(bridge.Trace)
 }
 
-func conversationPublicationOmission(message *schema.Message) bool {
-	if message == nil || len(message.ToolCalls) != 0 || strings.TrimSpace(message.Content) == "" {
+func conversationPublicationOmission(ctx context.Context, message *schema.Message) bool {
+	if message == nil || len(message.ToolCalls) != 0 {
 		return false
 	}
 	finish := ""
 	if message.ResponseMeta != nil {
 		finish = strings.TrimSpace(message.ResponseMeta.FinishReason)
+	}
+	if strings.TrimSpace(message.Content) == "" {
+		// An explicit stop after an accepted Direct image left the reply
+		// unpublished. Reuse the existing reply-only correction once.
+		run := replyRunFromContext(ctx)
+		bridge, ok := adkCapabilityContext(ctx)
+		if finish != "stop" || run == nil || run.Settings.Mode != "direct" || !ok || bridge.Trace == nil {
+			return false
+		}
+		_, results := bridge.Trace.Snapshot()
+		for _, result := range results {
+			if result.CapabilityName == "media.image.generate" && result.Status == "accepted" {
+				return true
+			}
+		}
+		return false
 	}
 	return finish == "" || finish == "stop" || finish == "unknown"
 }

@@ -228,7 +228,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		if correctionErr := validateConversationPublicationCorrection(ctx, result); correctionErr != nil {
 			return nil, correctionErr
 		}
-		if conversationPublicationOmission(result) && m.publicationCorrectionUsed != nil && m.publicationCorrectionUsed.CompareAndSwap(false, true) {
+		if conversationPublicationOmission(ctx, result) && m.publicationCorrectionUsed != nil && m.publicationCorrectionUsed.CompareAndSwap(false, true) {
 			correctionCtx := context.WithValue(ctx, conversationPublicationCorrectionKey{}, true)
 			corrected := conversationPublicationCorrectionInput(originalInput)
 			correctionCtx = withContinuationPromptSlots(correctionCtx, PromptSlotTrace{SlotID: "publication_correction_feedback", Position: PromptSlotCurrentInput, MessageIndex: len(corrected) - 1, Source: "core_publication_check", Reason: "missing_publication_correction"})
@@ -388,7 +388,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 			if err := validateConversationPublicationCorrection(ctx, candidate); err != nil {
 				return nil, err
 			}
-			if conversationPublicationOmission(candidate) && m.publicationCorrectionUsed != nil && m.publicationCorrectionUsed.CompareAndSwap(false, true) {
+			if conversationPublicationOmission(ctx, candidate) && m.publicationCorrectionUsed != nil && m.publicationCorrectionUsed.CompareAndSwap(false, true) {
 				correctionCtx := context.WithValue(ctx, conversationPublicationCorrectionKey{}, true)
 				corrected := conversationPublicationCorrectionInput(originalInput)
 				correctionCtx = withContinuationPromptSlots(correctionCtx, PromptSlotTrace{SlotID: "publication_correction_feedback", Position: PromptSlotCurrentInput, MessageIndex: len(corrected) - 1, Source: "core_publication_check", Reason: "missing_publication_correction"})

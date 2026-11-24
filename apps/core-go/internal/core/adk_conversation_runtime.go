@@ -278,6 +278,11 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		return rejectArguments(errors.New("invalid_arguments: call the request-bound wardrobe tool with an empty object"))
 	}
 	normalizedArguments, normalizeErr := normalizeNativeModelArguments(arguments, modelDefinition)
+	if _, direct := capability.(directMainReplyCapability); direct && normalizeErr != nil && directMainInvalidReplyAttempts(i.trace) >= 2 {
+		if repaired, changed := recoverDirectReplyOptionalFields(arguments, modelDefinition.InputSchema); changed {
+			normalizedArguments, normalizeErr = normalizeNativeModelArguments(repaired, modelDefinition)
+		}
+	}
 	if normalizeErr != nil {
 		return rejectArguments(normalizeErr)
 	}

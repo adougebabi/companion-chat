@@ -175,12 +175,31 @@ func TestConversationPublicationCorrectionEligibility(t *testing.T) {
 		{"", "reasoning", "stop", false}, {"", "reasoning", "length", false},
 	} {
 		message := &schema.Message{Content: test.content, ReasoningContent: test.reasoning, ResponseMeta: &schema.ResponseMeta{FinishReason: test.finish}}
-		if got := conversationPublicationOmission(message); got != test.want {
+		if got := conversationPublicationOmission(context.Background(), message); got != test.want {
 			t.Errorf("%#v eligible=%v", test, got)
 		}
 	}
-	if conversationPublicationOmission(&schema.Message{Content: "draft", ToolCalls: []schema.ToolCall{{ID: "real-call"}}}) {
+	if conversationPublicationOmission(context.Background(), &schema.Message{Content: "draft", ToolCalls: []schema.ToolCall{{ID: "real-call"}}}) {
 		t.Fatal("real native call became correction")
+	}
+}
+
+func TestDirectAcceptedImageCorrectsEmptyStop(t *testing.T) {
+	run := &privateReplyRun{}
+	run.Settings.Mode = "direct"
+	trace := &ADKCapabilityTrace{}
+	ctx := withADKCapabilityContext(context.WithValue(context.Background(), privateReplyRunKey{}, run), &appADKCapabilityInvoker{}, trace, nil)
+	message := &schema.Message{ResponseMeta: &schema.ResponseMeta{FinishReason: "stop"}}
+	if conversationPublicationOmission(ctx, message) {
+		t.Fatal("empty response qualified before the image receipt")
+	}
+	trace.AppendResult(CapabilityResult{CapabilityName: "media.image.generate", Status: "accepted"})
+	if !conversationPublicationOmission(ctx, message) {
+		t.Fatal("empty stop did not qualify after image acceptance")
+	}
+	message.ResponseMeta.FinishReason = "length"
+	if conversationPublicationOmission(ctx, message) {
+		t.Fatal("execution length was masked as an empty stop")
 	}
 }
 

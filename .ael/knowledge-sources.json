@@ -214,7 +214,7 @@
     },
     {
       "path": "docs/llm-prompt-composition.md",
-      "hash": "8e79e66db660a1c9c07fe6b9ddfd174de4da90720c53e5434afcfd6e5f926911",
+      "hash": "9179236735b97817d79a29363c5d4a1cb8cbe9ee54e92bc593e640407f7a1cc7",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -228,14 +228,14 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-prompt-composition.md",
-        "hash": "8e79e66db660a1c9c07fe6b9ddfd174de4da90720c53e5434afcfd6e5f926911",
+        "hash": "9179236735b97817d79a29363c5d4a1cb8cbe9ee54e92bc593e640407f7a1cc7",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
     },
     {
       "path": "docs/llm-task-input-contracts.md",
-      "hash": "5292c1e8f7f62e94672748e256a294b6d67b4287256a622bfc8321b9cb94568f",
+      "hash": "7c1c2a1833be6bb3eb178d18857214d4f603e7dc7c5aee38f102392866a1df58",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -249,7 +249,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-task-input-contracts.md",
-        "hash": "5292c1e8f7f62e94672748e256a294b6d67b4287256a622bfc8321b9cb94568f",
+        "hash": "7c1c2a1833be6bb3eb178d18857214d4f603e7dc7c5aee38f102392866a1df58",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }

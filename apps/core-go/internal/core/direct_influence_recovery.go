@@ -7,7 +7,34 @@ import (
 	"strings"
 
 	"github.com/cloudwego/eino/schema"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
+
+// Leave required reply data and fields used for claims, evidence, preference
+// changes and goals on the normal validation path. These optional annotations
+// can be omitted independently when the model has not corrected their shape.
+func recoverDirectReplyOptionalFields(raw json.RawMessage, replySchema map[string]any) (json.RawMessage, bool) {
+	args := decodeObject(raw)
+	decision := mapValue(args["decision"])
+	properties := mapValue(mapValue(mapValue(replySchema["properties"])["decision"])["properties"])
+	changed := false
+	for _, field := range []string{"internal_intent", "core_alignment", "state_expression", "self_evaluation"} {
+		value, present := decision[field]
+		fieldSchema := mapValue(properties[field])
+		if !present || len(fieldSchema) == 0 {
+			continue
+		}
+		wrapper := objectSchema(map[string]any{field: fieldSchema}, nil, false)
+		if _, err := capabilitycontract.NormalizeModelArguments(jsonBytes(map[string]any{field: value}), wrapper); err != nil {
+			delete(decision, field)
+			changed = true
+		}
+	}
+	if !changed {
+		return raw, false
+	}
+	return jsonBytes(args), true
+}
 
 type directInfluenceRefError struct {
 	position  int

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -57,11 +58,29 @@ func TestDirectPhotoFollowupLoadsImageBeforeReply(t *testing.T) {
 				plan["capture_method"], plan["viewpoint"], plan["framing"], plan["camera_angle"] = "handheld_selfie", "subject_facing", "full_body", "eye_level"
 				return invoke("photo-execute", "media.image.generate", map[string]any{"intent": "拍一张当前自拍", "media_plan": plan})
 			case 5:
-				if !strings.Contains(nativePersonaToolMessages(payload), "accepted") {
+				return fakeProviderResult{}
+			case 6, 7, 8:
+				receipts := nativePersonaToolMessages(payload)
+				if !strings.Contains(receipts, "accepted") {
 					t.Error("model did not receive an actual accepted image intent receipt")
 				}
-				return reply("photo-truthful-reply", queued)
-			case 6:
+				if mainCalls == 6 && (!strings.Contains(jsonString(payload["messages"]), "private_reply_not_published") ||
+					len(arrayValue(payload["tools"])) != 1 || !r6PayloadHasTool(payload, conversationReplyCapabilityName)) {
+					t.Error("empty stop did not lead to a reply-only correction")
+				}
+				if mainCalls > 6 && !strings.Contains(receipts, "internal_intent") && !strings.Contains(receipts, "state_expression") {
+					t.Error("model did not receive specific feedback about the optional field")
+				}
+				return invoke(fmt.Sprintf("photo-truthful-reply-%d", mainCalls), conversationReplyCapabilityName, map[string]any{
+					"text": queued,
+					"decision": map[string]any{
+						"action_type": "reply", "response_intent": "确认任务已提交", "influences": []any{},
+						"internal_intent":  strings.Repeat("等待", 121),
+						"state_expression": []any{"无效结构"},
+						"core_alignment":   map[string]any{"aligned": true, "note": "保留"},
+					},
+				})
+			case 9:
 				if len(arrayValue(payload["tools"])) != 3 || r6PayloadHasTool(payload, "media.image.generate") {
 					t.Error("the optional image tool leaked into an ordinary reply")
 				}
@@ -91,15 +110,24 @@ func TestDirectPhotoFollowupLoadsImageBeforeReply(t *testing.T) {
 	result, err := app.HandleTurn(ctx, owner, conversation, followup)
 	var intents int
 	queryErr := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE conversation_id=$1 AND owner_fluctlight_id=$2 AND kind='image'`, conversation, fid).Scan(&intents)
-	if err != nil || queryErr != nil || intents != 1 || stringValue(result.Assistant["text"]) != queued || mainCalls != 5 {
+	if err != nil || queryErr != nil || intents != 1 || stringValue(result.Assistant["text"]) != queued || mainCalls != 8 {
 		t.Fatalf("capture follow-up did not complete: intents=%d calls=%d reply=%q turn=%v query=%v", intents, mainCalls, stringValue(result.Assistant["text"]), err, queryErr)
 	}
+	var recorded []byte
+	if err := repo.Pool().QueryRow(ctx, `SELECT invocation->'arguments'->'decision' FROM public.tool_executions WHERE invocation->>'call_id'='photo-truthful-reply-8'`).Scan(&recorded); err != nil {
+		t.Fatal(err)
+	}
+	decision := decodeObject(recorded)
+	if decision["internal_intent"] != nil || decision["state_expression"] != nil ||
+		mapValue(decision["core_alignment"])["note"] != "保留" || decision["response_intent"] != "确认任务已提交" {
+		t.Fatalf("recovery did not preserve the valid decision fields: %s", recorded)
+	}
 	replayed, err := app.HandleTurn(ctx, owner, conversation, followup)
-	if err != nil || replayed.Assistant["id"] != result.Assistant["id"] || mainCalls != 5 {
+	if err != nil || replayed.Assistant["id"] != result.Assistant["id"] || mainCalls != 8 {
 		t.Fatalf("terminal replay created new work: calls=%d err=%v", mainCalls, err)
 	}
 	ordinary, err := app.HandleTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "晚安", "idempotency_key": "ordinary", "attachment_refs": []any{}})
-	if err != nil || stringValue(ordinary.Assistant["text"]) != "晚安。" || mainCalls != 6 || discoveryCalls != 2 {
+	if err != nil || stringValue(ordinary.Assistant["text"]) != "晚安。" || mainCalls != 9 || discoveryCalls != 2 {
 		t.Fatalf("ordinary turn did not reply directly: main=%d discovery=%d err=%v", mainCalls, discoveryCalls, err)
 	}
 }
