@@ -160,6 +160,7 @@ export function BrowsePageView({ view: view }) {
         <DrawerFrame
           key={1}
           data-testid="person-drawer-overlay"
+          description="人物身份、关系、位置、日程与标签"
           className="drawer-backdrop"
           onClose={(_) => (view.selected.value = null)}
         >

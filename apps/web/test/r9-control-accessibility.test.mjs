@@ -110,3 +110,21 @@ test('number stepper icon Buttons retain numeric stepping without height overrid
     await view.click(up);assert.equal(view.host.querySelector('input').value,'1');await view.click(down);assert.equal(view.host.querySelector('input').value,'0');
   }finally{await view.dispose();}
 });
+
+test('DialogFrame and DrawerFrame announce a caller-specific description or none, never a generic one',async()=>{
+  const {DialogFrame,DrawerFrame}=await load('react-app/controls.tsx');
+  const described=dialog=>{const id=dialog.getAttribute('aria-describedby');return id?document.getElementById(id)?.textContent:null;};
+  const errors=[],original=console.error;console.error=(...args)=>{errors.push(args.join(' '));};
+  try{
+    for(const [frame,description,expected] of [[DialogFrame,undefined,null],[DialogFrame,'图片、视频及其来源','图片、视频及其来源'],[DrawerFrame,'人物身份、关系、位置、日程与标签','人物身份、关系、位置、日程与标签']]){
+      const view=await mountReact(vite,()=>React.createElement(frame,{description,onClose(){}},React.createElement('h2',null,'媒体预览')));
+      try{
+        const dialog=document.querySelector('[role=dialog]');
+        assert.ok(dialog);
+        assert.equal(described(dialog),expected);
+        assert.doesNotMatch(document.body.textContent,/查看并处理当前内容|编辑当前对象/);
+      }finally{await view.dispose();}
+    }
+    assert.deepEqual(errors.filter(line=>/Description|aria-describedby/.test(line)),[]);
+  }finally{console.error=original;}
+});

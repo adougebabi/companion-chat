@@ -312,7 +312,12 @@ function headingText(children: React.ReactNode): React.ReactNode {
   }
   return null;
 }
-export function DialogFrame({ children, onClose, className, ...props }: any) {
+/**
+ * `description` is read by assistive technology only. Omit it when the title
+ * already says what the dialog is for: no description is announced then,
+ * instead of a generic sentence that fits every dialog.
+ */
+export function DialogFrame({ children, onClose, className, description, ...props }: any) {
   const [trigger] = React.useState(
     () => document.activeElement as HTMLElement | null,
   );
@@ -326,6 +331,7 @@ export function DialogFrame({ children, onClose, className, ...props }: any) {
     >
       <DialogContent
         className="react-workspace product-dialog max-h-[90dvh] overflow-y-auto"
+        {...(description ? {} : { "aria-describedby": undefined })}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           (trigger?.isConnected
@@ -335,16 +341,16 @@ export function DialogFrame({ children, onClose, className, ...props }: any) {
         }}
       >
         <DialogTitle className="sr-only">{title}</DialogTitle>
-        <DialogDescription className="sr-only">
-          查看并处理当前内容
-        </DialogDescription>
+        {description && (
+          <DialogDescription className="sr-only">{description}</DialogDescription>
+        )}
         {children}
       </DialogContent>
     </Dialog>
   );
 }
 
-export function DrawerFrame({ children, onClose, title }: any) {
+export function DrawerFrame({ children, onClose, title, description }: any) {
   const [trigger] = React.useState(
     () => document.activeElement as HTMLElement | null,
   );
@@ -354,7 +360,7 @@ export function DrawerFrame({ children, onClose, title }: any) {
       open
       onOpenChange={(open) => { if (!open) onClose?.(); }}
       title={title || headingText(children) || "编辑详情"}
-      description="编辑当前对象，取消时保留未提交内容"
+      description={description}
       hideDescription
       // Untitled callers render their own visible heading inside children.
       hideHeader={!title}
