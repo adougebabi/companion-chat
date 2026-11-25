@@ -1,7 +1,7 @@
 // Deterministic API-boundary fixtures for the opt-in scenario preview mode
 // (VITE_API_SCENARIOS=1, `pnpm dev:mock`). Shapes follow @fluctlight/browser-client
 // types; nothing here is reachable from the production bundle.
-import type {BrowserDiagnosticRecord,BrowserTask,BrowserWorkflowInspection} from '@fluctlight/browser-client';
+import type {BrowserDiagnosticRecord,BrowserTask,BrowserVisualManagement,BrowserVisualSubmissionBody,BrowserWorkflowInspection} from '@fluctlight/browser-client';
 
 export const SCENARIO_MARKER='fluctlight.api-scenarios.v1';
 export const scenarioOwner='scenario-owner';
@@ -18,7 +18,7 @@ function task(id:string,patch:Partial<TaskSeed>):TaskSeed{
 const step=(id:string,event_type:string,status:string,minute:number,reason_code='')=>({id,event_type,name:event_type,status,reason_code,at:at(minute)});
 
 export type CallSeed={sequence:number;status:string;minute:number;seconds:number;prompt?:unknown;response?:unknown;error?:string;error_code?:string;stage?:string};
-export type ScenarioDataset={tasks:Record<string,TaskSeed>;calls:Record<string,CallSeed[]>;workflows:Record<string,BrowserWorkflowInspection>;media:Record<string,BrowserDiagnosticRecord[]>};
+export type ScenarioDataset={tasks:Record<string,TaskSeed>;calls:Record<string,CallSeed[]>;workflows:Record<string,BrowserWorkflowInspection>;media:Record<string,BrowserDiagnosticRecord[]>;visual:BrowserVisualManagement;visualResumes:BrowserVisualSubmissionBody[]};
 
 /** A fresh, mutable copy per page load: refresh/actions mutate it, a reload restores it. */
 export function createDataset():ScenarioDataset{
@@ -45,7 +45,10 @@ export function createDataset():ScenarioDataset{
   workflows[value.workflow_id]={intent:{intent_id:value.task_id,workflow_id:value.workflow_id,intent_type:value.kind,status:value.status,revision:1,task_queue:'scenario',payload:value.kind==='media.generation'?{intent_id:'media-1'}:{}},runtime:{run_id:'run-'+value.task_id,status:value.status},runtime_state:'available',allowed_actions:failed?['restart']:['queued','running'].includes(value.status)?['cancel']:[],recovery:{href:'',label:'',mode:'generic',reason:''},control_semantics:'scenario',commands:[],commands_has_more:false};
  }
  const media:Record<string,BrowserDiagnosticRecord[]>={'media:media-1':[{id:'media-1',ref:'media-1',kind:'media-prompts',occurred_at:recent(3),data:{id:'media-1',workflow_id:tasks.media.workflow_id,status:'running',revision:1,provider_prompt:'林夏在海边写生，傍晚逆光，胶片质感',provider_job_id:'job-media-1',prompt:{purpose:'moment'}}}]};
- return {tasks,calls,workflows,media};
+ // Visual identity whose candidate submission was paused with an uncertain
+ // provider acceptance: the owner must confirm the same-source image by hand.
+ const visual:BrowserVisualManagement={schema_version:'v1',fluctlight_id:scenarioCharacter.id,status:'generating',current_revision:4,identity_snapshot:{},renderer_constraints:{},generated_reviews:{},adapter_version:'scenario',active_session_id:'vs-1',session:{id:'vs-1',status:'running',last_error:null,current_attempt:2,created_at:at(0),task_id:null,candidate_submission_uncertain:true,attempts:[{id:'va-2',attempt_number:2,status:'running',candidate_asset_id:null,decision:null,brief_revision:3,created_at:at(1),review:null}],submission_recovery:{status:'available',stages:[{stage:'candidate',media_intent_id:'mi-visual-2',revision:5,ready:true}],workflow_id:'go:wf-visual-1',source_run_id:'run-visual-1',workflow_revision:7}}};
+ return {tasks,calls,workflows,media,visual,visualResumes:[]};
 }
 
 export function callRecord(correlationId:string,seed:CallSeed,index:number):BrowserDiagnosticRecord{
@@ -68,4 +71,5 @@ export const scenarios:Scenario[]=[
  {id:'calls-failed',label:'诊断 · 多次调用部分失败（调用列表）',hash:'#/diag?view=calls&correlationId=corr-failed'},
  {id:'calls-long',label:'诊断 · 超长调用内容（调用列表）',hash:'#/diag?view=calls&correlationId=corr-long'},
  {id:'task-list',label:'任务中心列表',hash:'#/diag?view=tasks'},
+ {id:'visual-submission-review',label:'视觉身份 · 候选图接单待人工核对',hash:'#/media?tab=identity&fid='+scenarioCharacter.id},
 ];

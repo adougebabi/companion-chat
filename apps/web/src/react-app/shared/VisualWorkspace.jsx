@@ -3,6 +3,8 @@ import { StoryMark } from "./WorkspaceArtwork";
 import { Pencil, Wand2, ImageIcon, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Surface,
@@ -242,7 +244,7 @@ export default function VisualWorkspace({ model: m }) {
       fields: (draft, edit) => <div className="r-form-stack">
         <WorkspaceInfo>第{draft.context.attempt}次尝试 · {draft.context.stage === "candidate" ? "候选图" : "角色设定图"}。恢复受理后仍需核对原工作流进度。</WorkspaceInfo>
         {draft.unavailable && <WorkspaceInfo>原会话或图片已变化，请核对当前任务。</WorkspaceInfo>}
-        <label><input type="checkbox" checked={draft.submissionReviewed === true} onChange={(event) => edit({submissionReviewed: event.target.checked})}/> 我已人工核对原生成任务与同源图片</label>
+        <Label><Checkbox checked={draft.submissionReviewed === true} onCheckedChange={(checked) => edit({submissionReviewed: checked === true})}/>我已人工核对原生成任务与同源图片</Label>
         <label className="replica-field"><span>核对说明</span><Textarea aria-label="核对说明" value={draft.reason || ""} maxLength={1000} onChange={(event) => edit({reason: event.target.value})}/></label>
       </div>,
     });

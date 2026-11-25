@@ -55,6 +55,10 @@
       "src/react-app/shared/DiagnosticRecords.tsx",
       "src/approved-ui/task-presentation.mjs",
       "src/approved-ui/task-model-call-presentation.mjs"
+    ],
+    "@visual-identity": [
+      "src/v3/scenarios/**",
+      "src/react-app/shared/VisualWorkspace.jsx"
     ]
   },
   "nonUi": [

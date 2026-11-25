@@ -33,10 +33,19 @@ export function installApiScenarios(){
   inspection.runtime={run_id:'run-'+target.task_id+'-'+inspection.intent.revision,status};
   return json(200,{status:'accepted',action,workflow_id:workflowId});
  }
- function route(method:string,url:URL):Response|null{
+ function resumeVisual(sessionId:string,body:any){
+  const session=data.visual.session,stage=session?.submission_recovery?.stages.find(entry=>entry.stage===body?.stage);
+  if(!session||session.id!==sessionId||!stage||body.submissionReviewed!==true||body.expectedAttempt!==session.current_attempt||body.expectedVisualRevision!==data.visual.current_revision||body.expectedMediaRevision!==stage.revision)return json(409,{code:'visual_submission_recovery_stale',message:'原图片恢复条件已变化，请重新读取。'});
+  data.visualResumes.push(body);
+  session.candidate_submission_uncertain=false;session.submission_recovery={status:'unavailable',stages:[]};data.visual.current_revision++;
+  return json(200,{fluctlight_id:scenarioCharacter.id,session_id:sessionId,stage:body.stage,media_intent_id:stage.media_intent_id,asset_id:'asset_'+stage.media_intent_id,workflow_id:body.workflowId,source_run_id:body.sourceRunId,media_status:'completed',status:'resume_requested',command_id:'cmd-visual-'+data.visualResumes.length});
+ }
+ function route(method:string,url:URL,body?:any):Response|null{
   const path=url.pathname,q=url.searchParams;let match:RegExpMatchArray|null;
   if(method==='GET'&&path==='/auth/session')return json(200,{authenticated:true,actorId:scenarioOwner});
   if(method==='GET'&&path==='/api/fluctlights')return json(200,[scenarioCharacter]);
+  if(method==='GET'&&path==='/api/notifications/unread-count')return json(200,{count:0,alert_count:0});
+  if(method==='GET'&&path==='/api/media-library')return json(200,{items:[],next_cursor:''});
   if(method==='GET'&&(match=path.match(/^\/api\/diagnostics\/tasks\/([^/]+)$/))){
    const id=decodeURIComponent(match[1]);if(id==='running')advanceRunning();
    const value=data.tasks[id];return value?json(200,value):json(404,{code:'task_not_found',message:'没有找到这个任务。'});
@@ -48,6 +57,13 @@ export function installApiScenarios(){
    if(kind==='model-runs'){const id=q.get('correlationId')||'';return page((data.calls[id]||[]).map((seed,index)=>callRecord(id,seed,index)));}
    if(kind==='workflow-intents'){const type=q.get('intentType');return page(Object.values(data.tasks).filter(entry=>!type||entry.kind===type).map(entry=>({id:entry.task_id,ref:'intent:'+entry.task_id,kind:'workflow-intents',occurred_at:entry.created_at,data:{...entry,intent_id:entry.task_id,intent_type:entry.kind}})));}
    if(kind==='media-prompts')return page(data.media[q.get('correlationId')||'']||[]);
+  }
+  if((match=path.match(/^\/api\/fluctlights\/([^/]+)\/(visual-identity|visual-identity\/timeline|visual-brief|visual-brief\/history|visual-sessions\/([^/]+)\/resume-reviewed)$/))&&decodeURIComponent(match[1])===scenarioCharacter.id){
+   const empty={items:[],next_cursor:''};
+   if(method==='GET'&&match[2]==='visual-identity')return json(200,data.visual);
+   if(method==='GET'&&match[2]==='visual-brief')return json(200,{fluctlight_id:scenarioCharacter.id,revision:3,brief:null});
+   if(method==='GET'&&/\/(timeline|history)$/.test(match[2]))return json(200,empty);
+   if(method==='POST'&&match[3])return resumeVisual(decodeURIComponent(match[3]),body);
   }
   if(method==='GET'&&path==='/api/pending'&&q.get('kind')==='failed_task'){
    const items=Object.values(data.tasks).filter(entry=>entry.status==='failed').map(entry=>({id:'workflow:'+entry.task_id,source_id:entry.task_id,fluctlight_id:entry.fluctlight_id||'',title:entry.kind,status:entry.status,href:'#/diag/task/'+entry.task_id,created_at:entry.created_at}));
@@ -61,7 +77,9 @@ export function installApiScenarios(){
   const method=(init?.method||(input instanceof Request?input.method:'GET')).toUpperCase();
   if(scenario.delayMs)await new Promise(resolve=>setTimeout(resolve,scenario.delayMs));
   if(scenario.failFirst?.pattern.test(url.pathname+url.search)){const count=failures.get(scenario.failFirst.pattern)||0;if(count<scenario.failFirst.times){failures.set(scenario.failFirst.pattern,count+1);return json(503,{code:'service_unavailable',message:'预览模式模拟的读取失败，请重试。'});}}
-  const response=route(method,url);
+  let body:unknown;
+  if(method!=='GET'){try{body=JSON.parse(String(init?.body??(input instanceof Request?await input.clone().text():''))||'null');}catch{body=null;}}
+  const response=route(method,url,body);
   if(response)return response;
   const label=`${method} ${url.pathname}`;
   if(!unmatched.includes(label)){unmatched.push(label);console.warn(`[预览模式] 未模拟的业务接口：${label}`);renderBadge();}
