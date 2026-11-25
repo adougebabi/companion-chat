@@ -12,6 +12,9 @@ export function installApiScenarios(){
  const scenario:Scenario=scenarios.find(entry=>entry.id===params.get('scenario'))||scenarios[0];
  if(!location.hash||location.hash==='#'||location.hash==='#/')history.replaceState(null,'',location.pathname+location.search+scenario.hash);
  const data=createDataset(),failures=new Map<RegExp,number>(),unmatched:string[]=[];
+ // Only the inbox scenario carries notifications and pending items, so the
+ // unread badge of every other scenario stays as it was.
+ if(scenario.id!=='inbox'){data.notifications=[];data.pending=data.pending.map(group=>({...group,count:0,items:[]}));}
  let runningReads=0;
  const original=globalThis.fetch.bind(globalThis);
 
@@ -56,7 +59,26 @@ export function installApiScenarios(){
   const path=url.pathname,q=url.searchParams;let match:RegExpMatchArray|null;
   if(method==='GET'&&path==='/auth/session')return json(200,{authenticated:true,actorId:scenarioOwner});
   if(method==='GET'&&path==='/api/fluctlights')return json(200,[scenarioCharacter]);
-  if(method==='GET'&&path==='/api/notifications/unread-count')return json(200,{count:0,alert_count:0});
+  if(method==='GET'&&path==='/api/notifications/unread-count'){const unread=data.notifications.filter(entry=>!entry.read_at);return json(200,{count:unread.length,alert_count:unread.filter(entry=>!entry.quiet).length});}
+  if(method==='GET'&&path==='/api/notifications'){
+   const fid=q.get('fluctlightId')||'',unread=q.get('unread')==='true';
+   return json(200,{items:data.notifications.filter(entry=>(!fid||entry.fluctlight_id===fid)&&(!unread||!entry.read_at)),next_cursor:'',as_of:new Date().toISOString()});
+  }
+  if(method==='POST'&&path==='/api/notifications/read-all'){
+   if(typeof body?.before!=='string'||!body.before||typeof body?.idempotencyKey!=='string'||!body.idempotencyKey)return json(400,{code:'invalid_request',message:'缺少读取时点或幂等键。'});
+   data.readAll.push(body);const now=new Date().toISOString();let updated=0;
+   for(const entry of data.notifications)if(!entry.read_at&&entry.created_at<=body.before){entry.read_at=now;updated++;}
+   return json(200,{updated,before:body.before});
+  }
+  if(method==='GET'&&path==='/api/conversations/conv-1/messages'&&scenario.id==='inbox'){
+   const created=data.notifications[0]?.created_at||new Date().toISOString();
+   return json(200,{conversation:{id:'conv-1',createdByActorId:scenarioOwner,title:null,revision:3,createdAt:created,updatedAt:created},participants:[{conversationId:'conv-1',actorId:scenarioOwner,role:'owner',status:'active',joinedAt:created},{conversationId:'conv-1',actorId:scenarioCharacter.id,role:'fluctlight',status:'active',joinedAt:created}],messages:[{id:'msg-9',conversationId:'conv-1',sequence:9,authorActorId:scenarioCharacter.id,kind:'assistant',text:'今天的画画完了，傍晚的海很好看，回头给你看。',attachmentRefs:[],createdAt:created}],nextBeforeSequence:null});
+  }
+  if(method==='GET'&&path==='/api/pending'){
+   const fid=q.get('fluctlightId')||'',kind=q.get('kind')||'';
+   const groups=data.pending.filter(group=>!kind||group.kind===kind).map(group=>{const items=(group.items||[]).filter(item=>!fid||item.fluctlight_id===fid);return {...group,items,count:items.length};});
+   return json(200,{groups,count:groups.reduce((sum,group)=>sum+(group.count||0),0),partial:false});
+  }
   if(method==='GET'&&path==='/api/media-library')return json(200,{items:[],next_cursor:''});
   if(method==='GET'&&(match=path.match(/^\/api\/diagnostics\/tasks\/([^/]+)$/))){
    const id=decodeURIComponent(match[1]);if(id==='running')advanceRunning();

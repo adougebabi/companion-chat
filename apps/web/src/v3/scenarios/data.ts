@@ -1,7 +1,7 @@
 // Deterministic API-boundary fixtures for the opt-in scenario preview mode
 // (VITE_API_SCENARIOS=1, `pnpm dev:mock`). Shapes follow @fluctlight/browser-client
 // types; nothing here is reachable from the production bundle.
-import type {BrowserDiagnosticRecord,BrowserTask,BrowserVisualManagement,BrowserVisualSubmissionBody,BrowserWorkflowInspection} from '@fluctlight/browser-client';
+import type {BrowserDiagnosticRecord,BrowserNotification,BrowserPendingGroup,BrowserTask,BrowserVisualManagement,BrowserVisualSubmissionBody,BrowserWorkflowInspection} from '@fluctlight/browser-client';
 
 export const SCENARIO_MARKER='fluctlight.api-scenarios.v1';
 export const scenarioOwner='scenario-owner';
@@ -21,7 +21,7 @@ function task(id:string,patch:Partial<TaskSeed>):TaskSeed{
 const step=(id:string,event_type:string,status:string,minute:number,reason_code='')=>({id,event_type,name:event_type,status,reason_code,at:at(minute)});
 
 export type CallSeed={sequence:number;status:string;minute:number;seconds:number;prompt?:unknown;response?:unknown;error_code?:string;stage?:string};
-export type ScenarioDataset={tasks:Record<string,TaskSeed>;calls:Record<string,CallSeed[]>;workflows:Record<string,BrowserWorkflowInspection>;media:Record<string,BrowserDiagnosticRecord[]>;visual:BrowserVisualManagement;visualResumes:BrowserVisualSubmissionBody[]};
+export type ScenarioDataset={tasks:Record<string,TaskSeed>;calls:Record<string,CallSeed[]>;workflows:Record<string,BrowserWorkflowInspection>;media:Record<string,BrowserDiagnosticRecord[]>;visual:BrowserVisualManagement;visualResumes:BrowserVisualSubmissionBody[];notifications:BrowserNotification[];pending:BrowserPendingGroup[];readAll:unknown[]};
 
 /** A fresh, mutable copy per page load: refresh/actions mutate it, a reload restores it. */
 export function createDataset():ScenarioDataset{
@@ -52,7 +52,18 @@ export function createDataset():ScenarioDataset{
  // Visual identity whose candidate submission was paused with an uncertain
  // provider acceptance: the owner must confirm the same-source image by hand.
  const visual:BrowserVisualManagement={schema_version:'v1',fluctlight_id:scenarioCharacter.id,id:'vi-1',status:'active',current_revision:4,identity_snapshot:{},renderer_constraints:{},generated_reviews:{},adapter_version:'scenario',active_session_id:'vs-1',session:{id:'vs-1',status:'running',last_error:null,current_attempt:2,created_at:at(0),task_id:null,candidate_submission_uncertain:true,attempts:[{id:'va-2',attempt_number:2,status:'running',candidate_asset_id:null,decision:null,brief_revision:3,created_at:at(1),review:null}],submission_recovery:{status:'available',stages:[{stage:'candidate',media_intent_id:'mi-visual-2',revision:5,ready:true}],workflow_id:'go:wf-visual-1',source_run_id:'run-visual-1',workflow_revision:7}}};
- return {tasks,calls,workflows,media,visual,visualResumes:[]};
+ // Inbox: shapes mirror apps/core-go/internal/core/notification_center.go
+ // (title/body/link per source_kind) and pending_center.go (all five groups,
+ // item id = target_kind:source_id, failed tasks link to #/diag/task/<intent>).
+ const root='#/c/'+encodeURIComponent(scenarioCharacter.id);
+ const notifications:BrowserNotification[]=[
+  {id:'notice-reply',fluctlight_id:scenarioCharacter.id,title:'林夏 · 新回复',body:'有一条已保存的角色回复。',link:root+'/chat?conversation=conv-1&message=msg-9',quiet:false,read_at:null,created_at:recent(5),source_kind:'conversation.reply.published',source_id:'msg-9',source_event_id:'evt-reply-9',source_occurred_at:recent(5)},
+  {id:'notice-moment',fluctlight_id:scenarioCharacter.id,title:'新动态',body:'角色发布了一条动态。',link:'#/feed/moment-3',quiet:false,read_at:recent(30),created_at:recent(60),source_kind:'moment.published',source_id:'moment-3',source_event_id:'evt-moment-3',source_occurred_at:recent(60)},
+ ];
+ const pending:BrowserPendingGroup[]=(['capability','persona_proposal','studio_apply','failed_task','owner_request'] as const).map(kind=>kind==='failed_task'
+  ?{kind,status:'ok',count:1,next_cursor:'',items:[{id:'workflow:failed',source_id:'failed',fluctlight_id:scenarioCharacter.id,title:'goal.plan',status:'failed',href:'#/diag/task/failed',created_at:tasks.failed.created_at}]}
+  :{kind,status:'ok',count:0,next_cursor:'',items:[]});
+ return {tasks,calls,workflows,media,visual,visualResumes:[],notifications,pending,readAll:[]};
 }
 
 const recoveryReason='领域恢复保留原结果、attempt、版本和副作用围栏；工作流命令不代表业务已成功';
@@ -91,4 +102,5 @@ export const scenarios:Scenario[]=[
  {id:'calls-long',label:'诊断 · 超长调用内容（调用列表）',hash:'#/diag?view=calls&correlationId=corr-long'},
  {id:'task-list',label:'任务中心列表',hash:'#/diag?view=tasks'},
  {id:'visual-submission-review',label:'视觉身份 · 候选图接单待人工核对',hash:'#/media?tab=identity&fid='+scenarioCharacter.id},
+ {id:'inbox',label:'通知与待处理 · 一条未读回复与一项失败任务',hash:'#/inbox'},
 ];

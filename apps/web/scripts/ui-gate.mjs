@@ -56,20 +56,24 @@ function changedFiles() {
 
 function plan(files) {
   const web = files.filter(f => f.startsWith('apps/web/')).map(f => f.slice('apps/web/'.length));
-  const tags = new Set(), uncovered = [], shared = [];
+  const tags = new Set(), uncovered = [], shared = [], removed = [];
   for (const file of web) {
     if (matches(file, map.nonUi)) continue;
     if (matches(file, map.shared)) { shared.push(file); continue; }
     let hit = false;
     for (const [tag, globs] of Object.entries(map.areas)) if (matches(file, globs)) { tags.add(tag); hit = true; }
-    if (!hit && file.startsWith('src/')) uncovered.push(file);
+    // A deleted file has nothing left to render. Deleted shared/area files still
+    // run their checks above (e.g. a removed stylesheet changes what remains);
+    // an unmapped deletion is listed, not reported as missing coverage —
+    // dangling imports are caught by typecheck and build.
+    if (!hit && file.startsWith('src/')) (existsSync(join(repoRoot, 'apps/web', file)) ? uncovered : removed).push(file);
   }
   // Full runs execute every existing check; coverage gaps are judged per
   // change (affected/shared runs), not against the whole branch diff.
-  if (flag('full')) return { scope: 'full', grep: undefined, files: [], shared: [], uncovered: [] };
-  if (shared.length) return { scope: 'shared', grep: undefined, files: web, shared, uncovered };
-  if (tags.size) return { scope: 'affected', grep: ['@gate', ...tags].join('|'), files: web, tags: [...tags], uncovered };
-  return { scope: uncovered.length ? 'uncovered' : 'none', grep: undefined, files: web, uncovered };
+  if (flag('full')) return { scope: 'full', grep: undefined, files: [], shared: [], uncovered: [], removed: [] };
+  if (shared.length) return { scope: 'shared', grep: undefined, files: web, shared, uncovered, removed };
+  if (tags.size) return { scope: 'affected', grep: ['@gate', ...tags].join('|'), files: web, tags: [...tags], uncovered, removed };
+  return { scope: uncovered.length ? 'uncovered' : 'none', grep: undefined, files: web, uncovered, removed };
 }
 
 function chromiumAvailable() {
@@ -113,7 +117,7 @@ if (process.env.UI_BASELINE_LOCK) {
 
 const files = flag('full') ? [] : changedFiles();
 const p = plan(files);
-const result = { status: 'pass', scope: p.scope, grep: p.scope === 'none' ? null : p.scope === 'uncovered' ? '@gate' : p.grep || '(all)', changed: p.files, uncovered: p.uncovered, reasons: [], failures: [], stats: null };
+const result = { status: 'pass', scope: p.scope, grep: p.scope === 'none' ? null : p.scope === 'uncovered' ? '@gate' : p.grep || '(all)', changed: p.files, uncovered: p.uncovered, removed: p.removed, reasons: [], failures: [], stats: null };
 
 if (p.scope === 'none') {
   result.status = 'not-applicable';
@@ -147,6 +151,7 @@ const summary = [
   `- 范围：${result.scope}${result.grep ? `（${result.grep}）` : ''}`,
   result.stats ? `- 结果：通过 ${result.stats.expected}，失败 ${result.stats.unexpected}，跳过 ${result.stats.skipped}，不稳定 ${result.stats.flaky}` : '',
   ...result.reasons.map(r => `- ${r}`),
+  result.removed.length ? `- 已删除、无需浏览器检查（引用由 typecheck / build 保证）：${result.removed.join('、')}` : '',
   ...result.failures.slice(0, 30).map(f => `- ❌ ${f}`),
   result.status === 'pass' || result.status === 'not-applicable' ? '' : '\n**此结果不能作为 UI 验收通过。**',
 ].filter(Boolean).join('\n');
