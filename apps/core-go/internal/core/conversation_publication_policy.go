@@ -272,14 +272,14 @@ func conversationPublicationOmission(ctx context.Context, message *schema.Messag
 		finish = strings.TrimSpace(message.ResponseMeta.FinishReason)
 	}
 	if strings.TrimSpace(message.Content) == "" {
-		// An explicit stop after an accepted Direct image left the reply
-		// unpublished. Reuse the existing reply-only correction once.
+		// An explicit stop can leave a Direct reply unpublished after a
+		// rejected candidate or a committed image. Correct it at most once.
 		run := replyRunFromContext(ctx)
 		bridge, ok := adkCapabilityContext(ctx)
 		if finish != "stop" || run == nil || run.Settings.Mode != "direct" || !ok || bridge.Trace == nil {
 			return false
 		}
-		if directReplyRetryFromContext(ctx).intentID != "" {
+		if directReplyRetryFromContext(ctx).intentID != "" || directMainInvalidReplyAttempts(bridge.Trace) > 0 {
 			return true
 		}
 		_, results := bridge.Trace.Snapshot()

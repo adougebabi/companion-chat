@@ -15,6 +15,7 @@ func TestDirectPhotoPublicationCorrectionPublishesBeforeCatalog(t *testing.T) {
 		}).
 		otherwise(func(payload map[string]any) fakeProviderResult {
 			calls++
+			influences := []any{}
 			switch calls {
 			case 2:
 				return fakeProviderResult{Text: "这条候选没有调用工具。"}
@@ -23,6 +24,7 @@ func TestDirectPhotoPublicationCorrectionPublishesBeforeCatalog(t *testing.T) {
 				if !strings.Contains(jsonString(payload["messages"]), "private_reply_not_published") {
 					t.Error("the correction must give the model the native reply tool")
 				}
+				influences = append(influences, map[string]any{"ref": "cr_ffffffffffff", "role": "grounds", "confidence": 1, "note": "无效引用"})
 			default:
 				if calls != 1 {
 					t.Error("native correction did not finish the original turn")
@@ -30,7 +32,7 @@ func TestDirectPhotoPublicationCorrectionPublishesBeforeCatalog(t *testing.T) {
 				}
 			}
 			call := nativePersonaToolCall(fmt.Sprintf("reply-correction-%d", calls), conversationReplyCapabilityName, map[string]any{
-				"text": finalReply, "decision": map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}},
+				"text": finalReply, "decision": map[string]any{"action_type": "reply", "response_intent": "回应", "influences": influences},
 			})
 			return fakeProviderResult{ToolCalls: []map[string]any{call}}
 		})

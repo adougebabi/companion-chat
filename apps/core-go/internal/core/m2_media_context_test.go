@@ -21,7 +21,9 @@ func testDirectReplyUndeliveredPhotoClaimFromPreviousTurn(t *testing.T, extracte
 	const priorReply = "照片还没准备好。"
 	const claim = "已经贴到聊天里了，你往上翻就能看到。"
 	mainCalls, claimChecks := 0, 0
-	router := newFakeProviderRouter().on(directMediaDeliveryCheckSchema, func(payload map[string]any) fakeProviderResult {
+	router := newFakeProviderRouter().on(directImageDiscoverySchema, func(map[string]any) fakeProviderResult {
+		return fakeProviderResult{Structured: map[string]any{"needed_tool": "none"}}
+	}).on(directMediaDeliveryCheckSchema, func(payload map[string]any) fakeProviderResult {
 		var view map[string]any
 		for _, raw := range arrayValue(payload["messages"]) {
 			message := mapValue(raw)
@@ -78,7 +80,9 @@ func TestDirectMediaContextKeepsOrdinaryChatAndMatchingDelivery(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			mainCalls, finalChecks := 0, 0
-			router := newFakeProviderRouter().on(directMediaDeliveryCheckSchema, func(payload map[string]any) fakeProviderResult {
+			router := newFakeProviderRouter().on(directImageDiscoverySchema, func(map[string]any) fakeProviderResult {
+				return fakeProviderResult{Structured: map[string]any{"needed_tool": "none"}}
+			}).on(directMediaDeliveryCheckSchema, func(payload map[string]any) fakeProviderResult {
 				var view map[string]any
 				for _, raw := range arrayValue(payload["messages"]) {
 					message := mapValue(raw)
