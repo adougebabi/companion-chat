@@ -10,6 +10,7 @@ import (
 func TestStrictWireSchemasCoverRegisteredModelContracts(t *testing.T) {
 	schemas := map[string]map[string]any{
 		"schedule_response":                 scheduleResponseSchema(),
+		"schedule_generation_response":      scheduleGenerationResponseSchema(),
 		"schedule_replan_plan":              schedulePlannerOutputSchema(),
 		"conversation_turn_response":        cognitiveTurnResponseSchema(),
 		"daily_review_response":             dailyReviewResponseSchema(),

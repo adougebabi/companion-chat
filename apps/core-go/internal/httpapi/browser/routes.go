@@ -316,6 +316,33 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		response.WriteHeader(http.StatusNoContent)
 		return
 	}
+	if conversationID, turnID, ok := match2(path, "/api/conversations/:conversationId/turn/:turnId/retry-reply"); ok {
+		if methodName != http.MethodPost {
+			methodNotAllowed(response, http.MethodPost)
+			return
+		}
+		session, valid := s.requireForMethod(response, request, http.MethodPost)
+		if !valid {
+			return
+		}
+		_, err := s.backend.DoJSON(request.Context(), http.MethodPost, "/internal/conversations/"+escape(conversationID)+"/turn/"+escape(turnID)+"/retry-reply", session, map[string]any{})
+		if err != nil {
+			if s.publicUnauthorized(response, err) {
+				return
+			}
+			var coreErr *CoreError
+			if errors.As(err, &coreErr) && coreErr.Status == http.StatusNotFound {
+				writeError(response, http.StatusNotFound, "conversation_turn_not_found", "Conversation turn is unavailable")
+			} else if errors.As(err, &coreErr) && coreErr.Status == http.StatusConflict {
+				writeError(response, http.StatusConflict, "conversation_reply_retry_unavailable", "Reply recovery is no longer available for this turn")
+			} else {
+				writeError(response, http.StatusBadGateway, "conversation_reply_retry_failed", "Reply recovery could not be scheduled")
+			}
+			return
+		}
+		response.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	// Authenticated read-only routes.
 	if path == "/api/settings" && methodName == http.MethodGet {

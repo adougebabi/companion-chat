@@ -16,6 +16,9 @@
 @import "./replica-studio.css";
 @import "./replica-creation.css";
 @import "./replica-management.css";
+/* Business UI patterns, then shared overlay geometry: must stay last. */
+@import "./patterns.css";
+@import "./overlay.css";
 
 @theme inline {
   --color-background: var(--background);
@@ -124,10 +127,7 @@ body {
   border: 0;
   box-shadow: none;
 }
-.product-sheet {
-  width: min(540px, calc(100vw - 16px));
-  max-width: none;
-}
+/* Sheet geometry: ResponsiveSheet only (styles/overlay.css). */
 .schedule-settings-sheet [data-section="today"] > [data-schedule-suggestions] {
   margin-bottom: 20px;
 }
@@ -136,12 +136,6 @@ body {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 6px 10px;
-}
-/* Keep a usable outside-dismiss area without changing desktop sheet widths. */
-@media (width < 640px) {
-  .product-sheet.schedule-settings-sheet {
-    width: 75vw;
-  }
 }
 [data-slot="select-content"],
 [data-slot="dropdown-menu-content"] {
@@ -177,13 +171,11 @@ body {
 
 }
 
-.react-workspace.product-dialog,
-.react-workspace.product-sheet {
+.react-workspace.product-dialog {
   min-height: 0;
 }
 .react-workspace[data-slot="dialog-content"],
-.react-workspace[data-slot="alert-dialog-content"],
-.react-workspace[data-slot="sheet-content"] {
+.react-workspace[data-slot="alert-dialog-content"] {
   min-height: 0;
 }
 .product-sheet .drawer-form {

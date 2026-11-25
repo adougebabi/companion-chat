@@ -70,9 +70,9 @@ func (codec *providerContextRefCodec) noteOfferedInfluenceRefs(input []*schema.M
 }
 
 // A direct reply may settle with no influences (freezeDecisionInfluences uses
-// required=false). After two correction opportunities, omit only unresolved
-// influence refs. All other arguments, evidence, goal refs, scope checks and
-// the atomic publication/settlement contract still pass their normal gates.
+// required=false). In reply-only requests or after two ordinary correction
+// opportunities, omit only unresolved influence refs. Other arguments,
+// evidence, goals and the atomic publication contract retain normal validation.
 func (codec *providerContextRefCodec) decodeDirectReplyArguments(raw json.RawMessage, index ContextReferenceIndex, discardInvalid bool) (json.RawMessage, error) {
 	args := decodeObject(raw)
 	decision := mapValue(args["decision"])

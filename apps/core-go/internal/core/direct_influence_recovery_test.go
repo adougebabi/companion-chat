@@ -96,8 +96,17 @@ func TestDirectInfluenceRecoveryPreservesValidDataAndStrictRefs(t *testing.T) {
 
 // Requires PostgreSQL; all model responses use the controlled transport.
 func TestDirectInvalidInfluenceRefStillPublishes(t *testing.T) {
-	for _, ref := range []string{"cr_ffffffffffff", "cr_36665410e47d2016d999c79878883135", "actor_user:fixture", "用户消息原文"} {
-		t.Run(ref, func(t *testing.T) {
+	for _, test := range []struct {
+		ref                 string
+		stopsAfterRejection bool
+	}{
+		{ref: "cr_ffffffffffff"},
+		{ref: "cr_36665410e47d2016d999c79878883135"},
+		{ref: "actor_user:fixture"},
+		{ref: "用户消息原文"},
+		{ref: "cr_ffffffffffff", stopsAfterRejection: true},
+	} {
+		t.Run(fmt.Sprintf("%s/stop=%t", test.ref, test.stopsAfterRejection), func(t *testing.T) {
 			calls := 0
 			router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
 				calls++
@@ -107,7 +116,16 @@ func TestDirectInvalidInfluenceRefStillPublishes(t *testing.T) {
 				if calls > 1 && !strings.Contains(jsonString(payload["messages"]), "decision.influences[0].ref") {
 					t.Error("model did not receive specific ref correction")
 				}
-				args := map[string]any{"text": "当然记得，是芒果。", "decision": map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{map[string]any{"ref": ref, "role": "grounds", "confidence": 1, "note": "记忆"}}}}
+				if test.stopsAfterRejection && calls == 2 {
+					return fakeProviderResult{}
+				}
+				if test.stopsAfterRejection && calls == 3 {
+					checkDirectImageReplySchema(t, payload)
+					if !strings.Contains(jsonString(payload["messages"]), "private_reply_not_published") {
+						t.Error("missing native reply correction after the rejected draft and empty stop")
+					}
+				}
+				args := map[string]any{"text": "当然记得，是芒果。", "decision": map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{map[string]any{"ref": test.ref, "role": "grounds", "confidence": 1, "note": "记忆"}}}}
 				return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall(fmt.Sprintf("influence-reply-%d", calls), conversationReplyCapabilityName, args)}}
 			})
 			ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "influence-recovery", router)

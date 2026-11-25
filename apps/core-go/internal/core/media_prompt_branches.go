@@ -24,6 +24,19 @@ func mediaNormalizationSchema() map[string]any {
 	}, []string{"prompt", "declared_human_presence", "self_in_frame", "capture_method", "used_subject_ids", "used_reference_ids", "declared_human_count"}, false)
 }
 
+func mediaNormalizationSchemaForReference(assetID string) map[string]any {
+	schema := mediaNormalizationSchema()
+	references := mapValue(mapValue(schema["properties"])["used_reference_ids"])
+	if assetID == "" {
+		references["enum"] = []any{[]any{}}
+		references["description"] = "No reference image is authorized for this request. Return an empty array. Subject IDs never belong here."
+	} else {
+		references["items"] = enumStringSchema(assetID)
+		references["description"] = "Use only the exact authorized reference asset ID if used. Subject IDs never belong here."
+	}
+	return schema
+}
+
 func mediaNormalizationInput(concept map[string]any) (map[string]any, error) {
 	if err := validateBranchedMediaConcept(concept); err != nil {
 		return nil, err
@@ -86,6 +99,7 @@ func mediaNormalizationInput(concept map[string]any) (map[string]any, error) {
 	if life := mapValue(binding["current_life"]); len(life) > 0 {
 		allowed["self_current_environment"] = compactMediaLifeContext(life)
 	}
+	result["allowed_reference_assets"] = []any{}
 	if reference := mapValue(concept["reference_asset"]); len(reference) > 0 {
 		result["allowed_reference_assets"] = []any{cloneMap(reference)}
 		if reference["grant_id"] != nil {
@@ -243,7 +257,8 @@ func normalizeMediaPromptWithIntent(ctx context.Context, concept map[string]any,
 func (a *App) runBranchedMediaPrompt(ctx context.Context, input MediaPromptTaskInput, concept map[string]any) (MediaPromptTaskResult, error) {
 	ctx = withMediaPromptSourceIntent(ctx, input.Intent.ID)
 	var assignment *providerAssignment
-	instruction := mediaNormalizationInstruction
+	instruction := mediaNormalizationInstruction + "\n\nused_subject_ids 只填写实际入镜主体，used_reference_ids 只填写实际使用的 allowed_reference_assets 中的 asset_id。没有参考图时 used_reference_ids 必须为 []，不要把 allowed_subject_ids 填到这里。"
+	schema := mediaNormalizationSchemaForReference(stringValue(mapValue(concept["reference_asset"])["asset_id"]))
 	if input.Intent.QualityRetryCount > 0 {
 		instruction += "\n\n" + mediaNormalizationRetryInstruction
 	}
@@ -267,7 +282,7 @@ func (a *App) runBranchedMediaPrompt(ctx context.Context, input MediaPromptTaskI
 			assignment = &selected
 		}
 		ctx = withFrozenProviderAssignment(ctx, "media_prompt", *assignment)
-		return a.mediaStructuredCall(ctx, "media_prompt_normalized", instruction, packet, mediaNormalizationSchema())
+		return a.mediaStructuredCall(ctx, "media_prompt_normalized", instruction, packet, schema)
 	})
 	if a.DB != nil {
 		a.recordDiagnosticEvent(ctx, "media.prompt.normalized", "info", input.Intent.Owner, input.Intent.ID, providerCorrelation(ctx), map[string]any{"version": mediaPlanVersion, "output": output, "repair_count": repairs, "validation_passed": err == nil, "allowed_sources": mediaSourceKeys(mapValue(concept["context_binding"]))})

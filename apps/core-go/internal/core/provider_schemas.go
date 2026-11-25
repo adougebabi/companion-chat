@@ -332,6 +332,27 @@ func scheduleResponseSchema() map[string]any {
 	}, []string{"items", "reschedule_policy"}, false)
 }
 
+// Generation specifies each boundary once. Core derives interval starts from
+// the ordered preceding end, removing duplicate timestamp/date arithmetic from
+// the model contract. Stored schedules and replan/direct APIs keep timestamps.
+func scheduleGenerationResponseSchema() map[string]any {
+	result := scheduleResponseSchema()
+	item := mapValue(mapValue(mapValue(result["properties"])["items"])["items"])
+	properties := mapValue(item["properties"])
+	delete(properties, "start_at")
+	delete(properties, "end_at")
+	delete(properties, "status")
+	properties["end_minute"] = map[string]any{"type": "integer", "minimum": 1, "maximum": 1440, "description": "Local clock minute after midnight: 08:00=480, 09:00=540, 24:00=1440. Must increase in item order; final item ends at 1440."}
+	required := []string{"end_minute"}
+	for _, raw := range arrayValue(item["required"]) {
+		if field := stringValue(raw); field != "start_at" && field != "end_at" && field != "status" {
+			required = append(required, field)
+		}
+	}
+	item["required"] = required
+	return result
+}
+
 func reflectionCandidateVariant(properties map[string]any, operation map[string]any, allowed, required []string) map[string]any {
 	variantProperties := make(map[string]any, len(allowed))
 	for _, field := range allowed {

@@ -749,6 +749,11 @@ func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorI
 		slog.Default().Error("Go Core conversation turn lifecycle settlement failed after visible output", "error_type", fmt.Sprintf("%T", err), "error_code", errorCode, "turn_id", turnID)
 		return writeFrame("error", map[string]any{"status": "failed", "code": errorCode})
 	}
+	if result.ReplyStatus == "retry_scheduled" {
+		// The durable Worker owns the pending reply. An empty completed
+		// frame would incorrectly report that this turn has ended.
+		return nil
+	}
 	messageIDs := make([]string, 0, 1)
 	if messageID := stringValue(result.Assistant["id"]); messageID != "" {
 		messageIDs = append(messageIDs, messageID)
@@ -843,7 +848,7 @@ func safeStreamTurnErrorCode(value string) string {
 		return code
 	case "reply_media_no_progress", "persona_preparation_failed", "persona_preparation_pending":
 		return code
-	case "provider_gateway_timeout", "reply_gateway_timeout", "reply_quality_repair_failed", "adk_final_message_missing", "adk_final_output_invalid", "adk_final_output_missing", "adk_final_text_missing",
+	case "provider_request_failed", "provider_gateway_timeout", "reply_gateway_timeout", "reply_quality_repair_failed", "adk_final_message_missing", "adk_final_output_invalid", "adk_final_output_missing", "adk_final_text_missing",
 		"adk_run_failed", "agent_run_failed", "agent_turn_failed", "agent_final_contract_invalid", "agent_output_publication_failed", "agent_cognition_settlement_failed", "capability_prepare_failed", "capability_settlement_failed",
 		"fluctlight_inactive", "fluctlight_paused",
 		"cognition_visible_text_missing", "conversation_not_found", "conversation_settlement_failed",

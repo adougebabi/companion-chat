@@ -209,6 +209,10 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 		CASE WHEN m.kind='user' AND m.turn_id IS NOT NULL THEN EXISTS(
 			SELECT 1 FROM public.conversation_messages a
 			WHERE a.conversation_id=m.conversation_id AND a.kind='assistant' AND a.turn_id=m.turn_id
+		) ELSE false END,
+		COALESCE(i.id,''),COALESCE(i.fluctlight_id,''),` + directReplyRetryFailureEvidenceSQL + `,
+		CASE WHEN m.kind='user' AND i.status='failed' THEN EXISTS(
+			SELECT 1 FROM public.conversation_messages n WHERE n.conversation_id=m.conversation_id AND n.kind='user' AND n.sequence>m.sequence
 		) ELSE false END
 		FROM public.conversation_messages m LEFT JOIN public.cognition_inbox i ON i.id=m.source_fact_id
 		LEFT JOIN public.platform_workflow_intents w ON w.intent_id='cognition_intent:'||i.id
@@ -225,6 +229,10 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 	}
 	defer messageRows.Close()
 	messages := make([]Message, 0, limit)
+	var retryCandidate struct {
+		index                int
+		source, fluctlightID string
+	}
 	registry, err := NewCapabilityRegistry(builtinCapabilities(nil)...)
 	if err != nil {
 		return ConversationPage{}, fmt.Errorf("load retry capability metadata: %w", err)
@@ -233,8 +241,9 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 		var item Message
 		var attachmentJSON, partialJSON []byte
 		var inboxStatus, inboxError, workflowStatus string
-		var assistantExists bool
-		if err := messageRows.Scan(&item.ID, &item.ConversationID, &item.Sequence, &item.AuthorActorID, &item.Kind, &item.Text, &attachmentJSON, &item.CreatedAt, &item.SenderTimezone, &item.SenderUTCOffsetMinutes, &item.SenderSentAt, &item.TurnID, &item.IdempotencyKey, &inboxStatus, &inboxError, &workflowStatus, &partialJSON, &assistantExists); err != nil {
+		var assistantExists, newerUser bool
+		var source, fluctlightID, underlyingFailure string
+		if err := messageRows.Scan(&item.ID, &item.ConversationID, &item.Sequence, &item.AuthorActorID, &item.Kind, &item.Text, &attachmentJSON, &item.CreatedAt, &item.SenderTimezone, &item.SenderUTCOffsetMinutes, &item.SenderSentAt, &item.TurnID, &item.IdempotencyKey, &inboxStatus, &inboxError, &workflowStatus, &partialJSON, &assistantExists, &source, &fluctlightID, &underlyingFailure, &newerUser); err != nil {
 			return ConversationPage{}, fmt.Errorf("scan Core message: %w", err)
 		}
 		if item.Kind == "user" && item.TurnID != "" {
@@ -261,6 +270,10 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 				item.TurnErrorCode = "agent_partial_committed"
 				item.TurnRetryable = false
 			}
+			if item.TurnStatus == "failed" && item.AuthorActorID == actorID && conversation.CreatedByActor == actorID &&
+				!newerUser && directReplyRetryFailure(inboxError, workflowStatus, underlyingFailure) && len(mapValue(decodeObject(partialJSON)["agent_result"])) == 0 {
+				retryCandidate.index, retryCandidate.source, retryCandidate.fluctlightID = len(messages), source, fluctlightID
+			}
 		} else {
 			item.IdempotencyKey = ""
 		}
@@ -271,6 +284,19 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 	}
 	if err := messageRows.Err(); err != nil {
 		return ConversationPage{}, fmt.Errorf("iterate Core messages: %w", err)
+	}
+	messageRows.Close()
+	if retryCandidate.source != "" {
+		receipt, err := directReplyRetryImage(ctx, r.pool, registry, retryCandidate.source, actorID, retryCandidate.fluctlightID, conversationID)
+		if err != nil {
+			return ConversationPage{}, fmt.Errorf("read reply recovery receipt: %w", err)
+		}
+		if receipt.intentID != "" {
+			item := &messages[retryCandidate.index]
+			item.TurnErrorCode = "agent_partial_committed"
+			item.TurnRetryable = false
+			item.TurnReplyRetryable = true
+		}
 	}
 	var nextBefore *int
 	if len(messages) > limit {

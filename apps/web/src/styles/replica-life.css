@@ -692,3 +692,12 @@
 .replica-page-empty p{font-size:12px;color:#93a085;line-height:1.9;max-width:380px;margin:10px auto 18px}
 .replica-page-empty>button+button{margin-top:8px}
 .replica-diary .lp-empty-inline{font-size:12px;color:#9ba88d;padding:20px;text-align:center}
+
+/* Schedule timeline summary inside narrow surfaces (phone sheet): the time
+   takes its own line so activity, badges and place wrap predictably. */
+@media (width < 640px) {
+  .react-workspace .domain-rich-label > .schedule-time { flex-basis: 100%; }
+  .react-workspace .domain-rich-label > .grow { flex: 1 1 0%; min-width: 0; }
+  .react-workspace .domain-rich-label .schedule-item-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
+  .react-workspace .domain-rich-label .grow > .small { display: block; }
+}

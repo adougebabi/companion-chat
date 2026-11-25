@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": "AGENTS.md",
-      "hash": "b2929b3cf331800d753e71412ac78c697bf5253338ebd81a506c31cfd0c74471",
+      "hash": "ecc42f63e025c90b74a89a1c63a4076045aef9dc3ede6899bf53607b65874c67",
       "action": "connected",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -17,14 +17,14 @@
         "tasks": null,
         "critical": true,
         "path": "AGENTS.md",
-        "hash": "b2929b3cf331800d753e71412ac78c697bf5253338ebd81a506c31cfd0c74471",
+        "hash": "ecc42f63e025c90b74a89a1c63a4076045aef9dc3ede6899bf53607b65874c67",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
     },
     {
       "path": "CLAUDE.md",
-      "hash": "0e12e22f253cf1a94e79d4fee6a1c484a629e85ebd9d9a146f8303cc0589b051",
+      "hash": "dbce9a0e128a6b563a566d3086a672f99d043198696fa68e6214fa2a762698f1",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -38,7 +38,7 @@
         "tasks": null,
         "critical": false,
         "path": "CLAUDE.md",
-        "hash": "0e12e22f253cf1a94e79d4fee6a1c484a629e85ebd9d9a146f8303cc0589b051",
+        "hash": "dbce9a0e128a6b563a566d3086a672f99d043198696fa68e6214fa2a762698f1",
         "body": "",
         "reason": "managed entry contains no project-specific rules"
       }
@@ -213,8 +213,29 @@
       }
     },
     {
+      "path": "docs/frontend-ui-quality.md",
+      "hash": "e3551210c806851af57df8cea7ac12d7feb41403c7e03515c153ad5e9360ff48",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/frontend-ui-quality.md",
+        "title": "frontend-ui-quality.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/frontend-ui-quality.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/frontend-ui-quality.md",
+        "hash": "e3551210c806851af57df8cea7ac12d7feb41403c7e03515c153ad5e9360ff48",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
       "path": "docs/llm-prompt-composition.md",
-      "hash": "9179236735b97817d79a29363c5d4a1cb8cbe9ee54e92bc593e640407f7a1cc7",
+      "hash": "042585396a94a7fbe0e054a57d49e3c96bd935d071f06b0a3878715e89938e93",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -228,7 +249,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-prompt-composition.md",
-        "hash": "9179236735b97817d79a29363c5d4a1cb8cbe9ee54e92bc593e640407f7a1cc7",
+        "hash": "042585396a94a7fbe0e054a57d49e3c96bd935d071f06b0a3878715e89938e93",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }

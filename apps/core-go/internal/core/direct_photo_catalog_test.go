@@ -6,9 +6,109 @@ import (
 	"testing"
 )
 
+func TestDirectPhotoPublicationCorrectionPublishesBeforeCatalog(t *testing.T) {
+	const finalReply = "我先想想怎么拍。"
+	calls := 0
+	router := newFakeProviderRouter().
+		on(directImageDiscoverySchema, func(map[string]any) fakeProviderResult {
+			return fakeProviderResult{Structured: map[string]any{"needed_tool": "media.image.generate"}}
+		}).
+		otherwise(func(payload map[string]any) fakeProviderResult {
+			calls++
+			influences := []any{}
+			switch calls {
+			case 2:
+				return fakeProviderResult{Text: "这条候选没有调用工具。"}
+			case 3:
+				checkDirectImageReplySchema(t, payload)
+				if !strings.Contains(jsonString(payload["messages"]), "private_reply_not_published") {
+					t.Error("the correction must give the model the native reply tool")
+				}
+				influences = append(influences, map[string]any{"ref": "cr_ffffffffffff", "role": "grounds", "confidence": 1, "note": "无效引用"})
+			default:
+				if calls != 1 {
+					t.Error("native correction did not finish the original turn")
+					return fakeProviderResult{}
+				}
+			}
+			call := nativePersonaToolCall(fmt.Sprintf("reply-correction-%d", calls), conversationReplyCapabilityName, map[string]any{
+				"text": finalReply, "decision": map[string]any{"action_type": "reply", "response_intent": "回应", "influences": influences},
+			})
+			return fakeProviderResult{ToolCalls: []map[string]any{call}}
+		})
+	ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "direct-photo-correction", router)
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, owner, fid, conversation); err != nil {
+		t.Fatal(err)
+	}
+	persistConversationReplyMode(t, ctx, repo, "direct")
+	for index, input := range []string{"能发张自拍吗？", "你觉得怎么样？"} {
+		result, err := app.HandleTurn(ctx, owner, conversation, map[string]any{
+			"fluctlight_id": fid, "text": input, "idempotency_key": fmt.Sprintf("catalog-correction-turn-%d", index), "attachment_refs": []any{},
+		})
+		if err != nil || stringValue(result.Assistant["text"]) != finalReply {
+			t.Fatalf("turn %d did not publish the model's native reply: %v", index, err)
+		}
+	}
+	var images int
+	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE conversation_id=$1`, conversation).Scan(&images); err != nil || images != 0 || calls != 3 {
+		t.Fatalf("unexpected picture action or continuation: calls=%d images=%d err=%v", calls, images, err)
+	}
+}
+
+func TestDirectPhotoCatalogStallAllowsTheOfferedReply(t *testing.T) {
+	const replyText = "让我重新想想怎么拍。"
+	calls := 0
+	router := newFakeProviderRouter().
+		on(directImageDiscoverySchema, func(map[string]any) fakeProviderResult {
+			return fakeProviderResult{Structured: map[string]any{"needed_tool": "media.image.generate"}}
+		}).
+		on(directMediaDeliveryCheckSchema, func(map[string]any) fakeProviderResult {
+			return fakeProviderResult{Structured: map[string]any{"claims": []any{}}}
+		}).
+		otherwise(func(payload map[string]any) fakeProviderResult {
+			calls++
+			if (calls == 5 || calls == 6) && (len(arrayValue(payload["tools"])) != 1 || !r6PayloadHasTool(payload, conversationReplyCapabilityName)) {
+				t.Error("the fourth attempt should expose only the reply tool after three ineffective calls")
+			}
+			if calls == 5 {
+				return fakeProviderResult{}
+			}
+			if calls > 6 {
+				t.Error("the reply tool offered after discovery stalled did not publish")
+				return fakeProviderResult{Status: 400}
+			}
+			text := replyText
+			if calls >= 2 && calls <= 4 {
+				text = fmt.Sprintf("我想想怎么拍，候选 %d。", calls)
+			}
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall(
+				fmt.Sprintf("catalog-stall-reply-%d", calls), conversationReplyCapabilityName, map[string]any{
+					"text": text, "decision": map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}},
+				})}}
+		})
+	ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "direct-photo-catalog-stall", router)
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, owner, fid, conversation); err != nil {
+		t.Fatal(err)
+	}
+	persistConversationReplyMode(t, ctx, repo, "direct")
+	for index, input := range []string{"能拍一张吗？", "怎么还没发？"} {
+		result, err := app.HandleTurn(ctx, owner, conversation, map[string]any{
+			"fluctlight_id": fid, "text": input, "idempotency_key": fmt.Sprintf("catalog-stall-turn-%d", index), "attachment_refs": []any{},
+		})
+		if err != nil || stringValue(result.Assistant["text"]) != replyText {
+			t.Fatalf("turn %d did not publish the native reply: err=%v", index, err)
+		}
+	}
+	var images int
+	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE conversation_id=$1`, conversation).Scan(&images); err != nil || images != 0 || calls != 6 {
+		t.Fatalf("expected one completed follow-up without a fabricated image: calls=%d images=%d err=%v", calls, images, err)
+	}
+}
+
 func TestDirectPhotoFollowupLoadsImageBeforeReply(t *testing.T) {
 	const queued = "已经提交拍摄任务，等有结果再发给你。"
 	mainCalls, discoveryCalls := 0, 0
+	checkedQueuedReply := false
 	router := newFakeProviderRouter().
 		on(directImageDiscoverySchema, func(payload map[string]any) fakeProviderResult {
 			discoveryCalls++
@@ -21,7 +121,25 @@ func TestDirectPhotoFollowupLoadsImageBeforeReply(t *testing.T) {
 			}
 			return fakeProviderResult{Structured: map[string]any{"needed_tool": neededTool}}
 		}).
-		on(directMediaDeliveryCheckSchema, func(map[string]any) fakeProviderResult {
+		on(directMediaDeliveryCheckSchema, func(payload map[string]any) fakeProviderResult {
+			checkerProtocol := false
+			for _, raw := range arrayValue(payload["messages"]) {
+				message := mapValue(raw)
+				content := stringValue(message["content"])
+				if message["role"] == "system" {
+					checkerProtocol = checkerProtocol || strings.Contains(content, "你执行媒体交付声明提取")
+					if strings.Contains(content, directImageDiscoveryNextRule) {
+						t.Error("nested delivery checker received the main loop's directory prompt")
+					}
+				}
+				packet := decodeObject([]byte(content))
+				if message["role"] == "user" && packet["candidate"] == queued {
+					_, checkedQueuedReply = packet["committed_deliveries"]
+				}
+			}
+			if !checkerProtocol {
+				t.Error("nested delivery checker did not receive its own protocol")
+			}
 			return fakeProviderResult{Structured: map[string]any{"claims": []any{}}}
 		}).
 		otherwise(func(payload map[string]any) fakeProviderResult {
@@ -58,13 +176,25 @@ func TestDirectPhotoFollowupLoadsImageBeforeReply(t *testing.T) {
 				plan["capture_method"], plan["viewpoint"], plan["framing"], plan["camera_angle"] = "handheld_selfie", "subject_facing", "full_body", "eye_level"
 				return invoke("photo-execute", "media.image.generate", map[string]any{"intent": "拍一张当前自拍", "media_plan": plan})
 			case 5:
+				checkDirectImageReplySchema(t, payload)
+				wire := jsonString(payload["messages"])
+				if !strings.Contains(wire, "终稿用 conversation_reply 的 text 提交") || strings.Contains(wire, "终稿用 conversation.reply") {
+					t.Error("reply instructions did not match the model-facing tool name")
+				}
+				if !strings.Contains(wire, "把任务回执、后台和传输过程留在内部") ||
+					strings.Contains(wire, "告诉对方已提交并等结果") {
+					t.Error("accepted image request requires backend narration in the private reply")
+				}
 				return fakeProviderResult{}
 			case 6, 7, 8:
+				checkDirectImageReplySchema(t, payload)
 				receipts := nativePersonaToolMessages(payload)
 				if !strings.Contains(receipts, "accepted") {
 					t.Error("model did not receive an actual accepted image intent receipt")
 				}
-				if mainCalls == 6 && (!strings.Contains(jsonString(payload["messages"]), "private_reply_not_published") ||
+				if mainCalls == 6 && (!strings.Contains(jsonString(payload["messages"]), "keep processing language out of the reply") ||
+					!strings.Contains(jsonString(payload["messages"]), "native conversation_reply Tool") ||
+					!strings.Contains(jsonString(payload["messages"]), "private_reply_not_published") ||
 					len(arrayValue(payload["tools"])) != 1 || !r6PayloadHasTool(payload, conversationReplyCapabilityName)) {
 					t.Error("empty stop did not lead to a reply-only correction")
 				}
@@ -108,6 +238,9 @@ func TestDirectPhotoFollowupLoadsImageBeforeReply(t *testing.T) {
 	}
 	followup := map[string]any{"fluctlight_id": fid, "text": "还没发哦", "idempotency_key": "photo-followup", "attachment_refs": []any{}}
 	result, err := app.HandleTurn(ctx, owner, conversation, followup)
+	if !checkedQueuedReply {
+		t.Error("delivery checker did not receive the actual queued reply candidate and evidence")
+	}
 	var intents int
 	queryErr := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE conversation_id=$1 AND owner_fluctlight_id=$2 AND kind='image'`, conversation, fid).Scan(&intents)
 	if err != nil || queryErr != nil || intents != 1 || stringValue(result.Assistant["text"]) != queued || mainCalls != 8 {
@@ -129,5 +262,19 @@ func TestDirectPhotoFollowupLoadsImageBeforeReply(t *testing.T) {
 	ordinary, err := app.HandleTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "晚安", "idempotency_key": "ordinary", "attachment_refs": []any{}})
 	if err != nil || stringValue(ordinary.Assistant["text"]) != "晚安。" || mainCalls != 9 || discoveryCalls != 2 {
 		t.Fatalf("ordinary turn did not reply directly: main=%d discovery=%d err=%v", mainCalls, discoveryCalls, err)
+	}
+}
+
+func checkDirectImageReplySchema(t *testing.T, payload map[string]any) {
+	t.Helper()
+	tools := arrayValue(payload["tools"])
+	if len(tools) != 1 || !r6PayloadHasTool(payload, conversationReplyCapabilityName) {
+		t.Fatal("expected only the native private reply")
+	}
+	parameters := mapValue(mapValue(mapValue(tools[0])["function"])["parameters"])
+	decision := mapValue(mapValue(parameters["properties"])["decision"])
+	properties := mapValue(decision["properties"])
+	if len(properties) != 3 || properties["action_type"] == nil || properties["response_intent"] == nil || properties["influences"] == nil {
+		t.Fatalf("image reply received the wrong decision schema: %v", properties)
 	}
 }

@@ -230,7 +230,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		}
 		if conversationPublicationOmission(ctx, result) && m.publicationCorrectionUsed != nil && m.publicationCorrectionUsed.CompareAndSwap(false, true) {
 			correctionCtx := context.WithValue(ctx, conversationPublicationCorrectionKey{}, true)
-			corrected := conversationPublicationCorrectionInput(originalInput)
+			corrected := conversationPublicationCorrectionInput(ctx, originalInput)
 			correctionCtx = withContinuationPromptSlots(correctionCtx, PromptSlotTrace{SlotID: "publication_correction_feedback", Position: PromptSlotCurrentInput, MessageIndex: len(corrected) - 1, Source: "core_publication_check", Reason: "missing_publication_correction"})
 			return m.Generate(correctionCtx, corrected, originalOpts...)
 		}
@@ -243,11 +243,8 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		result = m.toolCallFallback
 	}
 	result = canonicalizeModelToolNames(result)
-	if adkContext, ok := adkCapabilityContext(ctx); ok && result != nil {
-		adkContext.Refresh.noteModelToolCalls(sequence, result.ToolCalls)
-		if adkContext.Trace != nil {
-			adkContext.Trace.RecordModelToolCalls(callRequestID, sequence, result.ToolCalls)
-		}
+	if result != nil {
+		recordEinoNativeToolCalls(ctx, callRequestID, sequence, result.ToolCalls)
 	}
 
 	return result, err
@@ -390,15 +387,14 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 			}
 			if conversationPublicationOmission(ctx, candidate) && m.publicationCorrectionUsed != nil && m.publicationCorrectionUsed.CompareAndSwap(false, true) {
 				correctionCtx := context.WithValue(ctx, conversationPublicationCorrectionKey{}, true)
-				corrected := conversationPublicationCorrectionInput(originalInput)
+				corrected := conversationPublicationCorrectionInput(ctx, originalInput)
 				correctionCtx = withContinuationPromptSlots(correctionCtx, PromptSlotTrace{SlotID: "publication_correction_feedback", Position: PromptSlotCurrentInput, MessageIndex: len(corrected) - 1, Source: "core_publication_check", Reason: "missing_publication_correction"})
 				return m.Stream(correctionCtx, corrected, originalOpts...)
 			}
 		}
 		candidate = canonicalizeModelToolNames(candidate)
-		if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Trace != nil {
-			bridge.Refresh.noteModelToolCalls(sequence, candidate.ToolCalls)
-			bridge.Trace.RecordModelToolCalls(callRequestID, sequence, candidate.ToolCalls)
+		if candidate != nil {
+			recordEinoNativeToolCalls(ctx, callRequestID, sequence, candidate.ToolCalls)
 		}
 		reader, writer := schema.Pipe[*schema.Message](1)
 		writer.Send(candidate, nil)
@@ -420,6 +416,21 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		}
 		return message, nil
 	}), nil
+}
+
+func recordEinoNativeToolCalls(ctx context.Context, requestID string, sequence uint64, calls []schema.ToolCall) {
+	bridge, ok := adkCapabilityContext(ctx)
+	if !ok || len(calls) == 0 {
+		return
+	}
+	bridge.Refresh.noteModelToolCalls(sequence, calls)
+	// The tool callback runs in the parent Runner context. Keep the validated
+	// physical correction phase with its native call until execution.
+	if correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool); correcting {
+		bridge.Trace.RecordPublicationCorrectionToolCalls(requestID, sequence, calls)
+		return
+	}
+	bridge.Trace.RecordModelToolCalls(requestID, sequence, calls)
 }
 
 func (m *queuedToolCallingChatModel) preparePhysicalInput(ctx context.Context, input []*schema.Message) ([]*schema.Message, error) {
@@ -2086,7 +2097,11 @@ func einoInputParts(parts []any) ([]schema.MessageInputPart, string, error) {
 	return result, text.String(), nil
 }
 
-func conversationPublicationCorrectionInput(input []*schema.Message) []*schema.Message {
+func conversationPublicationCorrectionInput(ctx context.Context, input []*schema.Message) []*schema.Message {
 	corrected := append([]*schema.Message(nil), input...)
-	return append(corrected, schema.UserMessage(renderProviderJSON(map[string]any{"validation_feedback": "private_reply_not_published", "instruction": "The previous response ended without publishing a private reply. Publish the reply now through the native conversation.reply Tool using the authorized conversation context and real Tool results. Generate its arguments yourself. Do not return final prose or cognition JSON in this request."})))
+	instruction := "The previous response ended without publishing a private reply. Publish the reply now through the native conversation_reply Tool using the authorized conversation context and real Tool results. Generate its arguments yourself. Do not return final prose or cognition JSON in this request."
+	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" {
+		instruction += ` Put the character's natural reply in text. Use tool receipts internally and keep processing language out of the reply. Report delivery only with real delivery evidence. Supply decision with action_type="reply", a short response_intent and influences=[]. Omit extra fields.`
+	}
+	return append(corrected, schema.UserMessage(renderProviderJSON(map[string]any{"validation_feedback": "private_reply_not_published", "instruction": instruction})))
 }

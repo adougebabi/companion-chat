@@ -148,6 +148,9 @@ func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 					if !ok || !seen[identity.ProviderRequestID] {
 						t.Fatalf("native provenance lost %s: %#v", invocation.CallID, identity)
 					}
+					if identity.PublicationCorrection != (invocation.CallID == "native-corrected-reply") {
+						t.Fatalf("physical correction did not stay scoped to its own tool call: %s %#v", invocation.CallID, identity)
+					}
 				}
 				if outcome == "corrected_receipt" {
 					continuation := requests[3]

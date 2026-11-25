@@ -18,7 +18,7 @@ export default function ChatTurnFeedback({
   onOpenDiagnostic,
 }: {
   message: Readonly<
-    Pick<BrowserMessage, "id" | "turnErrorCode" | "turnId" | "turnRetryable" | "turnStatus">
+    Pick<BrowserMessage, "id" | "turnErrorCode" | "turnId" | "turnRetryable" | "turnReplyRetryable" | "turnStatus">
   >;
   messages: readonly Readonly<Pick<BrowserMessage, "kind" | "turnId">>[];
   store: ConversationController;
@@ -33,7 +33,9 @@ export default function ChatTurnFeedback({
   const reason = settling?message.turnStatus==='cancelled'
     ?'这次回应已停止，原消息已保留，暂时不能重试。'
     :chatFailureText(message.turnErrorCode||store.error, messages.some(row=>row.kind==='assistant'&&row.turnId===message.turnId))+' 当前暂时不能重试，可先重新核对状态。':
-    message.turnErrorCode === "agent_partial_committed"
+    message.turnReplyRetryable
+      ? "图片任务已受理，可以单独重试文字回复。"
+      : message.turnErrorCode === "agent_partial_committed"
       ? "部分操作已执行，不能直接重试。请先查看实际结果。"
       : chatFailureText(
           message.turnErrorCode || store.error,
@@ -43,20 +45,25 @@ export default function ChatTurnFeedback({
         );
   return (
     <><Feedback kind={checking?'progress':checkError?'warning':settling?'warning':message.turnErrorCode==='agent_partial_committed'?'warning':message.turnStatus==='cancelled'?'information':'error'} className="mt-2" actions={<div className="ml-auto flex flex-nowrap items-center justify-end gap-3 whitespace-nowrap">
-      {(message.turnRetryable||message.turnId)?<Button
+      {(message.turnRetryable||message.turnReplyRetryable||message.turnId)?<Button
         variant="outline"
         className="w-fit max-[700px]:min-h-[44px]"
         disabled={store.sending || store.retrying||checking}
-        onClick={() =>
-          message.turnRetryable
-            ? store.retryMessage(message.id)
-            : void readStatus()
-        }
+        onClick={() => {
+          if (message.turnReplyRetryable) {
+            setCheckError('');
+            void store.retryReply(message.id).catch((cause) => setCheckError(errorMessage(cause)));
+          } else if (message.turnRetryable) {
+            void store.retryMessage(message.id);
+          } else {
+            void readStatus();
+          }
+        }}
       >
-        {message.turnRetryable?<RotateCcwIcon size={14}/>:<RefreshCwIcon size={14}/>}
+        {message.turnRetryable||message.turnReplyRetryable?<RotateCcwIcon size={14}/>:<RefreshCwIcon size={14}/>}
         {checking?'核对中…':store.retrying
           ? "重试中…"
-          : message.turnRetryable
+          : message.turnReplyRetryable ? "仅重试回复" : message.turnRetryable
             ? "重试原回应"
             : "查看状态"}
       </Button>:null}

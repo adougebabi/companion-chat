@@ -61,16 +61,21 @@ test('switching all settings tabs, closing and reopening preserves selection and
  }finally{await v.dispose();}
 });
 
-test('日程设置仅在窄屏保留四分之一视口作为遮罩，桌面沿用原有宽度',async()=>{
+// Geometry itself is verified in real Chromium (e2e/schedule-settings.spec.ts).
+// This only guards the ownership contract: the sheet uses the shared
+// ResponsiveSheet and no business rule overrides its width.
+test('日程设置使用共享 ResponsiveSheet，业务 CSS 不再覆盖其宽度',async()=>{
  const css=await readFile(new URL('../src/styles/react.css',import.meta.url),'utf8');
- assert.match(css,/\.product-sheet\s*\{\s*width: min\(540px, calc\(100vw - 16px\)\);\s*max-width: none;/);
- assert.match(css,/@media \(width < 640px\)\s*\{\s*\.product-sheet\.schedule-settings-sheet\s*\{\s*width: 75vw;\s*\}\s*\}/);
+ assert.doesNotMatch(css,/schedule-settings-sheet\s*\{[^}]*width/);
+ assert.doesNotMatch(css,/75vw/);
+ assert.match(css,/@import "\.\/overlay\.css";/);
  const v=await mount('promises');
  try{
   const dialog=document.querySelector('[data-slot=sheet-content]');
   assert.ok(dialog.classList.contains('schedule-settings-sheet'));
-  assert.ok(dialog.classList.contains('data-[side=right]:w-3/4'));
+  assert.ok(dialog.hasAttribute('data-responsive-sheet'));
   assert.equal(dialog.dataset.side,'right');
+  for(const part of ['header','body'])assert.ok(dialog.querySelector(`:scope > [data-responsive-sheet-part="${part}"]`),part);
  }finally{await v.dispose();}
 });
 

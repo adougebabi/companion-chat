@@ -15,6 +15,7 @@ import (
 type directMainReplyCapability struct {
 	app         *App
 	publication *ToolPublicationService
+	replyOnly   bool
 }
 
 // The direct private conversation presents its directory as the next step
@@ -28,17 +29,24 @@ func (c directMainCatalogCapability) Definition() CapabilityDefinition {
 }
 
 const directMainConversationProtocol = `本回合的第一步是选择下一步原生工具。判断对话中用户在期待什么，以及你是否愿意现在采取行动。若用户正在追问尚未发来的照片，而且你会继续拍摄，那么下一步是 capability_catalog，names 填 media.image.generate；接下来获得图片工具并继续。决定不行动时直接 conversation_reply，说明真实选择。
-以生效人格自然表达，长短随情境，括号动作可选。不要假设双方同处，也不要把愿望或过去的承诺当成现状。真正执行后消费回执再回复，受理不表示已送达。终稿用 conversation.reply 的 text 提交，decision 按原生 schema 只提供本轮有依据的信息和有效引用。没有依据的可选字段省略。`
+以生效人格自然表达，长短随情境，括号动作可选。不要假设双方同处，也不要把愿望或过去的承诺当成现状。真正执行后消费回执再回复，受理不表示已送达。终稿用 conversation_reply 的 text 提交，decision 按原生 schema 只提供本轮有依据的信息和有效引用。没有依据的可选字段省略。`
 
 func (c directMainReplyCapability) Definition() CapabilityDefinition {
 	d := conversationReplyCapabilityDefinition()
 	d.Version = "direct-main.v1"
-	d.Description = "Publish the final private reply after any action you choose is done or has a real receipt. If the user is following up on a photo and you choose to make it now, call capability_catalog first to load the image action. For an accepted private image task, reply that it was submitted or is pending. Use only valid current reference IDs; for a simple receipt acknowledgment use decision with action_type=reply, a short response_intent and influences=[]. Omit optional decision fields that are unnecessary."
+	d.Description = "Publish a natural private reply in the character's voice after any chosen action returns a real receipt. To take a photo, load the image tool through capability_catalog first. Ground facts in the receipt and keep processing language internal. Use valid current references; a simple reply can use action_type=reply, a short response_intent and influences=[]. Omit unsupported optional fields."
 	d.Surfaces = []CapabilitySurface{CapabilitySurfaceConversation}
 	d.ModelPreserveOptionalObjectPaths = []string{"decision"}
 	properties := map[string]any{
 		"text":     map[string]any{"type": "string", "minLength": 1, "maxLength": 32000, "description": "Your final private message to the other person."},
 		"decision": directMainDecisionSchema(),
+	}
+	if c.replyOnly {
+		d.Description = "Publish the character's natural reply to the original user message. Use real results for factual grounding and keep processing language internal. Supply text and decision with action_type=reply, a short response_intent and influences=[]."
+		decision := mapValue(properties["decision"])
+		original := mapValue(decision["properties"])
+		mapValue(original["influences"])["description"] = "Use the empty array []. This reply-only request does not need influence citations."
+		properties["decision"] = objectSchema(map[string]any{"action_type": original["action_type"], "response_intent": original["response_intent"], "influences": original["influences"]}, []string{"action_type", "response_intent", "influences"}, false)
 	}
 	d.InputSchema = objectSchema(properties, []string{"text", "decision"}, false)
 	return d
@@ -146,7 +154,11 @@ func (c directMainReplyCapability) Prepare(ctx context.Context, invocation Capab
 		if err != nil {
 			return invocation, newCapabilityError("direct_media_delivery_check_failed", true, err)
 		}
-		mediaRefs, err = c.app.checkDirectMediaDeliveryClaims(ctx, projection, run.CurrentInput, text, deliveries, directCurrentMediaIntents(bridge.Trace, invocation))
+		currentMedia := directCurrentMediaIntents(bridge.Trace, invocation)
+		if retry := directReplyRetryFromContext(ctx); retry.intentID != "" {
+			currentMedia[retry.intentID] = true
+		}
+		mediaRefs, err = c.app.checkDirectMediaDeliveryClaims(ctx, projection, run.CurrentInput, text, deliveries, currentMedia)
 		if err != nil {
 			return invocation, err
 		}
@@ -233,5 +245,6 @@ func (c directMainReplyCapability) SettleToolTx(ctx context.Context, tx pgx.Tx, 
 		return err
 	}
 	outcome := agentCommittedOutcome{Invocations: invocations, Results: results}
-	return c.app.settleAgentConversationTurnTx(ctx, tx, sourceFactID, turnID, request.FluctlightID, firstString(request.SubjectActorID, request.AuthorizationActorID), projection, decision, plan, map[string]any{"id": messageID}, mediaIntentFromCommittedResults(results), outcome, true)
+	mediaID := firstString(mediaIntentFromCommittedResults(results), directReplyRetryFromContext(ctx).intentID)
+	return c.app.settleAgentConversationTurnTx(ctx, tx, sourceFactID, turnID, request.FluctlightID, firstString(request.SubjectActorID, request.AuthorizationActorID), projection, decision, plan, map[string]any{"id": messageID}, mediaID, outcome, true)
 }

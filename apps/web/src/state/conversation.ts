@@ -842,7 +842,9 @@ export const conversationDefinition = defineDomain({
         this.retryTurn = retry;
         persistRetry(retry);
         this.error =
-          latest.turnErrorCode === "agent_partial_committed"
+          latest.turnReplyRetryable
+            ? "图片任务已受理，可以单独重试文字回复。"
+            : latest.turnErrorCode === "agent_partial_committed"
             ? "本次生成已执行部分操作，不能直接重试，以免重复执行。详情请查看诊断：agent_partial_committed"
             : latest.turnRetryable === false
               ? "正在结束本次生成，完成后可以重试。"
@@ -1537,6 +1539,22 @@ export const conversationDefinition = defineDomain({
       } catch {
         if (stillCurrent())
           this.error = "取消请求结果尚未确认，请刷新进度核对。原消息已保留。";
+      }
+    },
+    async retryReply(messageId: string) {
+      const conversationId = this.conversation?.id;
+      const message = this.messages.find(
+        (entry) => entry.id === messageId && entry.kind === "user" && entry.turnReplyRetryable,
+      );
+      if (!conversationId || !message?.turnId || this.sending || this.retrying || this.hasPendingTurn) return;
+      this.retrying = true;
+      try {
+        await client.retryReply(conversationId, message.turnId);
+        if (this.conversation?.id === conversationId) {
+          await this.refreshActiveTurn(true, message.turnId);
+        }
+      } finally {
+        if (this.conversation?.id === conversationId) this.retrying = false;
       }
     },
     async retryMessage(messageId: string) {

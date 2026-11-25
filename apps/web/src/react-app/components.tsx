@@ -5,17 +5,11 @@ import {ToggleGroup,ToggleGroupItem} from '@/components/ui/toggle-group';
 import {Alert,AlertDescription} from '@/components/ui/alert';
 import {toast} from '@/v3/proto/components/toast.js';
 import {InputGroup,InputGroupAddon,InputGroupButton} from '@/components/ui/input-group';
-import {SearchIcon,XIcon} from 'lucide-react';
+import {SearchIcon} from 'lucide-react';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import * as React from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,SheetFooter,
-} from "@/components/ui/sheet";
 import { ActionButton, FieldInput, Disclosure } from "./controls";
+import { DetailSheet } from "@/components/patterns/sheets";
 import { useWorkspace } from "./page";
 import { renderGarmentArt } from "./renderers/GarmentArt";
 import { selector } from "../state/view-model";
@@ -227,46 +221,27 @@ export function DetailDrawer({
     () => document.activeElement as HTMLElement | null,
   );
   const prefix = testId || props["test-id"];
+  // Layout is owned by the shared DetailSheet (ResponsiveSheet).
   return (
-    <Sheet
+    <DetailSheet
       open
-      onOpenChange={(open) => {
-        if (!open) onClose?.();
+      onOpenChange={(open) => { if (!open) onClose?.(); }}
+      title={title}
+      data-testid={prefix}
+      closeTestId={prefix ? `${prefix}-close` : undefined}
+      className={"react-workspace product-sheet " + contentClassName}
+      footer={footer}
+      onCloseAutoFocus={(event) => {
+        event.preventDefault();
+        const target = returnFocus?.() || previous;
+        (target?.isConnected
+          ? target
+          : document.querySelector<HTMLElement>("main")
+        )?.focus({ preventScroll: true });
       }}
     >
-      <SheetContent
-        data-testid={prefix}
-        showCloseButton={false}
-        className={"react-workspace product-sheet gap-0 overflow-hidden " + contentClassName}
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-          const target = returnFocus?.() || previous;
-          (target?.isConnected
-            ? target
-            : document.querySelector<HTMLElement>("main")
-          )?.focus({ preventScroll: true });
-        }}
-      >
-        <SheetHeader className="relative shrink-0 border-b pr-16">
-          <SheetTitle>{title}</SheetTitle>
-          <SheetDescription className="sr-only">
-            查看当前记录与相关信息
-          </SheetDescription>
-          <ActionButton variant="ghost"
-            type="button"
-            size="icon"
-            className="absolute right-3 top-3"
-            aria-label="关闭"
-            data-testid={`${prefix}-close`}
-            onClick={onClose}
-          >
-            <XIcon aria-hidden="true"/>
-          </ActionButton>
-        </SheetHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
-        {footer&&<SheetFooter className="shrink-0 border-t border-border p-4 sm:flex-row sm:justify-end">{footer}</SheetFooter>}
-      </SheetContent>
-    </Sheet>
+      {children}
+    </DetailSheet>
   );
 }
 export function GarmentArt(props: any) {

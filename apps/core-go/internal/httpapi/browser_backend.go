@@ -569,6 +569,9 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 	case strings.HasPrefix(path, "/internal/conversations/") && strings.HasSuffix(path, "/cancel") && method == http.MethodPost:
 		parts := splitInternalPath(path)
 		err = b.server.app.CancelTurn(ctx, actorID, pathPart(parts, 2), pathPart(parts, 4))
+	case strings.HasPrefix(path, "/internal/conversations/") && strings.HasSuffix(path, "/retry-reply") && method == http.MethodPost:
+		parts := splitInternalPath(path)
+		err = b.server.app.RetryDirectReply(ctx, actorID, pathPart(parts, 2), pathPart(parts, 4))
 	case strings.HasSuffix(path, "/read") && strings.Contains(path, "/internal/conversations/"):
 		parts := splitInternalPath(path)
 		err = b.server.app.MarkRead(ctx, actorID, pathPart(parts, 2), values)

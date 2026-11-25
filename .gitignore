@@ -49,3 +49,10 @@ apps/*/.gomodcache/
 image.png
 .trellis/
 
+
+# Playwright UI acceptance output (screenshots, traces, reports) — local/CI artifact only.
+apps/web/test-results/
+apps/web/playwright-report/
+# Approved visual baselines: local/CI only, never committed (AGENTS.md). The
+# manifest inside each environment directory records the design review.
+/.ui-baselines/

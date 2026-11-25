@@ -5,12 +5,7 @@ import {ClockIcon} from 'lucide-react';
 import {MinusIcon,PlusIcon} from 'lucide-react';
 import ControlHint from './shared/ControlHint';
 import DateField from './shared/DateField';
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import * as React from "react";
 import { Slot } from "radix-ui";
 import { ChevronDownIcon } from "lucide-react";
@@ -353,29 +348,26 @@ export function DrawerFrame({ children, onClose, title }: any) {
   const [trigger] = React.useState(
     () => document.activeElement as HTMLElement | null,
   );
+  // Layout is owned by the shared ResponsiveSheet.
   return (
-    <Sheet
+    <ResponsiveSheet
       open
-      onOpenChange={(open) => {
-        if (!open) onClose?.();
+      onOpenChange={(open) => { if (!open) onClose?.(); }}
+      title={title || headingText(children) || "编辑详情"}
+      description="编辑当前对象，取消时保留未提交内容"
+      hideDescription
+      // Untitled callers render their own visible heading inside children.
+      hideHeader={!title}
+      className="react-workspace product-sheet"
+      onCloseAutoFocus={(event) => {
+        event.preventDefault();
+        (trigger?.isConnected
+          ? trigger
+          : document.querySelector<HTMLElement>("main")
+        )?.focus({ preventScroll: true });
       }}
     >
-      <SheetContent
-        className="react-workspace product-sheet overflow-y-auto"
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-          (trigger?.isConnected
-            ? trigger
-            : document.querySelector<HTMLElement>("main")
-          )?.focus({ preventScroll: true });
-        }}
-      >
-        {!title&&<SheetTitle className="sr-only">{headingText(children) || "编辑详情"}</SheetTitle>}
-        <SheetDescription className="sr-only">
-          编辑当前对象，取消时保留未提交内容
-        </SheetDescription>
-        <div className="p-6">{title&&<SheetTitle className="mb-4 pr-8 text-lg">{title}</SheetTitle>}{children}</div>
-      </SheetContent>
-    </Sheet>
+      {children}
+    </ResponsiveSheet>
   );
 }

@@ -11,7 +11,9 @@ const directImageDiscoverySchema = "direct_image_discovery_v1"
 
 const directImageDiscoveryNextRule = `本阶段只确认图片工具是否可用。当前任务接续上一轮未交付图片，下一项工具是 capability_catalog，参数为 {"names":["media.image.generate"]}。目录只读，查询不会生成或发送图片。先返回该原生工具调用，收到真实目录结果后再以当前角色决定是否拍摄和回复。`
 
-const directImageAcceptedReplyRule = `工具回执是 accepted，表示图片任务已经提交、照片目前还没有发。现在用 conversation_reply 提交原生私聊回复，告诉对方已提交并等结果。不要说已经拍好、正在发或已经发了。decision 只需填写 action_type="reply"、一句简短的 response_intent 和 influences=[]。不要填写任何推测的引用或可选字段。`
+const directPhotoReplyStyle = `用角色平时对对方说话的方式接住原消息，正文只写角色想对对方说的话。把任务回执、后台和传输过程留在内部。即使对方问照片进度，也用日常口吻简短回应，让角色自行决定是否请对方稍等。拍好、发送或送达都以真实回执为准，避免承诺具体时间。`
+
+const directImageAcceptedReplyRule = `本轮的图片请求已受理，尚无图片送达回执。现在用 conversation_reply 发布私聊正文。` + directPhotoReplyStyle + `decision 只需填写 action_type="reply"、一句简短的 response_intent 和 influences=[]。不要填写任何推测的引用或可选字段。`
 
 // The model resolves the current reference and chooses whether it needs to
 // discover the image capability. This phase neither authorizes a capture nor
@@ -50,35 +52,58 @@ func (a *App) directImageDiscoveryNeeded(ctx context.Context, projection Context
 	return result.Completion.Structured["needed_tool"] == "media.image.generate"
 }
 
-type directImageDiscoveryPromptKey struct{}
+// The prompt belongs to the main loop's physical policy. An isolated model
+// call clears that policy, so a fresh child trace cannot use this prompt.
+func directImageDiscoveryFocus(ctx context.Context) []*schema.Message {
+	policy, _ := physicalModelRequestPolicyFromContext(ctx)
+	publication, _ := policy.(conversationPublicationPhysicalRequestPolicy)
+	return publication.directImageDiscoveryPrompt
+}
 
 func directImageDiscoveryPhaseInput(ctx context.Context, input []*schema.Message) []*schema.Message {
-	focus, _ := ctx.Value(directImageDiscoveryPromptKey{}).([]*schema.Message)
+	if !conversationPublicationPolicyEnabled(ctx) {
+		return input
+	}
 	bridge, ok := adkCapabilityContext(ctx)
-	if len(focus) == 0 || !ok || bridge.Trace == nil {
+	if !ok || bridge.Trace == nil {
 		return input
 	}
 	if correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool); correcting {
 		return input
 	}
+	focus := directImageDiscoveryFocus(ctx)
 	invocations, results := bridge.Trace.Snapshot()
-	for _, result := range results {
-		if result.CapabilityName == "media.image.generate" && result.Status == "accepted" {
-			for i, message := range input {
-				if message != nil && message.Role == schema.System {
-					updated := append([]*schema.Message(nil), input...)
-					system := *message
-					system.Content = directImageAcceptedReplyRule + "\n\n" + system.Content
-					updated[i] = &system
-					return updated
-				}
+	if directImageReplyPending(ctx, results) {
+		for i, message := range input {
+			if message != nil && message.Role == schema.System {
+				updated := append([]*schema.Message(nil), input...)
+				system := *message
+				system.Content = directImageAcceptedReplyRule + "\n\n" + system.Content
+				updated[i] = &system
+				return updated
 			}
 		}
 	}
-	if len(invocations) != 0 || len(results) != 0 {
+	if len(focus) == 0 || len(invocations) != 0 || len(results) != 0 {
 		return input
 	}
 	return focus
+}
+
+func directImageReplyPending(ctx context.Context, results []CapabilityResult) bool {
+	main, _ := ctx.Value(directMainConversationKey{}).(bool)
+	run := replyRunFromContext(ctx)
+	if !main || run == nil || run.Settings.Mode != "direct" {
+		return false
+	}
+	for _, result := range results {
+		output := mapValue(result.Output)
+		if result.CapabilityName == "media.image.generate" && result.Status == "accepted" &&
+			output["target_kind"] == "conversation" && stringValue(output["media_intent_id"]) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func directImageDiscoveryPrompt(projection ContextProjection, currentInput string) []*schema.Message {
@@ -93,8 +118,7 @@ func directImageDiscoveryPrompt(projection ContextProjection, currentInput strin
 // This follows the model's discovery decision and the native directory
 // receipt. It does not inspect message text or commit an image action.
 func directImageCatalogPending(ctx context.Context, results []CapabilityResult) bool {
-	focus, _ := ctx.Value(directImageDiscoveryPromptKey{}).([]*schema.Message)
-	if len(focus) == 0 {
+	if len(directImageDiscoveryFocus(ctx)) == 0 {
 		return false
 	}
 	for _, result := range results {

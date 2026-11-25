@@ -63,6 +63,7 @@ function presentError(error,fallback,reading) {
  if(/direct_media_delivery_unresolved|direct_media_delivery_unverified|direct_media_delivery_stale/.test(source))return '回复未发送：图片发送状态与回复内容未能通过核对。请查看被拦内容、判断依据和实际图片记录后重试。';
  if(/direct_media_delivery_check_failed/.test(source))return '回复未发送：图片发送状态检查失败，原消息已保留。';
  if(/direct_media_reply_stalled|direct_reply_arguments_unresolved/.test(source))return '回复未发送：模型多次未能完成回复处理，已停止重复尝试。请查看本次运行。';
+ if(/conversation_reply_retry_unavailable/.test(source))return '这条回复当前无法补发，请查看原回合状态。';
  if(/adk_run_failed|agent_run_failed/.test(source))return '回复处理失败；模型生成内容或任务结束不代表消息已发送。请查看同一回合的失败环节。';
  if(/vision_disabled/.test(source))return '视觉理解未启用；候选图片已保存，尚未经视觉检验。请到设置开启视觉理解并选择独立视觉模型，或提交人工评审。';
  if(/diary_model_snapshot_missing/.test(source))return '旧日记任务未记录原模型配置，未继续生成。已保存的素材和阶段结果仍在，可核对模型设置后重试。';
@@ -76,6 +77,7 @@ function presentError(error,fallback,reading) {
   return model+reason+'。请核对模型用途和服务连接，原资料与已完成步骤会保留。';
  }
  if(/media_subject_not_authorized/.test(source))return '图片中的人物范围未通过校验，生成尚未开始。请核对原任务中的人物引用后恢复。';
+ if(/media_prompt_reference_forbidden/.test(source))return '模型给出的参考图引用不适用于本次任务，尚未提交渲染。';
  if(/media_workflow_unclassified_lora_forbidden/.test(source))return '工作流中有 LoRA 未分类或不适用于本次图片，尚未提交渲染。请核对启用的槽位和分类。';
  if(/memory_embedding_unconfigured/.test(source))return '记忆正文已保存；尚未配置记忆检索向量模型，向量索引未完成。请到模型用途配置后恢复原任务。';
  if(/structured_response_truncated/.test(source))return '模型以长度终止状态结束了本次处理，完整结果尚未确认，请查看原任务后重试。';

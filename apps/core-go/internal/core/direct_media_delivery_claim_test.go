@@ -3,9 +3,46 @@ package core
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestCurrentImageReplyChecksDeliveryAssessment(t *testing.T) {
+	for _, test := range []struct {
+		name, candidate, assessment, quote string
+		pass                               bool
+	}{
+		{"generation pending", "想拍的照片请求我已经提交给系统啦，正在排队！等弄好了，第一时间就分享给你。", "generation_pending", "想拍的照片请求我已经提交给系统啦", true},
+		{"future delivery across clauses", "我这就去准备。等我弄好啦，第一时间就分享给你。", "future_delivery", "我这就去准备。", true},
+		{"false completion overrides assessment", "新照片还在排队，旧照我已经发给你了。", "generation_pending", "新照片还在排队", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			calls := 0
+			router := newFakeProviderRouter().on(directMediaDeliveryCheckSchema, func(payload map[string]any) fakeProviderResult {
+				calls++
+				format := mapValue(payload["response_format"])
+				schema := mapValue(mapValue(format["json_schema"])["schema"])
+				if len(mapValue(mapValue(schema["properties"])["assessment"])) == 0 {
+					t.Error("model did not receive the typed assessment")
+				}
+				return fakeProviderResult{Structured: map[string]any{
+					"assessment": test.assessment,
+					"claims":     []any{map[string]any{"quote": test.quote, "delivery_ref": "", "subject_quote": ""}},
+				}}
+			})
+			app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+			ctx := withFrozenProviderAssignment(context.Background(), "cognitive_assessment", providerAssignment{
+				Role: "cognitive_assessment", BaseURL: "http://fixture.invalid", ModelID: "assessment-fixture", Timeout: time.Second,
+			})
+			refs, err := app.checkDirectMediaDeliveryClaims(ctx, ContextProjection{}, "照片呢？", test.candidate, nil, map[string]bool{"current-photo": true})
+			if (err == nil) != test.pass || len(refs) != 0 || calls != 1 {
+				t.Fatalf("unexpected assessment: references=%v calls=%d err=%v", refs, calls, err)
+			}
+		})
+	}
+}
 
 // A model-generated completion claim is not evidence that a photo was sent.
 // This fixture creates no media intent and makes no media ToolCall.

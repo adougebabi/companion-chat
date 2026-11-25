@@ -96,6 +96,34 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 	if err != nil {
 		return ConversationCognitionAgentResult{}, err
 	}
+	replyRetry := directReplyRetryFromContext(ctx)
+	if replyRetry.intentID != "" {
+		registry := a.capabilityRegistryForContext(ctx)
+		entry, _ := registry.Lookup(conversationReplyCapabilityName)
+		reply, direct := entry.(directMainReplyCapability)
+		if !direct {
+			return ConversationCognitionAgentResult{}, ErrConflict
+		}
+		receipt, err := directReplyRetryImage(ctx, a.DB.Pool(), registry, input.SourceFactID, actorID, fluctlightID, conversationID)
+		if err != nil {
+			return ConversationCognitionAgentResult{}, err
+		}
+		if receipt.intentID != replyRetry.intentID {
+			return ConversationCognitionAgentResult{}, ErrConflict
+		}
+		reply.replyOnly = true
+		view, err := NewCapabilityRegistry(reply)
+		if err != nil {
+			return ConversationCognitionAgentResult{}, err
+		}
+		ctx = withCapabilityRunRegistry(context.WithValue(ctx, directReplyRetryContextKey{}, receipt), view)
+		stable := providerStableTaskContext(ctx)
+		if stable == nil {
+			stable = map[string]any{}
+		}
+		stable["reply_recovery"] = map[string]any{"image_task_status": receipt.status, "image_delivered": receipt.delivered}
+		ctx = withProviderStableTaskContext(ctx, stable)
+	}
 	if run := replyRunFromContext(ctx); run != nil {
 		if run.Settings.Mode == "direct" {
 			var previewEnabled bool
@@ -118,7 +146,7 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 	surface := ProviderContextSurfaceConversationMain
 	var expressionRefs []string
 	expressionSelected := false
-	imageDiscovery := false
+	publicationPolicy := conversationPublicationPhysicalRequestPolicy{}
 	if replyRun := replyRunFromContext(ctx); replyRun != nil && replyRun.Settings.Mode == "fact_only" {
 		surface = ProviderContextSurfaceFactOnlyCognition
 		operationRules = []string{factOnlyExecutionBoundary}
@@ -126,9 +154,10 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 	} else if replyRun != nil && replyRun.Settings.Mode == "direct" {
 		operationRules = []string{providerContextAuthorityRule, directMainConversationProtocol, factOnlyExecutionBoundary}
 		main, _ := ctx.Value(directMainConversationKey{}).(bool)
-		if main && a.directImageDiscoveryNeeded(ctx, projection, currentInput, definitions) {
-			imageDiscovery = true
-			ctx = context.WithValue(ctx, directImageDiscoveryPromptKey{}, directImageDiscoveryPrompt(projection, currentInput))
+		if replyRetry.intentID != "" {
+			operationRules = []string{providerContextAuthorityRule, directReplyRetryProtocol}
+		} else if main && a.directImageDiscoveryNeeded(ctx, projection, currentInput, definitions) {
+			publicationPolicy.directImageDiscoveryPrompt = directImageDiscoveryPrompt(projection, currentInput)
 		}
 		suggestions, suggestionErr := a.freezeDirectExpressionSuggestions(ctx, replyRun)
 		if suggestionErr != nil {
@@ -177,7 +206,7 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 	providerCtx = WithProviderCorrelation(providerCtx, firstString(providerCorrelation(ctx), "conversation-cognition-agent:"+runID))
 	providerCtx = a.bindProjectionRefresh(providerCtx, projectionRequest, surface, "cognitive_assessment", operationRules, currentInput, definitions, "conversation_turn_response", schema, nil)
 	if conversationID != "" {
-		providerCtx = withPhysicalModelRequestPolicy(providerCtx, conversationPublicationPhysicalRequestPolicy{directImageDiscovery: imageDiscovery})
+		providerCtx = withPhysicalModelRequestPolicy(providerCtx, publicationPolicy)
 	}
 	assembly.ResponseFormat = schema
 	runInput := FormalAgentRunInput{

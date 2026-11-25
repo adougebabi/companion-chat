@@ -1211,6 +1211,9 @@
           "turnRetryable": {
             "type": "boolean"
           },
+          "turnReplyRetryable": {
+            "type": "boolean"
+          },
           "identity": {
             "anyOf": [
               {
@@ -20946,6 +20949,11 @@
     "/api/conversations/{conversationId}/turn/{turnId}/cancel": {
       "post": {
         "operationId": "cancelConversationTurn"
+      }
+    },
+    "/api/conversations/{conversationId}/turn/{turnId}/retry-reply": {
+      "post": {
+        "operationId": "retryConversationReply"
       }
     },
     "/api/diagnostics": {

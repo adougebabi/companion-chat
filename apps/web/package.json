@@ -6,10 +6,16 @@
   "scripts": {
     "dev": "vite",
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.ui.json",
     "test": "node --test test/*.test.mjs",
     "test:platform": "node --test test/*.test.mjs",
-    "build": "vite build && node scripts/verify-product-build.mjs && node scripts/verify-react-stack.mjs"
+    "build": "vite build && node scripts/verify-product-build.mjs && node scripts/verify-react-stack.mjs",
+    "test:ui": "playwright test -c e2e/playwright.config.ts",
+    "test:ui:install": "playwright install chromium",
+    "ui-lab": "vite --open /ui-lab/",
+    "ui:gate": "node scripts/ui-gate.mjs",
+    "ui:gate:full": "node scripts/ui-gate.mjs --full",
+    "ui:baselines": "node scripts/ui-baselines.mjs"
   },
   "dependencies": {
     "@fluctlight/browser-client": "workspace:*",
@@ -29,6 +35,7 @@
     "valtio": "^2.3.2"
   },
   "devDependencies": {
+    "@playwright/test": "1.58.2",
     "@tailwindcss/vite": "^4.3.3",
     "@types/jsdom": "^30.0.0",
     "@types/node": "24.3.0",

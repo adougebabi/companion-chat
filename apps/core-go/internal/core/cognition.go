@@ -66,6 +66,10 @@ func (a *App) processCognitionInbox(ctx context.Context, inboxID string) (map[st
 	if status == "waiting_reply" {
 		return map[string]any{"inbox_id": inboxID, "status": status}, nil
 	}
+	if status == "retry_scheduled" {
+		wait := directReplyCapacityWait(decodeObject(payload), a.now())
+		return map[string]any{"inbox_id": inboxID, "status": status, "retry_after_seconds": max(1, (wait+time.Second-1)/time.Second)}, nil
+	}
 	if (status == "processed" || status == "failed") && (stringValue(decodeObject(payload)["event_type"]) == ownerReflectionFeedbackFactType || stringValue(decodeObject(payload)["event_type"]) == ownerDiaryReplyFactType) {
 		return a.processOwnerReflectionFeedback(ctx, inboxID, decodeObject(payload))
 	}
@@ -225,6 +229,10 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner strin
 		if status == "processed" || status == "failed" || status == "waiting_reply" {
 			return nil
 		}
+		if status == "pending" && directReplyCapacityWait(decodeObject(payload), a.now()) > 0 {
+			status = "retry_scheduled"
+			return nil
+		}
 		if status == "claimed" && claimedBy != "" && claimedAt != nil && time.Since(*claimedAt) < 10*time.Minute {
 			return ErrConflict
 		}
@@ -289,6 +297,11 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner strin
 // Existing reply drafts and already published replies have their own recovery
 // contracts and must continue to use them.
 func (a *App) stopAbandonedConversationPartialTx(ctx context.Context, tx pgx.Tx, inboxID, fluctlightID string, payload map[string]any) (bool, error) {
+	// The cognition run rechecks the durable recovery receipt and exposes only
+	// the reply capability.
+	if directReplyRetryMediaID(payload) != "" {
+		return false, nil
+	}
 	var leaseOwner string
 	err := tx.QueryRow(ctx, `SELECT owner_token FROM public.logical_agent_leases WHERE fluctlight_id=$1 AND expires_at>now()`, fluctlightID).Scan(&leaseOwner)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
@@ -489,6 +502,9 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 		existingText = stringValue(existingData["text"])
 		if existingText != text || stringValue(existingData["conversation_id"]) != conversationID || stringValue(existingData["actor_id"]) != actorID {
 			return "", nil, ErrConflict
+		}
+		if existingStatus == "pending" && directReplyCapacityWait(existingData, a.now()) > 0 {
+			return existing, supersededIDs, nil
 		}
 		if existingStatus == "failed" {
 			ledger, err := a.turnLedgerHasCommittedEffectsTx(ctx, tx, existing)

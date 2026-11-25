@@ -65,16 +65,20 @@ func (a *App) initialSchedulePayload(ctx context.Context, fluctlightID, localDat
 	taskInput := ScheduleGenerationTaskInput{LocalDate: localDate, Timezone: timezone, Identity: scheduleIdentity, LifeProfile: stableLife, WorldPlaces: places,
 		CurrentState: map[string]any{"inner_state": inner, "appearance": appearance}, CurrentLife: currentLife,
 		Goals: filterActiveProfileRows(goals, activeProfileID), Intentions: filterActiveProfileRows(intentions, activeProfileID), RecentOutcomes: outcomes}
+	return a.generateScheduleCandidate(ctx, taskInput)
+}
+
+func (a *App) generateScheduleCandidate(ctx context.Context, taskInput ScheduleGenerationTaskInput) (map[string]any, error) {
+	localDate, timezone, places := taskInput.LocalDate, taskInput.Timezone, taskInput.WorldPlaces
 	result, err := a.RunScheduleGenerationTask(ctx, taskInput)
 	if err != nil {
 		return nil, fmt.Errorf("initial schedule provider request failed: %w", err)
 	}
 	payload, err := normalizeInitialScheduleResponse(result, localDate, timezone, places)
 	if err != nil {
-		// A local model can stop midway through a long JSON schedule even when
-		// the HTTP request itself succeeds. Retry the same factual context with
-		// an explicit compact-output reminder; never salvage a partial array.
-		taskInput.CompactOutputReminder = true
+		// Semantic errors need the actual rejected candidate and validator
+		// feedback. A generic "incomplete JSON" reminder hides the real problem.
+		taskInput.RepairFeedback = &ScheduleGenerationRepairFeedback{PreviousResponse: result, ValidationError: err.Error()}
 		if retryResult, retryErr := a.RunScheduleGenerationTask(ctx, taskInput); retryErr == nil {
 			payload, err = normalizeInitialScheduleResponse(retryResult, localDate, timezone, places)
 		} else {
@@ -134,10 +138,31 @@ func normalizeScheduleResponse(result map[string]any, localDate, timezone string
 		return nil, fmt.Errorf("schedule_local_date_invalid: %w", err)
 	}
 	entries := make([]scheduleEntry, 0, len(items))
+	previousEndMinute := 0
+	_, boundaryMode := mapValue(items[0])["end_minute"]
 	for index, raw := range items {
 		item := copyPromptData(mapValue(raw)).(map[string]any)
 		if len(item) == 0 {
 			return nil, fmt.Errorf("items[%d]: expected an object", index+1)
+		}
+		rawMinute, present := item["end_minute"]
+		if present != boundaryMode {
+			return nil, fmt.Errorf("items[%d]: end_minute and timestamp-shaped intervals cannot be mixed", index+1)
+		}
+		if present {
+			minute, numeric := numberFloat(rawMinute)
+			if !numeric || minute != float64(int(minute)) || minute <= float64(previousEndMinute) || minute > 1440 {
+				return nil, fmt.Errorf("items[%d].end_minute: expected an integer greater than %d and at most 1440", index+1, previousEndMinute)
+			}
+			if item["start_at"] != nil || item["end_at"] != nil {
+				return nil, fmt.Errorf("items[%d]: end_minute cannot be mixed with start_at/end_at", index+1)
+			}
+			item["start_at"] = fmt.Sprintf("%02d:%02d", previousEndMinute/60, previousEndMinute%60)
+			previousEndMinute = int(minute)
+			item["end_at"] = fmt.Sprintf("%02d:%02d", previousEndMinute/60, previousEndMinute%60)
+			// Generating a plan is not evidence that an activity happened.
+			item["status"] = "planned"
+			delete(item, "end_minute")
 		}
 		start, err := parseScheduleTimeInLocation(stringValue(firstValue(item["start_at"], item["startAt"])), day, location)
 		if err != nil {

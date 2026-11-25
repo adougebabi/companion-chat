@@ -346,4 +346,4 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.react-workspace.people-source-overlay[data-slot="sheet-content"]{padding:0;scrollbar-gutter:auto}
+/* people-source-overlay geometry: owned by ResponsiveSheet (styles/overlay.css). */
