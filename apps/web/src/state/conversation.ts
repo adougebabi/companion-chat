@@ -493,6 +493,7 @@ export const conversationDefinition = defineDomain({
     loading: false,
     selectionLoadingEpoch: null as number | null,
     historyLoading: false,
+    historyError: "",
     sending: false,
     activeTurnId: null as string | null,
     activeTurnAccepted: false,
@@ -1288,7 +1289,7 @@ export const conversationDefinition = defineDomain({
           true,
         );
         this.syncServerTurnState();
-        this.nextBeforeSequence = page.nextBeforeSequence ?? null;
+        // A newest-page read must not move the boundary of already loaded history.
         this.attachmentRef = "";
         if (
           this.retryTurn?.idempotencyKey === request.idempotencyKey ||
@@ -1381,6 +1382,8 @@ export const conversationDefinition = defineDomain({
       return true;
     },
     invalidateRequest() {
+      this.historyLoading = false;
+      this.historyError = "";
       this.candidatePreview = null;
       // A cancelled selection no longer owns loading. Its obsolete finally
       // must neither leave it stuck nor clear a newer selection's progress.
@@ -1718,14 +1721,17 @@ export const conversationDefinition = defineDomain({
         this.historyLoading
       )
         return;
-      const conversationId = this.conversation.id;
+      const conversationId = this.conversation.id,
+        fluctlightId = this.fluctlightId,
+        epoch = this.requestEpoch,
+        before = this.nextBeforeSequence;
+      const current = () => this.conversation?.id === conversationId &&
+        this.fluctlightId === fluctlightId && this.requestEpoch === epoch;
       this.historyLoading = true;
+      this.historyError = "";
       try {
-        const page = await client.messages(
-          conversationId,
-          this.nextBeforeSequence,
-        );
-        if (this.conversation?.id !== conversationId) return;
+        const page = await client.messages(conversationId, before);
+        if (!current()) return;
         const existing = new Set(this.messages.map((message) => message.id));
         this.messages = [
           ...page.messages.filter((message) => !existing.has(message.id)),
@@ -1733,10 +1739,10 @@ export const conversationDefinition = defineDomain({
         ];
         this.nextBeforeSequence = page.nextBeforeSequence ?? null;
       } catch {
-        if (this.conversation?.id === conversationId)
-          this.error = "无法加载更早的对话记录。";
+        if (current())
+          this.historyError = "更早的对话记录暂时无法读取，请重试。";
       } finally {
-        this.historyLoading = false;
+        if (current()) this.historyLoading = false;
       }
     },
     async reportReadPosition(visibleSequence?: number) {

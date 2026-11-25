@@ -297,6 +297,27 @@
       }
     },
     {
+      "path": "docs/verification/chat-history-pagination-20261125.md",
+      "hash": "1e97b8c817b66749511f3236642f0633505474b105e1ad648a33e877973f6b38",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/chat-history-pagination-20261125.md",
+        "title": "chat-history-pagination-20261125.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/chat-history-pagination-20261125.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/chat-history-pagination-20261125.md",
+        "hash": "1e97b8c817b66749511f3236642f0633505474b105e1ad648a33e877973f6b38",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
       "path": "docs/verification/chat-publication-outcome-20261123.md",
       "hash": "06c7784ddd3313406e051ce3fd3e079cbc556ff7d54a243c6ec67454b0b87e82",
       "action": "historical",
@@ -908,7 +929,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 41,
+    "historical": 42,
     "retired": 1
   }
 }
