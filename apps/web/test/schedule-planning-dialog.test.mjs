@@ -142,7 +142,7 @@ test('首次打开 Sheet 时显示已完成的建议读取，失败后可以重�
   assert.match(visibleText(panel), /改到下午去花店 · 等她确认/);
 });
 
-test('未安排条目用中文摘要与单一计划标签，完整记录可下载', async t => {
+test('未安排条目用中文摘要且不显示计划状态，完整记录可下载', async t => {
   const nextDay = '2026-11-24';
   const fallback = {
     ...rawFields, id: 'private-item', activity: '默认未安排', status: 'planned', scene: '未安排',
@@ -162,7 +162,10 @@ test('未安排条目用中文摘要与单一计划标签，完整记录可下�
   assert.equal(detail.querySelector('time'), null);
   const summary = visibleText(trigger) + ' ' + visibleText(detail);
   assert.doesNotMatch(summary, /默认未安排|00:00|当前计划时段|地点未记录|场景未记录/);
-  assert.equal((summary.match(/计划/g) || []).length, 1, summary);
+  // ui-1123c-02: an unplanned day shows no plan-status label at all (it used to
+  // read as 「这一天还没有安排计划未安排」), so neither a duplicate nor a glued label.
+  assert.equal((summary.match(/计划/g) || []).length, 0, summary);
+  assert.doesNotMatch(summary, /计划未安排|没有安排计划/);
   assert.doesNotMatch(visibleText(timeline), internal);
   assertDownload(detail, '原始日程记录（诊断）', fallback);
   const duty = [...timeline.querySelectorAll('button')].find(node => node.textContent.includes('夜间值班'));
