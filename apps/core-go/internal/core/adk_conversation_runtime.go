@@ -182,7 +182,8 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	}, i.request.FluctlightID, i.request.ConversationID, i.request.SourceFactID, i.request.SourceFactID, len(invocations))
 	invocation.ActionID = i.request.ActionID
 	publicationPolicy := conversationPublicationPolicyEnabled(ctx)
-	needsReply := publicationPolicy && conversationLoopNeedsReplyBeforeModelSequence(ctx, modelIdentity.ModelCallSequence)
+	needsReply := publicationPolicy && (modelIdentity.PublicationCorrection ||
+		conversationLoopNeedsReplyBeforeModelSequence(ctx, modelIdentity.ModelCallSequence))
 	if publicationPolicy && !needsReply && capabilityName != capabilityCatalogName && directImageCatalogPending(ctx, priorResults) {
 		if previous, found := i.trace.FindResult(callID); found {
 			return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), i.trace.ResultFailure(callID)

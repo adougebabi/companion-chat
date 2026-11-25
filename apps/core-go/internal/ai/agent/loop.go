@@ -33,12 +33,21 @@ type ADKCapabilityTrace struct {
 // ModelCallSequence/ToolIndex are stable run coordinates used to derive a
 // business operation identity independently of the model's call ID.
 type ADKToolCallModelIdentity struct {
-	ProviderRequestID string
-	ModelCallSequence uint64
-	ToolIndex         int
+	ProviderRequestID     string
+	ModelCallSequence     uint64
+	ToolIndex             int
+	PublicationCorrection bool
 }
 
 func (trace *ADKCapabilityTrace) RecordModelToolCalls(providerRequestID string, sequence uint64, calls []schema.ToolCall) {
+	trace.recordModelToolCalls(providerRequestID, sequence, calls, false)
+}
+
+func (trace *ADKCapabilityTrace) RecordPublicationCorrectionToolCalls(providerRequestID string, sequence uint64, calls []schema.ToolCall) {
+	trace.recordModelToolCalls(providerRequestID, sequence, calls, true)
+}
+
+func (trace *ADKCapabilityTrace) recordModelToolCalls(providerRequestID string, sequence uint64, calls []schema.ToolCall, publicationCorrection bool) {
 	if trace == nil {
 		return
 	}
@@ -59,6 +68,7 @@ func (trace *ADKCapabilityTrace) RecordModelToolCalls(providerRequestID string, 
 		}
 		trace.ModelCalls[callID] = ADKToolCallModelIdentity{
 			ProviderRequestID: strings.TrimSpace(providerRequestID), ModelCallSequence: sequence, ToolIndex: index,
+			PublicationCorrection: publicationCorrection,
 		}
 	}
 }
