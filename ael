@@ -42,9 +42,11 @@ if [ -e "$project_root/.ael/remote.json" ] || [ -L "$project_root/.ael/remote.js
    *) command_name=$argument; break ;;
   esac
  done
- if [ "$command_name" = upgrade ] || [ "$command_name" = client ]; then
-  [ -n "$cli" ] && [ -x "$cli" ] && ! [ "$cli" -ef "$project_root/ael" ] || { echo 'AEL_MACHINE_CLI_REQUIRED: select the shared machine executable' >&2; exit 1; }
-  exec "$cli" "$@"
+ portable=false
+ [ ! -f "$project_root/.ael/runner-access.json" ] || portable=true
+ if { [ "$command_name" = upgrade ] && [ "$portable" = false ]; } || [ "$command_name" = client ]; then
+  if [ -n "$cli" ] && [ -x "$cli" ] && ! [ "$cli" -ef "$project_root/ael" ]; then exec "$cli" "$@"; fi
+  [ -f "$project_root/.ael/runner-access.json" ] || { echo 'AEL_MACHINE_CLI_REQUIRED: select the shared machine executable' >&2; exit 1; }
  fi
  session_id=${AEL_SESSION_ID:-}
  session_value=false
@@ -71,13 +73,21 @@ if [ -e "$project_root/.ael/remote.json" ] || [ -L "$project_root/.ael/remote.js
    export AEL_PINNED_SESSION_FILE="$session_record"
   fi
  fi
- [ -n "$cli" ] && [ -x "$cli" ] && ! [ "$cli" -ef "$project_root/ael" ] || { echo 'AEL_MACHINE_CLI_REQUIRED: install AEL once or set AEL_CLI to the managed machine executable' >&2; exit 1; }
- for argument in "$@"; do
-  case "$argument" in --project|--project=*) exec "$cli" "$@" ;; esac
- done
- exec "$cli" "$@" --project "$project_root"
+ if [ "$portable" = true ] && [ -z "${AEL_CLI:-}" ] && { [ -z "${AEL_PINNED_SESSION_FILE:-}" ] || [ "$command_name" = update ] || [ "$command_name" = init ]; }; then
+  cli=
+ fi
+ if [ "$portable" = true ] && [ "$command_name" = upgrade ]; then cli=; fi
+ if [ -n "$cli" ] && [ -x "$cli" ] && ! [ "$cli" -ef "$project_root/ael" ]; then
+  for argument in "$@"; do
+   case "$argument" in --project|--project=*) exec "$cli" "$@" ;; esac
+  done
+  exec "$cli" "$@" --project "$project_root"
+ fi
+ [ -f "$project_root/.ael/runner-access.json" ] || { echo 'AEL_MACHINE_CLI_REQUIRED: install AEL or configure a portable checkout' >&2; exit 1; }
+ lock="$project_root/.ael/clone-runtime/toolchain.lock"
+else
+ lock="$project_root/.ael/toolchain.lock"
 fi
-lock="$project_root/.ael/toolchain.lock"
 [ -f "$lock" ] || { echo 'AEL_TOOLCHAIN_MISSING: .ael/toolchain.lock is missing' >&2; exit 1; }
 case "$(uname -s)" in Darwin) target_os=darwin ;; Linux) target_os=linux ;; *) echo 'AEL_UNSUPPORTED_PLATFORM: this bundle supports macOS and Linux' >&2; exit 1 ;; esac
 case "$(uname -m)" in arm64|aarch64) target_arch=arm64 ;; x86_64|amd64) target_arch=amd64 ;; *) echo 'AEL_UNSUPPORTED_ARCHITECTURE' >&2; exit 1 ;; esac
@@ -89,6 +99,7 @@ relative=${record#* }
 [ "${#expected}" -eq 64 ] || { echo 'AEL_INVALID_TOOLCHAIN_HASH' >&2; exit 1; }
 case "$expected" in *[!0-9a-f]*) echo 'AEL_INVALID_TOOLCHAIN_HASH' >&2; exit 1 ;; esac
 binary="$project_root/.ael/$relative"
+if [ "$lock" = "$project_root/.ael/clone-runtime/toolchain.lock" ]; then binary="$project_root/.ael/clone-runtime/$expected/ael"; fi
 [ -f "$binary" ] && [ ! -L "$binary" ] || { echo "AEL_BINARY_MISSING: $relative" >&2; exit 1; }
 if command -v shasum >/dev/null 2>&1; then
  actual=$(shasum -a 256 "$binary" | awk '{print $1}')
@@ -110,7 +121,7 @@ for argument in "$@"; do
   *) command_name=$argument; break ;;
  esac
 done
-if [ "$command_name" = upgrade ]; then exec "$binary" "$@"; fi
+if { [ "$command_name" = upgrade ] && [ "${portable:-false}" = false ]; } || [ "$command_name" = client ]; then exec "$binary" "$@"; fi
 for argument in "$@"; do
  case "$argument" in --project|--project=*) exec "$binary" "$@" ;; esac
 done

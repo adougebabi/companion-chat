@@ -1,16 +1,16 @@
 {
   "schema": 1,
-  "version": "0.1.32",
+  "version": "0.1.35",
   "api_protocol": 1,
   "skill_protocol": 1,
   "assets": {
-    ".agents/skills/ael-work/SKILL.md": "ea45ec5c2b27670288311b57f0acfeee956ff67a5249bfe9f68c480a397ae39f",
-    ".agents/skills/ael-work/references/commands.md": "10704f3f7a72bccf8fcdd44069490055cdf9f1ac06bb50b1641304f321c60394",
-    ".agents/skills/ael-work/references/remote-agent.md": "5b4ccb407f49e8e0e8c03d954b7e7dde73271f1a6f8db61b421f507cde498aef",
-    ".agents/skills/ael-work/references/workflow.md": "5a42379b5f8ba782a8329f92b3a0024ece5e6b0f6c80b0733c838fff75207876",
-    ".claude/skills/ael-work/SKILL.md": "a310934dd5d8da6fce3da4237177433eac9865ee0b4c72beed1a5102232d38c7",
-    "AGENTS:block": "e72a5720868f2544bb898e95b433122f9ea5e2bf42d07e221858868be23af9a2",
-    "CLAUDE:block": "e72a5720868f2544bb898e95b433122f9ea5e2bf42d07e221858868be23af9a2",
-    "ael": "2830284420cb981c8810e50c71dda7bc8fc159b018be94c9dc37bd2d5638a646"
+    ".agents/skills/ael-work/SKILL.md": "13977c2e991f415dded520fc8a3bc3e6ce0267d2707e99cbe40a0d1d8f37eca6",
+    ".agents/skills/ael-work/references/commands.md": "332b356b37f76cd7c00f5c74fcf7ac2e73e0fba4f23cfbf573f60dd4a3b36ee9",
+    ".agents/skills/ael-work/references/remote-agent.md": "742edae87f60ee893a7e4414250e104d411dff7c23f11e95cfb8db5706e209d4",
+    ".agents/skills/ael-work/references/workflow.md": "b9559ab17c2085e16475e63faa33b29fd4995ea553e7465de49799185ac9fd68",
+    ".claude/skills/ael-work/SKILL.md": "9465af87a5eeb3d1cc2c8a13eff87c14894b272677fa0560b7e2c47bf7eaa0a6",
+    "AGENTS:block": "596b56388e96eac4b3f89e07feca907a22890a94a19b0c073fe159dc09235d40",
+    "CLAUDE:block": "596b56388e96eac4b3f89e07feca907a22890a94a19b0c073fe159dc09235d40",
+    "ael": "88a3107b515d84c1361a59891031eff2fd1501a9dbb31bb1d301b2996e1dc5d5"
   }
 }
