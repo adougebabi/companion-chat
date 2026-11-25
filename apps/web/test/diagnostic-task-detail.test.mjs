@@ -28,9 +28,9 @@ for(const presentation of ['dialog','sheet'])test(`${presentation} task recovery
  const view=await mountReact(vite,Record,{workspace:w,props:{taskId:original.task_id,presentation,onClose(){},returnTo:'#/library/create?resume=original'}});
  try{
   const outer=document.querySelector('[role=dialog]'),body=outer.querySelector(presentation==='sheet'?'.creation-task-sheet-body':'.replica-dialog-body'),footer=outer.querySelector(`[data-slot=${presentation==='sheet'?'sheet':'dialog'}-footer]`);
-  assert.ok(footer);assert.equal(body.contains(footer),false);assert.equal(outer.querySelector('[role=tab][data-state=active]').textContent,'执行阶段');assert.match(outer.textContent,/原角色 · 已尝试 2 次/);assert.equal(outer.querySelector('[role=progressbar]'),null);assert.ok(button(footer,'重试任务'));assert.equal(body.querySelector('[data-slot=card]'),null);
-  await tab(view,'执行记录');assert.match(outer.querySelector('[role=tab][data-state=active]').textContent,/执行记录.*已读取 2/);assert.equal(outer.querySelectorAll('.replica-task-history>li').length,2);assert.deepEqual([...outer.querySelectorAll('.replica-task-history time')].map(node=>node.dateTime),['2026-10-30T01:00:00Z','2026-10-30T01:02:00Z']);const events=[...outer.querySelectorAll('.replica-task-history time')].map(node=>node.textContent);assert.ok(events[0].includes('09:00:00'));assert.ok(events[1].includes('09:02:00'));
-  await tab(view,'任务信息');const link=[...outer.querySelectorAll('a')].find(node=>node.textContent.trim()==='查看关联模型调用');assert.ok(link);assert.equal(link.getAttribute('target'),null);assert.ok(outer.querySelector('[role=tabpanel][data-state=active]').contains(link));const route=new URLSearchParams(link.hash.split('?')[1]);assert.equal(route.get('correlationId'),'real correlation');assert.match(route.get('returnTo'),/returnTo=/);await tab(view,'执行阶段');assert.equal(workflowReads,1);assert.equal(modelReads,1);
+  assert.ok(footer);assert.equal(body.contains(footer),false);assert.equal(outer.querySelector('[role=tab][data-state=active]').textContent,'执行阶段');assert.match(outer.querySelector('.replica-task-overview').textContent,/需要处理/);assert.doesNotMatch(outer.querySelector('.replica-task-overview').textContent,/已尝试|模型调用/);assert.equal(outer.querySelector('[role=progressbar]'),null);assert.ok(button(footer,'重试任务'));assert.equal(body.querySelector('[data-slot=card]'),null);
+  assert.match(outer.querySelector('.replica-task-lifecycle .replica-task-section-head').textContent,/已读取 2 条/);assert.equal(outer.querySelectorAll('.replica-task-history>li').length,2);assert.deepEqual([...outer.querySelectorAll('.replica-task-history time')].map(node=>node.dateTime),['2026-10-30T01:00:00Z','2026-10-30T01:02:00Z']);const events=[...outer.querySelectorAll('.replica-task-history time')].map(node=>node.textContent);assert.ok(events[0].includes('09:00:00'));assert.ok(events[1].includes('09:02:00'));
+  await tab(view,'模型调用');await tab(view,'任务信息');assert.match(outer.querySelector('[role=tabpanel][data-state=active]').textContent,/执行尝试2 次/);const link=[...outer.querySelectorAll('a')].find(node=>node.textContent.trim()==='查看关联模型调用');assert.ok(link);assert.equal(link.getAttribute('target'),null);assert.ok(outer.querySelector('[role=tabpanel][data-state=active]').contains(link));const route=new URLSearchParams(link.hash.split('?')[1]);assert.equal(route.get('correlationId'),'real correlation');assert.match(route.get('returnTo'),/returnTo=/);await tab(view,'执行阶段');assert.equal(workflowReads,1);assert.equal(modelReads,1);
   const trigger=button(footer,'重试任务');await view.click(trigger);let confirmation=[...document.querySelectorAll('[role=dialog]')].at(-1);await view.input(confirmation.querySelector('textarea'),'原任务恢复');await view.click(button(confirmation,'取消'));await view.flush();assert.equal(document.activeElement,trigger);
   await view.click(trigger);confirmation=[...document.querySelectorAll('[role=dialog]')].at(-1);await view.input(confirmation.querySelector('textarea'),'原任务恢复');await view.click(button(confirmation,'确认重试任务'));assert.equal(writes.length,1);await view.click(confirmation.querySelector('[data-slot=dialog-close]'));await view.click(button(footer,'核对或重试原提交'));assert.equal(writes.length,2);assert.deepEqual(writes[1],writes[0]);assert.match(footer.textContent,/受理不表示执行完成/);assert.equal(button(footer,'重试任务').disabled,true);
  }finally{await view.dispose();}
@@ -59,7 +59,7 @@ test('readable task title and subtitle keep exact records in downloads without e
  try{
   const outer=document.querySelector('[role=dialog]'),description=outer.querySelector('[data-slot=sheet-description]');
   assert.match(outer.querySelector('[data-slot=sheet-title]').textContent,/人格资料整理/);assert.match(description.textContent,/人格资料整理 · 10-30 09:00/);assert.match(outer.textContent,/需要处理/);clean(outer);
-  await tab(v,'执行记录');assert.equal(outer.querySelectorAll('.replica-task-history>li').length,1);clean(outer);
+  assert.equal(outer.querySelectorAll('.replica-task-history>li').length,1);clean(outer);
   await v.click(button(outer,'生命周期原始记录'));clean(outer);await v.click(button(outer,'下载原始记录'));
   assert.deepEqual(JSON.parse(await blobs.at(-1).text()),raw.steps);
   await tab(v,'任务信息');assert.doesNotMatch(outer.querySelector('.replica-task-info-recovery').textContent,/Activity|Runtime/);
@@ -82,7 +82,7 @@ test('queued unattempted task uses a preparation link while retaining the backen
  w.services.operationsClient={task:async()=>({task_id:'queued-original',kind:'wardrobe.initialize',fluctlight_id:'A',workflow_id:'queued-workflow',status:'queued',runs:0,steps:[]})};
  w.services.diagnosticsClient={workflow:async()=>({intent:{status:'queued'},runtime_state:'unavailable',allowed_actions:[],commands:[],recovery:{mode:'domain_recovery',href:'/c/A/life/wardrobe',label:'恢复初始衣柜准备'}})};
  const v=await mountReact(vite,Record,{workspace:w,props:{taskId:'queued-original',onClose(){}}});
- try{const outer=document.querySelector('[role=dialog]');assert.match(outer.textContent,/已尝试 0 次/);assert.equal(button(outer,'恢复初始衣柜准备'),undefined);await v.click(button(outer,'查看初始衣柜准备'));assert.equal(destination,'/c/A/life/wardrobe');}finally{await v.dispose();}
+ try{const outer=document.querySelector('[role=dialog]');assert.match(outer.querySelector('.replica-task-overview').textContent,/已受理，尚未开始执行/);await tab(v,'任务信息');assert.match(outer.textContent,/执行尝试0 次/);assert.equal(button(outer,'恢复初始衣柜准备'),undefined);await v.click(button(outer,'查看初始衣柜准备'));assert.equal(destination,'/c/A/life/wardrobe');}finally{await v.dispose();}
 });
 
 test('failed media task recovers the original attempt and follows the accepted new task',async()=>{
@@ -143,7 +143,7 @@ for(const kind of ['visual','studio','superseded','active'])test(`media recovery
  w.services.studioClient={job:async()=>({resource_id:'studio-resource'})};
  w.services.diagnosticsClient={workflow:async()=>({intent:{intent_type:'media.generation',status:'failed',payload:{intent_id:id}},runtime_state:'available',runtime:{run_id:'run',status:'failed'},allowed_actions:[],commands:[]}),page:async()=>({items:[{id,ref:'ref-'+id,data:media}],next_cursor:''}),mediaRetry:async()=>{writes++;return {};}};
  const view=await mountReact(vite,Record,{workspace:w,props:{taskId:'task-'+kind,onClose(){}}});
- try{const outer=document.querySelector('[role=dialog]'),footer=outer.querySelector('[data-slot=sheet-footer]');assert.equal(button(footer,'从失败处重试'),undefined);assert.equal(button(footer,'重新生成'),undefined);if(kind==='visual'){await view.click(button(footer,'查看视觉身份会话'));assert.equal(destination,'/c/A/media/identity/edit');}if(kind==='studio'){await view.click(button(footer,'查看创作任务'));assert.equal(destination,'/studio/preview?res=studio-resource&job=studio-job');}if(kind==='superseded')assert.ok(button(footer,'查看当前执行任务'));if(kind==='active')assert.match(footer.textContent,/媒体任务正在执行或等待/);assert.equal(writes,0);}finally{await view.dispose();}
+ try{const outer=document.querySelector('[role=dialog]'),footer=outer.querySelector('[data-slot=sheet-footer]');assert.equal(button(footer,'从失败处重试'),undefined);assert.equal(button(footer,'重新生成'),undefined);if(kind==='visual'){await view.click(button(footer,'查看视觉身份会话'));assert.equal(destination,'/c/A/media/identity/edit');}if(kind==='studio'){await view.click(button(footer,'查看创作任务'));assert.equal(destination,'/studio/preview?res=studio-resource&job=studio-job');}if(kind==='superseded')assert.ok(button(footer,'查看当前执行任务'));if(kind==='active')assert.match(footer.textContent,/媒体任务仍在执行.*刷新只读取最新状态，不会重新生成.*刷新媒体状态/);assert.equal(writes,0);}finally{await view.dispose();}
 });
 
 test('media stage display uses only persisted checkpoints and never turns provider admission into a finished image',async()=>{
@@ -202,7 +202,7 @@ for(const status of ['submission_unknown','failed'])test(`uncertain media ${stat
   const footer=document.querySelector('[data-slot=sheet-footer]');assert.match(footer.textContent,/可能已接单.*人工核对/);assert.equal(button(footer,'从失败处重试'),undefined);
   await view.click(button(footer,'核对后重新生成'));const dialog=[...document.querySelectorAll('[role=dialog]')].at(-1);assert.match(dialog.textContent,/可能产生重复生成/);
   await view.input(dialog.querySelector('textarea'),'已核对原生成服务');assert.equal(button(dialog,'确认重新生成').disabled,true);assert.equal(writes.length,0);
-  await view.click(dialog.querySelector('input[type=checkbox]'));assert.equal(button(dialog,'确认重新生成').disabled,false);await view.click(button(dialog,'确认重新生成'));
+  await view.click(dialog.querySelector('[role=checkbox]'));assert.equal(button(dialog,'确认重新生成').disabled,false);await view.click(button(dialog,'确认重新生成'));
   assert.equal(writes.length,1);assert.equal(writes[0].body.mode,'regenerate');assert.equal(writes[0].body.submissionReviewed,true);
  }finally{await view.dispose();}
 });

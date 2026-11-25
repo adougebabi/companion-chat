@@ -1,3 +1,4 @@
+import './v3/scenarios/boot';
 import { bookmarkedPath } from './approved-ui/routing.mjs';
 import { createRoot } from 'react-dom/client';
 import App from './react-app/App';

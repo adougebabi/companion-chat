@@ -143,10 +143,10 @@ test('原反思运行记录展开后保留执行摘要和完整诊断下载',asy
   try{
     assert.deepEqual(taskReads,[intent]);
     assert.match(host.textContent,/回顾与自我认识/);
-    await tab('执行记录');
-    assert.ok(button('模型调用记录 · 1 次'),host.textContent);
-    await view.click(button('模型调用记录 · 1 次'));
-    await view.click(host.querySelector('.replica-task-round-trigger'));
+    await tab('模型调用');
+    assert.equal(host.querySelector('.replica-task-calls .replica-task-section-head').textContent,'模型调用1 次 · 1 次失败',host.textContent);
+    assert.equal(host.querySelector('.replica-task-round-trigger').getAttribute('aria-expanded'),'true');
+    assert.equal(host.querySelector('.replica-raw-content'),null,'reflection model records stay download-only');
     assert.match(host.textContent,/第 1 轮/);
     assert.match(host.textContent,/模型服务响应超时/);
     await view.click(button('本轮原始模型调用（诊断）'));

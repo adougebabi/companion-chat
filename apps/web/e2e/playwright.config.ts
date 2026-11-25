@@ -5,6 +5,7 @@ import { baselineDir } from './support/baselines.mjs';
 // Screenshots go to test-results/; visual baselines to <repo>/.ui-baselines/.
 // Both are git-ignored: images are never committed (AGENTS.md).
 const port = Number(process.env.UI_LAB_PORT || 5199);
+const scenarioPort = Number(process.env.UI_SCENARIO_PORT || 5198);
 const desktopChrome = devices['Desktop Chrome'];
 
 // Baselines change only through `pnpm ui:baselines approve --reason …`, which
@@ -41,11 +42,23 @@ export default defineConfig({
     { name: 'tablet-768', use: { ...desktopChrome, viewport: { width: 768, height: 1024 }, hasTouch: true } },
     { name: 'desktop-1440', use: { ...desktopChrome, viewport: { width: 1440, height: 900 } } },
   ],
-  webServer: {
-    command: `node ./node_modules/vite/bin/vite.js --port ${port} --strictPort --host 127.0.0.1`,
-    cwd: '..',
-    url: `http://127.0.0.1:${port}/ui-lab/`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: `node ./node_modules/vite/bin/vite.js --port ${port} --strictPort --host 127.0.0.1`,
+      cwd: '..',
+      url: `http://127.0.0.1:${port}/ui-lab/`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      // The real app in scenario preview mode (business API answered at the
+      // fetch boundary); used by e2e/task-diagnostics.spec.ts.
+      command: `node ./node_modules/vite/bin/vite.js --port ${scenarioPort} --strictPort --host 127.0.0.1`,
+      cwd: '..',
+      env: { VITE_API_SCENARIOS: '1' },
+      url: `http://127.0.0.1:${scenarioPort}/`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+  ],
 });

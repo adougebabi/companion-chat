@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "VITE_API_SCENARIOS=1 vite",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.ui.json",
     "test": "node --test test/*.test.mjs",

@@ -42,6 +42,19 @@
     ],
     "@overlay": [
       "src/react-app/shared/PeopleSourceSheet.jsx"
+    ],
+    "@task-diagnostics": [
+      "src/v3/scenarios/**",
+      "src/main.tsx",
+      "src/react-app/pages/TaskDetailPage.tsx",
+      "src/react-app/shared/TaskExecutionResults.tsx",
+      "src/react-app/shared/RawContent.tsx",
+      "src/react-app/shared/ModelCallDetails.tsx",
+      "src/react-app/shared/MediaTaskRecovery.tsx",
+      "src/react-app/shared/WorkflowRecovery.tsx",
+      "src/react-app/shared/DiagnosticRecords.tsx",
+      "src/approved-ui/task-presentation.mjs",
+      "src/approved-ui/task-model-call-presentation.mjs"
     ]
   },
   "nonUi": [

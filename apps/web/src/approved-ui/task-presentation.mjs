@@ -168,7 +168,9 @@ export function taskFailureReason(task,preparation){
  const current=preparation?.task_id===task?.task_id?preparation:null;
  const raw=task?.source?.error_code||task?.error_code||task?.source?.last_error||task?.last_error;
  const isMedia=(task?.kind||task?.type)==='media.generation';
- const transport=recordedProviderFailure(raw);if(transport)return transport;
+ // The transport marker can sit in last_error while error_code holds a generic
+ // code; the recorded HTTP status is the more precise cause.
+ const transport=recordedProviderFailure(raw)||recordedProviderFailure(task?.source?.last_error||task?.last_error);if(transport)return transport;
  if((task?.kind||task?.type)==='goal.plan'&&/^\s*sql:\s*no rows in result set\s*$/i.test(String(raw||'')))return ['failed','dead_letter'].includes(task?.status)?'规划任务没有找到对应资料，已停止。':'规划任务没有找到对应资料，请重新读取任务状态。';
  if(['wardrobe_preparation_context_failed','wardrobe_provider_assignment_unavailable','wardrobe_provider_unconfigured'].includes(current?.error_code)&&current?.result?.failure_reason)return current.result.failure_reason;
  if(taskNeedsModelConfiguration(task,current)){const reason=safeDiagnosticReason(raw,current?.error_code,'模型配置暂时无法读取，请核对原始记录。').replace('原资料与已完成步骤会保留。','已有角色、世界与准备记录会保留。'),summary=reason.includes('已有角色、世界')?reason:reason+' 已有角色、世界与准备记录会保留。';return summary;}

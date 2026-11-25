@@ -2,12 +2,13 @@ import {createPortal} from 'react-dom';
 import {useEffect,useId,useMemo,useRef,useState} from 'react';
 import {Button} from '@/components/ui/button';
 import {Feedback} from './Presentation';
+import {Checkbox} from '@/components/ui/checkbox';
 import WorkspaceDialog from './WorkspaceDialog';
 import {Label,Textarea} from '../controls';
 import {useWorkspace} from '../page';
 import {persistentCommand} from '@/v3/providers/persistent-command.mjs';
 import {studioDraftStorage} from '@/v3/proto/components/studio-draft-storage.js';
-import {errorMessage} from '@/v3/domain-presentation.mjs';
+import {errorMessage,stateLabel} from '@/v3/domain-presentation.mjs';
 
 const modeNames:Record<string,string>={resume:'从失败处重试',regenerate:'重新生成'};
 const workflowKey=(value:unknown)=>typeof value==='string'?value.replace(/^go:/,''):'';
@@ -72,7 +73,7 @@ export default function MediaTaskRecovery({mediaId,workflowId,snapshot,reader,co
  const currentIntent=media?.execution?.intent_id;
  const controls=<div className="replica-task-recovery-controls">
   {reader.busy&&!reader.ready&&<Feedback kind="progress">正在读取媒体任务及恢复状态…</Feedback>}
-  {reader.error&&<Feedback kind={reader.ready?'warning':'error'} actions={<Button type="button" variant="outline" disabled={busy} onClick={()=>void reader.load()}>重新读取媒体任务</Button>}>{reader.error}</Feedback>}
+  {reader.error&&<Feedback kind={reader.ready?'warning':'error'} title="媒体任务状态暂未读到" actions={<Button type="button" variant="outline" disabled={busy||reader.busy} onClick={()=>void reader.load()}>刷新媒体状态</Button>}>{reader.error}</Feedback>}
   {error&&!selection&&<Feedback kind={pending?'action-required':'warning'}>{error}</Feedback>}
   {pending?<Feedback kind={pending.rejection?'warning':'action-required'}><p>原恢复操作的输入和身份已保留，请先核对原提交。</p>{pending.rejection?<Button type="button" variant="outline" disabled={busy} onClick={()=>void reviewRejected()}>核对新状态并审阅原提交</Button>:<Button type="button" disabled={busy} onClick={()=>void submit(true)}>核对或重试原提交</Button>}</Feedback>:<>
    {ambiguous&&eligible&&<p className="replica-inbox-caption">生成服务可能已接单，任务已暂停。请先人工核对原任务；明确重新生成可能产生重复任务。</p>}
@@ -82,13 +83,13 @@ export default function MediaTaskRecovery({mediaId,workflowId,snapshot,reader,co
    {media&&!isCurrent&&currentIntent&&<Button type="button" variant="outline" onClick={()=>onRecovered(currentIntent)}>查看当前执行任务</Button>}
    {media&&isCurrent&&studio&&<><p className="replica-inbox-caption">此媒体属于创作任务，请在原创作任务中处理。</p><Button type="button" variant="outline" disabled={busy} onClick={()=>void openStudio()}>查看创作任务</Button></>}
    {media&&isCurrent&&visual&&media.owner_fluctlight_id&&<><p className="replica-inbox-caption">此媒体属于视觉身份会话，请查看原会话状态。</p><Button type="button" variant="outline" onClick={()=>w.navigatePath('/c/'+encodeURIComponent(media.owner_fluctlight_id)+'/media/identity/edit')}>查看视觉身份会话</Button></>}
-   {media&&isCurrent&&!studio&&!visual&&!eligible&&!acknowledged&&<><p className="replica-inbox-caption">{media.status==='submission_unknown'?'生成服务可能已接单，任务已暂停；请人工核对。':media.status==='failed'?'原媒体工作流尚未结束，或恢复所需的版本不可用；请先核对最新状态。':['pending','running','submitting','reviewed_ready','retry'].includes(media.status)?'媒体任务正在执行或等待，完成情况以实际结果为准。':'请核对媒体任务的实际状态。'}</p><Button type="button" variant="outline" disabled={busy||reader.busy} onClick={()=>void reader.load()}>重新读取媒体任务</Button></>}
-   {reader.ready&&!media&&<Feedback kind="warning">没有读到对应的媒体任务，不能发起恢复。<Button type="button" variant="outline" onClick={()=>void reader.load()}>重新读取媒体任务</Button></Feedback>}
+   {media&&isCurrent&&!studio&&!visual&&!eligible&&!acknowledged&&<><p className="replica-inbox-caption">{media.status==='submission_unknown'?'生成服务可能已接单，任务已暂停；请人工核对。':media.status==='failed'?'原媒体工作流尚未结束，或恢复所需的版本不可用；请先核对最新状态。':['pending','running','submitting','reviewed_ready','retry'].includes(media.status)?'媒体任务仍在执行，完成后会显示结果；刷新只读取最新状态，不会重新生成。':`媒体任务当前为「${stateLabel(media.status,'状态待确认')}」，没有可执行的恢复操作。`}</p><Button type="button" variant="outline" disabled={busy||reader.busy} onClick={()=>void reader.load()}>{reader.busy?'正在刷新…':'刷新媒体状态'}</Button></>}
+   {reader.ready&&!media&&<Feedback kind="warning" actions={<Button type="button" variant="outline" disabled={reader.busy} onClick={()=>void reader.load()}>刷新媒体状态</Button>}>没有读到对应的媒体任务，不能发起恢复。</Feedback>}
   </>}
  </div>;
  const dialogs=<>
   <WorkspaceDialog className="replica-overlay" busy={busy} open={!!selection} onOpenChange={open=>{if(!open&&!busy)setSelection(null);}} returnFocus={()=>trigger.current} title={ambiguous&&selection?.mode==='resume'?'恢复已有资产':modeNames[selection?.mode]||'恢复媒体任务'} description={selection?.mode==='resume'?(legacyDelivered?'仅核对已交付图片的结算状态，不会重新生成或发送。':ambiguous?'请先人工核对已就绪资产；恢复只处理该资产，不会再次提交生成请求。':'保留已保存的提示词、生成服务任务和结果，从可恢复的位置继续。'):'保留原尝试记录，重新提交图片生成；已就绪的资产不会被覆盖。'} footer={<><Button type="button" variant="outline" disabled={busy} onClick={()=>setSelection(null)}>取消</Button><Button type="submit" form={formId} disabled={busy||!reason.trim()||!!pending||(ambiguous&&!submissionReviewed)}>确认{ambiguous&&selection?.mode==='resume'?'恢复已有资产':modeNames[selection?.mode]}</Button></>}>
-   <form id={formId} className="grid gap-4" onSubmit={event=>{event.preventDefault();void submit();}}>{ambiguous&&selection?.mode==='regenerate'&&<Feedback kind="warning">请先人工核对原生成服务；这会明确再次提交，如果原任务已接收，可能产生重复生成。</Feedback>}{!ambiguous&&selection?.mode==='resume'&&!media?.provider_job_id&&<Feedback kind="warning">没有保存生成服务的任务编号，继续时可能重新提交。如果上次请求已被服务接收，可能产生重复生成。</Feedback>}{ambiguous&&<label><input type="checkbox" checked={submissionReviewed} onChange={event=>setSubmissionReviewed(event.target.checked)}/> 我已人工核对原生成任务及结果</label>}{busy&&<Feedback kind="progress">正在提交恢复请求；受理不代表生成完成。</Feedback>}{error&&!busy&&<Feedback kind={pending?'action-required':'error'}>{error}</Feedback>}<Label htmlFor={formId+'-reason'}>恢复理由<Textarea id={formId+'-reason'} required maxLength={1000} value={reason} onChange={event=>setReason(event.target.value)}/></Label></form>
+   <form id={formId} className="grid gap-4" onSubmit={event=>{event.preventDefault();void submit();}}>{ambiguous&&selection?.mode==='regenerate'&&<Feedback kind="warning">请先人工核对原生成服务；这会明确再次提交，如果原任务已接收，可能产生重复生成。</Feedback>}{!ambiguous&&selection?.mode==='resume'&&!media?.provider_job_id&&<Feedback kind="warning">没有保存生成服务的任务编号，继续时可能重新提交。如果上次请求已被服务接收，可能产生重复生成。</Feedback>}{ambiguous&&<Label className="flex items-center gap-2"><Checkbox checked={submissionReviewed} onCheckedChange={value=>setSubmissionReviewed(value===true)}/>我已人工核对原生成任务及结果</Label>}{busy&&<Feedback kind="progress">正在提交恢复请求；受理不代表生成完成。</Feedback>}{error&&!busy&&<Feedback kind={pending?'action-required':'error'}>{error}</Feedback>}<Label htmlFor={formId+'-reason'}>恢复理由<Textarea id={formId+'-reason'} required maxLength={1000} value={reason} onChange={event=>setReason(event.target.value)}/></Label></form>
   </WorkspaceDialog>
   <WorkspaceDialog className="replica-overlay" open={!!review} onOpenChange={open=>!open&&setReview(null)} returnFocus={()=>trigger.current} title="核对原操作与最新状态" description="原操作已明确被拒绝。解除后可以根据最新媒体状态重新选择恢复方式。"><Button type="button" onClick={()=>{if(live()&&command.pending()?.idempotencyKey===review?.key){command.releaseRejected();setPending(null);setReview(null);setError('');}}}>已核对，解除被拒绝的原提交</Button></WorkspaceDialog>
  </>;

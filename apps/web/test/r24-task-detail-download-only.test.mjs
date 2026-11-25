@@ -41,7 +41,7 @@ for(const presentation of ['sheet','dialog'])test(`${presentation}: every task d
  URL.createObjectURL=blob=>{blobs.push(blob);return 'blob:fixture';};URL.revokeObjectURL=()=>{};anchor.click=function(){downloads.push(this.download);};
  try{
   assert.match(host.textContent,/FT-白板.*独立目标规划/);assert.match(host.textContent,/规划任务没有找到对应资料，已停止/);clean(host);
-  await tab(v,host,'执行记录');await v.click(button(host,'生命周期原始记录'));clean(host);await v.click(button(host,'下载原始记录'));
+  await tab(v,host,'执行阶段');await v.click(button(host,'生命周期原始记录'));clean(host);await v.click(button(host,'下载原始记录'));
   assert.deepEqual(JSON.parse(await blobs.at(-1).text()),task.steps);
   await tab(v,host,'任务信息');assert.match(host.textContent,/2026-11-16 08:00:00\.000（北京时间）/);
   await v.click(button(host,'查看完整任务记录'));await v.click(button(host,'完整任务信息与关联来源'));clean(host);
@@ -90,9 +90,9 @@ test('task model errors and raw model records stay readable and download-only',a
  URL.createObjectURL=blob=>{blobs.push(blob);return 'blob:model-record';};URL.revokeObjectURL=()=>{};anchor.click=function(){};
  const noRaw=()=>{assert.doesNotMatch(host.textContent,/sql: no rows|private-model-record|private-model-id|internal_database_error/);assert.equal(host.querySelector('pre,code'),null);};
  try{
-  await tab(v,host,'执行记录');await v.click([...host.querySelectorAll('button')].find(node=>node.textContent.startsWith('模型调用记录')));
-  await v.click(host.querySelector('.replica-task-round-trigger'));noRaw();
-  const sections=host.querySelectorAll('.replica-task-round-content section');assert.match(sections[0].textContent,/输入0/);assert.match(sections[1].textContent,/输出否/);assert.match(sections[2].textContent,/未完成|失败|没有找到|未找到|不可用/);
+  await tab(v,host,'模型调用');assert.equal(host.querySelector('.replica-task-round-trigger').getAttribute('aria-expanded'),'true');noRaw();
+  const raw=label=>[...host.querySelectorAll('.replica-raw-content-trigger')].find(node=>node.textContent.startsWith(label));await v.click(raw('输入'));await v.click(raw('输出'));noRaw();
+  const bodies=[...host.querySelectorAll('.replica-raw-content-body')].map(node=>node.textContent);assert.deepEqual(bodies,['0','否']);assert.match(host.querySelector('.replica-task-round-error').textContent,/未完成|失败|没有找到|未找到|不可用/);
   await v.click(button(host,'错误代码'));await v.click(button(host,'本轮原始记录'));noRaw();
   for(const node of [...host.querySelectorAll('button')].filter(node=>node.textContent==='下载原始记录'))await v.click(node);
   const values=await Promise.all(blobs.map(async blob=>JSON.parse(await blob.text())));

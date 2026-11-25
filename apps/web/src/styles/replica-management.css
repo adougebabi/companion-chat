@@ -254,7 +254,7 @@
 .replica-task-times:not([data-continued])>div:last-child{border-bottom:0}
 .replica-task-source-info{display:grid;gap:20px;min-width:0}
 .replica-task-footer-target{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.replica-task-footer-target>.replica-task-recovery-controls{flex:1}
+.replica-task-footer-target>.replica-task-recovery-controls{flex:1 1 100%}
 .replica-task-more{order:-1;flex:none}
 @media(max-width:700px){.replica-task-detail [data-slot=tabs-list]{gap:19px}.replica-task-detail [data-slot=tabs-trigger]{font-size:11px;min-height:0}.replica-task-times>div{grid-template-columns:86px minmax(0,1fr)}}
 .replica-task-source-info>[data-slot=button]{height:auto;min-height:0;padding:0;font-size:11px;font-weight:400;justify-content:flex-start;gap:4px}

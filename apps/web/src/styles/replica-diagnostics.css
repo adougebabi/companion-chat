@@ -39,9 +39,6 @@
 .replica-diagnostics .replica-task-row p{line-height:1.5}
 .replica-diagnostic-count{font-size:9px;background:#edf1e7;color:#8c967e;margin-left:0}
 .replica-task-results{display:grid;gap:18px;min-width:0}
-.replica-task-result-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0}
-.replica-task-result-summary>div{padding:14px 16px;border:1px solid #e3e8da;border-radius:10px;background:#f7f9f3}
-.replica-task-result-summary dt{font-size:11px;color:#859078}.replica-task-result-summary dd{font-size:24px;color:#405936;margin:6px 0 0}
 .replica-task-result-list{display:grid;gap:10px;list-style:none;padding:0;margin:0;min-width:0}
 .replica-task-result-row{border:1px solid #e3e8da;border-radius:9px;overflow:hidden;min-width:0}
 .react-workspace .replica-task-round-trigger[data-slot=button]{display:flex;width:100%;max-width:none;height:auto;min-height:46px;gap:12px;padding:12px 14px;border-radius:0;justify-content:flex-start;white-space:normal}
@@ -50,7 +47,7 @@
 .replica-task-round-content{display:grid;gap:18px;padding:18px;border-top:1px solid #e3e8da;min-width:0;overflow-wrap:anywhere}
 .replica-task-round-content h3{font-size:12px;font-weight:600;margin:0 0 8px}.replica-task-round-content time{font-size:11px;color:#859078}
 .replica-task-results .replica-task-history time{font-size:11px;color:#859078}.replica-task-results .record-facts{overflow-wrap:anywhere}
-@media(max-width:700px){.replica-task-result-summary{gap:8px}.replica-task-result-summary>div{padding:12px}.react-workspace .replica-task-round-trigger[data-slot=button]{gap:8px;padding:12px 10px}.replica-task-round-duration{font-size:10px}.replica-task-round-content{padding:14px}}
+@media(max-width:700px){.react-workspace .replica-task-round-trigger[data-slot=button]{gap:8px;padding:12px 10px}.replica-task-round-duration{font-size:10px}.replica-task-round-content{padding:14px}}
 @media(max-width:700px){.replica-diagnostics .replica-task-row p{line-height:1.8}}
 @media(max-width:1200px){.replica-management-layout{gap:18px}}
 @media(max-width:700px){
@@ -59,3 +56,22 @@
  .replica-management .replica-diagnostics [data-slot=tabs] [role=tab][data-slot=tabs-trigger]{min-height:0}
  .replica-management .replica-diagnostics .replica-service-actions button[data-slot=button]{min-height:36px}
 }
+
+/* Task detail: summary first, then calls / lifecycle as flat sections. */
+.replica-task-overview{display:grid;gap:10px;margin-bottom:16px;min-width:0}
+.replica-task-read-at{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:6px}
+.react-workspace .replica-task-refresh[data-slot=button]{height:auto;min-height:28px;padding:0}
+.replica-task-calls,.replica-task-lifecycle{display:grid;gap:10px;min-width:0}
+.replica-task-section-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.replica-task-section-head h3{font-size:13px;font-weight:600;margin:0;color:var(--foreground)}
+.replica-task-section-head span{font-size:12px;color:var(--muted-foreground)}
+.replica-task-result-list>li[data-call-status=failure] .replica-task-result-row{border-color:color-mix(in srgb,var(--destructive) 35%,var(--border))}
+.replica-task-round-error p{margin:0 0 6px;color:var(--destructive);font-size:12px;line-height:1.7}
+/* RawContent: collapsed raw value with copy. */
+.replica-raw-content{min-width:0;border-top:1px solid var(--border);padding-top:6px}
+.replica-raw-content-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px}
+.replica-raw-content-trigger[data-state=open]>svg:first-child{transform:rotate(180deg)}
+.replica-raw-content-size{font-size:11px;color:var(--muted-foreground);font-weight:400}
+.replica-raw-content-body{min-width:0;margin-top:6px;max-height:min(50dvh,420px);overflow:auto;overscroll-behavior:contain}
+.replica-raw-content-body .replica-model-call-wire{max-height:none;overflow:visible}
+.replica-raw-content-missing{margin:0;font-size:12px;color:var(--muted-foreground)}

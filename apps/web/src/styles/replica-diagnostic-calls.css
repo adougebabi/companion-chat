@@ -35,3 +35,5 @@
 .replica-model-call-field h3{margin:0;line-height:1.5;color:inherit}
 .replica-model-call-technical-target>[data-slot=button]{height:36px;min-height:0;width:36px;padding:0}
 .replica-model-call-dialog [data-slot=dialog-footer]>[data-slot=button]{min-height:36px;padding-inline:16px}
+.replica-model-call-actions{display:flex;flex-wrap:wrap;gap:8px}
+.replica-model-call-stored h4{font-size:12px;font-weight:600;margin:0 0 6px}

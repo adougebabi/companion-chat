@@ -32,7 +32,7 @@ test('task dialog keeps original fields out of the DOM through all detail disclo
  try{
   const host=document.querySelector('[role=dialog]');
   assert.match(host.textContent,/独立目标规划/);assert.match(host.textContent,/规划任务没有找到对应资料，已停止/);assert.doesNotMatch(businessText(host),forbidden);
-  await tab(v,'执行记录');assert.doesNotMatch(businessText(host),forbidden);
+  await tab(v,'模型调用');assert.doesNotMatch(businessText(host),forbidden);await tab(v,'执行阶段');assert.doesNotMatch(businessText(host),forbidden);
   await v.click(button('生命周期原始记录'));assert.equal(host.querySelector('pre, code'),null);assert.doesNotMatch(host.textContent,forbidden);assert.ok(button('下载原始记录'));
   await tab(v,'任务信息');assert.match(host.textContent,/2026-11-16 08:00:00\.000（北京时间）/);assert.match(host.textContent,/2026-11-17 08:00:00\.000（北京时间）/);
   await v.click(button('查看完整任务记录'));
