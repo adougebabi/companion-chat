@@ -20,25 +20,37 @@ export function installApiScenarios(){
   if(!scenario.runningCompletesAfter||running.status!=='running')return;
   runningReads++;
   if(runningReads<scenario.runningCompletesAfter)return;
-  Object.assign(running,{status:'completed',completed_at:new Date().toISOString(),steps:[...running.steps,{id:'s3',event_type:'workflow.completed',name:'workflow.completed',status:'completed',reason_code:'',at:new Date().toISOString()}]});
+  Object.assign(running,{status:'completed',state:'completed',completed_at:new Date().toISOString(),steps:[...running.steps,{id:'s3',event_type:'workflow.completed',name:'workflow.completed',status:'completed',reason_code:'',at:new Date().toISOString()}]});
   data.calls['corr-running']=[...(data.calls['corr-running']||[]),{sequence:2,status:'completed',minute:6,seconds:2.6,prompt:'请确认计划已写入。',response:'计划已写入。',stage:'final_response'}];
-  data.workflows[running.workflow_id].intent.status='completed';data.workflows[running.workflow_id].allowed_actions=[];
+  const inspection=data.workflows[running.workflow_id];inspection.intent.status='completed';inspection.allowed_actions=[];inspection.runtime={...inspection.runtime,status:'completed',close_time:new Date().toISOString()};
  }
- function control(workflowId:string,action:string){
+ // Mirrors workflow_controls.go: the body must name the current run and revision;
+ // the receipt is a command receipt, never the task outcome. Restart starts a
+ // successor workflow and leaves the original task as recorded; cancel moves the
+ // task to cancel_requested until the runtime confirms.
+ function control(workflowId:string,action:string,body:any){
   const inspection=data.workflows[workflowId],target=Object.values(data.tasks).find(entry=>entry.workflow_id===workflowId);
   if(!inspection||!target)return json(404,{code:'not_found',message:'没有找到原任务。'});
-  const now=new Date().toISOString(),status=action==='cancel'?'cancelled':'queued';
-  Object.assign(target,{status,runs:action==='restart'?target.runs+1:target.runs,completed_at:action==='cancel'?now:null,last_error:action==='restart'?undefined:target.last_error,steps:[...target.steps,{id:'cmd-'+target.steps.length,event_type:action==='restart'?'workflow.restarted':'workflow.cancel_requested',name:action,status,reason_code:'',at:now}]});
-  inspection.intent.status=status;inspection.intent.revision++;inspection.allowed_actions=status==='queued'?['cancel']:[];
-  inspection.runtime={run_id:'run-'+target.task_id+'-'+inspection.intent.revision,status};
-  return json(200,{status:'accepted',action,workflow_id:workflowId});
+  if(typeof body?.reason!=='string'||!body.reason.trim()||typeof body?.idempotencyKey!=='string'||!body.idempotencyKey)return json(400,{code:'invalid_request',message:'缺少操作原因或幂等键。'});
+  if(!inspection.allowed_actions.includes(action))return json(422,{code:'workflow_action_not_allowed',message:'当前状态不允许此操作。'});
+  if(body.expectedRevision!==inspection.intent.revision||body.sourceRunId!==inspection.runtime?.run_id)return json(409,{code:'workflow_revision_conflict',message:'原任务已变化，请重新读取。'});
+  const now=new Date().toISOString(),commandId='cmd-'+workflowId+'-'+(inspection.commands.length+1);
+  const receipt:Record<string,unknown>={command_id:commandId,workflow_id:workflowId,source_run_id:body.sourceRunId,operation:action,status:'sent',effect:action==='restart'?'successor_started':'cancel_requested'};
+  if(action==='restart')receipt.successor_intent_id='owner-restart:'+target.task_id;
+  if(action==='cancel'){
+   Object.assign(target,{status:'cancel_requested',state:'cancel_requested',steps:[...target.steps,{id:'cmd-'+target.steps.length,event_type:'workflow.cancel_requested',name:'cancel',status:'cancel_requested',reason_code:'',at:now}]});
+   inspection.intent.status='cancel_requested';inspection.intent.revision++;inspection.allowed_actions=[];
+  }
+  inspection.commands=[{id:commandId,action,status:'sent',created_at:now,...receipt},...inspection.commands];
+  return json(202,receipt);
  }
  function resumeVisual(sessionId:string,body:any){
   const session=data.visual.session,stage=session?.submission_recovery?.stages.find(entry=>entry.stage===body?.stage);
+  if(typeof body?.reason!=='string'||!body.reason.trim()||typeof body?.idempotencyKey!=='string'||!body.idempotencyKey)return json(400,{code:'invalid_request',message:'缺少核对说明或幂等键。'});
   if(!session||session.id!==sessionId||!stage||body.submissionReviewed!==true||body.expectedAttempt!==session.current_attempt||body.expectedVisualRevision!==data.visual.current_revision||body.expectedMediaRevision!==stage.revision)return json(409,{code:'visual_submission_recovery_stale',message:'原图片恢复条件已变化，请重新读取。'});
   data.visualResumes.push(body);
   session.candidate_submission_uncertain=false;session.submission_recovery={status:'unavailable',stages:[]};data.visual.current_revision++;
-  return json(200,{fluctlight_id:scenarioCharacter.id,session_id:sessionId,stage:body.stage,media_intent_id:stage.media_intent_id,asset_id:'asset_'+stage.media_intent_id,workflow_id:body.workflowId,source_run_id:body.sourceRunId,media_status:'completed',status:'resume_requested',command_id:'cmd-visual-'+data.visualResumes.length});
+  return json(200,{id:'vsr-'+data.visualResumes.length,fluctlight_id:scenarioCharacter.id,session_id:sessionId,stage:body.stage,media_intent_id:stage.media_intent_id,asset_id:'asset_'+stage.media_intent_id,workflow_id:body.workflowId,source_run_id:body.sourceRunId,media_status:'completed',status:'resume_requested',command_id:'cmd-visual-'+data.visualResumes.length});
  }
  function route(method:string,url:URL,body?:any):Response|null{
   const path=url.pathname,q=url.searchParams;let match:RegExpMatchArray|null;
@@ -51,9 +63,9 @@ export function installApiScenarios(){
    const value=data.tasks[id];return value?json(200,value):json(404,{code:'task_not_found',message:'没有找到这个任务。'});
   }
   if(method==='GET'&&(match=path.match(/^\/api\/workflow-controls\/([^/]+)$/))){const value=data.workflows[decodeURIComponent(match[1])];return value?json(200,value):json(404,{code:'not_found',message:'没有找到原任务。'});}
-  if(method==='POST'&&(match=path.match(/^\/api\/workflow-controls\/([^/]+)\/(restart|cancel)$/)))return control(decodeURIComponent(match[1]),match[2]);
+  if(method==='POST'&&(match=path.match(/^\/api\/workflow-controls\/([^/]+)\/(pause|resume|cancel|restart|reset)$/)))return control(decodeURIComponent(match[1]),match[2],body);
   if(method==='GET'&&(match=path.match(/^\/api\/diagnostic-records\/([^/]+)$/))){
-   const kind=decodeURIComponent(match[1]),page=(items:unknown[])=>json(200,{items,next_cursor:'',snapshot:'scenario',as_of:new Date().toISOString(),filters:{},snapshot_semantics:'scenario',coverage:'complete'});
+   const kind=decodeURIComponent(match[1]),page=(items:unknown[])=>json(200,{items,next_cursor:'',snapshot:'scenario-snapshot-1',as_of:new Date().toISOString(),filters:Object.fromEntries(q),snapshot_semantics:'creation_membership; mutable states reflect each read',coverage:'actual owning records'});
    if(kind==='model-runs'){const id=q.get('correlationId')||'';return page((data.calls[id]||[]).map((seed,index)=>callRecord(id,seed,index)));}
    if(kind==='workflow-intents'){const type=q.get('intentType');return page(Object.values(data.tasks).filter(entry=>!type||entry.kind===type).map(entry=>({id:entry.task_id,ref:'intent:'+entry.task_id,kind:'workflow-intents',occurred_at:entry.created_at,data:{...entry,intent_id:entry.task_id,intent_type:entry.kind}})));}
    if(kind==='media-prompts')return page(data.media[q.get('correlationId')||'']||[]);

@@ -45,11 +45,20 @@ export default function WorkspaceDialog({
         }}
         onCloseAutoFocus={(event) => {
           const source = returnFocus?.();
+          // A trigger disabled by the action it opened (e.g. a submitted
+          // command awaiting readback) cannot take focus; stay inside the
+          // dialog that still contains it rather than escaping behind it.
           const target =
             source?.isConnected &&
             !source.matches(':disabled,[aria-disabled="true"]')
               ? source
-              : document.querySelector<HTMLElement>(".replica-page-heading h1");
+              : (source?.isConnected
+                  ? source.closest<HTMLElement>('[role="dialog"][data-state="open"]')
+                  : null) ||
+                [...document.querySelectorAll<HTMLElement>('[role="dialog"][data-state="open"]')]
+                  .filter((dialog) => dialog !== event.currentTarget)
+                  .pop() ||
+                document.querySelector<HTMLElement>(".replica-page-heading h1");
           if (target?.isConnected) {
             event.preventDefault();
             target.focus({ preventScroll: true });

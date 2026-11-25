@@ -19,6 +19,7 @@ const asyncStates:Record<string,AsyncTaskState>={waiting:'queued',running:'runni
 /** What the task itself has produced or where it stopped. Model calls never decide this. */
 function taskOutcome(task:any,view:any,failure:string){
  const at=(value:unknown)=>typeof value==='string'&&value?diagnosticInstant(value):'';
+ if(task.status==='cancel_requested')return '已请求取消，等待执行器确认；确认前任务可能仍在执行。';
  switch(view.group){
   case 'waiting':return task.next_attempt_at?`等待下次尝试（${at(task.next_attempt_at)}）。`:'已受理，尚未开始执行。';
   case 'running':return `${task.started_at?'已于 '+at(task.started_at)+' 开始，':''}仍在执行；完成前不会显示为已完成。`;
@@ -74,6 +75,6 @@ export default function TaskDetailPage({route,embedded=false,onTaskLoaded,onTask
   ...(!task.workflow_id&&source?[{label:'处理入口',value:taskSourceLabel(task)}]:[]),
  ]}/>{task.workflow_id&&<div ref={setTaskDetailsTarget} className="replica-task-info-recovery"/>}{detailTab==='input'&&<div className="replica-task-source-info">{callsHref&&<Button asChild variant="link"><a href={callsHref}>查看关联模型调用 <ArrowUpRight size={12}/></a></Button>}<Button type="button" variant="link" aria-expanded={technicalOpen} onClick={()=>setTechnicalOpen(value=>!value)}>{technicalOpen?'收起任务原始记录':'查看完整任务记录'}</Button>{technicalOpen&&<><JsonDetails value={task} title={isReflection?"原始反思任务记录（诊断）":"完整任务信息与关联来源"} downloadOnly/>{(!isReflection||stages.length>0)&&<JsonDetails value={stages} title="业务阶段依据与来源" downloadOnly/>}</>}</div>}</TabsContent>
  </Tabs>
- </div>{task.workflow_id?<WorkflowRecovery key={owner+':'+task.workflow_id} workflowId={task.workflow_id} onChanged={async()=>{await read();if(isMedia&&mediaId)await mediaReader.load();}} onSnapshot={setWorkflowSnapshot} hideRecoveryLink={!!mediaId} presentation="task" controlTarget={controlTarget} detailsTarget={taskDetailsTarget} showDetails={detailTab==='input'} showTechnical={technicalOpen} domainRecovery={source?{href:source,label:taskSourceLabel(task)}:undefined}/>:domainControl&&(controlTarget?createPortal(domainControl,controlTarget):domainControl)}{isMedia&&mediaId&&<MediaTaskRecovery key={owner+':'+mediaId} mediaId={mediaId} workflowId={task.workflow_id} snapshot={workflowSnapshot} reader={mediaReader} controlTarget={controlTarget} onRecovered={recovered}/>}</>}
+ </div>{task.workflow_id?<WorkflowRecovery key={owner+':'+task.workflow_id} workflowId={task.workflow_id} onChanged={async()=>{await read();if(isMedia&&mediaId)await mediaReader.load();}} onSnapshot={setWorkflowSnapshot} hideRecoveryLink={!!mediaId||workflowSnapshot?.recovery?.href==='/diag/task/'+encodeURIComponent(task.task_id)} presentation="task" controlTarget={controlTarget} detailsTarget={taskDetailsTarget} showDetails={detailTab==='input'} showTechnical={technicalOpen} domainRecovery={source?{href:source,label:taskSourceLabel(task)}:undefined}/>:domainControl&&(controlTarget?createPortal(domainControl,controlTarget):domainControl)}{isMedia&&mediaId&&<MediaTaskRecovery key={owner+':'+mediaId} mediaId={mediaId} workflowId={task.workflow_id} snapshot={workflowSnapshot} reader={mediaReader} controlTarget={controlTarget} onRecovered={recovered}/>}</>}
  </section>;
 }

@@ -25,7 +25,7 @@ async function inViewport(page: Page, locator: ReturnType<Page['locator']>) {
 }
 
 test.describe('task detail and diagnostics (scenario preview)', { tag: ['@task-diagnostics'] }, () => {
-  test('failed task: status and cause first, progress by default, calls separate, retry reachable', async ({ page }) => {
+  test('failed task: status and cause first, progress by default, calls separate, business recovery reachable', async ({ page }) => {
     const dialog = await openTask(page, 'task-failed');
     const overview = dialog.locator('.replica-task-overview');
     await expect(overview).toContainText('需要处理');
@@ -33,32 +33,51 @@ test.describe('task detail and diagnostics (scenario preview)', { tag: ['@task-d
     await expect(overview).not.toContainText(/已尝试|模型调用|次失败/);
     await expect(dialog.getByRole('tab', { name: '执行阶段' })).toHaveAttribute('data-state', 'active');
     await expect(dialog.locator('.replica-task-history > li')).toHaveCount(4);
-    const retry = dialog.getByRole('button', { name: '重试任务' });
-    expect(await inViewport(page, retry)).toBe(true);
+    // goal.plan has no generic restart in the real API; it recovers through its business entry.
+    await expect(dialog.getByRole('button', { name: '重试任务' })).toHaveCount(0);
+    const recovery = dialog.getByRole('button', { name: '查看目标、约定和原请求恢复' });
+    expect(await inViewport(page, recovery)).toBe(true);
 
     await dialog.getByRole('tab', { name: '模型调用' }).click();
     await expect(dialog.locator('.replica-task-calls .replica-task-section-head')).toHaveText('模型调用3 次 · 2 次失败');
     const rows = dialog.locator('.replica-task-result-list > li');
     await expect(rows.nth(0).locator('.replica-task-round-trigger')).toHaveAttribute('aria-expanded', 'false');
     await expect(rows.nth(1).locator('.replica-task-round-trigger')).toHaveAttribute('aria-expanded', 'true');
-    await expect(rows.nth(1).locator('.replica-task-round-error')).toContainText('HTTP 503');
+    await expect(rows.nth(1).locator('.replica-task-round-error')).toContainText('模型服务暂时不可用');
     // Raw input stays closed until asked for.
     await expect(rows.nth(1).locator('.replica-raw-content-trigger').first()).toHaveAttribute('aria-expanded', 'false');
     await expectNoLayoutDefects(page, dialog, { minTarget: 0 });
   });
 
-  test('retry submits through the real workflow command and the summary reflects the new state', async ({ page }) => {
-    const dialog = await openTask(page, 'task-failed');
+  test('restart is a command receipt: the original task keeps its state, the action is not offered twice, focus stays in the task', async ({ page }) => {
+    const dialog = await openTask(page, 'task-control-failed');
     const trigger = dialog.getByRole('button', { name: '重试任务' });
+    // The recovery entry would point back at this same task, so it is not shown.
+    await expect(dialog.getByRole('button', { name: '查看原任务及业务来源' })).toHaveCount(0);
     await trigger.click();
     const confirm = page.getByRole('dialog').last();
     const submit = confirm.getByRole('button', { name: '确认重试任务' });
     await expect(submit).toBeDisabled();
     await confirm.locator('textarea').fill('模型服务已恢复');
     await submit.click();
-    await expect(dialog.locator('.replica-task-overview')).toContainText('等待开始');
-    await expect(dialog.locator('.replica-task-overview')).toContainText('已受理，尚未开始执行');
-    await expect(dialog.locator('.replica-task-history > li')).toHaveCount(5);
+    await expect(dialog).toContainText('操作已提交，等待最新任务状态；受理不表示执行完成。');
+    await expect(dialog.locator('.replica-task-overview')).toContainText('需要处理');
+    await expect(dialog.locator('.replica-task-history > li')).toHaveCount(3);
+    await expect(trigger).toBeDisabled();
+    expect(await dialog.evaluate(el => el.contains(document.activeElement))).toBe(true);
+  });
+
+  test('cancel moves the task to cancel_requested until the runtime confirms', async ({ page }) => {
+    const dialog = await openTask(page, 'task-running');
+    await dialog.getByRole('button', { name: '请求取消' }).click();
+    const confirm = page.getByRole('dialog').last();
+    await confirm.locator('textarea').fill('不再需要');
+    await confirm.getByRole('button', { name: '确认请求取消' }).click();
+    const overview = dialog.locator('.replica-task-overview');
+    await expect(overview).toContainText('正在取消');
+    await expect(overview).toContainText('已请求取消，等待执行器确认');
+    await expect(dialog.getByRole('button', { name: '请求取消' })).toHaveCount(0);
+    expect(await dialog.evaluate(el => el.contains(document.activeElement))).toBe(true);
   });
 
   test('refresh re-reads status: running stays running until the task itself completes', async ({ page }) => {
@@ -112,7 +131,7 @@ test.describe('task detail and diagnostics (scenario preview)', { tag: ['@task-d
     const limit = Math.min(page.viewportSize()!.height * 0.5, 420) + 1;
     expect((await body.boundingBox())!.height).toBeLessThanOrEqual(limit);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    expect(await inViewport(page, dialog.getByRole('button', { name: '重试任务' }))).toBe(true);
+    expect(await inViewport(page, dialog.getByRole('button', { name: '查看目标、约定和原请求恢复' }))).toBe(true);
   });
 
   test('call detail: error and actions before payloads, payloads open on demand and copy, focus returns', async ({ page, context }) => {

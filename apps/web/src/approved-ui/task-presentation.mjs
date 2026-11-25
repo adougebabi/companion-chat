@@ -11,7 +11,7 @@ export const taskStatusGroups=Object.freeze([
 ]);
 const statusGroups={
  attention:['failed','dead_letter','deadletter','error','paused','blocked','timed_out','timeout'],
- running:['started','running','processing','generating'],
+ running:['started','running','processing','generating','cancel_requested'],
  waiting:['pending','queued','waiting','retry','manual_prepared','awaiting_kev'],
  completed:['completed','succeeded','success','admitted','no_event','applied'],
  ended:['cancelled','canceled','terminated','superseded','skipped','interrupted','expired','rejected','continued_as_new'],
@@ -156,6 +156,9 @@ function recordedProviderFailure(raw){
 function safeDiagnosticReason(raw,code,fallback){
  const transport=recordedProviderFailure(raw);if(transport)return transport;
  const text=typeof raw==='string'?raw:'';
+ // Real model-run records carry only error_code. In a task/model-call context a
+ // provider outage is the model service failing, not a read the owner can repeat.
+ if(!text&&/^provider_(?:unavailable|request_failed|overloaded|rate_limited)$/.test(code||''))return '模型服务暂时不可用，本次请求未完成。';
  // An error containing Chinese can still carry a private endpoint or stack.
  // Keep an owned summary instead of editing pieces out of the original record.
  const technical=/https?:\/\/|\bsql:|\b(?:node path|stacktrace|traceback|sqlstate|goroutine)\b|(?:^|\n)\s*at\s+\S+|\/(?:Users|home|private|tmp)\//i.test(text);
