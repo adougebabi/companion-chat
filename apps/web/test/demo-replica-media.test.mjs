@@ -1054,7 +1054,7 @@ for (const stage of ['candidate', 'character_sheet']) test(`visual ${stage} revi
     await f.v.click(button(dialog(), '确认核对并恢复原任务'));
     assert.equal(writes.length, 0);
     assert.match(dialog().textContent, /请明确确认已人工核对/);
-    await f.v.click(dialog().querySelector('input[type=checkbox]'));
+    await f.v.click(dialog().querySelector('[role=checkbox]'));
     await f.v.click(button(dialog(), '确认核对并恢复原任务'));
     assert.equal(writes.length, 1);
     assert.equal(writes[0].submissionReviewed, true);
