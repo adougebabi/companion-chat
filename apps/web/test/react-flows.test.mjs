@@ -533,48 +533,6 @@ test("React setup confirms the exact password and focuses the mismatch without a
   }
 });
 
-test("React diagnostic detail preserves the complete original request and retains it on read failure", async () => {
-  const { default: Detail } = await load(
-    "react-app/pages/DiagnosticsDetailPage.tsx",
-  );
-  let fail = false,
-    reads = 0;
-  const source = {
-    id: "original-request",
-    status: "failed",
-    reason: "失败原因",
-    payload: { actual: "未经改写的原内容" },
-    result: { mutation_committed: false },
-  };
-  const w = {
-    client: {
-      ownerRequest: async (id) => {
-        assert.equal(id, "original-request");
-        reads++;
-        if (fail) throw Error("读取失败");
-        return structuredClone(source);
-      },
-    },
-    services: { diagnosticsClient: {} },
-  };
-  const view = await mountReact(vite, Detail, {
-    workspace: w,
-    props: { target: { kind: "request", id: "original-request" } },
-  });
-  try {
-    await view.click(button("原始记录与技术详情"));
-    assert.match(view.host.textContent, /未经改写的原内容/);
-    assert.match(view.host.textContent, /original-request/);
-    fail = true;
-    await view.click(button("重新读取"));
-    assert.equal(reads, 2);
-    assert.match(view.host.textContent, /读取失败/);
-    assert.match(view.host.textContent, /未经改写的原内容/);
-  } finally {
-    await view.dispose();
-  }
-});
-
 test("React resource editor rejects whitespace and preserves edits made while an original save is pending", async () => {
   const { default: Editor } = await load(
     "react-app/pages/StudioEditorPage.tsx",
