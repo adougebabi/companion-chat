@@ -137,15 +137,8 @@ func TestWriterCurrentStatePreservesOpaqueBodyAndWorldValues(t *testing.T) {
 	index := promptMessageOriginIndex(prompt, "scoped_runtime_projection")
 	content := stringValue(prompt.Messages[index]["content"])
 	text := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
-	decoder := json.NewDecoder(strings.NewReader(text))
-	decoder.UseNumber()
-	var runtime map[string]any
-	if err := decoder.Decode(&runtime); err != nil {
-		t.Fatal(err)
-	}
-	physicalState := mapValue(mapValue(runtime["current_state"])["data"])
-	if jsonString(mapValue(mapValue(physicalState["appearance"])["body_fields"])["custom"]) != jsonString(mapValue(appearance["body_fields"])["custom"]) || jsonString(mapValue(physicalState["life_context"])["world_environment"]) != jsonString(value) {
-		t.Fatal("Writer request changed opaque body/world data")
+	if !strings.Contains(text, renderProviderJSON(value)) || !strings.Contains(text, "known") {
+		t.Fatal("Writer request changed opaque body/world data", text)
 	}
 	var wire map[string]any
 	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
@@ -406,7 +399,7 @@ func TestFactOnlySenderTimestampKeepsItsOriginalZone(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(jsonString(prompt.Messages), "2026-10-14T03:10:00+02:00") {
+	if wire := jsonString(prompt.Messages); !strings.Contains(wire, "03:10") || !strings.Contains(wire, "UTC+02:00") {
 		t.Fatal("sender snapshot relabeled into self display timezone")
 	}
 }
@@ -425,7 +418,7 @@ func TestFactOnlyMorningContextRegression(t *testing.T) {
 			t.Errorf("strategy or unauthorized Goal leaked: %s", text)
 		}
 	}
-	for _, text := range []string{"上午阅读", "双方明确表达理解", "09:10:17.690", "09:29:22.688", "# 2026-10-14 23:58", "inference"} {
+	for _, text := range []string{"上午阅读", "双方明确表达理解", "09:10", "09:29", "# 2026-10-14 23:58", "（推测）"} {
 		if !strings.Contains(wire, text) {
 			t.Errorf("required context missing: %s", text)
 		}

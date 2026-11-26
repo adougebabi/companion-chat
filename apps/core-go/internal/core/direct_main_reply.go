@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -34,7 +35,7 @@ const directMainConversationProtocol = `本回合的第一步是选择下一步�
 func (c directMainReplyCapability) Definition() CapabilityDefinition {
 	d := conversationReplyCapabilityDefinition()
 	d.Version = "direct-main.v1"
-	d.Description = "Publish a natural private reply in the character's voice after any chosen action returns a real receipt. To take a photo, load the image tool through capability_catalog first. Ground facts in the receipt and keep processing language internal. Use valid current references; a simple reply can use action_type=reply, a short response_intent and influences=[]. Omit unsupported optional fields."
+	d.Description = "Send your private message to the other person. Do any action (photo, outfit, shopping, schedule) with its own tool first and reply after its result. text is the message; decision only needs a short response_intent."
 	d.Surfaces = []CapabilitySurface{CapabilitySurfaceConversation}
 	d.ModelPreserveOptionalObjectPaths = []string{"decision"}
 	properties := map[string]any{
@@ -42,11 +43,11 @@ func (c directMainReplyCapability) Definition() CapabilityDefinition {
 		"decision": directMainDecisionSchema(),
 	}
 	if c.replyOnly {
-		d.Description = "Publish the character's natural reply to the original user message. Use real results for factual grounding and keep processing language internal. Supply text and decision with action_type=reply, a short response_intent and influences=[]."
+		d.Description = "Send your natural reply to the original message. text is the message; decision only needs a short response_intent."
 		decision := mapValue(properties["decision"])
 		original := mapValue(decision["properties"])
 		mapValue(original["influences"])["description"] = "Use the empty array []. This reply-only request does not need influence citations."
-		properties["decision"] = objectSchema(map[string]any{"action_type": original["action_type"], "response_intent": original["response_intent"], "influences": original["influences"]}, []string{"action_type", "response_intent", "influences"}, false)
+		properties["decision"] = objectSchema(map[string]any{"action_type": original["action_type"], "response_intent": original["response_intent"], "influences": original["influences"]}, []string{"response_intent"}, false)
 	}
 	d.InputSchema = objectSchema(properties, []string{"text", "decision"}, false)
 	return d
@@ -54,12 +55,26 @@ func (c directMainReplyCapability) Definition() CapabilityDefinition {
 
 // The same cognition contract also serves internal tasks. Describe the fields
 // only for this direct-reply Tool without changing their validation or effects.
+// directMainOfferedDecisionFields are the decision fields shown to the model.
+// The full contract still validates; omitted fields take Core defaults.
+var directMainOfferedDecisionFields = []string{
+	"action_type", "response_intent", "influences", "appraisal", "state_expression",
+	"goal_event_candidates", "claims", "thought", "personality_decision",
+}
+
 func directMainDecisionSchema() map[string]any {
 	schema := cognitiveTurnResponseSchema()
+	properties := mapValue(schema["properties"])
+	for name := range properties {
+		if !slices.Contains(directMainOfferedDecisionFields, name) {
+			delete(properties, name)
+		}
+	}
+	schema["required"] = []string{"response_intent"}
 	schema["description"] = "Cognitive data for this turn. Use the declared type for each field; omit optional data or use null when inapplicable."
 	descriptions := map[string]string{
 		"action_type":                "For a private reply, this must be the string reply.",
-		"response_intent":            "A short string describing your intention in this reply.",
+		"response_intent":            "One short sentence on what this reply is for. This is usually the only field needed.",
 		"influences":                 "An array of valid current context references influencing this decision. Each item has ref, role, confidence and note. Use an empty array when none apply.",
 		"evidence_refs":              "An array of valid current reference strings supporting this decision. Use null when none are needed; do not put objects in this array.",
 		"internal_intent":            "A short string for any relevant inner intention, or null if not needed.",
@@ -79,6 +94,9 @@ func directMainDecisionSchema() map[string]any {
 	}
 	for name, description := range descriptions {
 		field := mapValue(mapValue(schema["properties"])[name])
+		if field == nil {
+			continue
+		}
 		field["description"] = description
 		// The wire converter narrows string-or-open-object cognition stages to
 		// their string branch. Keep the annotation on that branch as well.

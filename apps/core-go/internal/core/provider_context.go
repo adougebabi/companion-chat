@@ -258,6 +258,9 @@ func workingMemoryInputForSurface(projection ContextProjection, surface Provider
 	if facts := compactActorBackground(projection); len(facts) > 0 {
 		compact["actor_background"] = facts
 	}
+	if surface == ProviderContextSurfaceConversationMain && projection.Wardrobe != nil {
+		compact["wardrobe"] = projection.Wardrobe
+	}
 	refIndex := projection.ReferenceIndex
 	if surface == ProviderContextSurfacePersistentSwitch || surface == ProviderContextSurfaceReflection || surface == ProviderContextSurfaceGoalEvaluation || surface == ProviderContextSurfaceDefault {
 		refIndex = ContextReferenceIndex{}

@@ -77,15 +77,9 @@ func TestWriterActorBusinessValueSurvivesPhysicalPromptProjection(t *testing.T) 
 	}
 	content := stringValue(prompt.Messages[index]["content"])
 	body := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
-	decoder := json.NewDecoder(strings.NewReader(body))
-	decoder.UseNumber()
-	var runtime map[string]any
-	if err := decoder.Decode(&runtime); err != nil {
-		t.Fatal(err)
-	}
-	background := arrayValue(runtime["actor_background"])
-	if len(background) != 1 || jsonString(mapValue(background[0])["value"]) != jsonString(value) {
-		t.Fatalf("Writer changed actor-owned business data: %#v", background)
+	// Actor-owned business values reach the Writer exactly (inline JSON).
+	if !strings.Contains(body, renderProviderJSON(value)) {
+		t.Fatalf("Writer changed actor-owned business data: %s", body)
 	}
 	if strings.Contains(body, "actor_fact:private-ref") || strings.Contains(body, input.Projection.OwnerActorID) || jsonString(input) != before {
 		t.Fatal("Writer leaked Core actor metadata or mutated the source")
@@ -100,20 +94,14 @@ func TestWriterActorBusinessValueSurvivesPhysicalPromptProjection(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	var physicalRuntime map[string]any
+	physical := ""
 	for _, raw := range arrayValue(request["messages"]) {
 		content := stringValue(mapValue(raw)["content"])
 		if strings.HasPrefix(content, "[RUNTIME CONTEXT]\n") {
-			text := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
-			decoder := json.NewDecoder(strings.NewReader(text))
-			decoder.UseNumber()
-			if err := decoder.Decode(&physicalRuntime); err != nil {
-				t.Fatal(err)
-			}
+			physical = content
 		}
 	}
-	physicalBackground := arrayValue(physicalRuntime["actor_background"])
-	if len(physicalBackground) != 1 || jsonString(mapValue(physicalBackground[0])["value"]) != jsonString(value) {
+	if !strings.Contains(physical, renderProviderJSON(value)) {
 		t.Fatal("physical Writer request changed actor-owned business data")
 	}
 }

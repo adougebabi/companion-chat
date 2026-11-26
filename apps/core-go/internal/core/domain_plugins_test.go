@@ -236,7 +236,7 @@ func TestDomainPluginWriterAndVisualReplayBoundaries(t *testing.T) {
 		for _, raw := range arrayValue(payload["messages"]) {
 			messages.WriteString(stringValue(mapValue(raw)["content"]))
 		}
-		if !strings.Contains(messages.String(), `"image_generation_registered":false`) {
+		if !strings.Contains(messages.String(), "能拍照发图：否") {
 			t.Error("Writer did not receive the disabled capability fact")
 		}
 		return fakeProviderResult{Text: "普通文字回复。"}

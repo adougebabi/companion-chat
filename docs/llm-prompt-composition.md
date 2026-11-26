@@ -5,9 +5,18 @@
 
 ## 统一构造
 
+**聊天类 Agent（2026-11-26 起）**：direct 私聊主回合、fact-only 认知与 Writer 使用四段结构：
+system 为 `# 运行协议`（direct 为 8 条自然语言短规则 `directChatProtocol`，替代原上下文权威规则、
+direct 主协议与执行边界）+ `# 人格设定`（逐项文本）；运行时上下文为 Markdown（# 现在：时间、
+你的状态、衣柜、日程；# 关于对方；# 目标与打算；# 你记得的事；# 之前聊过）；随后是未总结的
+历史消息与当前输入。投影新增 `wardrobe`（未归档衣物的类别/描述/可用性，查询上限 80 行）。
+direct 回复工具只公布 decision 的 response_intent、influences、appraisal、state_expression、
+goal_event_candidates、claims、thought、personality_decision，必填仅 response_intent。
+渲染器见 `chat_prompt_markdown.go`，约束测试见 `chat_prompt_markdown_test.go`。
+
 所有正式 Agent 共享一个前置 `# 运行协议` system 边界。已有任务协议不叠加
 第二套协议；相同规则去重；没有人格资料的分析任务不加入空人格段。
-结构化业务数据统一 JSON，稳定任务资料可单独放在运行时事实之前；实际用户
+结构化业务数据除聊天类 Agent 外统一 JSON，稳定任务资料可单独放在运行时事实之前；实际用户
 输入保持原文一次。原生 Tools、ToolCall/ToolResult、response schema 和图片
 保持原生结构。传输层不根据用户文本形状转换 JSON/YAML/TOON。`ComposeTaskMessages` 只对
 调用方显式标记的 `promptTaskData` 进行资料提取/编码，Owner 的 JSON 描述仍是原文。
@@ -68,7 +77,7 @@
 恢复回归已核对。Moment Writer 的 Actor 背景也按相同外壳/业务值边界处理，
 其他独立事实投影仍按各自来源检查。
 
-每个任务按下表选择资料。统一构造并不表示所有任务共享整套摇光状态、记忆
+每个任务按下表选择资料。统一构造并不表示所有任务共享整套角色状态、记忆
 和私聊；共享 Agent ID 的不同子任务仍各有独立资料范围。
 逐 Agent/变体的必需与可选输入、禁止自动输入、来源、人格/历史/状态、工具及
 输出消费方见 [Agent 与任务变体输入契约](llm-task-input-contracts.md)。

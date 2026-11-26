@@ -84,12 +84,14 @@ type ContextProjection struct {
 	TriggerPreferences     []map[string]any              `json:"trigger_preferences"`
 	VisualIdentity         map[string]any                `json:"visual_identity"`
 	EffectiveAppearance    map[string]any                `json:"effective_appearance,omitempty"`
-	GoalPolicy             map[string]any                `json:"goal_policy,omitempty"`
-	Goals                  []map[string]any              `json:"goals,omitempty"`
-	Intentions             []map[string]any              `json:"intentions,omitempty"`
-	RecentOutcomes         []map[string]any              `json:"recent_outcomes,omitempty"`
-	ActiveActivities       []map[string]any              `json:"active_activities,omitempty"`
-	ReferenceIndex         ContextReferenceIndex         `json:"context_reference_index"`
+	// Wardrobe lists owned, non-archived items so chat can tell what exists.
+	Wardrobe         []map[string]any      `json:"wardrobe,omitempty"`
+	GoalPolicy       map[string]any        `json:"goal_policy,omitempty"`
+	Goals            []map[string]any      `json:"goals,omitempty"`
+	Intentions       []map[string]any      `json:"intentions,omitempty"`
+	RecentOutcomes   []map[string]any      `json:"recent_outcomes,omitempty"`
+	ActiveActivities []map[string]any      `json:"active_activities,omitempty"`
+	ReferenceIndex   ContextReferenceIndex `json:"context_reference_index"`
 }
 
 // A refreshed model view can contain newer refs, while the settlement chain
@@ -345,7 +347,11 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 	if err != nil {
 		return ContextProjection{}, err
 	}
-	fluctlightDisplayName := firstString(fluctlight.Identity["name"], firstString(fluctlight.Identity["display_name"], "摇光"))
+	wardrobe, err := readOwnedWardrobeSummary(ctx, a.DB.Pool(), fluctlightID)
+	if err != nil {
+		return ContextProjection{}, err
+	}
+	fluctlightDisplayName := firstString(fluctlight.Identity["name"], firstString(fluctlight.Identity["display_name"], "角色"))
 	relationshipActorIDs := make([]string, 0, len(relationships))
 	for _, relationship := range relationships {
 		if target := strings.TrimSpace(stringValue(relationship["target_actor_id"])); target != "" {
@@ -437,7 +443,7 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 		ResidentMemories: residentMemories, ResidentMemoryTrace: residentResult.Trace,
 		Hypotheses:   hypotheses,
 		Capabilities: capabilityDefinitionMaps(a.capabilityRegistry().Definitions()),
-		DriveSlots:   driveSlots, PreferenceSlots: preferenceSlots, TriggerPreferences: triggerPreferences, VisualIdentity: visualIdentity, EffectiveAppearance: effectiveAppearance,
+		DriveSlots:   driveSlots, PreferenceSlots: preferenceSlots, TriggerPreferences: triggerPreferences, VisualIdentity: visualIdentity, EffectiveAppearance: effectiveAppearance, Wardrobe: wardrobe,
 		GoalPolicy: goalPolicy, Goals: goals, Intentions: intentions, RecentOutcomes: recentOutcomes, ActiveActivities: activeActivities,
 	}
 	if presence, ok := lifeContext["presence"].(map[string]any); ok {
@@ -555,7 +561,7 @@ func selectActiveProfileRelationships(values []map[string]any, activeProfileID s
 }
 
 func (a *App) buildActorProjection(ctx context.Context, selfActorID, speakerActorID, selfDisplayName string, messages []map[string]any, extraActorIDs []string) ([]map[string]any, map[string]any, map[string]any) {
-	self := map[string]any{"ref": "actor_self", "actor_id": selfActorID, "type": "fluctlight", "display_name": firstString(selfDisplayName, "摇光")}
+	self := map[string]any{"ref": "actor_self", "actor_id": selfActorID, "type": "fluctlight", "display_name": firstString(selfDisplayName, "角色")}
 	actors := []map[string]any{self}
 	refs := map[string]map[string]any{selfActorID: self}
 	add := func(actorID, ref, fallbackType string) {

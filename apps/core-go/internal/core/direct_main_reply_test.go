@@ -103,11 +103,11 @@ func TestDirectMainOptionalToolSchemaConsistentAcrossRenderers(t *testing.T) {
 			required = append(required, stringValue(raw))
 		}
 		sort.Strings(required)
-		if len(mapValue(decision["properties"])) != 18 || strings.Join(required, ",") != "action_type,influences,response_intent" {
+		if len(mapValue(decision["properties"])) != len(directMainOfferedDecisionFields) || strings.Join(required, ",") != "response_intent" {
 			t.Fatalf("%s renderer lost optional decision fields: %#v", name, decision)
 		}
 		properties := mapValue(decision["properties"])
-		for _, field := range []string{"agency", "appraisal", "attention", "claims", "core_alignment", "desire", "evidence_refs", "goal_event_candidates", "internal_intent", "output_preference_decision", "personality_decision", "response_plan", "self_evaluation", "state_expression", "thought"} {
+		for _, field := range []string{"action_type", "influences", "appraisal", "claims", "goal_event_candidates", "personality_decision", "state_expression", "thought"} {
 			fieldSchema := mapValue(properties[field])
 			if len(fieldSchema) == 0 {
 				t.Fatalf("%s renderer lost optional field %s", name, field)
@@ -116,7 +116,7 @@ func TestDirectMainOptionalToolSchemaConsistentAcrossRenderers(t *testing.T) {
 				t.Fatalf("%s renderer no longer permits null for %s: %v", name, field, err)
 			}
 		}
-		for _, field := range []string{"action_type", "response_intent", "influences"} {
+		for _, field := range []string{"response_intent"} {
 			if err := capabilitycontract.ValidateCapabilitySchemaValue(nil, mapValue(properties[field])); err == nil {
 				t.Fatalf("%s renderer unexpectedly permits null for required %s", name, field)
 			}
@@ -133,7 +133,7 @@ func TestDirectMainOptionalFieldsNormalizeWithoutDiscardingValues(t *testing.T) 
 	schema := (directMainReplyCapability{}).Definition().InputSchema
 	base := map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}}
 	allNull := cloneMap(base)
-	for _, name := range []string{"agency", "appraisal", "attention", "claims", "core_alignment", "desire", "evidence_refs", "goal_event_candidates", "internal_intent", "output_preference_decision", "personality_decision", "response_plan", "self_evaluation", "state_expression", "thought"} {
+	for _, name := range []string{"appraisal", "claims", "goal_event_candidates", "personality_decision", "state_expression", "thought"} {
 		allNull[name] = nil
 	}
 	normalizedNull, err := capabilitycontract.NormalizeModelArguments(jsonBytes(map[string]any{"text": "你好", "decision": allNull}), schema)
@@ -149,9 +149,7 @@ func TestDirectMainOptionalFieldsNormalizeWithoutDiscardingValues(t *testing.T) 
 			decision["state_expression"] = nil
 		}
 		decision["claims"] = []any{map[string]any{"kind": "uncertain_hypothesis", "content": "可能有空", "confidence": 0.3, "evidence_refs": []any{}}}
-		decision["core_alignment"] = map[string]any{"aligned": false, "note": ""}
-		decision["self_evaluation"] = map[string]any{"mode": "uncertain", "reason_codes": []any{}, "confidence": 0, "note": ""}
-		decision["internal_intent"] = "保持原样"
+		decision["thought"] = "保持原样"
 		raw, err := capabilitycontract.NormalizeModelArguments(jsonBytes(map[string]any{"text": "你好", "decision": decision}), schema)
 		if err != nil {
 			t.Fatal(err)
@@ -160,7 +158,7 @@ func TestDirectMainOptionalFieldsNormalizeWithoutDiscardingValues(t *testing.T) 
 		if _, found := normalized["state_expression"]; found {
 			t.Fatalf("optional null or supplied claim changed: %#v", normalized)
 		}
-		for _, name := range []string{"claims", "core_alignment", "self_evaluation", "internal_intent"} {
+		for _, name := range []string{"claims", "thought"} {
 			if jsonString(normalized[name]) != jsonString(decision[name]) {
 				t.Fatalf("supplied %s changed: before=%#v after=%#v", name, decision[name], normalized[name])
 			}

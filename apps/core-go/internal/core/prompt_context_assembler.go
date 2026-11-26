@@ -656,6 +656,13 @@ func assemblePromptMessagesForSurfaceWithOrigins(surface ProviderContextSurface,
 		if factOnly {
 			rendered = renderFactOnlyRuntimeContext(formatted)
 		}
+		if chatMarkdownSurface(surface) {
+			view := formatted
+			if factOnly {
+				view = factOnlyRuntimeView(formatted)
+			}
+			rendered = renderChatRuntimeMarkdown(view)
+		}
 		messages = append(messages, map[string]any{"role": "user", "content": "[RUNTIME CONTEXT]\n" + rendered + "\n[/RUNTIME CONTEXT]"})
 		origins = append(origins, promptMessageOrigin{Source: "scoped_runtime_projection", SourceRefs: sortedUniqueStrings(runtimeRefs), Reason: "selected scoped context fragments"})
 	}
