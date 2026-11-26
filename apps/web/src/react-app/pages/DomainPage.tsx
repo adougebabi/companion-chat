@@ -59,7 +59,7 @@ function DomainToolHost({route}: {route:any}) {
 export default function DomainPage({route}:{route:any}) {
  if(route.feature.native==='governance')return <GovernancePage route={route}/>;
  if(route.feature.native==='self')return <SelfPage route={route}/>;
- if(route.feature.native==='studio-edit')return <StudioEditorPage resourceId={route.feature.params.resId} kind={route.query.get('kind')||'event_template'} jobId={route.query.get('job')||''}/>;
+ if(route.feature.native==='studio-edit')return <StudioEditorPage initialSection={route.query.get('section')==='publish'?'publish':'edit'} resourceId={route.feature.params.resId} kind={route.query.get('kind')||'event_template'} jobId={route.query.get('job')||''}/>;
  if(route.feature.native==='studio-preview')return <StudioPreviewPage route={route}/>;
  if(route.feature.native==='studio-material')return <StudioMaterialPage id={route.feature.params.materialId}/>;
  if(route.feature.native==='avatar')return <AvatarPage fid={route.fid}/>;

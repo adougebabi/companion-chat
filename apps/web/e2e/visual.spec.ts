@@ -15,7 +15,7 @@ test.beforeAll(() => {
 
 async function settle(page: Page) {
   await page.evaluate(() => document.fonts.ready);
-  await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity));
+  await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity || (a.timeline !== null && a.timeline !== document.timeline)));
 }
 
 for (const [id, entry] of Object.entries(GALLERY_CATALOG)) {

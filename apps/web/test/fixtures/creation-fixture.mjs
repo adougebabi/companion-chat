@@ -460,6 +460,9 @@ export function creationHttpFixture({
       }
       if (tail === "world/active" && method === "PUT") {
         state.selectedWorld = body.worldId;
+        // Joining the existing world preserves its identity. Legacy copy
+        // requests still use their separately created runtime world above.
+        if (body.worldId === sourceWorld.id) worlds.set(fid, { ...clone(sourceWorld), fluctlight_id: fid });
         return ack({
           id: body.worldId,
           world_id: body.worldId,

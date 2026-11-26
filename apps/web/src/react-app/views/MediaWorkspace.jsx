@@ -1,3 +1,6 @@
+import {useState} from 'react';
+import {DetailSheet} from '@/components/patterns';
+import {useIsMobile} from '../hooks/use-mobile';
 import { Eye, Upload, Sparkles, Search, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -17,6 +20,68 @@ import { mediaSource, mediaKind } from "@/approved-ui/media-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
 import {compactDateTime} from '@/approved-ui/presentation.mjs';
 export default function MediaWorkspaceView({ model: m }) {
+  const mobile=useIsMobile(),[filterOpen,setFilterOpen]=useState(false);
+  const filterControls = (<div className="ui-stack">            <ChoiceSelect
+              aria-label="媒体类型"
+              value={m.filter.kind}
+              onChange={(event) =>
+                m.setFilter({ ...m.filter, kind: event.target.value })
+              }
+            >
+              <option value="">全部画面</option>
+              <option value="image">图片</option>
+              <option value="video">视频</option>
+              <option value="audio">音频</option>
+            </ChoiceSelect>
+            <span className="r-fineprint">保存的素材 · 画面不改变生活状态</span>
+            <Disclosure className="media-options" title="来源、角色与库中展示">
+              <div className="media-filter-details">
+                <ChoiceSelect
+                  aria-label="媒体角色范围"
+                  value={m.filter.fid}
+                  onChange={(e) =>
+                    m.setFilter({ ...m.filter, fid: e.target.value })
+                  }
+                >
+                  <option value="">我的全部素材</option>
+                  {m.filter.fid &&
+                    !m.w.state.characters.some(
+                      (c) => c.id === m.filter.fid,
+                    ) && (
+                      <option value={m.filter.fid}>
+                        已指定角色范围（名称待读取）
+                      </option>
+                    )}
+                  {m.w.state.characters.map((c) => (
+                    <option value={c.id} key={c.id}>
+                      {c.name}的关联素材
+                    </option>
+                  ))}
+                </ChoiceSelect>
+                <ChoiceSelect
+                  aria-label="素材来源"
+                  value={m.filter.origin}
+                  onChange={(e) =>
+                    m.setFilter({ ...m.filter, origin: e.target.value })
+                  }
+                >
+                  <option value="all">全部来源</option>
+                  <option value="owner_upload">我的上传</option>
+                  <option value="studio">创作素材</option>
+                  <option value="fluctlight">角色生成</option>
+                </ChoiceSelect>
+                <label className="companion-checkbox-row">
+                  <Switch
+                    aria-label="只看已隐藏素材"
+                    checked={m.filter.hidden}
+                    onCheckedChange={(hidden) =>
+                      m.setFilter({ ...m.filter, hidden })
+                    }
+                  />
+                  只看已隐藏
+                </label>
+              </div>
+            </Disclosure></div>);
   return (
     <div className="replica-media resource-page">
       <WorkspacePageHeader
@@ -106,67 +171,9 @@ export default function MediaWorkspaceView({ model: m }) {
                 onChange={(event) => m.setSearch(event.target.value)}
               />
             </div>
-            <ChoiceSelect
-              aria-label="媒体类型"
-              value={m.filter.kind}
-              onChange={(event) =>
-                m.setFilter({ ...m.filter, kind: event.target.value })
-              }
-            >
-              <option value="">全部画面</option>
-              <option value="image">图片</option>
-              <option value="video">视频</option>
-              <option value="audio">音频</option>
-            </ChoiceSelect>
-            <span className="r-fineprint">保存的素材 · 画面不改变生活状态</span>
-            <Disclosure className="media-options" title="来源、角色与库中展示">
-              <div className="media-filter-details">
-                <ChoiceSelect
-                  aria-label="媒体角色范围"
-                  value={m.filter.fid}
-                  onChange={(e) =>
-                    m.setFilter({ ...m.filter, fid: e.target.value })
-                  }
-                >
-                  <option value="">我的全部素材</option>
-                  {m.filter.fid &&
-                    !m.w.state.characters.some(
-                      (c) => c.id === m.filter.fid,
-                    ) && (
-                      <option value={m.filter.fid}>
-                        已指定角色范围（名称待读取）
-                      </option>
-                    )}
-                  {m.w.state.characters.map((c) => (
-                    <option value={c.id} key={c.id}>
-                      {c.name}的关联素材
-                    </option>
-                  ))}
-                </ChoiceSelect>
-                <ChoiceSelect
-                  aria-label="素材来源"
-                  value={m.filter.origin}
-                  onChange={(e) =>
-                    m.setFilter({ ...m.filter, origin: e.target.value })
-                  }
-                >
-                  <option value="all">全部来源</option>
-                  <option value="owner_upload">我的上传</option>
-                  <option value="studio">创作素材</option>
-                  <option value="fluctlight">角色生成</option>
-                </ChoiceSelect>
-                <label className="companion-checkbox-row">
-                  <Switch
-                    aria-label="只看已隐藏素材"
-                    checked={m.filter.hidden}
-                    onCheckedChange={(hidden) =>
-                      m.setFilter({ ...m.filter, hidden })
-                    }
-                  />
-                  只看已隐藏
-                </label>
-              </div>
-            </Disclosure>
+            {!mobile && filterControls}
+            {mobile && <Button type="button" variant="outline" onClick={() => setFilterOpen(true)}>筛选</Button>}
+            <DetailSheet mobileMode="sheet" open={mobile && filterOpen} onOpenChange={setFilterOpen} title="筛选媒体" footer={<Button onClick={() => setFilterOpen(false)}>完成</Button>}>{filterControls}</DetailSheet>
           </form>
 
           <MediaReader source={m.library} label="素材" />

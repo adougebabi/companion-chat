@@ -23,8 +23,9 @@ export async function findLayoutDefects(
   const handle = await container.elementHandle();
   if (!handle) return [{ kind: 'missing-container', target: String(container), detail: 'container not found' }];
   // Measure settled geometry only: wait for enter/exit animations to finish.
-  // Infinite animations (skeleton pulse, spinners) never finish; ignore them.
-  await page.waitForFunction(el => (el as Element).getAnimations({ subtree: true }).every(a => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity), handle, { timeout: 5000 });
+  // Infinite and scroll-driven animations do not finish with wall time;
+  // audit their current geometry without waiting for a scroll position change.
+  await page.waitForFunction(el => (el as Element).getAnimations({ subtree: true }).every(a => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity || (a.timeline !== null && a.timeline !== document.timeline)), handle, { timeout: 5000 });
   return handle.evaluate((root: Element, minTarget: number) => {
     const defects: { kind: string; target: string; detail: string }[] = [];
     const vw = document.documentElement.clientWidth, vh = window.innerHeight;
@@ -72,6 +73,18 @@ export async function findLayoutDefects(
       if (!['INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName) && getComputedStyle(el).overflow === 'visible') {
         // Visually hidden text (sr-only: 1px clipped box) is not rendered content.
         const rects: DOMRect[] = [];
+        // Range rectangles include text hidden by a descendant's line clamp,
+        // ellipsis or clipping. Only painted content can spill out of a control.
+        // Exclude the control itself: its own visible overflow is still a defect.
+        const painted = (rect: DOMRect, parent: Element): DOMRect | null => {
+          let left=rect.left, right=rect.right, top=rect.top, bottom=rect.bottom;
+          for(let ancestor: Element | null=parent; ancestor && ancestor!==el; ancestor=ancestor.parentElement){
+            const style=getComputedStyle(ancestor), box=ancestor.getBoundingClientRect();
+            if (/(hidden|clip|auto|scroll)/.test(style.overflowX)) {left=Math.max(left,box.left);right=Math.min(right,box.right);}
+            if (/(hidden|clip|auto|scroll)/.test(style.overflowY)) {top=Math.max(top,box.top);bottom=Math.min(bottom,box.bottom);}
+          }
+          return right>left && bottom>top ? new DOMRect(left,top,right-left,bottom-top) : null;
+        };
         const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
         for (let node = walker.nextNode(); node; node = walker.nextNode()) {
           const parent = node.parentElement!;
@@ -81,7 +94,10 @@ export async function findLayoutDefects(
           if (ps.clipPath !== 'none' || (ps.clip && ps.clip !== 'auto')) continue;
           const range = document.createRange();
           range.selectNodeContents(node);
-          rects.push(...[...range.getClientRects()].filter(q => q.width > 0 && q.height > 0));
+          for(const q of range.getClientRects()){
+            const shown=painted(q,parent);
+            if(shown)rects.push(shown);
+          }
         }
         for (const child of el.querySelectorAll('*')) {
           const cs = getComputedStyle(child);

@@ -1,0 +1,69 @@
+@media (640px <= width < 1024px) {
+  .replica-studio .r-resource-grid,.replica-world .r-world-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media (width < 640px) {
+  :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) :is(.r-form-grid,.r-two-column,.r-world-grid,.r-studio-editor,.r-generation-layout,.r-place-workspace) {grid-template-columns:minmax(0,1fr);gap:18px;}
+  :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) .r-padded {padding:18px;}
+  :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) :is(.r-muted,.r-fineprint) {font-size:13px;line-height:1.75;}
+  :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) .r-inline-title {font-size:17px;line-height:1.6;}
+  :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) :is(.r-toolbar,.r-inline-actions) {gap:10px;flex-wrap:wrap;min-width:0;}
+  :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) .r-search {width:100%;min-width:0;flex:1;}
+  :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) :is(.replica-segment-tabs,.r-segmented-tabs) {max-width:100%;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;min-height:48px;gap:18px;}
+  :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) :is(.replica-segment-tabs,.r-segmented-tabs) > button {flex:none;min-height:48px;font-size:14px;}
+  .replica-world .r-world-card {display:grid;grid-template-columns:96px minmax(0,1fr);overflow:hidden;}
+  .replica-world .r-world-card > .r-world-art {height:100%;min-height:145px;}
+  .replica-world .r-world-card .r-card-body {padding:16px;min-width:0;}
+  .replica-world .r-world-detail-hero {display:block;}
+  .replica-world .r-world-detail-hero h2 {font-size:23px;}
+  .replica-world .r-place-tree {display:none;}
+  .replica-world .r-phone-category {display:flex;gap:10px;margin-bottom:16px;}
+  .replica-world .r-phone-category > [role="combobox"] {flex:1;min-width:0;}
+  .replica-world .r-place-grid {grid-template-columns:minmax(0,1fr);}
+  .replica-world .r-world-card .r-card-footer {flex-wrap:wrap;gap:8px;}
+  .replica-media .r-media-grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  .replica-media .r-media-card .r-card-body {padding:12px;}
+  .replica-media .r-media-card h3 {font-size:14px;line-height:1.6;}
+  .replica-media .r-media-card .r-card-footer {flex-wrap:wrap;gap:6px;}
+  .replica-media .media-toolbar {flex-wrap:nowrap;}
+  .replica-media .r-generation-layout {display:flex;flex-direction:column;}
+  .replica-media .r-generation-tabs {width:100%;}
+  .replica-media .r-generation-tabs [data-slot="tabs-list"] {width:100%;}
+  .replica-media .r-generation-layout[data-mobile-tab="request"] > .r-image-result {display:none;}
+  .replica-media .r-generation-layout[data-mobile-tab="result"] > .r-form-stack {display:none;}
+  .replica-studio .r-resource-grid {grid-template-columns:minmax(0,1fr);gap:14px;}
+  .replica-studio .r-studio-intro {padding:18px;gap:12px;align-items:flex-start;flex-wrap:wrap;}
+  .replica-studio .r-studio-intro h3 {font-size:17px;}
+  .replica-studio .r-studio-intro p {font-size:13px;line-height:1.7;}
+  .replica-studio .r-studio-stat {width:100%;border-left:0;border-top:1px solid var(--border);padding:14px 0 0;margin-top:6px;}
+  .replica-studio .r-resource-card .r-card-body {padding:18px;}
+  .replica-studio .r-resource-card h3 {font-size:17px;}
+  .replica-studio .studio-mobile-tabs [data-slot="tabs-list"] {width:100%;height:auto;display:flex;}
+  .replica-studio .studio-mobile-tabs [data-slot="tabs-trigger"] {flex:1;min-width:0;white-space:normal;font-size:13px;}
+  .replica-studio .r-studio-editor[data-mobile-section="edit"] > .r-form-stack:nth-child(2),
+  .replica-studio .r-studio-editor[data-mobile-section="publish"] > .r-form-stack:first-child {display:none;}
+  .replica-studio .r-sticky-panel {position:static;}
+  .studio-mobile-save.mobile-only {display:flex;position:fixed;left:0;right:0;bottom:calc(var(--mobile-nav-height) + var(--app-viewport-bottom,0px));padding:12px 18px;gap:12px;align-items:center;justify-content:space-between;background:var(--mobile-surface);border-top:1px solid var(--border);z-index:30;}
+  .studio-mobile-save span {font-size:12px;color:var(--muted-foreground);}
+  [data-testid="studio-editor"] {padding-bottom:90px;}
+  .replica-profile :is(.companion-people-grid,.companion-two-columns,.companion-edit-grid,.character-field-grid,.companion-diff) {grid-template-columns:minmax(0,1fr);gap:16px;}
+  .replica-profile .companion-profile-hero {padding:18px;gap:16px;flex-wrap:wrap;}
+  .replica-profile .companion-profile-intro h2 {font-size:23px;}
+  .replica-profile :is(.companion-profile-quote p,.companion-body-text) {font-size:15px;line-height:1.9;}
+  .replica-profile .companion-profile-intro > p,.replica-profile .companion-caption {font-size:13px;}
+  .replica-profile .companion-person-card {padding:18px;}
+  .replica-profile .companion-toolbar {flex-wrap:wrap;}
+  .replica-profile .companion-toolbar .search-input {width:100%;max-width:none;}
+  .replica-profile [data-slot="tabs-list"] {width:100%;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;max-width:100%;}
+  .replica-profile [data-slot="tabs-trigger"] {flex:none;min-height:44px;font-size:14px;}
+}
+@media (width < 640px) {
+  .replica-auth-page {height:var(--app-viewport-height,100dvh);min-height:0;overflow-y:auto;padding:24px 18px;}
+  .replica-auth-page .replica-auth-frame {display:block;min-height:0;background:transparent;border:0;border-radius:0;box-shadow:none;}
+  .replica-auth-page .replica-auth-story {min-height:160px;padding:24px;border-radius:var(--mobile-card-radius-large);margin-bottom:24px;overflow:hidden;}
+  .replica-auth-page .replica-auth-story h1 {font-size:25px;line-height:1.5;}
+  .replica-auth-page .replica-auth-story :is(.replica-eyebrow,p) {display:none;}
+  .replica-auth-page .replica-auth-story > svg {width:60%;left:auto;right:0;height:160px;opacity:.65;}
+  .replica-auth-page .replica-auth-form {padding:12px 0 24px;gap:24px;}
+  .replica-auth-page .replica-auth-form h2 {font-size:25px;}
+  .replica-auth-page .replica-auth-form p {font-size:14px;}
+}

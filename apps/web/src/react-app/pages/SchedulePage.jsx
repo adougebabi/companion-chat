@@ -1,3 +1,4 @@
+import {useIsMobile} from '../hooks/use-mobile';
 import { ProfileFieldsSummary } from "../shared/ProfileRecordSummary";
 import { readingFields } from "@/approved-ui/reading-fields.mjs";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -98,6 +99,7 @@ function habitEntries(detail) {
   );
 }
 export default function SchedulePage({ route, onRecoverInitial = null }) {
+  const mobile=useIsMobile();
   const w = useWorkspace(),
     c = w.current.value,
     owner = w.state.session.actorId,
@@ -744,9 +746,9 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
             <Button
               variant="ghost"
               size="icon"
-              aria-label="前一天"
+              aria-label={mobile ? "前一周" : "前一天"}
               disabled={calendar?.unavailable}
-              onClick={() => navigate(shiftDate(date, -1))}
+              onClick={() => navigate(shiftDate(date, mobile ? -7 : -1))}
             >
               <ChevronLeftIcon size={15} />
             </Button>
@@ -759,9 +761,9 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
             <Button
               variant="ghost"
               size="icon"
-              aria-label="后一天"
+              aria-label={mobile ? "后一周" : "后一天"}
               disabled={calendar?.unavailable}
-              onClick={() => navigate(shiftDate(date, 1))}
+              onClick={() => navigate(shiftDate(date, mobile ? 7 : 1))}
             >
               <ChevronRightIcon size={15} />
             </Button>
@@ -770,6 +772,9 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
             </Button>
           </div>
         </div>
+        {tab === 'timeline' && <div className="mobile-day-strip" aria-label="本周日程">
+          {Array.from({length:7},(_,i) => {const weekday=(new Date(actualDate+'T12:00:00Z').getUTCDay()+6)%7; const value=shiftDate(actualDate,i-weekday);return <Button key={value} variant="ghost" aria-label={value} aria-pressed={value===actualDate} className={value===actualDate?'active':''} disabled={calendar?.unavailable} onClick={() => navigate(value)}><small>{['一','二','三','四','五','六','日'][i]}</small><strong>{Number(value.slice(-2))}</strong></Button>;})}
+        </div>}
         {readError && (
           <InlineFeedback role="alert">
             <p>{readError}</p>

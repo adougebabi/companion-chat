@@ -1,3 +1,5 @@
+import { DetailSheet } from '@/components/patterns';
+import { useIsMobile } from '../hooks/use-mobile';
 import {ResultFeedback} from '../shared/Presentation';
 import { useEffect, useRef, useState } from "react";
 import {
@@ -111,6 +113,7 @@ function More({ source, label }) {
   ) : null;
 }
 export default function MemoryPage({ route }) {
+  const mobile = useIsMobile(), [filterOpen,setFilterOpen] = useState(false);
   const w = useWorkspace(),
     c = w.current.value,
     fid = c.id,
@@ -615,6 +618,42 @@ export default function MemoryPage({ route }) {
         ),
     });
   }
+  const filterControls = (            <div className="lp-row">
+              <ChoiceSelect
+                aria-label="记忆类型"
+                value={filters.type}
+                onChange={(e) => apply({ type: e.target.value })}
+              >
+                <option value="">所有类型</option>
+                {Object.entries(memoryTypes).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </ChoiceSelect>
+              <ChoiceSelect
+                aria-label="记忆状态"
+                value={filters.status}
+                onChange={(e) => apply({ status: e.target.value })}
+              >
+                <option value="">全部状态</option>
+                {Object.entries(memoryStatuses).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </ChoiceSelect>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="刷新记忆"
+                disabled={memories.busy}
+                onClick={memories.load}
+              >
+                <RefreshCwIcon size={15} />
+              </Button>
+            </div>);
   return (
     <div className="replica-life replica-memory">
       <WorkspacePageHeader
@@ -664,42 +703,9 @@ export default function MemoryPage({ route }) {
                 onChange={(e) => setQuery(e.target.value)}
               />
             </div>
-            <div className="lp-row">
-              <ChoiceSelect
-                aria-label="记忆类型"
-                value={filters.type}
-                onChange={(e) => apply({ type: e.target.value })}
-              >
-                <option value="">所有类型</option>
-                {Object.entries(memoryTypes).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </ChoiceSelect>
-              <ChoiceSelect
-                aria-label="记忆状态"
-                value={filters.status}
-                onChange={(e) => apply({ status: e.target.value })}
-              >
-                <option value="">全部状态</option>
-                {Object.entries(memoryStatuses).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </ChoiceSelect>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="刷新记忆"
-                disabled={memories.busy}
-                onClick={memories.load}
-              >
-                <RefreshCwIcon size={15} />
-              </Button>
-            </div>
+            {!mobile && filterControls}
+            {mobile && <Button type="button" variant="outline" onClick={() => setFilterOpen(true)}>筛选</Button>}
+            <DetailSheet mobileMode="sheet" open={mobile && filterOpen} onOpenChange={setFilterOpen} title="筛选记忆" footer={<Button onClick={() => setFilterOpen(false)}>完成</Button>}>{filterControls}</DetailSheet>
           </form>
           {filterError && (
             <InlineFeedback role="alert">{filterError}</InlineFeedback>

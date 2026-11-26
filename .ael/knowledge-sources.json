@@ -214,7 +214,7 @@
     },
     {
       "path": "docs/frontend-ui-quality.md",
-      "hash": "e3551210c806851af57df8cea7ac12d7feb41403c7e03515c153ad5e9360ff48",
+      "hash": "24a58cbf9258c5b7f2dbce9978d59b931eeb4bda1abf4d0302acf13f5f31d808",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -228,7 +228,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/frontend-ui-quality.md",
-        "hash": "e3551210c806851af57df8cea7ac12d7feb41403c7e03515c153ad5e9360ff48",
+        "hash": "24a58cbf9258c5b7f2dbce9978d59b931eeb4bda1abf4d0302acf13f5f31d808",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -950,7 +950,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 42,
+    "historical": 43,
     "retired": 1
   }
 }

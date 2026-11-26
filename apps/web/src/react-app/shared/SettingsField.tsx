@@ -44,6 +44,11 @@ export default function SettingsField({ field }: any) {
       </FieldGroup>{field.validationError&&<FieldError id={validationId} data-feedback-kind="error">{field.validationError}</FieldError>}</FieldSet>
     );
   }
+  if (field.type === "checkbox") return <Field data-setting-field={identity} data-invalid={!!field.validationError}>
+    <FieldLabel htmlFor={id} className="settings-switch-row"><span>{field.label}</span><FieldInput id={id} type="checkbox" aria-label={field.label} aria-invalid={!!field.validationError} aria-describedby={describedBy} checked={!!field.value} onChange={(event:any) => update(event.target.checked)}/></FieldLabel>
+    {hint && <p id={hintId} className="settings-field-hint">{hint}</p>}
+    {field.validationError && <FieldError id={validationId} data-feedback-kind="error">{field.validationError}</FieldError>}
+  </Field>;
   return (
     <Field data-setting-field={identity} data-invalid={!!field.validationError} orientation={field.type === "checkbox" ? "horizontal" : "vertical"} className={field.type==='json'?'min-w-0 full-field':'min-w-0'}>
       <FieldLabel htmlFor={id}>{field.label}</FieldLabel>

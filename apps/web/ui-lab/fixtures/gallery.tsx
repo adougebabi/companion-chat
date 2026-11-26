@@ -1,6 +1,7 @@
 // UI Lab gallery: every shared pattern in each applicable state, with fixed
 // fixture data. Dev/test only. Playwright iterates GALLERY × states × viewports.
 import { useState, type ReactNode } from 'react';
+import { MessageCircleIcon, LeafIcon, SproutIcon, UsersIcon, LayoutGridIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,9 +9,10 @@ import { Switch } from '@/components/ui/switch';
 import { ChoiceSelect, DrawerFrame } from '@/react-app/controls';
 import { DetailDrawer } from '@/react-app/components';
 import {
-  AsyncTaskStatus, DataState, DetailFields, DetailSheet, EditSheet, Feedback, FormActions, FormField, FormSection,
+  MobileNavigation, ResponsiveSheet, AsyncTaskStatus, DataState, DetailFields, DetailSheet, EditSheet, Feedback, FormActions, FormField, FormSection,
   PageContainer, PageSection, RecordList, RecordListItem, ResponsiveTabs, type AsyncTaskState, type FeedbackKind,
 } from '@/components/patterns';
+import WorkspaceDialog from '@/react-app/shared/WorkspaceDialog';
 import { events } from './events';
 import { GALLERY_CATALOG, type GalleryId } from './gallery-catalog';
 
@@ -61,12 +63,12 @@ function Details({ state }: { state: string }) {
   );
 }
 
-function SheetDemo({ kind, state }: { kind: 'detail' | 'edit'; state: string }) {
+function SheetDemo({ kind, state, mobileMode = "page" }: { kind: 'detail' | 'edit'; state: string; mobileMode?: "page" | "sheet" | "dialog" }) {
   const [open, setOpen] = useState(true);
   const long = state === 'long';
   const trigger = <Button type="button" variant="outline">{kind === 'detail' ? '查看约定详情' : '编辑约定'}</Button>;
   if (kind === 'detail') return (
-    <DetailSheet open={open} onOpenChange={setOpen} trigger={trigger} title={long ? LONG : '约定与履行证据'}
+    <DetailSheet mobileMode={mobileMode} open={open} onOpenChange={setOpen} trigger={trigger} title={long ? LONG : '约定与履行证据'}
       footer={state === 'normal' || long ? <Button type="button" variant="outline" onClick={() => setOpen(false)}>关闭</Button> : undefined}>
       {state === 'loading' ? <DataState label="约定详情" loading /> : state === 'error' ? <DataState label="约定详情" error="读取约定时服务没有响应（fixture）。" onRetry={() => record('retry', 'detail')} /> : <div className="ui-stack"><Details state={state} /><AsyncTaskStatus state="running" message="正在评估履行证据。" progress={40} /></div>}
     </DetailSheet>
@@ -201,7 +203,32 @@ function MigratedDrawerFrame({ state }: { state: string }) {
   );
 }
 
+function NavigationDemo({state}: {state: string}) {
+  const [value, setValue] = useState('chat');
+  return <MobileNavigation value={value} onSelect={next => {setValue(next); record('navigate', next);}} items={[
+    ['chat', '聊天', MessageCircleIcon], ['feed', '动态', LeafIcon], ['life', '生活', SproutIcon], ['library', '角色', UsersIcon], ['more', '更多', LayoutGridIcon],
+  ].map(([id, label, Icon]: any) => ({value: id, label: state === 'long' ? label + '与更多内容' : label, icon: <Icon/>, disabled: state === 'disabled' && id === 'chat'}))}/>;
+}
+function CompactDemo({state}: {state: string}) {
+  const [open, setOpen] = useState(true);
+  return <ResponsiveSheet mobileMode="dialog" open={open} onOpenChange={setOpen} busy={state === 'busy'}
+    title="确认当前操作" trigger={<Button>打开确认</Button>}
+    footer={<Button disabled={state === 'busy'} onClick={() => setOpen(false)}>返回</Button>}>
+    <p>{state === 'long' ? LONG : '请核对当前内容，再继续操作。'}</p>
+  </ResponsiveSheet>;
+}
+function WorkspaceDialogDemo({state}: {state: string}) {
+  const [open,setOpen]=useState(true),busy=state==='busy';
+  return <><Button onClick={() => setOpen(true)}>查看业务详情</Button><WorkspaceDialog open={open} onOpenChange={setOpen} title={state==='long'?LONG:'业务记录'} mobileMode={state==='sheet'?'sheet':state==='dialog'?'dialog':'page'} busy={busy}
+    footer={<Button disabled={busy} onClick={() => setOpen(false)}>返回列表</Button>}>
+    <div className="ui-stack"><p>{state==='long'?LONG.repeat(10):'这里是同一业务记录的详情。'}</p><Input aria-label="补充说明" disabled={busy}/></div>
+  </WorkspaceDialog></>;
+}
 const RENDER: Record<GalleryId, (state: string) => ReactNode> = {
+  'workspace-dialog': s => <WorkspaceDialogDemo state={s}/>,
+  'mobile-navigation': s => <NavigationDemo state={s}/>,
+  'bottom-sheet': s => <SheetDemo kind="detail" state={s} mobileMode="sheet"/>,
+  'compact-dialog': s => <CompactDemo state={s}/>,
   'migrated-detail-drawer': s => <MigratedDetailDrawer state={s} />,
   'migrated-drawer-frame': s => <MigratedDrawerFrame state={s} />,
   page: s => <PageDemo state={s} />,

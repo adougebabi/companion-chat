@@ -25,12 +25,25 @@ for (const [id, entry] of Object.entries(GALLERY_CATALOG)) {
           const sheet = page.getByRole('dialog');
           await expect(sheet).toBeVisible();
           const vw = page.viewportSize()!.width;
+          // Wait for the Radix entrance transition before asserting geometry.
+          await sheet.evaluate(async element => {await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => {})));});
           const box = (await sheet.boundingBox())!;
-          expect(box.x + box.width).toBeCloseTo(vw, 0);
-          if (isPhone(page)) expect(box.width).toBeCloseTo(vw, 0);
+          if (isPhone(page) && (id === 'compact-dialog' || id === 'workspace-dialog' && state === 'dialog')) {
+            expect(box.width).toBeCloseTo(vw - 36, 0);
+            expect(box.x).toBeCloseTo(18, 0);
+          } else if (!isPhone(page) && id === 'workspace-dialog') {
+            expect(box.x + box.width / 2).toBeCloseTo(vw / 2, 0);
+          } else {
+            expect(box.x + box.width).toBeCloseTo(vw, 0);
+            if (isPhone(page)) expect(box.width).toBeCloseTo(vw, 0);
+          }
+          if (isPhone(page) && (id === 'bottom-sheet' || id === 'workspace-dialog' && state === 'sheet')) {
+            expect(box.y + box.height).toBeCloseTo(page.viewportSize()!.height, 0);
+            expect(box.height).toBeLessThanOrEqual(page.viewportSize()!.height * .88 + 1);
+          }
           await expectNoLayoutDefects(page, sheet, { minTarget });
           // Footer actions are reachable without scrolling the body.
-          const footer = sheet.locator('[data-responsive-sheet-part="footer"]');
+          const footer = sheet.locator('[data-responsive-sheet-part="footer"], [data-slot="dialog-footer"]');
           if (await footer.count()) await expect(footer).toBeInViewport({ ratio: 1 });
         }
         await page.screenshot({ path: test.info().outputPath(`${id}-${state}.png`) });
@@ -137,4 +150,13 @@ test.describe('interactions', { tag: ['@patterns', '@overlay'] }, () => {
     await expect(page.getByRole('progressbar', { name: '处理进度' })).toBeVisible();
     await expect(page.locator('[data-task-state="running"]')).not.toHaveAttribute('data-feedback-kind', 'success');
   });
+});
+
+test('workspace dialog: phone opens on the title and busy cannot dismiss', {tag:['@patterns','@mobile']}, async({page})=>{
+  await open(page,'workspace-dialog','page');
+  if(isPhone(page))await expect(page.getByRole('heading',{name:'业务记录'})).toBeFocused();
+  await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toBeHidden();
+  await open(page,'workspace-dialog','busy');
+  await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('dialog').getByRole('button',{name:'关闭',exact:true})).toHaveCount(0);
 });

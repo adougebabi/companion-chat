@@ -150,6 +150,8 @@ function createLibraryPageController(__props, context, lifecycle) {
     const directoryConfirmed=w.state.ready&&!w.state.errors?.bootstrap;
     const allTags = groups.value[0].options, tags = allTags.slice(0,6), extraTags = allTags.slice(6);
     return <div className="replica-library" data-testid="replica-library" aria-busy={!!w.state.loading?.library}>
+      <div className="mobile-library-welcome"><div><small>YOUR LITTLE WORLD</small><h1>每一场相遇，<br/>都值得认真开始。</h1><p>在日常里，慢慢靠近。</p></div>{canStart && <Button asChild><a href={createHref}><PlusIcon/>新的相识</a></Button>}</div>
+      {current.id && <Button variant="ghost" className="mobile-library-resume" onClick={() => choose(current.id)}><CharacterAvatar name={current.name} initial={current.initial} color={current.color} src={current._directory?.avatar}/><span><small>继续你们的故事</small><strong>{current.name}</strong><span>你的上一次相遇，还在这里。</span></span><ArrowRightIcon/></Button>}
       <section className="library-hero">
         <div className="hero-copy">
           <div className="eyebrow">A LITTLE WORLD, A MEANINGFUL CONNECTION</div>

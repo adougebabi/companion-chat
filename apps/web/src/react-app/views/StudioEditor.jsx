@@ -1,3 +1,5 @@
+import {useState} from 'react';
+import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {
   ArrowLeft,
   ChevronRight,
@@ -33,6 +35,7 @@ import {
   studioTargetHref,
 } from "@/approved-ui/studio-presentation.mjs";
 export default function StudioEditorView({ model: m }) {
+  const [mobileSection,setMobileSection]=useState(m.initialSection || "edit");
   const { w, controller: c, state: s, d, r, readOnly, changes, jobs } = m;
   const creating = m.resourceId === "new";
   return (
@@ -87,6 +90,8 @@ export default function StudioEditorView({ model: m }) {
           </>
         }
       />
+      <Tabs className="mobile-only studio-mobile-tabs" value={m.sandbox ? 'sandbox' : mobileSection} onValueChange={value => {if(value==='sandbox'){if(!m.sandbox)m.changeMode();}else{setMobileSection(value);if(m.sandbox)m.changeMode(value);}}}><TabsList><TabsTrigger value="edit">编辑内容</TabsTrigger><TabsTrigger value="publish">发布与使用</TabsTrigger><TabsTrigger value="sandbox">创作沙盒</TabsTrigger></TabsList></Tabs>
+      {!m.sandbox && <div className="mobile-only studio-mobile-save"><span>{c.dirty() ? '有未保存修改' : '当前草稿已读取'}</span><Button disabled={!d || readOnly || s.busy || !!s.pending || s.readbackPending} onClick={m.save}>保存草稿</Button></div>}
       {s.error && (
         <InlineFeedback role="alert">
           {s.error}
@@ -133,7 +138,7 @@ export default function StudioEditorView({ model: m }) {
           {m.sandbox ? (
             <>{jobs}</>
           ) : (
-            <div className="r-studio-editor">
+            <div className="r-studio-editor" data-mobile-section={mobileSection}>
               <div className="r-form-stack">
                 <Surface className="panel r-padded">
                   <div className="r-section-heading">

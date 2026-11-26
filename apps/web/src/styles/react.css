@@ -16,6 +16,9 @@
 @import "./replica-studio.css";
 @import "./replica-creation.css";
 @import "./replica-management.css";
+@import "./mobile-workspace.css";
+@import "./mobile-life.css";
+@import "./mobile-resources.css";
 /* Business UI patterns, then shared overlay geometry: must stay last. */
 @import "./patterns.css";
 @import "./overlay.css";

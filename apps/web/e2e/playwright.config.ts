@@ -44,6 +44,10 @@ export default defineConfig({
   ],
   webServer: [
     {
+      command: 'node scripts/mobile-mock-preview.mjs', cwd: '..',
+      url: 'http://127.0.0.1:5197/', reuseExistingServer: !process.env.CI, timeout: 120_000,
+    },
+    {
       command: `node ./node_modules/vite/bin/vite.js --port ${port} --strictPort --host 127.0.0.1`,
       cwd: '..',
       url: `http://127.0.0.1:${port}/ui-lab/`,

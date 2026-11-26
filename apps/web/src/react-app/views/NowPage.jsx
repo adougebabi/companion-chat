@@ -54,8 +54,10 @@ export default function NowPage({view}){
       {mood&&<span className="lp-chip"><LeafIcon size={12}/>{mood}</span>}
      </div>}
     </div>
+    <div className="mobile-only lp-hero-next"><small>接下来</small><strong>{(nextDisplay?.showTime ? next.time : nextDisplay?.timeNote)||'待安排'}</strong><p>{nowStateText(next?.text,'活动')||'接下来的安排尚未确认。'}</p></div>
     <div className="lp-hero-art" aria-hidden="true"><BookOpenIcon/></div>
    </section>
+   <nav className="mobile-only lp-phone-entries" aria-label="生活快捷入口">{['日程','目标','衣柜','日记','记忆','角色详情'].map(label => <Button key={label} variant="ghost" onClick={() => go(label)}><LeafIcon/><span>{label === '角色详情' ? '档案' : label}</span></Button>)}</nav>
    <Surface className="lp-pad"><div className="replica-section-heading"><div><h2>今天，慢慢走</h2><p>已确认的安排与即将到来的片刻</p></div><Button variant="link" onClick={()=>go('日程')}>完整日程<ArrowUpRightIcon size={12}/></Button></div>
     {readingSchedule&&<LoadingState label="正在读取日程…"/>}{view.readError('schedule')&&<InlineFeedback role="alert">日程读取未完成，保留已确认的安排。{view.readError('schedule')}<Button variant="outline" onClick={()=>void w.loadLife({currentOnly:true}).catch(()=>{})}>重新读取日程</Button></InlineFeedback>}
     {todayItems.length?<ScheduleTimeline items={todaySummary} compact onSelect={()=>go('日程')}/>:!readingSchedule&&!view.readError('schedule')&&<EmptyState className="replica-now-empty"><EmptyMedia><LeafIcon size={25} aria-hidden="true"/></EmptyMedia><h3>今天的生活，正在慢慢展开</h3><p>还没有确认的日程，可以先聊聊接下来的安排。</p><Button variant="outline" onClick={()=>go('日程')}>打开日程</Button></EmptyState>}
@@ -68,7 +70,7 @@ export default function NowPage({view}){
    <ProfileFieldsSummary value={c.detail?.current_state?.appearance} shape={currentStateShape.appearance} title="此刻的外貌" identity={c.detail?.identity}/>
    <ProfileFieldsSummary value={c.detail?.inner_state ?? c.detail?.current_state?.inner_state} shape={innerStateShape} title="内在状态"/>
    <NowStateDownload detail={c.detail} world={world} schedule={view.schedule.value.length?view.schedule.value.map(item=>item._source):undefined}/>
-  </Surface><Surface className="lp-pad"><div className="lp-row lp-between"><span className="lp-label">NEXT LITTLE THING</span><Clock3Icon size={15}/></div><strong className="replica-next-time">{(nextDisplay?.showTime ? next.time : nextDisplay?.timeNote)||'待安排'}</strong><p className="lp-title">{nowStateText(next?.text,'活动')||'接下来的安排尚未确认。'}</p><p className="lp-muted replica-next-note">未来的安排仍会变化，生活留一点余地。</p></Surface>
+  </Surface><Surface className="lp-pad desktop-only"><div className="lp-row lp-between"><span className="lp-label">NEXT LITTLE THING</span><Clock3Icon size={15}/></div><strong className="replica-next-time">{(nextDisplay?.showTime ? next.time : nextDisplay?.timeNote)||'待安排'}</strong><p className="lp-title">{nowStateText(next?.text,'活动')||'接下来的安排尚未确认。'}</p><p className="lp-muted replica-next-note">未来的安排仍会变化，生活留一点余地。</p></Surface>
   <Button variant="ghost" className="lp-memory-card" onClick={()=>go('日记')}><div className="lp-row"><BookOpenIcon size={16}/><span className="lp-title">{c.name}写下的日常</span><ArrowUpRightIcon size={14}/></div><p className="lp-small">翻开日记，看看没有说出口的日常。</p></Button>
  </div></div></div>;
 }

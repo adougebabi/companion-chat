@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ export default function WorkspaceDialog({
   busy = false,
   className = "",
   testId,
+  mobileMode = "page",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -31,11 +32,21 @@ export default function WorkspaceDialog({
   busy?: boolean;
   className?: string;
   testId?:string;
+  mobileMode?: "page" | "sheet" | "dialog";
 }) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         data-testid={testId}
+        data-workspace-dialog=""
+        data-mobile-mode={mobileMode}
+        onOpenAutoFocus={(event) => {
+          if (window.matchMedia('(width < 640px)').matches) {
+            event.preventDefault();
+            titleRef.current?.focus();
+          }
+        }}
         showCloseButton={!busy}
         onEscapeKeyDown={(event) => {
           if (busy) event.preventDefault();
@@ -72,7 +83,7 @@ export default function WorkspaceDialog({
         }
       >
         <DialogHeader className="text-center sm:text-left">
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle ref={titleRef} tabIndex={-1}>{title}</DialogTitle>
           <DialogDescription>
             {description || "查看详细信息与相关操作。"}
           </DialogDescription>

@@ -1,3 +1,4 @@
+import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import { useEffect, useRef, useState } from "react";
 import { WorldArt } from "./WorkspaceArtwork";
 import { Sparkles, Plus, ImageIcon } from "lucide-react";
@@ -253,6 +254,7 @@ function GenerationFields({ model: m, draft: d, edit }) {
   );
 }
 export default function MediaGeneration({ model: m }) {
+  const [mobileTab,setMobileTab]=useState("request");
   const fid = m.target,
     slot = `fluctlight-media:${m.owner}:${fid}:replica-generation`,
     [epoch, setEpoch] = useState(0),
@@ -441,14 +443,15 @@ export default function MediaGeneration({ model: m }) {
           JSON.stringify({ id: r.request.id }),
         );
         setSelected(r.request.id);
-        setNotice("图片请求已受理。角色判断、生成任务和实际图片分别显示。");
+        setNotice("图片请求已受理。角色判断、生成任务和实际图片分别显示。");setMobileTab("result");
         await historyRef.current.load();
       }
     },
     fields: (d, edit) => <GenerationFields model={m} draft={d} edit={edit} />,
   };
   return (
-    <div className="r-generation-layout">
+    <div className="r-generation-layout" data-mobile-tab={mobileTab}>
+      <Tabs className="mobile-only r-generation-tabs" value={mobileTab} onValueChange={setMobileTab}><TabsList><TabsTrigger value="request">填写请求</TabsTrigger><TabsTrigger value="result">进度与结果</TabsTrigger></TabsList></Tabs>
       <div className="r-form-stack">
         <Surface className="panel r-padded">
           <h2 className="r-inline-title">想留下一幅怎样的画面？</h2>
@@ -466,7 +469,7 @@ export default function MediaGeneration({ model: m }) {
             <button
               key={r.id}
               className={"r-job-row" + (selected === r.id ? " active" : "")}
-              onClick={() => setSelected(r.id)}
+              onClick={() => {setSelected(r.id);setMobileTab("result");}}
             >
               <span>
                 <b>{r.payload?.prompt || "原图片请求"}</b>

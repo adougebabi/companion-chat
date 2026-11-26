@@ -1539,3 +1539,53 @@
    scroll) is owned by ResponsiveSheet size="wide" in styles/overlay.css. */
 
 .replica-creation .creation-source-action { margin-top:16px;margin-right:10px; }
+.creation-mobile-header {display:none;}
+@media (width < 640px) {
+  .replica-creation.creation-page {padding-bottom:130px;}
+  .replica-creation .creation-desktop-heading {display:none;}
+  .replica-creation .creation-mobile-header {display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+  .creation-mobile-header > div {flex:1;min-width:0;}
+  .creation-mobile-header small,.creation-mobile-header strong {display:block;}
+  .creation-mobile-header small {font-size:11px;color:var(--muted-foreground);}
+  .creation-mobile-header strong {font-size:19px;font-weight:600;margin-top:3px;}
+  .replica-creation .creation-steps {gap:0;margin-bottom:20px;}
+  .replica-creation .creation-step {display:flex;flex-direction:column;gap:5px;padding:6px 2px;min-width:0;}
+  .replica-creation .creation-step small {display:none;}
+  .replica-creation .creation-step strong {font-size:12px;}
+  .replica-creation .creation-step > span:first-child {width:32px;height:32px;}
+  .replica-creation .creation-layout {display:block;}
+  .replica-creation .creation-world-grid {grid-template-columns:minmax(0,1fr);gap:12px;}
+  .replica-creation .creation-source-grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+  .replica-creation .creation-source-card {padding:16px;min-height:140px;}
+  .replica-creation .creation-source-card strong {font-size:15px;}
+  .replica-creation .creation-source-card small {font-size:12px;line-height:1.7;}
+  .replica-creation :is(.creation-form-grid,.creation-traits-grid) {grid-template-columns:minmax(0,1fr);}
+  .replica-creation :is(.creation-panel,.creation-review,.creation-source-panel,.creation-preparation) {padding:18px;}
+  .creation-mobile-review {display:grid;gap:18px;}
+  .creation-mobile-person {padding:22px;text-align:center;}
+  .creation-mobile-person > svg {width:44px;height:44px;margin:0 auto 12px;color:var(--primary);}
+  .creation-mobile-person h2 {font-size:23px;margin-bottom:8px;}
+  .creation-mobile-person p {font-size:13px;color:var(--muted-foreground);}
+  .creation-mobile-groups {display:grid;gap:10px;}
+  .creation-mobile-groups > button {min-height:62px;justify-content:space-between;background:var(--card);padding:16px 18px;}
+  .replica-creation .creation-footer {position:fixed;inset:auto 0 var(--app-viewport-bottom,0px);padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;gap:10px;background:var(--mobile-surface);border-top:1px solid var(--border);z-index:35;}
+  .replica-creation .creation-footer > div:first-child {width:100%;}
+  .replica-creation .creation-footer small {display:none;}
+  .replica-creation .creation-footer .creation-action-row {display:flex;width:100%;gap:10px;}
+  .replica-creation .creation-footer .creation-action-row > button:last-child {flex:1;}
+  .replica-creation .creation-footer .creation-saved-notice {font-size:11px;}
+}
+.creation-aside .creation-summary-content > [data-slot="card"] {padding:20px;}
+@media (width < 640px) {
+  .replica-creation .creation-steps {background:transparent;border:0;border-radius:0;padding:0 0 14px;border-bottom:1px solid var(--border);}
+  .replica-creation .creation-step {flex-direction:row;justify-content:center;gap:6px;min-height:42px;border:0;}
+  .replica-creation .creation-step > .creation-step-icon {width:24px;height:24px;min-width:24px;border-radius:50%;}
+  .replica-creation .creation-step-arrow,.replica-creation .creation-step em {display:none;}
+  .replica-creation .creation-step strong {font-size:13px;}
+  .creation-mobile-intro {margin:20px 0;}
+  .creation-mobile-intro h1 {font-size:23px;line-height:1.5;margin-bottom:8px;}
+  .creation-mobile-intro p {font-size:13px;color:var(--muted-foreground);line-height:1.75;}
+  .replica-creation .creation-footer {border-radius:0;box-shadow:none;}
+  .replica-creation .creation-meet {display:block;padding-bottom:0;}
+  .replica-creation .creation-meet > [data-slot="button"] {position:fixed;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:18px;right:18px;z-index:36;}
+}

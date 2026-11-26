@@ -16,7 +16,8 @@
     "ui-lab": "vite --open /ui-lab/",
     "ui:gate": "node scripts/ui-gate.mjs",
     "ui:gate:full": "node scripts/ui-gate.mjs --full",
-    "ui:baselines": "node scripts/ui-baselines.mjs"
+    "ui:baselines": "node scripts/ui-baselines.mjs",
+    "dev:mobile-mock": "node scripts/mobile-mock-preview.mjs"
   },
   "dependencies": {
     "@fluctlight/browser-client": "workspace:*",

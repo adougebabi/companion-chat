@@ -1,3 +1,5 @@
+import {useIsMobile} from '../hooks/use-mobile';
+import {ChevronLeft,ChevronRight} from 'lucide-react';
 import {modelRouteGroups,modelRouteLabel} from '@/approved-ui/model-route-presentation.mjs';
 import {Select,SelectTrigger,SelectValue,SelectContent,SelectGroup,SelectLabel,SelectItem} from '@/components/ui/select';
 import SettingsSections from '../shared/SettingsSections';
@@ -43,15 +45,19 @@ import {
 } from "@/react-app/render-helpers";
 const Yi = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 export function ManagementPageView({ view: view }) {
+  const mobile=useIsMobile(), [directory,setDirectory]=useState(() => !new URLSearchParams(location.hash.split('?')[1] || '').has('section'));
+  useEffect(() => {const sync=()=>setDirectory(!new URLSearchParams(location.hash.split('?')[1] || '').has('section'));window.addEventListener('hashchange',sync);return()=>window.removeEventListener('hashchange',sync);},[]);
   const recordTrigger=useRef(null),managementNav=useRef(null),[callTechnicalTarget,setCallTechnicalTarget]=useState(null);
   const category=readValue(view.tab)==='运行诊断'?'diagnostics':categories.find(c=>c.sections.includes(view.currentSection.value))?.id||'models';
   useEffect(()=>{const align=()=>{const nav=managementNav.current,active=nav?.querySelector('[aria-current=page]');if(!nav||!active||nav.scrollWidth<=nav.clientWidth)return;const box=nav.getBoundingClientRect(),item=active.getBoundingClientRect();if(item.left<box.left)nav.scrollLeft+=item.left-box.left;else if(item.right>box.right)nav.scrollLeft+=item.right-box.right;};align();window.addEventListener('resize',align);return()=>window.removeEventListener('resize',align);},[category]);
   const show=title=>categories.find(c=>c.id===category)?.sections.includes(title)&&(category!=='models'||view.currentSection.value===title);
-  const choose=id=>{const item=categories.find(c=>c.id===id);if(id==='data'){view.openData();return;}if(id==='diagnostics'){view.openDiagnostics();return;}view.tab.value='配置中心';view.openSettings(item.sections[0]);if(item.sections.length)void view.scrollTo(item.sections[0],false).then(()=>{document.querySelector('.replica-management-main')?.scrollTo({top:0,left:0,behavior:'instant'});});};
+  const choose=id=>{setDirectory(false);const item=categories.find(c=>c.id===id);if(id==='data'){view.openData();return;}if(id==='diagnostics'){view.openDiagnostics();return;}view.tab.value='配置中心';view.openSettings(item.sections[0]);if(item.sections.length)void view.scrollTo(item.sections[0],false).then(()=>{document.querySelector('.replica-management-main')?.scrollTo({top:0,left:0,behavior:'instant'});});};
   return (
     <Tabs className="replica-management" value={view.tab.value} onValueChange={value=>view.tab.value=value}>
       <WorkspacePageHeader eyebrow="PREFERENCES / MAKE IT YOURS" title="管理中心" description="让每一次相处，按你喜欢的方式发生。" actions={view.accountActions()}/>
-      <div className="replica-management-layout">
+      {mobile && directory && readValue(view.tab)!=='运行诊断' && <div className="mobile-settings-directory"><p>让相处，按你喜欢的方式发生。</p>{[['偏好与连接',categories.filter(item => !['diagnostics','data','advanced'].includes(item.id))],['管理与维护',categories.filter(item => ['diagnostics','data','advanced'].includes(item.id))]].map(([label,items]) => <section key={label}><h2>{label}</h2>{items.map(item => <Button key={item.id} variant="ghost" onClick={() => choose(item.id)}><span className="lp-icon-box"><item.icon/></span><span>{item.label}</span><ChevronRight/></Button>)}</section>)}</div>}
+      {mobile && !directory && <Button className="mobile-settings-back" variant="ghost" onClick={() => {setDirectory(true);location.hash='#/settings';}}><ChevronLeft/>全部设置</Button>}
+      <div className="replica-management-layout" hidden={mobile && directory && readValue(view.tab)!=='运行诊断'}>
         <nav ref={managementNav} className="replica-management-nav" aria-label="管理中心设置目录" data-testid="config-section-nav">{categories.map(item=><ActionButton key={item.id} variant={category===item.id?'secondary':'ghost'} aria-current={category===item.id?'page':undefined} type="button" onClick={()=>choose(item.id)} data-testid={'config-anchor-'+item.sections[0]}><item.icon size={16}/>{item.label}</ActionButton>)}</nav>
         <div className="replica-management-main">
       <TabsContent value={view.tab.value} className="min-w-0">

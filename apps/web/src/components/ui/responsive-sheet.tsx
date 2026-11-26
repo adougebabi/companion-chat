@@ -38,6 +38,8 @@ export type ResponsiveSheetProps = {
   hideHeader?: boolean;
   footer?: React.ReactNode;
   size?: ResponsiveSheetSize;
+  /** Phone presentation; larger screens retain the side sheet. */
+  mobileMode?: "page" | "sheet" | "dialog";
   portalContainer?: React.ComponentProps<typeof SheetContent>["portalContainer"];
   className?: string;
   bodyClassName?: string;
@@ -63,6 +65,7 @@ export function ResponsiveSheet({
   hideHeader = false,
   footer,
   size = "default",
+  mobileMode = "page",
   portalContainer,
   className,
   bodyClassName,
@@ -73,8 +76,10 @@ export function ResponsiveSheet({
   closeTestId,
   onEscapeKeyDown,
   onInteractOutside,
+  onOpenAutoFocus,
   ...contentProps
 }: ResponsiveSheetProps) {
+  const titleRef = React.useRef<HTMLHeadingElement>(null);
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       {trigger && <SheetTrigger asChild>{trigger}</SheetTrigger>}
@@ -83,16 +88,24 @@ export function ResponsiveSheet({
         portalContainer={portalContainer}
         data-responsive-sheet=""
         data-size={size}
+        data-mobile-mode={mobileMode}
         aria-busy={busy || undefined}
         className={cn("responsive-sheet", className)}
         showCloseButton={showCloseButton && !busy}
         closeButtonProps={closeTestId ? ({ "data-testid": closeTestId } as React.ComponentProps<"button">) : undefined}
+        onOpenAutoFocus={(event) => {
+          onOpenAutoFocus?.(event);
+          if (!event.defaultPrevented && window.matchMedia('(width < 640px)').matches) {
+            event.preventDefault();
+            titleRef.current?.focus();
+          }
+        }}
         onEscapeKeyDown={(event) => { if (busy) event.preventDefault(); onEscapeKeyDown?.(event); }}
         onInteractOutside={(event) => { if (busy) event.preventDefault(); onInteractOutside?.(event); }}
         {...contentProps}
       >
         <SheetHeader data-responsive-sheet-part="header" className={hideHeader ? "sr-only" : undefined}>
-          <SheetTitle>{title}</SheetTitle>
+          <SheetTitle ref={titleRef} tabIndex={-1}>{title}</SheetTitle>
           <SheetDescription className={hideDescription ? "sr-only" : undefined}>
             {description ?? "查看资料并完成当前操作。"}
           </SheetDescription>

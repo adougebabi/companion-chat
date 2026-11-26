@@ -1,3 +1,5 @@
+import { DetailSheet } from '@/components/patterns';
+import { useIsMobile } from '../hooks/use-mobile';
 import { ProfileNote } from "../shared/ProfileRecordSummary";
 import {ResultFeedback} from '../shared/Presentation';
 import { useEffect, useRef, useState } from "react";
@@ -7,7 +9,7 @@ import {
   RefreshCwIcon,
   SearchIcon,
   SparklesIcon,
-  StarIcon,
+  StarIcon,ChevronRightIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,6 +109,7 @@ function DiaryReplySummary({ row }) {
 }
 
 export default function DiaryPage() {
+  const mobile = useIsMobile(), [reading, setReading] = useState(false), readingTrigger = useRef(null);
   const w = useWorkspace(),
     c = w.current.value,
     fid = c.id,
@@ -669,143 +672,7 @@ export default function DiaryPage() {
       ),
     });
   }
-  return (
-    <div className="replica-life replica-diary">
-      <WorkspacePageHeader
-        eyebrow="LIFE / LITTLE PAGES"
-        title="日记"
-        description="那些没有说出口的日常，被认真地写在这里。"
-        actions={
-          <>
-            <Button
-              variant="outline"
-              disabled={readonly || ["paused", "已暂停"].includes(c.status)}
-              onClick={(e) => generate(e)}
-            >
-              <SparklesIcon size={15} />
-              整理一篇日记
-            </Button>
-          </>
-        }
-      />
-      <Tabs value={tab} onValueChange={setTab} className="lp-stack">
-        <div className="lp-toolbar">
-          <TabsList variant="line" className="replica-segment-tabs">
-            <TabsTrigger value="diary">
-              {c.name}的日记{" "}
-              <span>
-                {lists.all.ready
-                  ? lists.all.items.length + (lists.all.cursor ? "+" : "")
-                  : "…"}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="shared">共同经历</TabsTrigger>
-          </TabsList>
-          {tab === "shared" && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="刷新日记"
-                disabled={loading[tab === "shared" ? "shared" : kind]}
-                onClick={() => {
-                  void loadList(tab === "shared" ? "shared" : kind);
-                  if (selectedId) void readEntry().catch(() => {});
-                  setWatchRefresh((v) => v + 1);
-                }}
-              >
-                <RefreshCwIcon size={15} />
-              </Button>
-            </>
-          )}
-          {tab === "diary" && (
-            <div className="replica-diary-controls">
-              <div className="replica-diary-options">
-                <label className="lp-row">
-                  <Switch
-                    aria-label="只看收藏"
-                    checked={favorite}
-                    onCheckedChange={(v) => {
-                      pinned.current = "";
-                      setFavorite(!!v);
-                    }}
-                  />
-                  <StarIcon size={13} />
-                  只看收藏
-                </label>
-              </div>
-              <div className="replica-diary-search">
-                <SearchIcon size={15} />
-                <Input
-                  aria-label="搜索日记"
-                  placeholder="在日记中寻找…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="刷新日记"
-                className="replica-diary-refresh"
-                disabled={loading[tab === "shared" ? "shared" : kind]}
-                onClick={() => {
-                  void loadList(tab === "shared" ? "shared" : kind);
-                  if (selectedId) void readEntry().catch(() => {});
-                  setWatchRefresh((v) => v + 1);
-                }}
-              >
-                <RefreshCwIcon size={15} />
-              </Button>
-            </div>
-          )}
-        </div>
-        <ResultFeedback notice={notice} onDismiss={value=>setNotice(current=>current===value?null:current)}/>
-        {watchNote && <WorkspaceInfo>{watchNote}</WorkspaceInfo>}
-        <TabsContent value="diary">
-          {loading[kind] && <LoadingState label="正在读取日记…" />}
-          {errors[kind] && (
-            <InlineFeedback role="alert">
-              {errors[kind]}
-              <Button variant="outline" onClick={() => retry.current[kind]?.()}>
-                重新读取日记目录
-              </Button>
-            </InlineFeedback>
-          )}
-          <div className="lp-diary-layout">
-            <aside className="lp-diary-index" aria-label="日记目录">
-              {visible.map((row) => (
-                <Button
-                  variant="ghost"
-                  key={row.id}
-                  className={
-                    "lp-diary-date" + (row.id === selectedId ? " active" : "")
-                  }
-                  onClick={() => {
-                    pinned.current = "";
-                    setSelectedId(row.id);
-                  }}
-                >
-                  <strong>{row.date}</strong>
-                  <span>
-                    {row.body?.trim().split("\n")[0] || statuses[row.status]}
-                  </span>
-                </Button>
-              ))}
-              {page.ready && !visible.length && !errors[kind] && selected && (
-                <p className="lp-empty-inline">没有找到这段回忆。</p>
-              )}
-              {page.cursor && (
-                <Button
-                  variant="outline"
-                  disabled={loading[kind]}
-                  onClick={() => void loadList(kind, true)}
-                >
-                  加载更早日记
-                </Button>
-              )}
-            </aside>
-            {selected ? (
+  const reader = selected ? (
               <article className="lp-paper" aria-label="日记正文">
                 {detailBusy && <LoadingState label="正在读取这篇日记…" />}
                 {detailError && (
@@ -949,7 +816,152 @@ export default function DiaryPage() {
                 <h3>日记本还是空的</h3>
                 <p>真实经历会在一天结束后被回顾。</p>
               </EmptyState>
-            ) : null}
+            ) : null;
+  return (
+    <div className="replica-life replica-diary">
+      <WorkspacePageHeader
+        eyebrow="LIFE / LITTLE PAGES"
+        title="日记"
+        description="那些没有说出口的日常，被认真地写在这里。"
+        actions={
+          <>
+            <Button
+              variant="outline"
+              disabled={readonly || ["paused", "已暂停"].includes(c.status)}
+              onClick={(e) => generate(e)}
+            >
+              <SparklesIcon size={15} />
+              整理一篇日记
+            </Button>
+          </>
+        }
+      />
+      <Tabs value={tab} onValueChange={setTab} className="lp-stack">
+        <div className="lp-toolbar">
+          <TabsList variant="line" className="replica-segment-tabs">
+            <TabsTrigger value="diary">
+              {c.name}的日记{" "}
+              <span>
+                {lists.all.ready
+                  ? lists.all.items.length + (lists.all.cursor ? "+" : "")
+                  : "…"}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="shared">共同经历</TabsTrigger>
+          </TabsList>
+          {tab === "shared" && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="刷新日记"
+                disabled={loading[tab === "shared" ? "shared" : kind]}
+                onClick={() => {
+                  void loadList(tab === "shared" ? "shared" : kind);
+                  if (selectedId) void readEntry().catch(() => {});
+                  setWatchRefresh((v) => v + 1);
+                }}
+              >
+                <RefreshCwIcon size={15} />
+              </Button>
+            </>
+          )}
+          {tab === "diary" && (
+            <div className="replica-diary-controls">
+              <div className="replica-diary-options">
+                <label className="lp-row">
+                  <Switch
+                    aria-label="只看收藏"
+                    checked={favorite}
+                    onCheckedChange={(v) => {
+                      pinned.current = "";
+                      setFavorite(!!v);
+                    }}
+                  />
+                  <StarIcon size={13} />
+                  只看收藏
+                </label>
+              </div>
+              <div className="replica-diary-search">
+                <SearchIcon size={15} />
+                <Input
+                  aria-label="搜索日记"
+                  placeholder="在日记中寻找…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="刷新日记"
+                className="replica-diary-refresh"
+                disabled={loading[tab === "shared" ? "shared" : kind]}
+                onClick={() => {
+                  void loadList(tab === "shared" ? "shared" : kind);
+                  if (selectedId) void readEntry().catch(() => {});
+                  setWatchRefresh((v) => v + 1);
+                }}
+              >
+                <RefreshCwIcon size={15} />
+              </Button>
+            </div>
+          )}
+        </div>
+        <ResultFeedback notice={notice} onDismiss={value=>setNotice(current=>current===value?null:current)}/>
+        {watchNote && <WorkspaceInfo>{watchNote}</WorkspaceInfo>}
+        <TabsContent value="diary">
+          {loading[kind] && <LoadingState label="正在读取日记…" />}
+          {errors[kind] && (
+            <InlineFeedback role="alert">
+              {errors[kind]}
+              <Button variant="outline" onClick={() => retry.current[kind]?.()}>
+                重新读取日记目录
+              </Button>
+            </InlineFeedback>
+          )}
+          <div className="lp-diary-layout">
+            <aside className="lp-diary-index" aria-label="日记目录">
+              {visible.map((row) => (
+                <Button
+                  variant="ghost"
+                  key={row.id}
+                  className={
+                    "lp-diary-date" + (row.id === selectedId ? " active" : "")
+                  }
+                  onClick={(event) => {
+                    readingTrigger.current = event.currentTarget;
+                    setReading(true);
+                    pinned.current = "";
+                    setSelectedId(row.id);
+                  }}
+                >
+                  {mobile ? <><span className="phone-diary-date"><strong>{Number(row.date.slice(-2))}</strong><small>{Number(row.date.slice(5,7))} 月</small></span><span className="phone-diary-copy"><small>{c.name}的日记 · {statuses[row.status]}</small><strong>{row.body?.trim().split('\n')[0]?.slice(0,32) || statuses[row.status]}</strong><span>{row.body?.trim()}</span></span><ChevronRightIcon/></> : <>
+                  <strong>{row.date}</strong>
+                  <span>
+                    {row.body?.trim().split("\n")[0] || statuses[row.status]}
+                  </span></>}
+
+                </Button>
+              ))}
+              {page.ready && !visible.length && !errors[kind] && selected && (
+                <p className="lp-empty-inline">没有找到这段回忆。</p>
+              )}
+              {page.cursor && (
+                <Button
+                  variant="outline"
+                  disabled={loading[kind]}
+                  onClick={() => void loadList(kind, true)}
+                >
+                  加载更早日记
+                </Button>
+              )}
+            </aside>
+            {!mobile && reader}
+            {mobile && <DetailSheet open={reading} onOpenChange={setReading} title={selected ? selected.date + '的日记' : '日记'}
+              onCloseAutoFocus={event => {if(readingTrigger.current?.isConnected){event.preventDefault();readingTrigger.current.focus();}}}
+              footer={<Button variant="outline" onClick={() => setReading(false)}>返回日记目录</Button>}>{reader}</DetailSheet>}
+            {mobile && page.ready && !visible.length && !errors[kind] && <EmptyState><h3>日记本还是空的</h3><p>真实经历会在一天结束后被回顾。</p></EmptyState>}
           </div>
         </TabsContent>
         <TabsContent value="shared">

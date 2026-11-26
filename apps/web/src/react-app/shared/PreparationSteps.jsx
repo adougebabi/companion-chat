@@ -1,3 +1,4 @@
+import {useState} from "react";
 import { Trace, TraceLine, TraceTitle, TraceIcon } from "@/components/ui/trace";
 import { Spinner } from "@/components/ui/spinner";
 import { CheckIcon, CircleIcon, AlertCircleIcon } from "lucide-react";
@@ -78,12 +79,14 @@ function StageActions({stage, props}) {
   );
 }
 export default function PreparationSteps(input = {}) {
+  const [expanded,setExpanded]=useState(false);
   const __props = {
     stages: [],
     busy: false,
     ...input,
   };
   const blocker = __props.stages.find(stage => stage.state === 'failed') || __props.stages.find(stage => stage.state === 'blocked');
+  const visibleStages = __props.compact && !expanded ? __props.stages.filter(stage => stage.state !== "ready").slice(0,1) : __props.stages;
   const labels = {
     ready: "已完成",
     running: "进行中",
@@ -112,13 +115,14 @@ export default function PreparationSteps(input = {}) {
         {__props.stages.filter((stage) => stage.state === "ready").length} /{" "}
         {__props.stages.length} 个准备环节
       </p>}
+      {__props.compact && <><ActionButton variant="ghost" type="button" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>{expanded ? '收起准备事项' : '全部准备事项'} · {__props.stages.filter(stage => stage.state === 'ready').length} / {__props.stages.length}</ActionButton>{!visibleStages.length && <p>生活已经准备就绪</p>}</>}
       <Trace
         className={__props.replica ? "preparation-list" : undefined}
         role="list"
         aria-label="准备相遇的实际进度"
       >
         <Fragment>
-          {listValues(__props.stages).map((stage) => {
+          {listValues(visibleStages).map((stage) => {
             return (
               <div
                 role="listitem"

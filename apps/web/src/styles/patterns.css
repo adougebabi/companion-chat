@@ -157,3 +157,56 @@
     min-height: var(--control-height);
   }
 }
+
+/* Approved mobile scale, shared by production and UI Lab. */
+:root {
+  --mobile-surface: #fbfcf9;
+  --mobile-muted: #74816f;
+  --mobile-card-radius: 14px;
+  --mobile-card-radius-large: 16px;
+  --mobile-card-pad: 18px;
+  --mobile-sheet-radius: 22px;
+  --mobile-dialog-radius: 18px;
+  --mobile-control-radius: 9px;
+  --mobile-nav-active: #e4eddc;
+  --mobile-chat-background: #f5f7f0;
+  --mobile-chat-sent: #e7eedc;
+  --mobile-nav-height: calc(64px + env(safe-area-inset-bottom, 0px));
+  --mobile-header-height: calc(60px + env(safe-area-inset-top, 0px));
+}
+@media (width < 640px) {
+  .react-workspace {--muted-foreground: var(--mobile-muted); font-size: 16px; line-height: 1.6;}
+  .ui-page-section {padding: var(--mobile-card-pad); border-radius: var(--mobile-card-radius);}
+  .ui-page-section__title h2 {font-size: 17px;}
+  .ui-page-section__title p {font-size: 13px;}
+  :is(.react-workspace.replica-workspace, .react-workspace[role="dialog"], [data-ui-lab-page]) :is([data-slot="button"], [data-variant][data-size]) {min-height: 44px; height: auto; padding: 10px 14px; font-size: 14px; line-height: 1.5; border-radius: var(--mobile-control-radius); gap: 7px;}
+  :is(.react-workspace.replica-workspace, .react-workspace[role="dialog"], [data-ui-lab-page]) :is([data-slot="button"], [data-variant][data-size])[data-size^="icon"] {width: 44px; height: 44px; padding: 10px; flex-shrink: 0;}
+  :is(.react-workspace.replica-workspace, .react-workspace[role="dialog"], [data-ui-lab-page]) :is([data-slot="button"], [data-variant][data-size])[data-size="sm"] {min-height: 40px; padding: 8px 12px;}
+  .react-workspace :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]) {font-size: 16px; border-radius: var(--mobile-control-radius); min-width: 0;}
+  .react-workspace :is([data-slot="input"], [data-slot="select-trigger"]) {min-height: 46px; height: auto;}
+  .react-workspace [data-slot="select-trigger"] {white-space: normal; max-width: 100%;}
+  .react-workspace [data-slot="label"], .ui-form-field__label {font-size: 14px;}
+}
+.mobile-bottom-nav {display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: var(--mobile-nav-height); padding: 5px 9px calc(5px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); background: var(--mobile-surface);}
+.mobile-bottom-nav :is([data-slot="button"], [data-variant][data-size]) {height: 54px; min-width: 0; padding: 0; border-radius: 10px; flex-direction: column; gap: 2px; font-size: 11px; line-height: 1.2; color: var(--muted-foreground); background: transparent; white-space: normal;}
+.mobile-nav-symbol {display: grid; place-items: center; height: 29px; width: 47px; border-radius: 16px; flex: none;}
+.mobile-bottom-nav :is([data-slot="button"], [data-variant][data-size]) svg {width: 21px; height: 21px; stroke-width: 1.65;}
+.mobile-bottom-nav .active {color: var(--primary); font-weight: 600;}
+.mobile-bottom-nav .active .mobile-nav-symbol {background: var(--mobile-nav-active);}
+
+@media (width < 640px) {
+  .react-workspace label:has(> :is([role="checkbox"],[role="switch"])) {min-height:44px;display:flex;align-items:center;gap:10px;}
+}
+
+@media (width < 640px) {
+  .react-workspace .r-search :is([data-slot="input"],[data-slot="select-trigger"]) {min-height:46px;font-size:16px;}
+}
+
+@media (width < 640px) {
+  .react-workspace [role="tablist"] {height:auto;min-height:44px;max-width:100%;overflow-x:auto;}
+  .react-workspace [role="tablist"] [role="tab"] {min-height:44px;height:auto;flex-shrink:0;}
+}
+/* Navigation owns its compact label/icon rhythm, including long labels. */
+.mobile-bottom-nav {height:auto;min-height:var(--mobile-nav-height);}
+.mobile-bottom-nav :is([data-slot="button"], [data-variant][data-size])[data-size] {height:auto;min-height:54px;min-width:0;padding:0;gap:2px;font-size:11px;line-height:1.2;white-space:normal;}
+.mobile-bottom-nav [data-slot="button"] > span:last-child {max-width:100%;overflow-wrap:anywhere;}
