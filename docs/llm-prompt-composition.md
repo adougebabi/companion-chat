@@ -13,6 +13,10 @@ direct 主协议与执行边界）+ `# 人格设定`（逐项文本）；运行�
 direct 回复工具只公布 decision 的 response_intent、influences、appraisal、state_expression、
 goal_event_candidates、claims、thought、personality_decision，必填仅 response_intent。
 渲染器见 `chat_prompt_markdown.go`，约束测试见 `chat_prompt_markdown_test.go`。
+正式 Agent 的 `MandatoryTools` 首轮即公布（不经 capability_catalog，与 Kev 是否开启无关）；
+对话认知的首轮工具为 conversation_reply、capability_catalog、moment.publish、actor.fact.record。
+`actor.fact.record` 记录对方自述的长期情况，location/country/city/residence/work/school/routine/
+family/likes/dislikes/plans 等属性进入「关于对方」常驻段。
 
 所有正式 Agent 共享一个前置 `# 运行协议` system 边界。已有任务协议不叠加
 第二套协议；相同规则去重；没有人格资料的分析任务不加入空人格段。

@@ -353,7 +353,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		selection.mu.Lock()
 		loaded := selection.loaded[capabilityName]
 		selection.mu.Unlock()
-		if !loaded && !publicBaselineTool(capabilityName) {
+		if !loaded && !selection.baselineTool(capabilityName) {
 			i.recordADKToolDiagnostic(ctx, "adk.tool.recommendation_warning", callID, capabilityName, "warning", "tool_not_disclosed", argumentsJSON)
 		}
 	}

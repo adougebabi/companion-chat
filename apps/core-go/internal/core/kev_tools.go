@@ -32,6 +32,17 @@ type kevRunSelection struct {
 	scope            decision.Scope
 	loadMu           sync.Mutex
 	availability     map[string]toolDisclosureAvailability
+	// mandatory lists the Agent's MandatoryTools: shown from the first round
+	// without a directory call, like the public baseline.
+	mandatory map[string]bool
+}
+
+// baselineTool reports a tool visible without catalog discovery for this run.
+func (s *kevRunSelection) baselineTool(name string) bool {
+	if publicBaselineTool(name) {
+		return true
+	}
+	return s != nil && s.mandatory[name]
 }
 
 func kevSelection(ctx context.Context) *kevRunSelection {
@@ -339,7 +350,7 @@ func (a *App) prepareKevTools(ctx context.Context, input ADKStructuredTaskInput)
 	if err := ctx.Err(); err != nil {
 		return ctx, nil, err
 	}
-	state := &kevRunSelection{service: service, original: full, loaded: map[string]bool{}, availability: map[string]toolDisclosureAvailability{}, version: version}
+	state := &kevRunSelection{service: service, original: full, loaded: map[string]bool{}, availability: map[string]toolDisclosureAvailability{}, version: version, mandatory: formalAgentMandatoryTools(input.AgentID)}
 	for _, message := range input.Prompt.Messages {
 		if stringValue(message["role"]) == "user" {
 			state.input = stringValue(message["content"])
@@ -414,7 +425,7 @@ func (s *kevRunSelection) load(ctx context.Context, names []string) ([]string, [
 			continue
 		}
 		seen[name] = true
-		if publicBaselineTool(name) {
+		if s.baselineTool(name) {
 			loaded = append(loaded, name)
 			continue
 		}
@@ -523,7 +534,7 @@ func (s *kevRunSelection) load(ctx context.Context, names []string) ([]string, [
 		}
 	}
 	for _, name := range sortedUniqueStrings(names) {
-		if publicBaselineTool(name) {
+		if s.baselineTool(name) {
 			continue
 		}
 		item := status[name]
@@ -668,7 +679,7 @@ func (s *kevRunSelection) definitions(ctx context.Context) ([]CapabilityDefiniti
 		}
 		item := s.availability[d.Name]
 		active := !s.revoked && (item.Admission == "catalog_fallback" || err != nil && item.Admission != "" || err == nil && config.Allows("tools.select"))
-		if publicBaselineTool(d.Name) || active && s.loaded[d.Name] {
+		if s.baselineTool(d.Name) || active && s.loaded[d.Name] {
 			out = append(out, d)
 		}
 	}

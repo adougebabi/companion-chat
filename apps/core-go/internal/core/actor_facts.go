@@ -33,7 +33,7 @@ type actorFactCapability struct{ service *actorFactService }
 
 func actorFactDefinition() CapabilityDefinition {
 	return CapabilityDefinition{Name: actorFactCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description: "Record a sourced Actor attribute before conversation.reply; correct mistakes or change formerly true values. Use actor.inspect IDs and actual inbound sources. Do not defer this until after a visible reply or promise to record later in the same batch.",
+		Description: "Remember a long-term fact the other person tells you about themselves (or correct/change one), so it stays in 关于对方 for every later turn. Prefer these attributes: location (where they are or live now, e.g. \"国外·伦敦\"), location_scope, timezone, occupation, school, routine, family, likes, dislikes, preferences, habits, important_people, plans. value is the fact in plain words; reason is why you record it. Omit actor_id for the person you are chatting with.",
 		Surfaces:    []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceNativeCognition}, FailurePolicy: FailurePolicyRequiredForVisibleClaim,
 		InputSchema: objectSchema(map[string]any{
 			"assertion_type": withToolDefault(enumStringSchema("explicit_statement", "inference"), "inference"),
@@ -342,7 +342,9 @@ func compactActorBackground(projection ContextProjection) []map[string]any {
 	for _, fact := range projection.ActorFacts {
 		attribute := stringValue(fact["attribute"])
 		switch attribute {
-		case "name", "occupation", "background", "location_scope", "location", "timezone", "relationship_distance", "meeting_confirmed", "interests", "preferences", "full_name", "age", "gender", "personality", "habits", "relationship_description", "shared_information", "wants_you_to_know", "rules", "same_building", "co_located":
+		case "name", "occupation", "background", "location_scope", "location", "timezone", "relationship_distance", "meeting_confirmed", "interests", "preferences", "full_name", "age", "gender", "personality", "habits", "relationship_description", "shared_information", "wants_you_to_know", "rules", "same_building", "co_located",
+			// Long-term facts people state in chat under natural attribute names.
+			"residence", "country", "city", "region", "work", "school", "study", "routine", "schedule", "family", "important_people", "pets", "health", "likes", "dislikes", "plans":
 		default:
 			continue
 		}

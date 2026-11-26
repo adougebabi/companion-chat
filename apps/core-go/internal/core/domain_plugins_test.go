@@ -205,7 +205,7 @@ func TestDomainPluginDisabledToolsOnPhysicalRequests(t *testing.T) {
 				} else if _, err := m.Generate(ctx, []*schema.Message{schema.UserMessage("ordinary conversation")}, model.WithTools(infos)); err != nil {
 					t.Fatal(err)
 				}
-				want := []string{capabilitycontract.CapabilityWireName(capabilityCatalogName), capabilitycontract.CapabilityWireName(conversationReplyCapabilityName)}
+				want := []string{capabilitycontract.CapabilityWireName(capabilityCatalogName), capabilitycontract.CapabilityWireName(conversationReplyCapabilityName), capabilitycontract.CapabilityWireName(actorFactCapabilityName)}
 				if settings.Moment {
 					want = append(want, capabilitycontract.CapabilityWireName("moment.publish"))
 				}

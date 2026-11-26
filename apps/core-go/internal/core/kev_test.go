@@ -181,6 +181,7 @@ func TestKevToolSelectionAlwaysDisclosesOnlyMandatoryToolsAndOffersEveryOptional
 		{Name: "visual_identity.initialize", Description: "initialize visual identity"},
 		{Name: "reply.like.optional", Description: "another message output", OutputRole: "conversation_message"},
 		{Name: "memory.recall", Description: "recall"},
+		{Name: actorFactCapabilityName, Description: "remember a fact about the other person"},
 	}
 	definitions = appendCapabilityUtilities(app.capabilityRegistry(), CapabilitySurfaceConversation, definitions)
 	ctx, prepared, err := app.prepareKevTools(context.WithValue(context.Background(), kevAssemblySelectionKey{}, true), ADKStructuredTaskInput{
