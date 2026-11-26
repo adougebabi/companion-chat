@@ -75,6 +75,28 @@ test('phone reading and filters preserve navigation context', {tag:'@mobile'}, a
   await page.getByRole('button',{name:'筛选',exact:true}).click();
   await expect(page.getByRole('dialog').getByRole('combobox',{name:'记忆类型'})).toContainText('经历');
 });
+test('item categories: Chinese presentation preserves raw diagnostic records', {tag:'@mobile'}, async({page})=>{
+  if(page.viewportSize()!.width>=1024)await page.setViewportSize({width:1280,height:800});
+  let category='personal';
+  await page.route('**/api/fluctlights/'+fid+'/world/items/*',async route=>{
+    const response=await route.fetch();
+    const item=await response.json();
+    item.definition.category=category;
+    await route.fulfill({response,json:item});
+  });
+  const cases=[['personal','日常用品'],['personal_item','日常用品'],['outdoor_clothing','户外服装'],['unmapped_category','其他物品'],['书籍与文具','书籍与文具']];
+  for(const [raw,label] of cases){
+    category=raw;
+    await page.goto(origin+'/?category-case='+encodeURIComponent(raw)+'#/c/'+fid+'/world/items/'+fid+'-world-item');
+    const main=page.getByRole('main');
+    await expect(main.getByText('物品分类：'+label,{exact:true})).toBeVisible();
+    const href=await main.getByRole('link',{name:'原始世界物品记录（诊断）',exact:true}).getAttribute('href');
+    const record=JSON.parse(decodeURIComponent(href!.slice('data:application/json;charset=utf-8,'.length)));
+    expect(record.definition.category).toBe(raw);
+    await expectNoLayoutDefects(page,page.getByRole('region',{name:'世界物品详情',exact:true}),{minTarget:page.viewportSize()!.width<640?40:0});
+    await page.screenshot({path:test.info().outputPath('item-category-'+raw+'.png')});
+  }
+});
 test('pending page: separated sections and compact reachable filters', {tag:'@mobile'}, async({page})=>{
   if(page.viewportSize()!.width>=1024)await page.setViewportSize({width:1280,height:800});
   await page.goto(origin+'/#/diag/pending');
