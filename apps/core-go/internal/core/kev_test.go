@@ -182,6 +182,9 @@ func TestKevToolSelectionAlwaysDisclosesOnlyMandatoryToolsAndOffersEveryOptional
 		{Name: "reply.like.optional", Description: "another message output", OutputRole: "conversation_message"},
 		{Name: "memory.recall", Description: "recall"},
 		{Name: actorFactCapabilityName, Description: "remember a fact about the other person"},
+		{Name: scheduleActivityCapabilityName, Description: "schedule a life activity"},
+		{Name: wardrobeInspectCapabilityName, Description: "inspect wardrobe"},
+		{Name: wardrobeWearCapabilityName, Description: "wear items"},
 	}
 	definitions = appendCapabilityUtilities(app.capabilityRegistry(), CapabilitySurfaceConversation, definitions)
 	ctx, prepared, err := app.prepareKevTools(context.WithValue(context.Background(), kevAssemblySelectionKey{}, true), ADKStructuredTaskInput{

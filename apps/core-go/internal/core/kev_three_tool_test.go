@@ -330,7 +330,10 @@ func TestKevThreeToolBaselineOnActualWireWhenDisabled(t *testing.T) {
 				t.Fatal(err)
 			}
 			sort.Strings(seen)
-			want := []string{capabilitycontract.CapabilityWireName(capabilityCatalogName), capabilitycontract.CapabilityWireName(conversationReplyCapabilityName), capabilitycontract.CapabilityWireName("moment.publish"), capabilitycontract.CapabilityWireName(actorFactCapabilityName)}
+			want := []string{}
+			for name := range formalAgentMandatoryTools(FormalAgentConversationCognition) {
+				want = append(want, capabilitycontract.CapabilityWireName(name))
+			}
 			sort.Strings(want)
 			if !reflect.DeepEqual(seen, want) {
 				t.Fatalf("first physical request disclosed %d tools; want only %v; actual=%v", len(seen), want, seen)

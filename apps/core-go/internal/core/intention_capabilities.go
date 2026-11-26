@@ -296,6 +296,9 @@ func (c intentionDecideCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, inv
 func (s *intentionService) createIntentionTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, profileID string, args map[string]any, reason string, evidence []string, at time.Time) (CapabilityResult, error) {
 	fluctlightID := invocation.Metadata.FluctlightID
 	goalText := strings.TrimSpace(stringValue(args["goal"]))
+	if goalText == "" && invocation.CapabilityName == scheduleActivityCapabilityName && scheduledLifeActionConcrete(args) {
+		goalText = strings.TrimSpace(stringValue(args["expected_outcome"]))
+	}
 	action := strings.TrimSpace(stringValue(args["action"]))
 	expected := strings.TrimSpace(stringValue(args["expected_outcome"]))
 	var linkedGoal *GoalAuthority
@@ -377,7 +380,7 @@ func (s *intentionService) createIntentionTx(ctx context.Context, tx pgx.Tx, inv
 			}
 			return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output, ProviderRequestID: invocation.ProviderRequestID}, nil
 		}
-		if invocation.Metadata.Source != "direct" {
+		if invocation.Metadata.Source != "direct" && !(invocation.CapabilityName == scheduleActivityCapabilityName && scheduledLifeActionConcrete(args)) {
 			if err := requestGoalPlanningTx(ctx, tx, fluctlightID, "intention-wish:"+identity, "cognition_wish", map[string]any{"desired_outcome": goalText, "success_criteria": []string{expected}, "motivation": reason}); err != nil {
 				return failedCapabilityResult(invocation, "planner_request_failed", true), err
 			}

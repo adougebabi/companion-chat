@@ -14,7 +14,10 @@ direct 回复工具只公布 decision 的 response_intent、influences、apprais
 goal_event_candidates、claims、thought、personality_decision，必填仅 response_intent。
 渲染器见 `chat_prompt_markdown.go`，约束测试见 `chat_prompt_markdown_test.go`。
 正式 Agent 的 `MandatoryTools` 首轮即公布（不经 capability_catalog，与 Kev 是否开启无关）；
-对话认知的首轮工具为 conversation_reply、capability_catalog、moment.publish、actor.fact.record。
+对话认知的首轮工具为 conversation_reply、capability_catalog、moment.publish、actor.fact.record、
+intention.schedule、wardrobe.inspect、wardrobe.wear。`intention.schedule` 携带具体生活动作
+（action_plan.kind 为 virtual_shopping/haircut/hair_dye）时，模型调用也直接建立临时目标与意向并排入
+日程，到点由意向触发器执行，购物结果入库衣柜；没有具体动作的愿望仍只提交 Goal Planner。
 `actor.fact.record` 记录对方自述的长期情况，location/country/city/residence/work/school/routine/
 family/likes/dislikes/plans 等属性进入「关于对方」常驻段。
 
