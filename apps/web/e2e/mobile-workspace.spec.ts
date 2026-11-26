@@ -188,3 +188,19 @@ test('phone account: focused login and inline validation', {tag:'@mobile'}, asyn
   await page.getByRole('button',{name:/进入|登录|回到/}).click();
   await expect(page.getByRole('alert').filter({hasText:'密码至少需要 12 个字符。'})).toBeVisible();
 });
+test('phone visual review: compare first, decide second, preserve draft on return', {tag:'@mobile'}, async({page})=>{
+  test.skip(page.viewportSize()!.width>=640,'Phone presentation only');
+  await page.goto(origin+'/#/c/'+fid+'/media/identity');
+  await page.getByRole('button',{name:'查看候选并评审',exact:true}).click();
+  const review=page.getByRole('dialog');await expect(review).toBeVisible();
+  await expect(review.locator('.r-review-reference')).toBeVisible();
+  await expect(review.locator('.r-review-decision')).toBeHidden();
+  await review.getByRole('tab',{name:'2 填写决定'}).click();
+  await review.getByRole('radio',{name:'不通过',exact:true}).click();
+  await review.getByRole('textbox',{name:'不通过的原因',exact:true}).fill('侧面信息需要更清晰');
+  await review.getByRole('tab',{name:'1 图片对照'}).click();
+  await review.getByRole('tab',{name:'2 填写决定'}).click();
+  await expect(review.getByRole('textbox',{name:'不通过的原因',exact:true})).toHaveValue('侧面信息需要更清晰');
+  await expectNoLayoutDefects(page,review,{minTarget:40});
+  await page.keyboard.press('Escape');await expect(review).toBeHidden();
+});

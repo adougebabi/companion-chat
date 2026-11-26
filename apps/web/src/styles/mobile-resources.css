@@ -67,3 +67,12 @@
   .replica-auth-page .replica-auth-form h2 {font-size:25px;}
   .replica-auth-page .replica-auth-form p {font-size:14px;}
 }
+/* Review fields and requests remain owned by the existing command; tabs only
+   organize the two work surfaces on phones. Both are visible side by side on desktop. */
+.replica-media .r-review-layout > [data-slot="tabs-content"] {margin:0;min-width:0;}
+@media (width < 640px) {
+  .replica-media .r-review-layout {display:flex;flex-direction:column;gap:18px;}
+  .replica-media .r-review-layout > .r-review-step-tabs {display:flex;width:100%;}
+  .replica-media .r-review-layout > [data-slot="tabs-content"][data-state="inactive"] {display:none;}
+  .replica-media .r-derived-comparison {display:grid;grid-template-columns:minmax(0,1fr);gap:16px;}
+}

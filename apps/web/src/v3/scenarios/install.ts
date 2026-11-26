@@ -8,6 +8,11 @@ const json=(status:number,body:unknown)=>new Response(JSON.stringify(body),{stat
 const businessPath=/^\/(api|auth|health)(\/|$)/;
 
 export function installApiScenarios(){
+ const modalStyle=document.createElement('style');
+ // Radix marks background surfaces aria-hidden while a modal is open. The
+ // preview switcher must yield its hit plane too, rather than cover actions.
+ modalStyle.textContent='[data-api-scenarios][aria-hidden="true"]{visibility:hidden;pointer-events:none}';
+ document.head.appendChild(modalStyle);
  const params=new URLSearchParams(location.search);
  const scenario:Scenario=scenarios.find(entry=>entry.id===params.get('scenario'))||scenarios[0];
  if(!location.hash||location.hash==='#'||location.hash==='#/')history.replaceState(null,'',location.pathname+location.search+scenario.hash);

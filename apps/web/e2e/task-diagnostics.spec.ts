@@ -167,6 +167,8 @@ test.describe('task detail and diagnostics (scenario preview)', { tag: ['@task-d
 
   test('scenario switch reloads into the chosen state without leftovers; mock mode is labelled', async ({ page }) => {
     await openTask(page, 'task-failed');
+    await expect(page.locator('[data-api-scenarios]')).toBeHidden();
+    await page.keyboard.press('Escape');
     const badge = page.locator('[data-api-scenarios]');
     await expect(badge).toContainText('预览模式');
     await badge.locator('summary').click();
