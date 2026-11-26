@@ -41,7 +41,7 @@
   .replica-diary .lp-diary-index {display:grid;border:0;padding:0;gap:12px;width:100%;max-height:none;}
   .replica-diary .lp-diary-date {width:100%;padding:18px;min-height:112px;align-items:flex-start;background:var(--card);border:1px solid var(--border);border-radius:var(--mobile-card-radius);text-align:left;white-space:normal;}
   .replica-diary .lp-diary-date strong {font-size:13px;}
-  
+
   [data-workspace-dialog] .lp-paper,[data-responsive-sheet] .lp-paper {padding:0;border:0;box-shadow:none;}
   [data-responsive-sheet] .lp-paper-body {font-size:16px;line-height:2;}
   .replica-memory .lp-toolbar {display:flex;flex-wrap:nowrap;}
