@@ -117,7 +117,7 @@ export const scenarios:Scenario[]=[
  {id:'task-no-calls',label:'5 失败 · 没有模型调用',hash:'#/diag?view=tasks&taskId=no-calls'},
  {id:'task-media',label:'媒体任务执行中（刷新只读取状态）',hash:'#/diag?view=tasks&taskId=media'},
  {id:'task-long',label:'8 超长输入 / 输出 / 错误',hash:'#/diag?view=tasks&taskId=long'},
- {id:'task-slow',label:'9a 请求加载中（每次读取延迟 2.5 秒）',hash:'#/diag?view=tasks&taskId=failed',delayMs:2500},
+ {id:'task-slow',label:'9a 请求加载中（每次读取延迟 0.8 秒）',hash:'#/diag?view=tasks&taskId=failed',delayMs:800},
  {id:'task-read-error',label:'9b 任务读取失败（第一次），重试后恢复',hash:'#/diag?view=tasks&taskId=failed',failFirst:{pattern:/^\/api\/diagnostics\/tasks\//,times:1}},
  {id:'calls-read-error',label:'9c 模型调用读取失败（第一次），重试后恢复',hash:'#/diag?view=tasks&taskId=failed',failFirst:{pattern:/^\/api\/diagnostic-records\/model-runs\?.*correlationId=corr-failed/,times:1}},
  {id:'calls-failed',label:'诊断 · 多次调用部分失败（调用列表）',hash:'#/diag?view=calls&correlationId=corr-failed'},

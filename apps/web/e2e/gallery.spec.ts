@@ -2,8 +2,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { GALLERY_CATALOG } from '../ui-lab/fixtures/gallery-catalog';
 import { expectNoLayoutDefects } from './support/layout';
 
-// Every shared pattern × every applicable state × phone/tablet/desktop in real
-// Chromium. Fixture data is fixed; the clock is frozen.
+// Shared-pattern interactions and the gallery index in real Chromium. The
+// per-state layout checks run in visual.spec.ts, in the same page load as the
+// approved screenshot. Fixture data is fixed; the clock is frozen.
 const FIXED_NOW = new Date('2026-11-16T10:30:00+08:00');
 const isPhone = (page: Page) => page.viewportSize()!.width < 640;
 const events = (page: Page) => page.evaluate(() => (window as any).__uiLabEvents as { action: string; args: any[] }[]);
@@ -12,31 +13,6 @@ async function open(page: Page, component: string, state: string) {
   await page.clock.setFixedTime(FIXED_NOW);
   await page.goto(`/ui-lab/?fixture=gallery&component=${component}&state=${state}`);
   await expect(page.locator(`[data-gallery-target][data-state="${state}"]`)).toBeAttached();
-}
-
-for (const [id, entry] of Object.entries(GALLERY_CATALOG)) {
-  test.describe(`${entry.title} (${id})`, { tag: ['@patterns', ...(id.startsWith('migrated-') ? ['@overlay'] : [])] }, () => {
-    for (const state of entry.states) {
-      test(`${state}: renders without layout defects`, async ({ page }) => {
-        await open(page, id, state);
-        const minTarget = isPhone(page) ? 40 : 0;
-        await expectNoLayoutDefects(page, page.locator('[data-ui-lab-page]'), { minTarget });
-        if (entry.overlay) {
-          const sheet = page.getByRole('dialog');
-          await expect(sheet).toBeVisible();
-          const vw = page.viewportSize()!.width;
-          const box = (await sheet.boundingBox())!;
-          expect(box.x + box.width).toBeCloseTo(vw, 0);
-          if (isPhone(page)) expect(box.width).toBeCloseTo(vw, 0);
-          await expectNoLayoutDefects(page, sheet, { minTarget });
-          // Footer actions are reachable without scrolling the body.
-          const footer = sheet.locator('[data-responsive-sheet-part="footer"]');
-          if (await footer.count()) await expect(footer).toBeInViewport({ ratio: 1 });
-        }
-        await page.screenshot({ path: test.info().outputPath(`${id}-${state}.png`) });
-      });
-    }
-  });
 }
 
 test('gallery index lists every component and links to its first state', { tag: '@patterns' }, async ({ page }) => {

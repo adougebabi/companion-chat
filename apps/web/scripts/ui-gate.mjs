@@ -13,6 +13,7 @@
 //   node scripts/ui-gate.mjs --base <ref>    # changes vs <ref>
 //   node scripts/ui-gate.mjs --files a,b     # explicit file list (repo- or apps/web-relative)
 //   node scripts/ui-gate.mjs --full          # every spec + every visual baseline (nightly / release)
+//   node scripts/ui-gate.mjs --failed        # rerun only what failed last time (fix loop; never acceptance)
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -66,7 +67,7 @@ function plan(files) {
     // run their checks above (e.g. a removed stylesheet changes what remains);
     // an unmapped deletion is listed, not reported as missing coverage —
     // dangling imports are caught by typecheck and build.
-    if (!hit && file.startsWith('src/')) (existsSync(join(repoRoot, 'apps/web', file)) ? uncovered : removed).push(file);
+    if (!hit && /^(src|e2e|ui-lab)\//.test(file)) (existsSync(join(repoRoot, 'apps/web', file)) ? uncovered : removed).push(file);
   }
   // Full runs execute every existing check; coverage gaps are judged per
   // change (affected/shared runs), not against the whole branch diff.
@@ -84,11 +85,16 @@ function chromiumAvailable() {
   } catch (error) { return { ok: false, detail: `无法加载 Playwright：${error.message}` }; }
 }
 
-function runPlaywright(grep) {
+const lastRunFile = join(web, 'test-results/ui/.last-run.json');
+function lastFailedCount() {
+  try { return (JSON.parse(readFileSync(lastRunFile, 'utf8')).failedTests || []).length; } catch { return 0; }
+}
+
+function runPlaywright(grep, extra = []) {
   const out = join(web, 'test-results/ui-gate-report.json');
   mkdirSync(join(web, 'test-results'), { recursive: true });
   const cli = join(web, 'node_modules/@playwright/test/cli.js');
-  const argv = [cli, 'test', '-c', 'e2e/playwright.config.ts', '--reporter=list,json', ...(grep ? ['--grep', grep] : [])];
+  const argv = [cli, 'test', '-c', 'e2e/playwright.config.ts', '--reporter=list,json', ...(grep ? ['--grep', grep] : []), ...extra];
   const run = spawnSync(process.execPath, argv, { cwd: web, stdio: 'inherit', env: { ...process.env, PLAYWRIGHT_JSON_OUTPUT_NAME: out } });
   if (!existsSync(out)) return { crashed: true, exit: run.status };
   const report = JSON.parse(readFileSync(out, 'utf8'));
@@ -113,6 +119,39 @@ if (process.env.UI_BASELINE_LOCK) {
   const lockPath = join(repoRoot, process.env.UI_BASELINE_LOCK);
   const lock = existsSync(lockPath) ? JSON.parse(readFileSync(lockPath, 'utf8')) : {};
   process.env.UI_BASELINE_EXPECTED_DIGEST = lock.digest || '';
+}
+
+if (flag('failed')) {
+  // Fix loop: rerun only the tests that failed in the previous run. A clean
+  // rerun proves those tests now pass, not the change as a whole, so it is
+  // never reported as acceptance: run the regular gate before reporting UI.
+  const count = lastFailedCount();
+  const result = { status: 'unverified', scope: 'failed', reasons: [], failures: [], stats: null };
+  if (!count) result.reasons.push('没有上次失败的记录（test-results/ui/.last-run.json），无需重跑；请运行常规门禁。');
+  else {
+    const browser = chromiumAvailable();
+    if (!browser.ok) result.reasons.push(`浏览器环境不可用：${browser.detail}`);
+    else {
+      const run = runPlaywright(undefined, ['--last-failed']);
+      if (run.crashed) result.reasons.push(`Playwright 未产生报告（退出码 ${run.exit}），无法确认结果。`);
+      else {
+        result.stats = run.stats;
+        result.failures = run.failures;
+        if (run.failures.length) result.status = 'fail';
+        else result.reasons.push(`上次失败的 ${count} 项已全部重跑${run.unverified.length ? `，其中 ${run.unverified.length} 项缺少已审核基准` : '并通过'}。这只是修复回路，不是验收：请再运行常规门禁。`);
+      }
+    }
+  }
+  const label = { fail: '失败', unverified: '未验证' }[result.status];
+  const summary = [
+    `## UI 质量门禁（只重跑上次失败项）：${label}（${result.status}）`,
+    result.stats ? `- 结果：通过 ${result.stats.expected}，失败 ${result.stats.unexpected}，跳过 ${result.stats.skipped}，不稳定 ${result.stats.flaky}` : '',
+    ...result.reasons.map(r => `- ${r}`),
+    ...result.failures.slice(0, 30).map(f => `- ❌ ${f}`),
+    '\n**此结果不能作为 UI 验收通过。**',
+  ].filter(Boolean).join('\n');
+  console.log('\n' + summary);
+  process.exit({ fail: 1, unverified: 2 }[result.status]);
 }
 
 const files = flag('full') ? [] : changedFiles();

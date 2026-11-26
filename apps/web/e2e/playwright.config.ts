@@ -1,3 +1,4 @@
+import { availableParallelism } from 'node:os';
 import { defineConfig, devices } from '@playwright/test';
 import { baselineDir } from './support/baselines.mjs';
 
@@ -7,6 +8,11 @@ import { baselineDir } from './support/baselines.mjs';
 const port = Number(process.env.UI_LAB_PORT || 5199);
 const scenarioPort = Number(process.env.UI_SCENARIO_PORT || 5198);
 const desktopChrome = devices['Desktop Chrome'];
+// Interaction-only specs assert the same behaviour at every width; their
+// phone- and desktop-specific branches (tap targets, sheet width) have no
+// tablet variant. Tablet keeps every layout and visual check (visual.spec,
+// schedule-settings.spec), so tablet rendering stays fully covered.
+const interactionOnly = /(gallery|task-diagnostics|inbox|visual-submission-review|chat-turn-details|layout-checker\.self-test)\.spec\.ts$/;
 
 // Baselines change only through `pnpm ui:baselines approve --reason …`, which
 // sets UI_BASELINE_APPROVAL_REASON. A failing test never re-records itself and
@@ -21,6 +27,9 @@ export default defineConfig({
   snapshotPathTemplate: `${baselineDir()}/{projectName}/{arg}{ext}`,
   updateSnapshots: approving ? 'all' : 'none',
   fullyParallel: true,
+  // All cores but one: the default (half) left the gate CPU-idle, while every
+  // core starved the two Vite dev servers and made scenario reloads time out.
+  workers: process.env.UI_GATE_WORKERS || Math.max(1, availableParallelism() - 1),
   forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: process.env.CI ? [['list'], ['html', { outputFolder: '../playwright-report', open: 'never' }]] : [['list']],
@@ -39,7 +48,7 @@ export default defineConfig({
   },
   projects: [
     { name: 'phone-390', use: { ...desktopChrome, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 } },
-    { name: 'tablet-768', use: { ...desktopChrome, viewport: { width: 768, height: 1024 }, hasTouch: true } },
+    { name: 'tablet-768', testIgnore: interactionOnly, use: { ...desktopChrome, viewport: { width: 768, height: 1024 }, hasTouch: true } },
     { name: 'desktop-1440', use: { ...desktopChrome, viewport: { width: 1440, height: 900 } } },
   ],
   webServer: [

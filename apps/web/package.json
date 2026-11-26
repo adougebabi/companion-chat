@@ -16,6 +16,7 @@
     "ui-lab": "vite --open /ui-lab/",
     "ui:gate": "node scripts/ui-gate.mjs",
     "ui:gate:full": "node scripts/ui-gate.mjs --full",
+    "ui:gate:failed": "node scripts/ui-gate.mjs --failed",
     "ui:baselines": "node scripts/ui-baselines.mjs"
   },
   "dependencies": {

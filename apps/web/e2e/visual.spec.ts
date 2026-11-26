@@ -1,23 +1,24 @@
 import { expect, test, type Page } from '@playwright/test';
 import { GALLERY_CATALOG } from '../ui-lab/fixtures/gallery-catalog';
 import { readManifest, verifyBaselines } from './support/baselines.mjs';
+import { expectNoLayoutDefects } from './support/layout';
 
-// Approved visual baselines for shared components and key business states.
-// Missing or out-of-band-modified baselines are UNVERIFIED (never a pass);
-// see scripts/ui-gate.mjs, which reports that status distinctly.
+// Every shared pattern × every applicable state × phone/tablet/desktop in real
+// Chromium, opened once: layout checks first, then the approved-baseline
+// screenshot. Missing or out-of-band-modified baselines are UNVERIFIED (never a
+// pass); see scripts/ui-gate.mjs, which reports that status distinctly. Layout
+// defects are checked before the baseline store, so they always fail as such.
 const FIXED_NOW = new Date('2026-11-16T10:30:00+08:00');
-
-test.beforeAll(() => {
-  if (process.env.UI_BASELINE_APPROVAL_REASON) return;
-  const store = verifyBaselines();
-  if (store.status !== 'ok') throw new Error(`UI_BASELINE_UNVERIFIED: ${store.detail}`);
-});
+const isPhone = (page: Page) => page.viewportSize()!.width < 640;
 
 // A screenshot with no approved baseline (e.g. a newly added UI Lab state) is
 // UNVERIFIED until a design review approves it — never a pass, and reported
 // distinctly from a real visual difference.
+let store: ReturnType<typeof verifyBaselines> | undefined;
 function requireApprovedBaseline(name: string) {
   if (process.env.UI_BASELINE_APPROVAL_REASON) return;
+  store ??= verifyBaselines();
+  if (store.status !== 'ok') throw new Error(`UI_BASELINE_UNVERIFIED: ${store.detail}`);
   const file = `${test.info().project.name}/${name}`;
   if (!readManifest()?.files?.[file]) throw new Error(`UI_BASELINE_UNVERIFIED: 缺少已审核的视觉基准 ${file}（需设计审核后经 ui:baselines approve 录入）`);
 }
@@ -35,7 +36,21 @@ for (const [id, entry] of Object.entries(GALLERY_CATALOG)) {
         await page.goto(`/ui-lab/?fixture=gallery&component=${id}&state=${state}`);
         await expect(page.locator(`[data-gallery-target][data-state="${state}"]`)).toBeAttached();
         if (entry.overlay) await expect(page.getByRole('dialog')).toBeVisible();
+        // Layout is measured at rest: a sheet still sliding in sits past the edge.
         await settle(page);
+        const minTarget = isPhone(page) ? 40 : 0;
+        await expectNoLayoutDefects(page, page.locator('[data-ui-lab-page]'), { minTarget });
+        if (entry.overlay) {
+          const sheet = page.getByRole('dialog');
+          const vw = page.viewportSize()!.width;
+          const box = (await sheet.boundingBox())!;
+          expect(box.x + box.width).toBeCloseTo(vw, 0);
+          if (isPhone(page)) expect(box.width).toBeCloseTo(vw, 0);
+          await expectNoLayoutDefects(page, sheet, { minTarget });
+          // Footer actions are reachable without scrolling the body.
+          const footer = sheet.locator('[data-responsive-sheet-part="footer"]');
+          if (await footer.count()) await expect(footer).toBeInViewport({ ratio: 1 });
+        }
         const target = entry.overlay ? page : page.locator('[data-gallery-target]');
         requireApprovedBaseline(`${id}--${state}.png`);
         await expect(target).toHaveScreenshot(`${id}--${state}.png`);
