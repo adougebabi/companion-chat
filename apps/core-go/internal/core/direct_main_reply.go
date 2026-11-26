@@ -45,6 +45,7 @@ func (c directMainReplyCapability) Definition() CapabilityDefinition {
 		d.Description = "Publish the character's natural reply to the original user message. Use real results for factual grounding and keep processing language internal. Supply text and decision with action_type=reply, a short response_intent and influences=[]."
 		decision := mapValue(properties["decision"])
 		original := mapValue(decision["properties"])
+		mapValue(original["influences"])["description"] = "Use the empty array []. This reply-only request does not need influence citations."
 		properties["decision"] = objectSchema(map[string]any{"action_type": original["action_type"], "response_intent": original["response_intent"], "influences": original["influences"]}, []string{"action_type", "response_intent", "influences"}, false)
 	}
 	d.InputSchema = objectSchema(properties, []string{"text", "decision"}, false)

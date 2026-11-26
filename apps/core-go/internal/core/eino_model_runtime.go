@@ -243,11 +243,8 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		result = m.toolCallFallback
 	}
 	result = canonicalizeModelToolNames(result)
-	if adkContext, ok := adkCapabilityContext(ctx); ok && result != nil {
-		adkContext.Refresh.noteModelToolCalls(sequence, result.ToolCalls)
-		if adkContext.Trace != nil {
-			adkContext.Trace.RecordModelToolCalls(callRequestID, sequence, result.ToolCalls)
-		}
+	if result != nil {
+		recordEinoNativeToolCalls(ctx, callRequestID, sequence, result.ToolCalls)
 	}
 
 	return result, err
@@ -396,9 +393,8 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 			}
 		}
 		candidate = canonicalizeModelToolNames(candidate)
-		if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Trace != nil {
-			bridge.Refresh.noteModelToolCalls(sequence, candidate.ToolCalls)
-			bridge.Trace.RecordModelToolCalls(callRequestID, sequence, candidate.ToolCalls)
+		if candidate != nil {
+			recordEinoNativeToolCalls(ctx, callRequestID, sequence, candidate.ToolCalls)
 		}
 		reader, writer := schema.Pipe[*schema.Message](1)
 		writer.Send(candidate, nil)
@@ -420,6 +416,21 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		}
 		return message, nil
 	}), nil
+}
+
+func recordEinoNativeToolCalls(ctx context.Context, requestID string, sequence uint64, calls []schema.ToolCall) {
+	bridge, ok := adkCapabilityContext(ctx)
+	if !ok || len(calls) == 0 {
+		return
+	}
+	bridge.Refresh.noteModelToolCalls(sequence, calls)
+	// The tool callback runs in the parent Runner context. Keep the validated
+	// physical correction phase with its native call until execution.
+	if correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool); correcting {
+		bridge.Trace.RecordPublicationCorrectionToolCalls(requestID, sequence, calls)
+		return
+	}
+	bridge.Trace.RecordModelToolCalls(requestID, sequence, calls)
 }
 
 func (m *queuedToolCallingChatModel) preparePhysicalInput(ctx context.Context, input []*schema.Message) ([]*schema.Message, error) {

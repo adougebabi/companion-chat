@@ -36,14 +36,17 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 	}
 	_, results := adkContext.Trace.Snapshot()
 	imageReplyPending := directImageReplyPending(ctx, results)
+	correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool)
+	run := replyRunFromContext(ctx)
+	direct := run != nil && run.Settings.Mode == "direct"
 	replyRequest := physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
 		AllowedToolNames: []string{conversationReplyCapabilityName}}
-	if imageReplyPending {
+	if imageReplyPending || (correcting && direct) {
 		replyRequest.ToolInputSchemas = map[string]map[string]any{
 			conversationReplyCapabilityName: (directMainReplyCapability{replyOnly: true}).Definition().InputSchema,
 		}
 	}
-	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" {
+	if direct {
 		for _, result := range results {
 			if result.CapabilityName == conversationReplyCapabilityName && result.Status == "handled" && stringValue(mapValue(result.Output)["warning_code"]) == "reply_expression_suggestion_stale" {
 				// The model saw a frozen suggestion that is no longer valid.
@@ -52,13 +55,13 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 			}
 		}
 	}
-	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" && directMainInvalidReplyAttempts(adkContext.Trace) >= 3 {
+	if direct && directMainInvalidReplyAttempts(adkContext.Trace) >= 3 {
 		return physicalModelRequestDecision{}, newCapabilityError("direct_reply_arguments_unresolved", false, errors.New("direct_reply_arguments_unresolved"))
 	}
-	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" && directMediaDeliveryRejectedAttempts(adkContext.Trace) >= 3 {
+	if direct && directMediaDeliveryRejectedAttempts(adkContext.Trace) >= 3 {
 		return physicalModelRequestDecision{}, newCapabilityError("direct_media_delivery_unresolved", false, errors.New("direct_media_delivery_unresolved"))
 	}
-	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" && directMediaReplyRejectedBatches(adkContext.Trace) >= 3 {
+	if direct && directMediaReplyRejectedBatches(adkContext.Trace) >= 3 {
 		return physicalModelRequestDecision{}, newCapabilityError("direct_media_reply_stalled", false, errors.New("direct_media_reply_stalled"))
 	}
 	if conversationLoopNeedsReply(ctx) {
@@ -68,7 +71,7 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 		replyRequest.DisableThinking = true
 		return replyRequest, nil
 	}
-	if queries := conversationLoadedQueryPhase(ctx); len(queries) > 0 {
+	if queries := conversationLoadedQueryPhase(ctx); !correcting && len(queries) > 0 {
 		if conversationClosedActionAttempts(adkContext.Trace, adkContext.Refresh) >= 2 {
 			return physicalModelRequestDecision{}, newCapabilityError("tool_progress_stalled", false, errors.New("tool_progress_stalled"))
 		}
@@ -85,7 +88,7 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 			return physicalModelRequestDecision{}, newCapabilityError(result.ErrorCode, false, errors.New(result.ErrorCode))
 		}
 	}
-	if correcting, _ := ctx.Value(conversationPublicationCorrectionKey{}).(bool); correcting {
+	if correcting {
 		replyRequest.DisableThinking = true
 		return replyRequest, nil
 	}
@@ -269,14 +272,14 @@ func conversationPublicationOmission(ctx context.Context, message *schema.Messag
 		finish = strings.TrimSpace(message.ResponseMeta.FinishReason)
 	}
 	if strings.TrimSpace(message.Content) == "" {
-		// An explicit stop after an accepted Direct image left the reply
-		// unpublished. Reuse the existing reply-only correction once.
+		// An explicit stop can leave a Direct reply unpublished after a
+		// rejected candidate or a committed image. Correct it at most once.
 		run := replyRunFromContext(ctx)
 		bridge, ok := adkCapabilityContext(ctx)
 		if finish != "stop" || run == nil || run.Settings.Mode != "direct" || !ok || bridge.Trace == nil {
 			return false
 		}
-		if directReplyRetryFromContext(ctx).intentID != "" {
+		if directReplyRetryFromContext(ctx).intentID != "" || directMainInvalidReplyAttempts(bridge.Trace) > 0 {
 			return true
 		}
 		_, results := bridge.Trace.Snapshot()

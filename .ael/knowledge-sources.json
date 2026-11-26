@@ -235,7 +235,7 @@
     },
     {
       "path": "docs/llm-prompt-composition.md",
-      "hash": "7001f4498d1d80709f1a7a65bfe76bfeb3a657d96dee965393545659c43513a3",
+      "hash": "042585396a94a7fbe0e054a57d49e3c96bd935d071f06b0a3878715e89938e93",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -249,7 +249,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-prompt-composition.md",
-        "hash": "7001f4498d1d80709f1a7a65bfe76bfeb3a657d96dee965393545659c43513a3",
+        "hash": "042585396a94a7fbe0e054a57d49e3c96bd935d071f06b0a3878715e89938e93",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -313,6 +313,27 @@
         "critical": false,
         "path": "docs/v3-page-acceptance.md",
         "hash": "4db1a6fe5c5ce798c2f1bac8dfafeae64a458b36aa008c8fee7c81f0b385acb9",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "docs/verification/chat-history-pagination-20261125.md",
+      "hash": "1e97b8c817b66749511f3236642f0633505474b105e1ad648a33e877973f6b38",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/chat-history-pagination-20261125.md",
+        "title": "chat-history-pagination-20261125.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/chat-history-pagination-20261125.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/chat-history-pagination-20261125.md",
+        "hash": "1e97b8c817b66749511f3236642f0633505474b105e1ad648a33e877973f6b38",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }

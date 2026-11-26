@@ -182,7 +182,8 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	}, i.request.FluctlightID, i.request.ConversationID, i.request.SourceFactID, i.request.SourceFactID, len(invocations))
 	invocation.ActionID = i.request.ActionID
 	publicationPolicy := conversationPublicationPolicyEnabled(ctx)
-	needsReply := publicationPolicy && conversationLoopNeedsReplyBeforeModelSequence(ctx, modelIdentity.ModelCallSequence)
+	needsReply := publicationPolicy && (modelIdentity.PublicationCorrection ||
+		conversationLoopNeedsReplyBeforeModelSequence(ctx, modelIdentity.ModelCallSequence))
 	if publicationPolicy && !needsReply && capabilityName != capabilityCatalogName && directImageCatalogPending(ctx, priorResults) {
 		if previous, found := i.trace.FindResult(callID); found {
 			return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), i.trace.ResultFailure(callID)
@@ -264,8 +265,8 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		i.trace.AppendInvocation(invocation)
 		result := handledCapabilityResult(invocation, warning, disposition, map[string]any{"detail": detail})
 		i.trace.AppendResult(result)
-		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
-		i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
+		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, warning, argumentsJSON)
+		i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, warning, argumentsJSON)
 		return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: result}, definition)
 	}
 	modelDefinition := definition
@@ -298,8 +299,10 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		decode := adkContext.Refs.decodeArguments
 		switch capability.(type) {
 		case directMainReplyCapability:
+			replyOnly := modelIdentity.PublicationCorrection || directReplyRetryFromContext(ctx).intentID != "" || directImageReplyPending(ctx, priorResults)
+			discardInvalidInfluences := replyOnly || directMainInvalidReplyAttempts(i.trace) >= 2
 			decode = func(raw json.RawMessage) (json.RawMessage, error) {
-				return adkContext.Refs.decodeDirectReplyArguments(raw, projection.ReferenceIndex, directMainInvalidReplyAttempts(i.trace) >= 2)
+				return adkContext.Refs.decodeDirectReplyArguments(raw, projection.ReferenceIndex, discardInvalidInfluences)
 			}
 		case factOnlyReplyCapability:
 			decode = adkContext.Refs.decodePrivateReplyArguments

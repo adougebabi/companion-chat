@@ -329,6 +329,14 @@ export default function ChatPage({
             <MessageScrollerViewport aria-label="聊天消息" className="companion-message-list">
               <MessageScrollerContent className="replica-chat-messages">
 
+                {snapshot.fluctlightId===character.id&&(snapshot.nextBeforeSequence||snapshot.historyLoading||snapshot.historyError)&&<MessageScrollerItem messageId="older-history">
+                  <div className="flex flex-col items-center gap-2">
+                    <Button variant="outline" className="min-h-10" disabled={snapshot.historyLoading||snapshot.loading||readLoading} onClick={()=>void store.loadOlder()}>
+                      {snapshot.historyLoading?<><Spinner/>正在读取更早消息…</>:snapshot.historyError?'重试加载更早消息':'加载更早消息'}
+                    </Button>
+                    {snapshot.historyError&&<p role="alert">{snapshot.historyError}</p>}
+                  </div>
+                </MessageScrollerItem>}
                 {(snapshot.loading||readLoading)&&<MessageScrollerItem messageId="loading" role="status" aria-live="polite" data-feedback-kind="progress"><Spinner/>正在读取对话…</MessageScrollerItem>}
                 {!snapshot.loading&&!readLoading&&!messages.length&&!error&&!readNotice&&!busy&&<MessageScrollerItem messageId="intro"><div className="replica-chat-empty"><LeafIcon size={24}/><p>{archived?"还没有历史对话。":"从一句问候开始，让陪伴慢慢发生。"}</p></div></MessageScrollerItem>}
           {messages.map((message,index) => {
