@@ -75,6 +75,33 @@ test('phone reading and filters preserve navigation context', {tag:'@mobile'}, a
   await page.getByRole('button',{name:'筛选',exact:true}).click();
   await expect(page.getByRole('dialog').getByRole('combobox',{name:'记忆类型'})).toContainText('经历');
 });
+test('media filters: desktop row and phone sheet keep their layout and values', {tag:'@mobile'}, async({page})=>{
+  await page.goto(origin+'/#/c/'+fid+'/media');
+  const toolbar=page.locator('form.media-toolbar');
+  await expect(toolbar.getByRole('searchbox',{name:'搜索喜欢的画面'})).toBeVisible();
+  if(page.viewportSize()!.width<640){
+    await toolbar.getByRole('button',{name:'筛选',exact:true}).click();
+    const sheet=page.getByRole('dialog',{name:'筛选媒体'});
+    await expect(sheet).toBeVisible();
+    await sheet.getByRole('combobox',{name:'媒体类型'}).click();
+    await page.getByRole('option',{name:'视频',exact:true}).click();
+    await sheet.getByRole('button',{name:'完成',exact:true}).click();
+    await expect(sheet).toBeHidden();
+    await toolbar.getByRole('button',{name:'筛选',exact:true}).click();
+    await expect(sheet.getByRole('combobox',{name:'媒体类型'})).toContainText('视频');
+    await expectNoLayoutDefects(page,sheet,{minTarget:40});
+  }else if(page.viewportSize()!.width>=1024){
+    for(const width of [1280,1440]){
+      await page.setViewportSize({width,height:width===1280?800:900});
+      const controls=[toolbar.locator('.r-search'),toolbar.getByRole('combobox',{name:'媒体类型'}),toolbar.getByText('保存的素材 · 画面不改变生活状态',{exact:true}),toolbar.locator('.media-options')];
+      const boxes=await Promise.all(controls.map(control=>control.boundingBox()));
+      expect(boxes.every(Boolean)).toBeTruthy();
+      const centers=boxes.map(box=>box!.y+box!.height/2);
+      expect(Math.max(...centers)-Math.min(...centers)).toBeLessThanOrEqual(3);
+      await expectNoLayoutDefects(page,toolbar,{minTarget:0});
+    }
+  }
+});
 test('settings introduction appears once at every viewport', {tag:'@mobile'}, async({page})=>{
   await page.goto(origin+'/#/settings');
   const management=page.locator('.replica-management');

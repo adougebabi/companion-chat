@@ -21,7 +21,7 @@ import { userInstant } from "@/v3/presentation-time.mjs";
 import {compactDateTime} from '@/approved-ui/presentation.mjs';
 export default function MediaWorkspaceView({ model: m }) {
   const mobile=useIsMobile(),[filterOpen,setFilterOpen]=useState(false);
-  const filterControls = (<div className="ui-stack">            <ChoiceSelect
+  const filterControls = (<>            <ChoiceSelect
               aria-label="媒体类型"
               value={m.filter.kind}
               onChange={(event) =>
@@ -81,7 +81,7 @@ export default function MediaWorkspaceView({ model: m }) {
                   只看已隐藏
                 </label>
               </div>
-            </Disclosure></div>);
+            </Disclosure></>);
   return (
     <div className="replica-media resource-page">
       <WorkspacePageHeader
@@ -173,7 +173,7 @@ export default function MediaWorkspaceView({ model: m }) {
             </div>
             {!mobile && filterControls}
             {mobile && <Button type="button" variant="outline" onClick={() => setFilterOpen(true)}>筛选</Button>}
-            <DetailSheet mobileMode="sheet" open={mobile && filterOpen} onOpenChange={setFilterOpen} title="筛选媒体" footer={<Button onClick={() => setFilterOpen(false)}>完成</Button>}>{filterControls}</DetailSheet>
+            <DetailSheet mobileMode="sheet" open={mobile && filterOpen} onOpenChange={setFilterOpen} title="筛选媒体" footer={<Button onClick={() => setFilterOpen(false)}>完成</Button>}><div className="ui-stack">{filterControls}</div></DetailSheet>
           </form>
 
           <MediaReader source={m.library} label="素材" />
