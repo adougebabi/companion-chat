@@ -58,12 +58,6 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 	if direct && directMainInvalidReplyAttempts(adkContext.Trace) >= 3 {
 		return physicalModelRequestDecision{}, newCapabilityError("direct_reply_arguments_unresolved", false, errors.New("direct_reply_arguments_unresolved"))
 	}
-	if direct && directMediaDeliveryRejectedAttempts(adkContext.Trace) >= 3 {
-		return physicalModelRequestDecision{}, newCapabilityError("direct_media_delivery_unresolved", false, errors.New("direct_media_delivery_unresolved"))
-	}
-	if direct && directMediaReplyRejectedBatches(adkContext.Trace) >= 3 {
-		return physicalModelRequestDecision{}, newCapabilityError("direct_media_reply_stalled", false, errors.New("direct_media_reply_stalled"))
-	}
 	if conversationLoopNeedsReply(ctx) {
 		if conversationClosedActionAttempts(adkContext.Trace, adkContext.Refresh) >= 2 || conversationNoProgressAttempts(ctx, 0, true) >= 5 {
 			return physicalModelRequestDecision{}, newCapabilityError("tool_progress_stalled", false, errors.New("tool_progress_stalled"))
@@ -79,14 +73,6 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 	}
 	if repeatedDiscoveryLoadCount(adkContext.Trace) >= 3 || repeatedDiscoveryResultCount(adkContext.Trace) >= 3 {
 		return physicalModelRequestDecision{}, newCapabilityError("tool_discovery_no_progress", false, errors.New("tool_discovery_no_progress"))
-	}
-	for _, result := range results {
-		if result.CapabilityName == conversationReplyCapabilityName &&
-			(result.ErrorCode == "reply_action_outcome_conflict" || result.ErrorCode == "reply_action_check_failed") {
-			// The draft already exhausted its bounded fact correction. Asking the
-			// parent again cannot retry this failed source or authorize publication.
-			return physicalModelRequestDecision{}, newCapabilityError(result.ErrorCode, false, errors.New(result.ErrorCode))
-		}
 	}
 	if correcting {
 		replyRequest.DisableThinking = true
@@ -105,30 +91,6 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: repeatedDiscoveryExclusions(adkContext.Trace), DisableThinking: len(p.directImageDiscoveryPrompt) != 0 && len(results) == 0}, nil
 }
 
-// Count physical model responses, not individual rejected Tool results. Any
-// intervening real result ends the consecutive no-progress sequence.
-func directMediaReplyRejectedBatches(trace *ADKCapabilityTrace) int {
-	if trace == nil {
-		return 0
-	}
-	_, results := trace.Snapshot()
-	sequences := map[uint64]bool{}
-	for index := len(results) - 1; index >= 0; index-- {
-		result := results[index]
-		if result.Status == "handled" && stringValue(mapValue(result.Output)["warning_code"]) == "invalid_arguments" &&
-			(result.CapabilityName == conversationReplyCapabilityName || result.CapabilityName == "media.image.generate") {
-			continue
-		}
-		if result.Status != "rejected" || result.ErrorCode != "direct_media_reply_separate_turn_required" {
-			break
-		}
-		if identity, ok := trace.ModelIdentity(result.CallID); ok && identity.ModelCallSequence != 0 {
-			sequences[identity.ModelCallSequence] = true
-		}
-	}
-	return len(sequences)
-}
-
 // Consecutive invalid direct replies did not execute any effect. Bound this
 // no-progress repair without preventing unrelated valid native Tool calls.
 func directMainInvalidReplyAttempts(trace *ADKCapabilityTrace) int {
@@ -145,29 +107,6 @@ func directMainInvalidReplyAttempts(trace *ADKCapabilityTrace) int {
 			break
 		}
 		count++
-	}
-	return count
-}
-
-// Media-claim retries are bounded for the whole run, including when unrelated
-// Tool results are interleaved between rejected reply candidates.
-func directMediaDeliveryRejectedAttempts(trace *ADKCapabilityTrace) int {
-	if trace == nil {
-		return 0
-	}
-	_, results := trace.Snapshot()
-	count := 0
-	for _, result := range results {
-		if result.CapabilityName != conversationReplyCapabilityName {
-			continue
-		}
-		code := result.ErrorCode
-		if result.Status == "handled" {
-			code = stringValue(mapValue(result.Output)["warning_code"])
-		}
-		if (result.Status == "handled" || result.Status == "failed") && (code == "direct_media_delivery_unverified" || code == "direct_media_delivery_stale") {
-			count++
-		}
 	}
 	return count
 }

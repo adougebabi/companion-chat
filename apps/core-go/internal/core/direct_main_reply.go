@@ -126,17 +126,15 @@ func (c directMainReplyCapability) Prepare(ctx context.Context, invocation Capab
 		return invocation, newCapabilityError("direct_expression_context_missing", false, ErrConflict)
 	}
 	args := decodeObject(invocation.Arguments)
-	decision := cloneMap(mapValue(args["decision"]))
-	if len(decision) == 0 {
-		return invocation, newCapabilityError("direct_reply_decision_required", false, ErrInvalidArguments)
-	}
-	if err := validateCapabilitySchemaValue(decision, cognitiveTurnResponseSchema()); err != nil {
-		return invocation, newCapabilityError("direct_reply_decision_invalid", false, err)
-	}
-	if err := validateGoalEventCandidates(decision, projection.ReferenceIndex); err != nil {
-		return invocation, newCapabilityError("direct_reply_decision_invalid", false, err)
+	// The reply text is the product. Invalid or missing decision metadata is
+	// dropped and recorded; it never sends the model back for another attempt.
+	decision, droppedFields := sanitizeDirectReplyDecision(mapValue(args["decision"]), projection)
+	if len(droppedFields) > 0 {
+		c.app.recordDiagnosticEvent(ctx, "reply.decision.sanitized", "info", projection.FluctlightID, projection.SourceFactID, providerCorrelation(ctx),
+			map[string]any{"dropped_fields": droppedFields})
 	}
 	if _, err := freezeDecisionInfluences(decision, projection, false); err != nil {
+		// Only scope/version faults of the Core projection remain here.
 		return invocation, newCapabilityError("direct_reply_decision_invalid", false, err)
 	}
 	if len(mapValue(decision["appraisal"])) == 0 {
@@ -144,33 +142,15 @@ func (c directMainReplyCapability) Prepare(ctx context.Context, invocation Capab
 	}
 	plan, err := normalizeResponsePlan(decision, invocation.SourceFactID, projection)
 	if err != nil {
-		return invocation, newCapabilityError("direct_reply_decision_invalid", false, err)
-	}
-	var mediaRefs, mediaIntents []string
-	text := stringValue(args["text"])
-	if directMediaDeliveryCheckNeeded(text, run.CurrentInput, projection.RecentMessages) {
-		subject := firstString(invocation.Metadata.SubjectActorID, invocation.Metadata.AuthorizationActorID)
-		deliveries, err := directMediaDeliveries(ctx, c.app.DB.Pool(), invocation.Metadata.AuthorizationActorID, subject, invocation.Metadata.FluctlightID, invocation.Metadata.ConversationID, false)
-		if err != nil {
-			return invocation, newCapabilityError("direct_media_delivery_check_failed", true, err)
-		}
-		currentMedia := directCurrentMediaIntents(bridge.Trace, invocation)
-		if retry := directReplyRetryFromContext(ctx); retry.intentID != "" {
-			currentMedia[retry.intentID] = true
-		}
-		mediaRefs, err = c.app.checkDirectMediaDeliveryClaims(ctx, projection, run.CurrentInput, text, deliveries, currentMedia)
-		if err != nil {
-			return invocation, err
-		}
-		for _, ref := range mediaRefs {
-			delivery, err := directMediaDeliveryByRef(deliveries, ref)
-			if err != nil {
-				return invocation, newCapabilityError("direct_media_delivery_unverified", false, err)
-			}
-			mediaIntents = append(mediaIntents, delivery.intentID)
+		delete(decision, "response_plan")
+		if plan, err = normalizeResponsePlan(decision, invocation.SourceFactID, projection); err != nil {
+			return invocation, newCapabilityError("direct_reply_decision_invalid", false, err)
 		}
 	}
-	return withCapabilityPreparedData(invocation, "direct_main_settlement", map[string]any{"projection": projection, "decision": decision, "response_plan": plan, "expression_suggestions": suggestions, "media_delivery_refs": mediaRefs, "media_delivery_intents": mediaIntents})
+	// Photos are delivered as their own message when generation finishes, so
+	// the reply text is never held back or re-asked because of how it talks
+	// about a photo.
+	return withCapabilityPreparedData(invocation, "direct_main_settlement", map[string]any{"projection": projection, "decision": decision, "response_plan": plan, "expression_suggestions": suggestions})
 }
 
 func (c directMainReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext, target DirectToolTarget) (CapabilityResult, error) {
@@ -187,11 +167,6 @@ func (c directMainReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.T
 	if err := validateExpressionSuggestionsTx(ctx, tx, target.AuthorizationActorID, target.FluctlightID,
 		firstString(invocation.Metadata.SubjectActorID, target.AuthorizationActorID), target.ConversationID, suggestions); err != nil {
 		return CapabilityResult{}, err
-	}
-	if err := requireDirectMediaDeliveriesTx(ctx, tx, target.AuthorizationActorID,
-		firstString(invocation.Metadata.SubjectActorID, target.AuthorizationActorID), target.FluctlightID, target.ConversationID,
-		arrayValue(mapValue(data)["media_delivery_refs"]), arrayValue(mapValue(data)["media_delivery_intents"])); err != nil {
-		return CapabilityResult{}, directMediaDeliveryTxError(err)
 	}
 	return (conversationReplyCapability{publication: c.publication}).ExecuteDirectTx(ctx, tx, invocation, resolved, target)
 }

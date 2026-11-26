@@ -95,7 +95,7 @@ func TestM2DirectRelationshipInfluenceDropsForgedReference(t *testing.T) {
 	if queryErr := repo.Pool().QueryRow(ctx, `SELECT (SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'), (SELECT count(*) FROM public.cognition_assessments WHERE fluctlight_id=$2)`, conversation, fid).Scan(&messages, &assessments); queryErr != nil {
 		t.Fatal(queryErr)
 	}
-	if err != nil || calls != 3 || messages != 1 || assessments != 1 || stringValue(turn.Assistant["text"]) != "你好，我们聊聊。" {
+	if err != nil || calls != 1 || messages != 1 || assessments != 1 || stringValue(turn.Assistant["text"]) != "你好，我们聊聊。" {
 		t.Fatalf("unresolved influence blocked valid reply: err=%v calls=%d messages=%d assessments=%d", err, calls, messages, assessments)
 	}
 	var influences []byte

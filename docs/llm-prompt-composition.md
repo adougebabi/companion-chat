@@ -42,18 +42,15 @@
 最终结构化纠错及发布遗漏纠错分别记录原模型候选和 Core 校验反馈；Writer 的
 未发布草稿、真实动作回执与媒体状态分别记录。兼容聊天包装只标明消息来自
 调用方，不从正文推断其业务来源。普通/流式受控请求已核对这些新增记录。
-显式 direct 的媒体完成声明检查使用 `reply_action_check` 的
-`direct_media_delivery_check_v1` 变体：只在候选与会话上下文涉及媒体交付时
-提供未发布候选、当前输入、授权历史及同会话已提交交付的局部不透明引用。
-检查任务只提取文本片段和候选引用，不执行工具；分享意愿、图片内容介绍以及明确的
-文字消息发送动作不等于图片交付。Core 保留多分句原文中的否认/意愿限定，不能只取
-限定词之前的首句；肯定的已交付声明仍需真实附件证据。校验调用保留实际父回合
-`parent_run_id`，同源 `reply.media_delivery.checked` 记录候选、原提取、排除项、
-拒绝片段与精确原因。可纠正拒绝通过原生工具结果返回片段和原因，不发布候选或伪造图片。
-Core 独立核验引用、任务主体和
-实际消息附件，并在发布事务重查。默认继承会话文本模型，显式 Agent/variant
-覆盖仍生效；这不是对所有自然语言事实的完整识别保证。
-动态正文也可复用该变体：检查输入区分当前选中的可读图片、当前会话内已
+显式 direct 私聊正文不再调用媒体完成声明检查（2026-11-26 去防御化）：图片在生成完成后
+作为独立消息送达，正文对照片的说法（"拍好了马上发你"等）直接发布，不重试、不计失败
+名额。`conversation_reply` 的 decision 是附带的认知元数据：Core 按 schema 与当前引用
+索引逐字段清理，无效字段（未知 influence ref、无效 goal 候选、类型不符的可选字段、
+服务端字段）丢弃并记录 `reply.decision.sanitized`，正文照常发布。同批调用的图片请求
+与记录类工具（memory_event、actor.fact.record）不再阻止回复；只有正文依赖其结果的
+日程与换装仍要求下一轮回复。`reply_action_check` 的 `direct_media_delivery_check_v1`
+变体仅保留给动态发布。
+动态正文使用该变体：检查输入区分当前选中的可读图片、当前会话内已
 提交的私聊交付和可核对的历史动态图片；这些作用域不能相互代替。历史动态
 证据要求动态附件、引用、已就绪图片和同源生成任务同时存在，生成意图不是
 画面事实，动态创建时间也不是附件交付时间。Owner 选定素材只有实际可读
@@ -200,7 +197,7 @@ Studio 普通助手、文字预览及角色定义准备同样在各自模型阶�
 | world_event_generation | 世界规则/时区/真实地点与 NPC/实际在场角色/近期已发生事件；只提议或 no_event，独立 Kev 审批后才可入可执行库 | 0 | world_event_generation.go |
 | conversation_cognition | 私聊认知协议 + Working Persona + 私聊 D/M/S + H + 当前输入；legacy 与 fact-only 投影不同 | H | cognition_agent.go；conversation_runtime.go |
 | conversation_reply | 用户提供的 v8 私聊运行协议 + Working Persona + 独立事实视图/能力边界/实际 Tool facts + M/S + H + 当前输入 | H | reply_context.go；reply_provider.go |
-| reply_action_check | 换装未生效时核验未发送正文；实际动作回执 + 当前状态 + 候选正文，无人格扮演，无工具 | 0 | reply_action_consistency.go |
+| reply_action_check | 换装未生效时核验未发送正文并至多改写一次；核验失败或改写后仍冲突时照常发布并记录 `reply.action_consistency.unresolved`；实际动作回执 + 当前状态 + 候选正文，无人格扮演，无工具 | 0 | reply_action_consistency.go |
 | expression_learning | Owner 显式选择的已发送 human 消息原文和局部来源引用；仅提议连续原文摘录及适用语境，无人格、关系、生活状态或工具。Core 校验来源身份、版本、引用及摘录并持久化待审核候选；该任务不能自行启用候选 | 仅调用方显式提供的消息 | expression_learning_extract.go；expression_learning_task.go |
 | wake_up | 专属完整唤醒协议 + Working Persona + D/M/S + 历史资料 H + 本次唤醒事件 | H，作为历史数据 | agent_result_adapter.go；capability_prompt_policy.go |
 | takeover_judge | Judge 协议 + 本轮 user/candidate/接管规则/控制与关系事实 + 可选 recent references | 无全量 H/M | turn_takeover.go；conversation_runtime.go |
@@ -294,16 +291,12 @@ Direct 私聊有授权的近期对话、且图片能力启用时，`direct_image
 仍按原规则结算。
 聚焦目录的上下文绑定在主循环的物理请求策略上。独立交付核验只接收它自己的
 协议、待发布正文、当前输入、授权历史与已有交付证据。
-核验提示词明确区分图片任务已提交、等待生成和附件已送达。
-已有本回合生图回执时，私聊核验在同一请求中用 `assessment` 区分生成状态、
-未来发送与已送达声明。待生成或未来发送判断可以排除未关联回执的误提取，
-引用具体交付或肯定交付的正文仍走原有证据核对。
 目录回执给出已加载的原生工具。图片工具的模型 schema 只要求 `intent`，
 其他参数仍可提供，原有权限及入参校验继续生效。图片任务受理后，回执用于核对
 状态与交付事实，独立私聊图片受理后，普通正文和缺失正文纠正都只公布
 `conversation_reply` 及其必填决策字段 `action_type`、`response_intent` 和
-`influences`。模型以角色口吻回应原消息。处理过程
-留在内部；用户主动询问时可自然说明是否还需等待。附件交付沿用现有流程。
+`influences`。模型以角色口吻回应原消息，可自然说照片稍后发来，不提系统或回执。
+附件交付沿用现有流程。
 Direct 任务指引、纠正请求与工具定义使用模型名称 `conversation_reply`。
 注册表和原有执行回执使用能力标识 `conversation.reply`。
 场景回归还核对普通对话、无副作用的续接及同一回合的幂等重放。
@@ -312,10 +305,8 @@ Direct 任务指引、纠正请求与工具定义使用模型名称 `conversatio
 补发回复。交付核验多次失败或模型服务请求失败后结束的回合同样适用。Core 从原回合已提交的工具
 账本重新核对图片意图、会话、角色和 Owner，
 继续使用原用户消息、同一回合及其模型绑定。请求携带图片实际状态和附件送达事实，
-只公布原生 `conversation.reply` 及其必需字段。该恢复仍走原有回复发布事务和
-图片交付校验。普通整轮重试继续使用原有的部分提交保护。
-若原生正文的交付核验明确遇到临时 GPU 容量拒绝，且这轮只有一张已受理的独立私聊图片，
-认知工作流在原回合截止时间内按 30、60 秒退避并复用仅回复路径。核验和原图回执继续生效。
+只公布原生 `conversation.reply` 及其必需字段。该恢复仍走原有回复发布事务。
+普通整轮重试继续使用原有的部分提交保护。
 
 `media_prompt_normalized` 区分获准主体与参考图片。未绑定参考图时输入明确给出
 空的参考图集合，输出 schema 将 `used_reference_ids` 限定为空数组。绑定了实际

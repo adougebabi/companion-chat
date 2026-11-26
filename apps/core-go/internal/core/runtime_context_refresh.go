@@ -44,7 +44,6 @@ type runtimeContextRefresh struct {
 	refresh            func(context.Context) (modelContextRefreshContent, error)
 	base               ContextProjection
 	batches            map[uint64]map[string]string
-	batchNames         map[uint64]map[string]bool
 	staleReplyCallID   string
 }
 
@@ -63,17 +62,10 @@ func (r *runtimeContextRefresh) noteModelToolCalls(sequence uint64, calls []sche
 	if r.batches[sequence] == nil {
 		r.batches[sequence] = make(map[string]string)
 	}
-	if r.batchNames == nil {
-		r.batchNames = make(map[uint64]map[string]bool)
-	}
-	if r.batchNames[sequence] == nil {
-		r.batchNames[sequence] = make(map[string]bool)
-	}
 	for _, call := range calls {
 		if id, name := strings.TrimSpace(call.ID), strings.TrimSpace(call.Function.Name); id != "" && name != "" {
 			name = capabilitycontract.CanonicalCapabilityName(name)
 			r.batches[sequence][id] = name
-			r.batchNames[sequence][name] = true
 		}
 	}
 }
@@ -117,35 +109,16 @@ func (r *runtimeContextRefresh) sameBatch(sequence uint64, callID string) (map[s
 	return copyBatch, true
 }
 
-// A direct reply and a media request from the same model response were both
-// composed before either result existed. Reject both calls so a refusal in the
-// reply cannot race an image request, and a later reply can use a real receipt.
-func (r *runtimeContextRefresh) directMediaReplyBatch(sequence uint64, callID string) bool {
-	if r == nil || sequence == 0 {
-		return false
-	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	batch := r.batches[sequence]
-	name := batch[callID]
-	if name != conversationReplyCapabilityName && name != "media.image.generate" {
-		return false
-	}
-	names := r.batchNames[sequence]
-	return names[conversationReplyCapabilityName] && names["media.image.generate"]
-}
-
-// replyBlockedBySameBatchSideEffect rejects a visible reply that shares a
-// physical model response with a recording tool. memory_event,
-// actor.fact.record, and active_memory_event must commit first; the reply is
-// composed on the next model turn. A committed reply then ends the turn.
+// replyBlockedBySameBatchSideEffect defers a visible reply only when its words
+// depend on the result of a same-batch schedule or wardrobe change. Recording
+// tools (memory_event, actor.fact.record) and image requests do not change what
+// the reply may say, so they run alongside it.
 func replyBlockedBySameBatchSideEffect(refresh *runtimeContextRefresh, sequence uint64, callID string, _ *App) (string, string, bool) {
 	batch, ok := refresh.sameBatch(sequence, callID)
 	if !ok {
 		return "", "", false
 	}
 	schedule := false
-	sideEffect := false
 	wardrobe := false
 	for id, name := range batch {
 		if id == callID {
@@ -155,9 +128,6 @@ func replyBlockedBySameBatchSideEffect(refresh *runtimeContextRefresh, sequence 
 			schedule = true
 			continue
 		}
-		if replyRecordTool(name) {
-			sideEffect = true
-		}
 		if capabilitycontract.CapabilityNamesMatch(name, wardrobeWearCapabilityName) {
 			wardrobe = true
 		}
@@ -165,22 +135,10 @@ func replyBlockedBySameBatchSideEffect(refresh *runtimeContextRefresh, sequence 
 	if schedule {
 		return "schedule_context_refresh_required", "Wait for the Schedule Tool result and refreshed context, then compose the reply in the next model turn.", true
 	}
-	if sideEffect {
-		return "side_effect_before_reply_required", "Execute side-effect tools such as memory_event and actor.fact.record before conversation.reply. Do not send the reply in the same batch and then record later.", true
-	}
 	if wardrobe {
 		return "wardrobe_context_refresh_required", "Wait for the actual wardrobe.wear receipt, then compose the reply from the refreshed current wearing in the next model turn. Do not claim a failed or uncommitted change.", true
 	}
 	return "", "", false
-}
-
-func replyRecordTool(name string) bool {
-	switch name {
-	case "memory_event", actorFactCapabilityName, "active_memory_event":
-		return true
-	default:
-		return false
-	}
 }
 
 func (r *runtimeContextRefresh) latestProjection() *ContextProjection {

@@ -65,20 +65,28 @@ func (s *factOnlyReplyService) checkReplyActionResult(ctx context.Context, input
 	return consistent, nil
 }
 
+// ensureReplyActionConsistency rewrites a draft at most once when it contradicts
+// a failed action. It never withholds the reply: checker failures and conflicts
+// that survive the rewrite are recorded and the best available draft is sent.
 func (s *factOnlyReplyService) ensureReplyActionConsistency(ctx context.Context, input ConversationReplyTaskInput, draft ReplyDraft) (ReplyDraft, error) {
 	if !replyNeedsActionCheck(input.Context.ToolFacts) {
+		return draft, nil
+	}
+	unresolved := func(code string, cause error) (ReplyDraft, error) {
+		s.app.recordDiagnosticEvent(ctx, "reply.action_consistency.unresolved", "warning", input.Context.Projection.FluctlightID, input.DraftRef, input.CorrelationID,
+			map[string]any{"error_code": code, "cause": boundedLifecycleCause(cause.Error()), "visibility": "published"})
 		return draft, nil
 	}
 	for attempt := 0; attempt < 2; attempt++ {
 		valid, err := s.checkReplyActionResult(ctx, input, draft.Text, attempt)
 		if err != nil {
-			return draft, err
+			return unresolved("reply_action_check_failed", err)
 		}
 		if valid {
 			return draft, nil
 		}
 		if attempt == 1 {
-			return draft, newCapabilityError("reply_action_outcome_conflict", false, errors.New("reply contradicts actual action result after correction"))
+			return unresolved("reply_action_outcome_conflict", errors.New("reply contradicts actual action result after correction"))
 		}
 		repair := input
 		repair.Context.StyleRepair = true // Existing tool-free correction mode; do not re-execute any action or image request.
@@ -87,11 +95,12 @@ func (s *factOnlyReplyService) ensureReplyActionConsistency(ctx context.Context,
 		repair.Context.ToolFacts = append(repair.Context.ToolFacts, map[string]any{"kind": "private_candidate_text", "value": draft.Text})
 		repaired, err := s.app.RunConversationReplyTask(ctx, repair)
 		if err != nil {
-			return draft, newCapabilityError("reply_action_check_failed", false, err)
+			return unresolved("reply_action_check_failed", err)
 		}
-		draft, err = adoptReplyActionCorrection(input.Context, draft, repaired)
-		if err != nil {
-			return draft, err
+		if adopted, err := adoptReplyActionCorrection(input.Context, draft, repaired); err == nil {
+			draft = adopted
+		} else {
+			return unresolved("reply_action_check_failed", err)
 		}
 	}
 	return draft, nil
