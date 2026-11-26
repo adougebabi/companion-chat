@@ -102,7 +102,7 @@ test('此刻页主卡把默认活动换成中性标题，保留状态和原始�
   }
 });
 
-test('聊天此刻卡替换未安排标题和下一项兜底，原始日程仍可下载', async t => {
+test('聊天此刻卡替换未安排标题并跳过下一项兜底，原始日程仍可下载', async t => {
   const start = Date.now() + 3600000;
   const item = {
     ...privateFields,
@@ -117,9 +117,9 @@ test('聊天此刻卡替换未安排标题和下一项兜底，原始日程仍�
     const card = view.host.querySelector('.replica-moment-card');
     assert.equal(card.querySelector('.companion-moment-copy h3').textContent, currentFallback);
     assert.match(card.querySelector('.companion-moment-copy').textContent, /书房.*平静/);
-    const next = card.querySelector('.companion-next-schedule');
-    assert.equal(next.textContent, '这一天还没有安排');
-    assert.equal(next.querySelector('time'), null);
+    const next = button(card, '查看全部').closest('.companion-mini-section');
+    assert.equal(next.querySelector('.replica-caption').textContent, '还没有读到接下来的安排。');
+    assert.equal(next.querySelector('.companion-next-schedule, time'), null);
     assert.doesNotMatch(card.textContent, hiddenText);
     await assertDownload(t, view, card, diagnosticTitle, {context, inner_state, current_state, schedule: item});
   } finally {

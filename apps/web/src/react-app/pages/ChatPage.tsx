@@ -12,7 +12,7 @@ import WorkspaceMomentArt from '../shared/WorkspaceMomentArt';
 import WearingSummary from '../shared/WearingSummary';
 import {nowEmptyText,nowStateSummary,nowStateText,NowStateDownload} from '../shared/NowState';
 import {scheduleItemDisplay} from '../shared/schedule-presentation.mjs';
-import {nextScheduleItem} from '@/approved-ui/presentation.mjs';
+import {nextScheduleItem,type scheduleProjection} from '@/approved-ui/presentation.mjs';
 import {readErrorCause,serviceUnavailableNotice,settingsHref} from '@/approved-ui/service-unavailable.mjs';
 import {Alert,AlertTitle,AlertDescription} from '@/components/ui/alert';
 import {currentReadError} from '@/approved-ui/read-feedback.mjs';
@@ -260,8 +260,13 @@ export default function ChatPage({
     catch(cause){if(live())failConversationRead(cause);}
     finally{if(live())setReadLoading(false);}
   }
-  const schedule = nextScheduleItem(character.schedule,now);
-  const scheduleDisplay = schedule && scheduleItemDisplay(schedule);
+  const scheduleItems: ReturnType<typeof scheduleProjection>[] = character.schedule;
+  const schedule = nextScheduleItem(scheduleItems.filter(item=>!scheduleItemDisplay(item).unplanned),now);
+  const scheduleRecords = scheduleItems
+    .filter(item=>item===schedule||scheduleItemDisplay(item).unplanned)
+    .map(item=>item._source)
+    .filter(Boolean);
+  const diagnosticSchedule = scheduleRecords.length>1?scheduleRecords:scheduleRecords[0];
   const {activity,location:momentLocation,mood}=nowStateSummary(character);
   const worldId=character.detail?.context?.world_id;
   const hasWorld=typeof worldId==='string'&&!!worldId.trim();
@@ -280,14 +285,14 @@ export default function ChatPage({
     <div className="companion-mini-section">
       <div className="companion-row-between"><span>接下来的安排</span><Button variant="link" onClick={()=>onGo('日程')}>查看全部<ChevronRightIcon size={12}/></Button></div>
       {schedule ? <div className="companion-next-schedule">
-        {!scheduleDisplay?.unplanned&&<time dateTime={schedule._source?.start_at} title={userInstant(schedule._source?.start_at)}>{schedule.time}</time>}
+        <time dateTime={schedule._source?.start_at} title={userInstant(schedule._source?.start_at)}>{schedule.time}</time>
         <div>
-          <p>{nowStateText(scheduleDisplay?.title,'活动')}</p>
-          {!scheduleDisplay?.unplanned&&<small>{schedule._source?.action_status==='in_progress'?'正在进行':'日程安排'}</small>}
+          <p>{nowStateText(schedule.text,'活动')}</p>
+          <small>{schedule._source?.action_status==='in_progress'?'正在进行':'日程安排'}</small>
         </div>
       </div> : <p className="replica-caption">还没有读到接下来的安排。</p>}
     </div>
-    <NowStateDownload detail={character.detail} schedule={schedule?._source}/>
+    <NowStateDownload detail={character.detail} schedule={diagnosticSchedule}/>
     </Surface><div className="companion-soft-note"><LeafIcon size={17}/><p>生活在继续，故事也在慢慢生长。<br/>这里是 {character.name} 的小小世界。</p></div></>;
   return (
     <div className="replica-chat companion-page">
