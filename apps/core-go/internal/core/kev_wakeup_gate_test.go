@@ -49,8 +49,8 @@ func TestManualWakeUpIgnoresUnavailableKevSettings(t *testing.T) {
 	if enabled, err := wakeUpKevEnabled(context.Background(), service, true); enabled || err != nil {
 		t.Fatalf("manual wake should bypass Kev settings: enabled=%v err=%v", enabled, err)
 	}
-	if enabled, err := wakeUpKevEnabled(context.Background(), service, false); enabled || err == nil {
-		t.Fatalf("automatic wake must report unavailable Kev settings: enabled=%v err=%v", enabled, err)
+	if enabled, err := wakeUpKevEnabled(context.Background(), service, false); enabled || err != nil {
+		t.Fatalf("unreadable Kev settings must not block automatic wake: enabled=%v err=%v", enabled, err)
 	}
 }
 
@@ -61,7 +61,9 @@ func (s *wakeGateStore) Exec(_ context.Context, query string, args ...any) (pgco
 	return pgconn.NewCommandTag("INSERT 0 1"), s.writeErr
 }
 
-func TestKevAutomaticWakeGateWaitsForAnAdmissibleDecision(t *testing.T) {
+// Kev is optional: it may defer a wake-up a bounded number of times, but an
+// unclear answer, an unavailable service or a storage failure runs the wake.
+func TestKevAutomaticWakeGateIsBoundedAndNeverBlocks(t *testing.T) {
 	for _, tc := range []struct {
 		name, point, choice     string
 		count                   int
@@ -72,10 +74,10 @@ func TestKevAutomaticWakeGateWaitsForAnAdmissibleDecision(t *testing.T) {
 	}{
 		{name: "yes", point: "runtime.wakeup", choice: "yes", wantAllowed: true, wantCalled: true},
 		{name: "no", point: "runtime.wakeup", choice: "no", wantCalled: true},
-		{name: "still asks after previous limit", point: "runtime.wakeup", choice: "no", count: 3, until: time.Now().Add(-time.Minute), wantCalled: true},
-		{name: "unclear", point: "runtime.wakeup", choice: "unclear", wantCalled: true},
-		{name: "service unavailable", point: "runtime.wakeup", fail: true, wantCalled: true},
-		{name: "deferral persistence failed", point: "runtime.wakeup", choice: "no", writeFails: true, wantErr: true, wantCalled: true},
+		{name: "runs after max deferrals", point: "runtime.wakeup", choice: "no", count: 3, until: time.Now().Add(-time.Minute), wantAllowed: true},
+		{name: "unclear", point: "runtime.wakeup", choice: "unclear", wantAllowed: true, wantCalled: true},
+		{name: "service unavailable", point: "runtime.wakeup", fail: true, wantAllowed: true, wantCalled: true},
+		{name: "deferral persistence failed", point: "runtime.wakeup", choice: "no", writeFails: true, wantAllowed: true, wantCalled: true},
 		{name: "not yet due", point: "runtime.wakeup", count: 1, until: time.Now().Add(time.Minute)},
 		{name: "disabled", point: "runtime.wakeup", disabled: true, wantAllowed: true},
 		{name: "manual override", point: "runtime.wakeup", manual: true, wantAllowed: true},
@@ -92,7 +94,7 @@ func TestKevAutomaticWakeGateWaitsForAnAdmissibleDecision(t *testing.T) {
 				if err := json.NewDecoder(request.Body).Decode(&packet); err != nil {
 					t.Fatal(err)
 				}
-				if tc.point == "runtime.wakeup" && !strings.Contains(packet.Questions["q_0001"].Instructions, "unclear means wait") {
+				if tc.point == "runtime.wakeup" && !strings.Contains(packet.Questions["q_0001"].Instructions, "unclear means use its original process") {
 					t.Errorf("wake question did not preserve the decision boundary: %+v", packet.Questions)
 				}
 				if tc.fail {
@@ -123,11 +125,8 @@ func TestKevAutomaticWakeGateWaitsForAnAdmissibleDecision(t *testing.T) {
 			if !allowed && err == nil && until.IsZero() {
 				t.Fatal("deferred wake has no retry time")
 			}
-			if tc.name == "still asks after previous limit" && (store.writes != 1 || len(store.lastArgs) != 5 || store.lastArgs[4] != config.MaxDeferrals) {
-				t.Fatalf("wake deferral count is not bounded: %+v", store)
-			}
-			if (tc.name == "unclear" || tc.name == "service unavailable") && (len(audit.records) == 0 || audit.records[len(audit.records)-1].ApplicationStatus != "not_applied") {
-				t.Fatalf("unavailable decision should not be recorded as an applied yes: %+v", audit.records)
+			if tc.name == "unclear" && (len(audit.records) == 0 || audit.records[len(audit.records)-1].ApplicationStatus != "original_used") {
+				t.Fatalf("unclear decision should run the original wake: %+v", audit.records)
 			}
 		})
 	}

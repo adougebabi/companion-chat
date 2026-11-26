@@ -49,7 +49,13 @@ func (a *App) evaluateAutonomyPolicyWithReader(ctx context.Context, reader auton
 	var outreachPaused bool
 	var cooldown *time.Time
 	var concurrency, revision int
-	err := reader.QueryRow(ctx, `SELECT mode,allowed_actions,budget_remaining,quiet_hours,cooldown_until,concurrency_limit,revision,outreach_paused,confirm_action_types FROM public.autonomy_policies WHERE fluctlight_id=$1 FOR SHARE`, fluctlightID).Scan(&mode, &allowedRaw, &budgetText, &quietRaw, &cooldown, &concurrency, &revision, &outreachPaused, &confirmationsRaw)
+	var policySource string
+	var updatedAt time.Time
+	err := reader.QueryRow(ctx, `SELECT mode,allowed_actions,budget_remaining,quiet_hours,cooldown_until,concurrency_limit,revision,outreach_paused,confirm_action_types,policy_source,updated_at FROM public.autonomy_policies WHERE fluctlight_id=$1 FOR SHARE`, fluctlightID).Scan(&mode, &allowedRaw, &budgetText, &quietRaw, &cooldown, &concurrency, &revision, &outreachPaused, &confirmationsRaw, &policySource, &updatedAt)
+	if err == nil && autonomyBudgetNewDay(updatedAt, now) {
+		// The budget is a daily allowance: a new day starts full again.
+		budgetText = strconv.FormatFloat(autonomyDailyAllowance(ctx, reader, policySource), 'f', -1, 64)
+	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		config, err := readGlobalAutonomyConfiguration(ctx, reader)
 		if err != nil {
@@ -127,11 +133,15 @@ func reserveAutonomyBudgetTx(ctx context.Context, tx pgx.Tx, fluctlightID string
 	if err := ensureAutonomyPolicyTx(ctx, tx, fluctlightID); err != nil {
 		return err
 	}
-	var budgetText string
+	var budgetText, policySource string
 	var revision int
-	err := tx.QueryRow(ctx, `SELECT budget_remaining,revision FROM public.autonomy_policies WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&budgetText, &revision)
+	var updatedAt, now time.Time
+	err := tx.QueryRow(ctx, `SELECT budget_remaining,revision,policy_source,updated_at,now() FROM public.autonomy_policies WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&budgetText, &revision, &policySource, &updatedAt, &now)
 	if err != nil {
 		return err
+	}
+	if autonomyBudgetNewDay(updatedAt, now) {
+		budgetText = strconv.FormatFloat(autonomyDailyAllowance(ctx, tx, policySource), 'f', -1, 64)
 	}
 	budget, err := strconv.ParseFloat(strings.TrimSpace(budgetText), 64)
 	if err != nil || math.IsNaN(budget) || math.IsInf(budget, 0) || budget <= 0 {
@@ -140,6 +150,33 @@ func reserveAutonomyBudgetTx(ctx context.Context, tx pgx.Tx, fluctlightID string
 	budget -= 1
 	_, err = tx.Exec(ctx, `UPDATE public.autonomy_policies SET budget_remaining=$2,revision=$3,cooldown_until=CASE WHEN cooldown_seconds>0 THEN now()+cooldown_seconds*interval '1 second' ELSE cooldown_until END,updated_at=now() WHERE fluctlight_id=$1 AND revision=$4`, fluctlightID, strconv.FormatFloat(budget, 'f', -1, 64), revision+1, revision)
 	return err
+}
+
+// autonomyDefaultDailyBudget refills a per-character policy without an
+// inherited global setting.
+const autonomyDefaultDailyBudget = 100
+
+// autonomyBudgetNewDay reports that the policy was last written on an earlier
+// UTC day, so its daily allowance is refilled. No schema column is needed:
+// every spend updates updated_at.
+func autonomyBudgetNewDay(updatedAt, now time.Time) bool {
+	if updatedAt.IsZero() || now.IsZero() {
+		return false
+	}
+	return updatedAt.UTC().Format("2006-01-02") < now.UTC().Format("2006-01-02")
+}
+
+// autonomyDailyAllowance is the Owner's configured global budget for inherited
+// policies (0 keeps autonomy off) and the default for overrides.
+func autonomyDailyAllowance(ctx context.Context, reader autonomyPolicyReader, policySource string) float64 {
+	if policySource == "inherit" {
+		if config, err := readGlobalAutonomyConfiguration(ctx, reader); err == nil {
+			if value, err := strconv.ParseFloat(strings.TrimSpace(stringValueOrNumber(config["budget_remaining"])), 64); err == nil && !math.IsNaN(value) && !math.IsInf(value, 0) {
+				return value
+			}
+		}
+	}
+	return autonomyDefaultDailyBudget
 }
 
 func autonomyDenied(mode, reason, snapshotMode string, allowed []any, budget string, quiet []byte, cooldown *time.Time, concurrency, revision int) AutonomyPolicyDecision {
