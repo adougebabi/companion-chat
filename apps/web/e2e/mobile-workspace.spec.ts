@@ -75,6 +75,13 @@ test('phone reading and filters preserve navigation context', {tag:'@mobile'}, a
   await page.getByRole('button',{name:'筛选',exact:true}).click();
   await expect(page.getByRole('dialog').getByRole('combobox',{name:'记忆类型'})).toContainText('经历');
 });
+test('settings introduction appears once at every viewport', {tag:'@mobile'}, async({page})=>{
+  await page.goto(origin+'/#/settings');
+  const management=page.locator('.replica-management');
+  await expect(management.getByText('让每一次相处，按你喜欢的方式发生。',{exact:true})).toBeVisible();
+  await expect(management.getByText('让相处，按你喜欢的方式发生。',{exact:true})).toHaveCount(0);
+  await expect(management.getByRole('heading',{name:'管理中心',exact:true})).toBeVisible();
+});
 test('phone settings: category directory, save and return', {tag:'@mobile'}, async({page})=>{
   test.skip(page.viewportSize()!.width>=640,'Phone presentation only');
   await page.goto(origin+'/#/settings');
