@@ -69,6 +69,19 @@
       "src/approved-ui/notification-previews.mjs",
       "src/approved-ui/notification-title.mjs",
       "src/v3/pending-presentation.mjs"
+    ],
+    "@chat-turn": [
+      "src/v3/scenarios/**",
+      "src/react-app/pages/ChatPage.tsx",
+      "src/react-app/components/ChatTurnFeedback.tsx",
+      "src/react-app/shared/TurnTimeline.tsx",
+      "src/react-app/shared/DiagnosticStatus.tsx",
+      "src/react-app/shared/ModelCallDetails.tsx",
+      "src/approved-ui/task-model-call-presentation.mjs",
+      "src/approved-ui/task-presentation.mjs"
+    ],
+    "@patterns": [
+      "src/react-app/shared/TurnTimeline.tsx"
     ]
   },
   "nonUi": [

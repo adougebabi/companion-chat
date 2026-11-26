@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": "AGENTS.md",
-      "hash": "ecc42f63e025c90b74a89a1c63a4076045aef9dc3ede6899bf53607b65874c67",
+      "hash": "d0341d8e3fbec22a942d555abef4baa03a2a9f7f5b3e856343eee4cbe61ba400",
       "action": "connected",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -17,7 +17,7 @@
         "tasks": null,
         "critical": true,
         "path": "AGENTS.md",
-        "hash": "ecc42f63e025c90b74a89a1c63a4076045aef9dc3ede6899bf53607b65874c67",
+        "hash": "d0341d8e3fbec22a942d555abef4baa03a2a9f7f5b3e856343eee4cbe61ba400",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -235,7 +235,7 @@
     },
     {
       "path": "docs/llm-prompt-composition.md",
-      "hash": "042585396a94a7fbe0e054a57d49e3c96bd935d071f06b0a3878715e89938e93",
+      "hash": "f4876534d48f68c06e81b4970302202100e81db72392709cd1847361da8ce937",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -249,7 +249,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-prompt-composition.md",
-        "hash": "042585396a94a7fbe0e054a57d49e3c96bd935d071f06b0a3878715e89938e93",
+        "hash": "f4876534d48f68c06e81b4970302202100e81db72392709cd1847361da8ce937",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -950,7 +950,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 42,
+    "historical": 43,
     "retired": 1
   }
 }

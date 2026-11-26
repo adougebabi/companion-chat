@@ -2,7 +2,7 @@
 // real routes, pages and components render a chosen state. Opt-in only
 // (VITE_API_SCENARIOS=1); see boot.ts. Unmatched business requests fail loudly
 // with 501 instead of reaching a real service.
-import {SCENARIO_MARKER,callRecord,createDataset,scenarioCharacter,scenarioOwner,scenarios,type Scenario} from './data';
+import {SCENARIO_MARKER,callRecord,chatConversation,createDataset,scenarioCharacter,scenarioOwner,scenarios,type Scenario} from './data';
 
 const json=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json'}});
 const businessPath=/^\/(api|auth|health)(\/|$)/;
@@ -74,6 +74,8 @@ export function installApiScenarios(){
    const created=data.notifications[0]?.created_at||new Date().toISOString();
    return json(200,{conversation:{id:'conv-1',createdByActorId:scenarioOwner,title:null,revision:3,createdAt:created,updatedAt:created},participants:[{conversationId:'conv-1',actorId:scenarioOwner,role:'owner',status:'active',joinedAt:created},{conversationId:'conv-1',actorId:scenarioCharacter.id,role:'fluctlight',status:'active',joinedAt:created}],messages:[{id:'msg-9',conversationId:'conv-1',sequence:9,authorActorId:scenarioCharacter.id,kind:'assistant',text:'今天的画画完了，傍晚的海很好看，回头给你看。',attachmentRefs:[],createdAt:created}],nextBeforeSequence:null});
   }
+  if(method==='GET'&&path==='/api/fluctlights/'+encodeURIComponent(scenarioCharacter.id)+'/conversation'&&scenario.id==='chat-turn-details')return json(200,chatConversation());
+  if(method==='GET'&&path==='/api/conversations/conv-chat/messages'&&scenario.id==='chat-turn-details')return json(200,chatConversation());
   if(method==='GET'&&path==='/api/pending'){
    const fid=q.get('fluctlightId')||'',kind=q.get('kind')||'';
    const groups=data.pending.filter(group=>!kind||group.kind===kind).map(group=>{const items=(group.items||[]).filter(item=>!fid||item.fluctlight_id===fid);return {...group,items,count:items.length};});
@@ -89,6 +91,7 @@ export function installApiScenarios(){
   if(method==='GET'&&(match=path.match(/^\/api\/diagnostic-records\/([^/]+)$/))){
    const kind=decodeURIComponent(match[1]),page=(items:unknown[])=>json(200,{items,next_cursor:'',snapshot:'scenario-snapshot-1',as_of:new Date().toISOString(),filters:Object.fromEntries(q),snapshot_semantics:'creation_membership; mutable states reflect each read',coverage:'actual owning records'});
    if(kind==='model-runs'){const id=q.get('correlationId')||'';return page((data.calls[id]||[]).map((seed,index)=>callRecord(id,seed,index)));}
+   if(kind==='agent-runs')return page(data.agentRuns[q.get('correlationId')||'']||[]);
    if(kind==='workflow-intents'){const type=q.get('intentType');return page(Object.values(data.tasks).filter(entry=>!type||entry.kind===type).map(entry=>({id:entry.task_id,ref:'intent:'+entry.task_id,kind:'workflow-intents',occurred_at:entry.created_at,data:{...entry,intent_id:entry.task_id,intent_type:entry.kind}})));}
    if(kind==='media-prompts')return page(data.media[q.get('correlationId')||'']||[]);
   }

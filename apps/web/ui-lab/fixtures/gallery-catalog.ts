@@ -14,5 +14,7 @@ export const GALLERY_CATALOG = {
   // Existing product components migrated onto ResponsiveSheet (real code, fixture data).
   'migrated-detail-drawer': { title: '已迁移：DetailDrawer', overlay: true, states: ['normal', 'long'] },
   'migrated-drawer-frame': { title: '已迁移：DrawerFrame', overlay: true, states: ['normal', 'long'] },
+  // Product component with fixture reads (no service): chat 本轮详情 drawer.
+  'turn-details': { title: '本轮详情（聊天回合时间线）', overlay: true, states: ['normal', 'loading', 'empty', 'read-error', 'long'] },
 } as const;
 export type GalleryId = keyof typeof GALLERY_CATALOG;

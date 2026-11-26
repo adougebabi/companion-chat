@@ -124,6 +124,57 @@ test.describe('interactions', { tag: ['@patterns', '@overlay'] }, () => {
     await expect(sheet).toBeHidden();
   });
 
+  test('turn details: failed call opens with its cause, other calls expand to request/response, whole turn copies as JSON', async ({ page }) => {
+    await page.addInitScript(() => {
+      (window as any).__copied = [];
+      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text: string) => { (window as any).__copied.push(text); } } });
+    });
+    await open(page, 'turn-details', 'normal');
+    const sheet = page.getByRole('dialog', { name: '本轮详情' });
+    await expect(sheet.locator('[data-turn-summary]')).toContainText('共 4 次模型调用，第 3 次失败：模型服务处理本次请求时返回错误（HTTP 503）');
+    const rows = sheet.locator('.replica-task-result-list > li');
+    await expect(rows).toHaveCount(4);
+    // Chronological, although the fixture returns newest first.
+    await expect(rows.nth(0)).toContainText('1. 对话思考');
+    await expect(rows.nth(2)).toContainText('3. 聊天回复');
+    for (const index of [0, 1, 3]) await expect(rows.nth(index).locator('.replica-task-round-trigger')).toHaveAttribute('aria-expanded', 'false');
+    const failed = rows.nth(2);
+    await expect(failed.locator('.replica-task-round-trigger')).toHaveAttribute('aria-expanded', 'true');
+    await expect(failed.getByRole('region', { name: '失败原因' })).toContainText('HTTP 503');
+    await expect(failed.getByRole('region', { name: '调用错误' })).toContainText('provider_unavailable');
+    // Agent runs: readable names and the failure, ids stay in 技术信息.
+    await expect(sheet.getByRole('region', { name: 'Agent 运行' })).toContainText('对话思考');
+    await expect(sheet.getByRole('region', { name: 'Agent 运行' })).not.toContainText('conversation_cognition');
+
+    const first = rows.nth(0);
+    await first.locator('.replica-task-round-trigger').click();
+    await expect(first.locator('.replica-task-round-trigger')).toHaveAttribute('aria-expanded', 'true');
+    await first.getByRole('button', { name: /^请求内容/ }).click();
+    await expect(first.getByText('今天去看展了吗？')).toBeVisible();
+    await first.getByRole('button', { name: /^返回内容/ }).click();
+    await expect(first.getByText('去了，人不多，下次一起去。')).toBeVisible();
+    await expectNoLayoutDefects(page, sheet, { minTarget: 0 });
+
+    await sheet.getByRole('button', { name: '复制整轮 JSON' }).click();
+    await expect(sheet.getByRole('button', { name: '已复制' })).toBeVisible();
+    const copied = JSON.parse((await page.evaluate(() => (window as any).__copied as string[]))[0]);
+    expect(copied.turnId).toBe('turn-fixture-0001');
+    expect(copied.modelRuns.map((row: any) => row.ref)).toEqual(['mr-1', 'mr-2', 'mr-3', 'mr-4']);
+    expect(copied.agentRuns).toHaveLength(2);
+    expect(copied.modelRuns[2].data).toMatchObject({ status: 'failed', error_code: 'provider_unavailable' });
+  });
+
+  test('turn details: read error offers a retry that reads again', async ({ page }) => {
+    await open(page, 'turn-details', 'read-error');
+    const sheet = page.getByRole('dialog', { name: '本轮详情' });
+    await expect(sheet.getByRole('alert')).toContainText('诊断服务暂时没有响应');
+    await expect(sheet.getByRole('button', { name: '复制整轮 JSON' })).toBeDisabled();
+    const reads = async () => (await events(page)).filter(e => e.action === 'turn-read').length;
+    const before = await reads();
+    await sheet.getByRole('button', { name: '重新读取本轮记录' }).click();
+    await expect.poll(reads).toBeGreaterThan(before);
+  });
+
   test('data and task states expose retry/cancel actions that reach the fixture', async ({ page }) => {
     await open(page, 'record-list', 'error');
     await page.getByRole('button', { name: '重新读取约定' }).click();

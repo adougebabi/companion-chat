@@ -61,7 +61,7 @@ test('r18 checking a retained reply exposes a visible result and targets the ori
  try{
   const actions=view.host.querySelector('.replica-feedback-actions');
   assert.ok(actions,'status and details use the dedicated action row');
-  assert.deepEqual([...actions.querySelectorAll('button')].map(b=>b.textContent.trim()),['查看状态','查看技术详情']);
+  assert.deepEqual([...actions.querySelectorAll('button')].map(b=>b.textContent.trim()),['查看状态','本轮详情']);
   await view.click([...actions.querySelectorAll('button')].find(b=>b.textContent.trim()==='查看状态'));
   assert.deepEqual(calls,[[true,'original-turn']]);assert.match(view.host.textContent,/已核对：执行失败/);
   assert.doesNotMatch(view.host.textContent,/结束状态仍在核对/);
@@ -81,14 +81,15 @@ test('r18 a historical reply without a turn identity cannot trigger the general 
  try{assert.ok(![...view.host.querySelectorAll('button')].some(b=>b.textContent.trim()==='查看状态'));assert.match(view.host.textContent,/暂时无法单独核对状态/);assert.equal(reads,0);}finally{await view.dispose();}
 });
 test('the message diagnostic action keeps its own turn when a newer turn exists',async()=>{
- const {default:TurnFeedback}=await vite.ssrLoadModule('/src/react-app/components/ChatTurnFeedback.tsx'),opened=[];
+ const {default:TurnFeedback}=await vite.ssrLoadModule('/src/react-app/components/ChatTurnFeedback.tsx'),queries=[];
  const message={id:'old-message',turnId:'old-turn',turnStatus:'failed',turnRetryable:false,turnErrorCode:'agent_run_failed'};
  const store={sending:false,retrying:false,error:'',refreshActiveTurn:async()=>{},retryMessage(){throw Error('must not replay');}};
- const view=await mountReact(vite,TurnFeedback,{props:{message,messages:[{kind:'user',turnId:'old-turn'},{kind:'user',turnId:'new-turn'}],store,onOpenDiagnostic:id=>opened.push(id)}});
+ const workspace={state:{session:{actorId:'fixture'}},subscribe:()=>()=>{},getSnapshot:()=>workspace.state,services:{diagnosticsClient:{page:async(kind,options)=>{queries.push(options.correlationId);return {items:[],next_cursor:''};}}}};
+ const view=await mountReact(vite,TurnFeedback,{workspace,props:{message,messages:[{kind:'user',turnId:'old-turn'},{kind:'user',turnId:'new-turn'}],store}});
  try{
-  await view.click([...view.host.querySelectorAll('button')].find(b=>b.textContent.trim()==='查看技术详情'));
-  const link=[...document.querySelectorAll('[role=dialog] a')].find(a=>a.textContent.trim()==='查看关联运行记录');
-  assert.ok(link);assert.match(link.getAttribute('href'),/turn%3Aold-turn/);
-  await view.click(link);assert.deepEqual(opened,['old-turn']);
+  await view.click([...view.host.querySelectorAll('button')].find(b=>b.textContent.trim()==='本轮详情'));
+  await view.flush();
+  assert.ok(document.querySelector('[data-testid="turn-details"]'));
+  assert.deepEqual([...new Set(queries)],['turn:old-turn']);
  }finally{await view.dispose();}
 });

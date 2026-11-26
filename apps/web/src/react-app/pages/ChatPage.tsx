@@ -23,6 +23,7 @@ import {SidebarProvider,Sidebar,SidebarContent} from '@/components/ui/sidebar';
 import {Feedback} from "@/react-app/shared/Presentation";
 import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import ChatTurnFeedback from "../components/ChatTurnFeedback";
+import TurnDetailsDrawer from "../shared/TurnTimeline";
 import PersonaPreparationFeedback from '../shared/PersonaPreparationFeedback';
 import {
   useEffect,
@@ -35,7 +36,7 @@ import {
   SendIcon,
   ShieldCheckIcon,
   ChevronRightIcon,
-  LeafIcon, XIcon,
+  LeafIcon, XIcon, ListTreeIcon,
 } from "lucide-react";
 import { useWorkspace } from "../page";
 import { Button } from "@/components/ui/button";
@@ -92,6 +93,7 @@ export default function ChatPage({
     }
   });
   const [diagnosticRoute,setDiagnosticRoute]=useState<any>(null);
+  const [turnDetails,setTurnDetails]=useState<{turnId:string;trigger:HTMLElement|null}|null>(null);
   const [now, setNow] = useState(Date.now);
   const [historyOpen,setHistoryOpen]=useState(false);
   const [promptOffer,setPromptOffer]=useState('');
@@ -363,6 +365,7 @@ export default function ChatPage({
                     >
                       {workspace.clock(message.createdAt, "Asia/Shanghai")}
                     </time></ControlHint>
+                    {!mine&&message.turnId&&<Button type="button" variant="ghost" size="icon-xs" className="text-muted-foreground max-sm:-my-3 max-sm:size-10" aria-label="本轮详情" data-turn-details-trigger={message.turnId} onClick={event=>setTurnDetails({turnId:message.turnId!,trigger:event.currentTarget})}><ListTreeIcon aria-hidden="true"/></Button>}
                   </MessageHeader>
                   <Bubble className="replica-message-bubble" variant={mine?"tinted":"outline"} align={mine?"end":"start"}>
                     <BubbleContent className="companion-bubble">
@@ -376,7 +379,6 @@ export default function ChatPage({
                       message={archived ? {...message,turnRetryable:false} : message}
                       messages={messages}
                       store={store}
-                      onOpenDiagnostic={openTurnDiagnostic}
                     />
                   )}
                 </MessageContent>
@@ -473,6 +475,7 @@ export default function ChatPage({
       </div>
       {(historyOpen||historyRoute)&&<ConversationHistory key={historyRoute?historyRoute.path+'?'+historyRoute.query:'inline'} initialQuery={historyRoute?.query.get('q')||''} initialConversationId={historyRoute?.query.get('conversation')||''} initialMessageId={historyRoute?.query.get('message')||''} returnFocus={()=>historyFocus.current} busy={busy||archived} onClose={closeHistory}/>}
       {attachment&&<WorkspaceDialog open onOpenChange={open=>{if(!open)setAttachment(null);}} title="对话附件" description={character.name+' 的历史对话图片'} returnFocus={()=>attachmentFocus.current}><MediaPreview src={workspace.services.mediaClient.url(attachment)} alt={character.name+' 的附件'}/></WorkspaceDialog>}
+      {turnDetails&&<TurnDetailsDrawer key={turnDetails.turnId} turnId={turnDetails.turnId} returnFocus={()=>turnDetails.trigger} onClose={()=>setTurnDetails(null)}/>}
       {diagnosticRoute&&<DetailDrawer title="本次对话运行" testId="chat-diagnostic-drawer" onClose={()=>setDiagnosticRoute(null)}><DomainPage route={diagnosticRoute}/></DetailDrawer>}
     </div>
   );

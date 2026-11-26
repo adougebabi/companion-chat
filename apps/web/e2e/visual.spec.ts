@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { GALLERY_CATALOG } from '../ui-lab/fixtures/gallery-catalog';
-import { verifyBaselines } from './support/baselines.mjs';
+import { readManifest, verifyBaselines } from './support/baselines.mjs';
 
 // Approved visual baselines for shared components and key business states.
 // Missing or out-of-band-modified baselines are UNVERIFIED (never a pass);
@@ -12,6 +12,15 @@ test.beforeAll(() => {
   const store = verifyBaselines();
   if (store.status !== 'ok') throw new Error(`UI_BASELINE_UNVERIFIED: ${store.detail}`);
 });
+
+// A screenshot with no approved baseline (e.g. a newly added UI Lab state) is
+// UNVERIFIED until a design review approves it — never a pass, and reported
+// distinctly from a real visual difference.
+function requireApprovedBaseline(name: string) {
+  if (process.env.UI_BASELINE_APPROVAL_REASON) return;
+  const file = `${test.info().project.name}/${name}`;
+  if (!readManifest()?.files?.[file]) throw new Error(`UI_BASELINE_UNVERIFIED: 缺少已审核的视觉基准 ${file}（需设计审核后经 ui:baselines approve 录入）`);
+}
 
 async function settle(page: Page) {
   await page.evaluate(() => document.fonts.ready);
@@ -28,6 +37,7 @@ for (const [id, entry] of Object.entries(GALLERY_CATALOG)) {
         if (entry.overlay) await expect(page.getByRole('dialog')).toBeVisible();
         await settle(page);
         const target = entry.overlay ? page : page.locator('[data-gallery-target]');
+        requireApprovedBaseline(`${id}--${state}.png`);
         await expect(target).toHaveScreenshot(`${id}--${state}.png`);
       });
     }
@@ -50,6 +60,7 @@ test.describe('visual: 约定与日程设置', { tag: ['@visual', '@schedule', '
       await page.goto(`/ui-lab/?fixture=schedule-settings&${query}`);
       await expect(page.getByRole('dialog', { name: '约定与日程设置' }).getByText(ready).filter({ visible: true }).first()).toBeVisible();
       await settle(page);
+      requireApprovedBaseline(`schedule-settings--${name}.png`);
       await expect(page).toHaveScreenshot(`schedule-settings--${name}.png`);
     });
   }

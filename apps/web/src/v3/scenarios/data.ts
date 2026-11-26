@@ -20,10 +20,24 @@ function task(id:string,patch:Partial<TaskSeed>):TaskSeed{
 }
 const step=(id:string,event_type:string,status:string,minute:number,reason_code='')=>({id,event_type,name:event_type,status,reason_code,at:at(minute)});
 
-export type CallSeed={sequence:number;status:string;minute:number;seconds:number;prompt?:unknown;response?:unknown;error_code?:string;stage?:string};
-export type ScenarioDataset={tasks:Record<string,TaskSeed>;calls:Record<string,CallSeed[]>;workflows:Record<string,BrowserWorkflowInspection>;media:Record<string,BrowserDiagnosticRecord[]>;visual:BrowserVisualManagement;visualResumes:BrowserVisualSubmissionBody[];notifications:BrowserNotification[];pending:BrowserPendingGroup[];readAll:unknown[]};
+export type CallSeed={sequence:number;status:string;minute:number;seconds:number;prompt?:unknown;response?:unknown;error_code?:string;error?:string;stage?:string;role?:string};
+export type ScenarioDataset={tasks:Record<string,TaskSeed>;calls:Record<string,CallSeed[]>;agentRuns:Record<string,BrowserDiagnosticRecord[]>;workflows:Record<string,BrowserWorkflowInspection>;media:Record<string,BrowserDiagnosticRecord[]>;visual:BrowserVisualManagement;visualResumes:BrowserVisualSubmissionBody[];notifications:BrowserNotification[];pending:BrowserPendingGroup[];readAll:unknown[]};
 
 /** A fresh, mutable copy per page load: refresh/actions mutate it, a reload restores it. */
+// Direct conversation for the chat scenario: one completed turn with a reply and
+// one failed turn (Core keeps the user's message with turnStatus failed).
+export function chatConversation(){
+ const owner=scenarioOwner,fid=scenarioCharacter.id,created=at(9);
+ const message=(id:string,sequence:number,author:string,kind:string,text:string,minute:number,turn:Record<string,unknown>)=>({id,conversationId:'conv-chat',sequence,authorActorId:author,kind,text,attachmentRefs:[],createdAt:at(minute),...turn});
+ return {conversation:{id:'conv-chat',createdByActorId:owner,title:null,revision:3,createdAt:created,updatedAt:at(12)},
+  participants:[{conversationId:'conv-chat',actorId:owner,role:'owner',status:'active',joinedAt:created},{conversationId:'conv-chat',actorId:fid,role:'fluctlight',status:'active',joinedAt:created}],
+  messages:[
+   message('chat-1',1,owner,'user','今天去看展了吗？',10,{turnId:'turn-ok',turnStatus:'completed'}),
+   message('chat-2',2,fid,'assistant','去了，人不多，下次一起去。',11,{turnId:'turn-ok'}),
+   message('chat-3',3,owner,'user','那周末一起去海边？',12,{turnId:'turn-failed',turnStatus:'failed',turnErrorCode:'provider_unavailable',turnRetryable:true}),
+  ],nextBeforeSequence:null};
+}
+
 export function createDataset():ScenarioDataset{
  const tasks:Record<string,TaskSeed>={
   queued:task('queued',{status:'pending',steps:[step('s1','intent.accepted','pending',0)]}),
@@ -42,6 +56,14 @@ export function createDataset():ScenarioDataset{
   'corr-succeeded':[call(1,'completed',2,2.4),call(2,'completed',4,1.8)],
   'corr-failed':[call(1,'completed',2,2.1),call(2,'failed',5,30,{error_code:'provider_unavailable'}),call(3,'failed',9,30,{error_code:'provider_unavailable'})],
   'corr-long':[call(1,'failed',3,41.5,{prompt:longText('完整提示词',40),response:longText('模型原始输出',30),error_code:'schema_mismatch'})],
+  // Chat turns (correlation id turn:<turnId>), read by the chat 本轮详情 drawer.
+  'turn:turn-ok':[call(1,'completed',10,2.2,{role:'conversation_cognition',prompt:{messages:[{role:'user',content:'今天去看展了吗？'}]},response:{content:'想先回忆一下今天的安排。'}}),call(2,'completed',10,1.6,{role:'fact_only_reply',prompt:{messages:[{role:'user',content:'今天去看展了吗？'}]},response:{content:'去了，人不多，下次一起去。'}})],
+  'turn:turn-failed':[call(1,'completed',12,2.0,{role:'conversation_cognition',prompt:{messages:[{role:'user',content:'那周末一起去海边？'}]},response:{content:'她想答应，但要先看看周末的排班。'}}),call(2,'failed',12,30,{role:'fact_only_reply',prompt:{messages:[{role:'user',content:'那周末一起去海边？'}]},error_code:'provider_unavailable',error:'provider HTTP 503: upstream overloaded'})],
+ };
+ const agentRun=(turn:string,agent:string,status:string,minute:number,extra:Record<string,unknown>={}):BrowserDiagnosticRecord=>({id:`${turn}-${agent}`,ref:`["run","${scenarioCharacter.id}","${agent}","${turn}-${agent}"]`,kind:'agent-runs',occurred_at:at(minute),data:{fluctlight_id:scenarioCharacter.id,agent_id:agent,run_id:`${turn}-${agent}`,correlation_id:'turn:'+turn,status,source:'agent_runs',started_at:at(minute),...extra}});
+ const agentRuns:Record<string,BrowserDiagnosticRecord[]>={
+  'turn:turn-ok':[agentRun('turn-ok','conversation_cognition','completed',10)],
+  'turn:turn-failed':[agentRun('turn-failed','conversation_cognition','failed',12,{failure_code:'agent_run_failed',failure_stage:'reply'})],
  };
  // Mirrors apps/core-go/internal/core/workflow_controls.go: cancel only while the
  // runtime runs; restart/reset only for platform.control; domain kinds recover
@@ -63,7 +85,7 @@ export function createDataset():ScenarioDataset{
  const pending:BrowserPendingGroup[]=(['capability','persona_proposal','studio_apply','failed_task','owner_request'] as const).map(kind=>kind==='failed_task'
   ?{kind,status:'ok',count:1,next_cursor:'',items:[{id:'workflow:failed',source_id:'failed',fluctlight_id:scenarioCharacter.id,title:'goal.plan',status:'failed',href:'#/diag/task/failed',created_at:tasks.failed.created_at}]}
   :{kind,status:'ok',count:0,next_cursor:'',items:[]});
- return {tasks,calls,workflows,media,visual,visualResumes:[],notifications,pending,readAll:[]};
+ return {tasks,calls,agentRuns,workflows,media,visual,visualResumes:[],notifications,pending,readAll:[]};
 }
 
 const recoveryReason='领域恢复保留原结果、attempt、版本和副作用围栏；工作流命令不代表业务已成功';
@@ -82,7 +104,7 @@ function workflowInspection(value:TaskSeed):BrowserWorkflowInspection{
 
 export function callRecord(correlationId:string,seed:CallSeed,index:number):BrowserDiagnosticRecord{
  const started=at(seed.minute),completed=new Date(Date.parse(started)+seed.seconds*1000).toISOString();
- return {id:`${correlationId}-call-${index+1}`,ref:`${correlationId}-call-${index+1}`,kind:'model-runs',occurred_at:started,data:{id:`${correlationId}-call-${index+1}`,correlation_id:correlationId,logical_run_id:correlationId+'-run',model_call_id:`${correlationId}-mc-${index+1}`,physical_sequence:seed.sequence,sequence:seed.sequence,round_count:1,status:seed.status,stage:seed.stage,model_id:'qwen3-32b',role:'goal_planner',binding_role:'goal_planner',fluctlight_id:scenarioCharacter.id,queued_at:started,created_at:started,started_at:started,completed_at:completed,latency_ms:Math.round(seed.seconds*1000),prompt:seed.prompt,response:seed.response,...(seed.error_code?{error_code:seed.error_code}:{})}};
+ return {id:`${correlationId}-call-${index+1}`,ref:`${correlationId}-call-${index+1}`,kind:'model-runs',occurred_at:started,data:{id:`${correlationId}-call-${index+1}`,correlation_id:correlationId,logical_run_id:correlationId+'-run',model_call_id:`${correlationId}-mc-${index+1}`,physical_sequence:seed.sequence,sequence:seed.sequence,round_count:1,status:seed.status,stage:seed.stage,model_id:'qwen3-32b',role:seed.role||'goal_planner',binding_role:seed.role||'goal_planner',fluctlight_id:scenarioCharacter.id,queued_at:started,created_at:started,started_at:started,completed_at:completed,latency_ms:Math.round(seed.seconds*1000),prompt:seed.prompt,response:seed.response,...(seed.error_code?{error_code:seed.error_code}:{}),...(seed.error?{error:seed.error}:{})}};
 }
 
 export type Scenario={id:string;label:string;hash:string;/** fail the first N reads of matching paths */failFirst?:{pattern:RegExp;times:number};delayMs?:number;/** reads of `running` until it completes */runningCompletesAfter?:number};
@@ -103,4 +125,5 @@ export const scenarios:Scenario[]=[
  {id:'task-list',label:'任务中心列表',hash:'#/diag?view=tasks'},
  {id:'visual-submission-review',label:'视觉身份 · 候选图接单待人工核对',hash:'#/media?tab=identity&fid='+scenarioCharacter.id},
  {id:'inbox',label:'通知与待处理 · 一条未读回复与一项失败任务',hash:'#/inbox'},
+ {id:'chat-turn-details',label:'聊天 · 一轮成功、一轮失败（本轮详情）',hash:'#/c/'+encodeURIComponent(scenarioCharacter.id)+'/chat'},
 ];
