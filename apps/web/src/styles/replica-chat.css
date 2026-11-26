@@ -785,5 +785,7 @@
   .replica-chat .companion-composer > :is([data-feedback-kind],.companion-prefill-note) {flex:1 0 100%;}
   html[data-keyboard-open] .mobile-moment-peek {display:none;}
 }
-.mobile-composer-tool {display:none;}
-@media (width < 640px) {.replica-chat .mobile-composer-tool {display:flex;}}
+@media (width < 640px) {
+  .companion-history-layout {min-height:0;}
+  .companion-history-reading {max-height:none;overflow:visible;}
+}

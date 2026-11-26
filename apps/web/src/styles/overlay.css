@@ -11,6 +11,7 @@
   /* Breakpoints (documented; CSS media queries cannot read custom properties):
      phone < 640px, tablet 640–1023px, desktop >= 1024px. */
   --overlay-sheet-width: 540px;
+  --overlay-mobile-translate: 0px 0px;
   --overlay-sheet-width-wide: 860px;
   --overlay-pad-x: 24px;
   --overlay-pad-x-compact: 20px;
@@ -243,7 +244,10 @@
   [data-slot="sheet-content"][data-responsive-sheet],
   [data-slot="dialog-content"][data-workspace-dialog] {
     position: fixed; inset: var(--app-viewport-top, 0px) 0 auto; transform: none;
-    translate: none; width: 100%; max-width: 100%;
+    /* Keep the individual translate reset opaque to CSS optimisation. A
+       literal `translate:none` + `transform:none` can be folded into only
+       transform, leaving the Dialog primitive's -50% translate active. */
+    translate: var(--overlay-mobile-translate); width: 100%; max-width: 100%;
     height: var(--app-viewport-height, 100dvh); max-height: var(--app-viewport-height, 100dvh);
     min-height: 0; display: flex; flex-direction: column; gap: 0;
     padding: 0; border: 0; border-radius: 0; overflow: hidden; animation: none;

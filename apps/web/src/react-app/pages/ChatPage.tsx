@@ -34,7 +34,7 @@ import {
 } from "react";
 import {
   HistoryIcon,SlidersHorizontalIcon,MapPinIcon,CheckCheckIcon,
-  SendIcon,PlusIcon,
+  SendIcon,
   ShieldCheckIcon,
   ChevronRightIcon,
   LeafIcon, XIcon,
@@ -440,7 +440,6 @@ export default function ChatPage({
           </MessageScroller>
         </MessageScrollerProvider>
         <div className="companion-composer">
-          <Button className="mobile-composer-tool" variant="ghost" size="icon" aria-label="聊天工具" onClick={() => setMobileMenu(true)}><PlusIcon/></Button>
           {snapshot.recoveryStorageError&&<Feedback kind="action-required" actions={<Button type="button" variant="outline" onClick={()=>store.rereadLocalRecovery()}>重新读取本机原请求记录</Button>}>{snapshot.recoveryStorageError}</Feedback>}
           {promptOffer&&<div className="companion-prefill-note"><span>已保留你的草稿，还有一条来自其他页面的请求。</span><Button variant="link" onClick={()=>{editDraft(current=>current.trim()?current+'\n\n'+promptOffer:promptOffer);setPromptOffer('');}}>加入草稿</Button><Button variant="ghost" size="icon" aria-label="放下这条请求" onClick={()=>setPromptOffer('')}><XIcon size={12}/></Button></div>}
           <Textarea

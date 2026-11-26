@@ -17,6 +17,7 @@ if (!approving && process.argv.some(arg => arg === '-u' || arg.startsWith('--upd
 
 export default defineConfig({
   testDir: '.',
+  globalSetup: './support/build-product.mjs',
   outputDir: '../test-results/ui',
   snapshotPathTemplate: `${baselineDir()}/{projectName}/{arg}{ext}`,
   updateSnapshots: approving ? 'all' : 'none',

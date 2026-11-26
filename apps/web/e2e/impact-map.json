@@ -92,7 +92,8 @@
       "src/react-app/views/StudioEditor.jsx",
       "src/react-app/views/CharacterWizard.jsx",
       "src/approved-ui/creation-progress.mjs",
-      "src/react-app/pages/StudioEditorPage.tsx"
+      "src/react-app/pages/StudioEditorPage.tsx",
+      "src/react-app/shared/ConversationHistory.tsx"
     ]
   },
   "nonUi": [
