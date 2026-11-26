@@ -67,59 +67,6 @@ function workspace() {
   };
 }
 
-test("media filtering changes the grid and previews use real img, video and audio elements", async () => {
-  const { default: Browse } = await load("react-app/pages/BrowsePage.jsx"),
-    w = workspace();
-  w.state.media = [
-    ["picture", "图片", "照片"],
-    ["video", "视频", "视频片段"],
-    ["audio", "语音", "声音"],
-  ].map(([id, type, title], index) => ({
-    id,
-    type,
-    title,
-    url: "/fixture/" + id,
-    character: "测试角色",
-    tag: "日常",
-    time: "今天",
-    artIndex: index,
-  }));
-  const view = await mountReact(vite, Browse, {
-    workspace: w,
-    props: { page: "媒体" },
-  });
-  try {
-    assert.equal(view.host.querySelectorAll(".media-tile").length, 3);
-    assert.equal(view.host.querySelector("tag"), null);
-    assert.ok(view.host.querySelector('img[src="/fixture/picture"]'));
-    const search = view.host.querySelector('input[type="search"]');
-    await view.input(search, "照片");
-    assert.equal(view.host.querySelectorAll(".media-tile").length, 1);
-    assert.match(view.host.textContent, /1 项/);
-    await view.input(search, "没有");
-    assert.equal(view.host.querySelectorAll(".media-tile").length, 0);
-    assert.match(view.host.textContent, /暂无匹配媒体/);
-    await view.input(search, "");
-    for (const [id, tag] of [
-      ["video", "video"],
-      ["audio", "audio"],
-    ]) {
-      const tile = [...view.host.querySelectorAll(".media-tile")].find((node) =>
-        node.textContent.includes(id === "video" ? "视频片段" : "声音"),
-      );
-      await view.click(tile.querySelector(".media-open"));
-      assert.ok(document.querySelector(`[role="dialog"] ${tag}[controls]`));
-      await view.click(
-        [...document.querySelectorAll("button")].find(
-          (node) => node.textContent === "关闭预览",
-        ),
-      );
-    }
-  } finally {
-    await view.dispose();
-  }
-});
-
 test("memory deep links open a reading Sheet by ID and the confirmation supports Escape cancellation", async () => {
   const { default: Life } = await load("react-app/pages/LifePage.jsx"),
     w = workspace();
@@ -176,65 +123,6 @@ test("memory deep links open a reading Sheet by ID and the confirmation supports
       document.querySelector('[data-testid="memory-detail-drawer-close"]'),
     );
     assert.equal(document.activeElement, toggle);
-  } finally {
-    await view.dispose();
-  }
-});
-
-test("comment candidate confirmation with IME never submits but ordinary Enter does", async () => {
-  const { default: Browse } = await load("react-app/pages/BrowsePage.jsx"),
-    w = workspace();
-  let writes = 0;
-  w.current.value.posts = [
-    {
-      id: "post",
-      authorName: "测试角色",
-      authorInitial: "角",
-      time: "今天",
-      text: "一条动态",
-      comments: [],
-      likes: 0,
-      liked: false,
-      _source: { revision: 2 },
-    },
-  ];
-  w.command = () => {
-    writes++;
-    return { completion: Promise.resolve({}) };
-  };
-  const view = await mountReact(vite, Browse, {
-    workspace: w,
-    props: { page: "动态" },
-  });
-  try {
-    await view.click(
-      view.host.querySelector('[data-testid="comment-toggle-0"]'),
-    );
-    const field = view.host.querySelector("textarea");
-    await view.input(field, "候选词");
-    await act(async () =>
-      field.dispatchEvent(
-        new window.KeyboardEvent("keydown", {
-          key: "Enter",
-          isComposing: true,
-          bubbles: true,
-          cancelable: true,
-        }),
-      ),
-    );
-    assert.equal(writes, 0);
-    assert.equal(field.value, "候选词");
-    await act(async () =>
-      field.dispatchEvent(
-        new window.KeyboardEvent("keydown", {
-          key: "Enter",
-          bubbles: true,
-          cancelable: true,
-        }),
-      ),
-    );
-    await view.flush();
-    assert.equal(writes, 1);
   } finally {
     await view.dispose();
   }

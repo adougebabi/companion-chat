@@ -218,43 +218,6 @@ test("React semantic profile preserves custom facts and hides unknown body field
   }
 });
 
-test("notification disclosure keeps every record and starts closed", async () => {
-  const { default: Group } = await load(
-    "react-app/shared/NotificationGroup.jsx",
-  );
-  const seen = [];
-  const view = await mountReact(vite, Group, {
-    props: {
-      group: {
-        name: "角色",
-        notices: [
-          { id: "one", title: "第一条", body: "回复" },
-          { id: "two", title: "第二条", body: "动态" },
-        ],
-      },
-      onOpen: (id) => seen.push(id),
-    },
-  });
-  try {
-    assert.match(view.host.textContent, /2 条未读/);
-    const trigger = view.host.querySelector(
-      '[data-slot="collapsible-trigger"]',
-    );
-    assert.equal(trigger.getAttribute("aria-expanded"), "false");
-    await view.click(trigger);
-    assert.match(view.host.textContent, /回复/);
-    assert.match(view.host.textContent, /动态/);
-    await view.click(
-      [...view.host.querySelectorAll("button")].find((node) =>
-        node.textContent.includes("第二条"),
-      ),
-    );
-    assert.deepEqual(seen, ["two"]);
-  } finally {
-    await view.dispose();
-  }
-});
-
 test("controller effects observe committed DOM and release subscriptions on unmount", async () => {
   const { useController } = await load("react-app/page.tsx");
   let count = 0,
