@@ -75,6 +75,26 @@ test('phone reading and filters preserve navigation context', {tag:'@mobile'}, a
   await page.getByRole('button',{name:'筛选',exact:true}).click();
   await expect(page.getByRole('dialog').getByRole('combobox',{name:'记忆类型'})).toContainText('经历');
 });
+test('pending page: separated sections and compact reachable filters', {tag:'@mobile'}, async({page})=>{
+  if(page.viewportSize()!.width>=1024)await page.setViewportSize({width:1280,height:800});
+  await page.goto(origin+'/#/diag/pending');
+  const pending=page.locator('[data-pending-page]');
+  await expect(pending.locator('[data-pending] .pending-groups')).toBeVisible();
+  const back=pending.getByRole('link',{name:'返回收件箱',exact:true});
+  const description=pending.locator(':scope > p');
+  const filters=pending.getByRole('navigation',{name:'待处理角色筛选'});
+  const results=pending.locator('[data-pending]');
+  const boxes=await Promise.all([back,description,filters,results].map(element=>element.boundingBox()));
+  for(let index=1;index<boxes.length;index++)expect(boxes[index]!.y-(boxes[index-1]!.y+boxes[index-1]!.height)).toBeGreaterThanOrEqual(11);
+  const all=filters.getByRole('link',{name:'所有角色',exact:true});
+  expect((await all.boundingBox())!.width).toBeLessThan((await filters.boundingBox())!.width/2);
+  await expectNoLayoutDefects(page,pending,{minTarget:page.viewportSize()!.width<640?40:0});
+  await filters.getByRole('link').nth(1).click();
+  await expect(page).toHaveURL(/charId=/);
+  await expect(page.locator('[data-pending-page] nav [aria-current="page"]:visible')).toHaveCount(1);
+  await page.locator('[data-pending-page]').getByRole('button',{name:'重新读取',exact:true}).click();
+  await expect(page.locator('[data-pending] .pending-groups')).toBeVisible();
+});
 test('media filters: desktop row and phone sheet keep their layout and values', {tag:'@mobile'}, async({page})=>{
   await page.goto(origin+'/#/c/'+fid+'/media');
   const toolbar=page.locator('form.media-toolbar');
