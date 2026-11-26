@@ -13,6 +13,51 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// reflectionSelfReplyKey carries the character's own published reply for a
+// conversation turn in the in-memory evidence copy.
+const reflectionSelfReplyKey = "reflection_self_reply"
+
+// attachReflectionSelfReplies adds the character's published replies to the
+// conversation.turn evidence of this window.
+func (a *App) attachReflectionSelfReplies(ctx context.Context, fluctlightID string, evidence []map[string]any) error {
+	byFact := map[string]map[string]any{}
+	ids := []string{}
+	for _, item := range evidence {
+		if stringValue(item["event_type"]) != "conversation.turn" {
+			continue
+		}
+		id := stringValue(item["id"])
+		if id == "" {
+			continue
+		}
+		byFact[id] = mapValue(item["payload"])
+		ids = append(ids, id)
+	}
+	if len(ids) == 0 || a.DB == nil {
+		return nil
+	}
+	rows, err := a.DB.Pool().Query(ctx, `SELECT source_fact_id,text FROM public.conversation_messages WHERE author_actor_id=$1 AND kind='assistant' AND source_fact_id=ANY($2) ORDER BY created_at,id`, fluctlightID, ids)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var factID, text string
+		if err := rows.Scan(&factID, &text); err != nil {
+			return err
+		}
+		payload := byFact[factID]
+		if payload == nil || strings.TrimSpace(text) == "" {
+			continue
+		}
+		if previous := stringValue(payload[reflectionSelfReplyKey]); previous != "" {
+			text = previous + "\n" + text
+		}
+		payload[reflectionSelfReplyKey] = text
+	}
+	return rows.Err()
+}
+
 func compactReflectionEvidenceV2(evidence []map[string]any) []map[string]any {
 	result := make([]map[string]any, 0, len(evidence))
 	for _, item := range evidence {
@@ -32,6 +77,9 @@ func compactReflectionEvidenceV2(evidence []map[string]any) []map[string]any {
 				// This ref identifies the complete source message. Preserve its
 				// original bytes so later qualifications or corrections survive.
 				entry["observation"] = observation
+			}
+			if reply := boundedReflectionScalarText(payload[reflectionSelfReplyKey], 4000); reply != "" {
+				entry["self_reply"] = reply
 			}
 		case ownerReflectionFeedbackFactType:
 			candidate := mapValue(payload["candidate"])

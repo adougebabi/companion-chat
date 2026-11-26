@@ -868,6 +868,10 @@ type ReflectionProposalTaskInput struct {
 	Projection ContextProjection
 }
 
+// reflectionSelfConsistencyRule asks reflection to notice and correct the
+// character's own false statements instead of only recording user facts.
+const reflectionSelfConsistencyRule = "self_reply 是你在该回合实际发出的话。对照 current_wardrobe 和其他真实回执检查自己说过的话：如果声称拥有衣柜里没有的东西、说做了实际没做的事、或前后说法互相矛盾，就在 behavior_policy_evolution_candidates 或 developing_self_candidates 中提出改正（例如“说自己有什么之前先看衣柜”），理由引用矛盾的原话和对应 evidence_ref。没有矛盾就不要编造。"
+
 const reflectionEvidenceAuthorityRule = "记忆候选必须由本次 evidence 中引用的来源支持；当前状态和其他背景不能单独作为来源窗口中的新记忆。历史发言只证明说过什么；外部行动和交付须有真实回执，未知不等于否定。"
 
 func compactReflectionEvidenceWithReferences(evidence []map[string]any, projection ContextProjection) []map[string]any {
@@ -905,7 +909,18 @@ func compactReflectionEvidenceWithReferences(evidence []map[string]any, projecti
 func (a *App) RunReflectionProposalTask(ctx context.Context, input ReflectionProposalTaskInput) (ProjectionTaskResult, error) {
 	schema := reflectionProposalV2ProviderSchema()
 	providerEvidence := compactReflectionEvidenceWithReferences(input.Evidence, input.Projection)
-	assembly, projection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceReflection, input.Projection, "reflection", []string{reflectionEvidenceAuthorityRule, reflectionV2Instruction}, jsonString(map[string]any{"evidence": providerEvidence}), nil, "reflection_proposal_v2", schema)
+	taskData := map[string]any{"evidence": providerEvidence}
+	if input.Projection.Wardrobe != nil {
+		// Owned clothing lets reflection check the character's own claims.
+		owned := make([]string, 0, len(input.Projection.Wardrobe))
+		for _, item := range input.Projection.Wardrobe {
+			if description := stringValue(item["description"]); description != "" {
+				owned = append(owned, description)
+			}
+		}
+		taskData["current_wardrobe"] = owned
+	}
+	assembly, projection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceReflection, input.Projection, "reflection", []string{reflectionEvidenceAuthorityRule, reflectionSelfConsistencyRule, reflectionV2Instruction}, jsonString(taskData), nil, "reflection_proposal_v2", schema)
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}

@@ -896,7 +896,7 @@ func TestLifecycleOwningFilesUseOnlyExplicitBestEffortAssignments(t *testing.T) 
 	}
 	allowed := map[string]int{
 		"workflow.GetVersion":     1,  // deterministic version marker returns no error
-		"setReflectionWindowIdle": 12, // this best-effort cleanup diagnoses its own failure
+		"setReflectionWindowIdle": 13, // this best-effort cleanup diagnoses its own failure
 		"DB.Pool().QueryRow":      2,  // diagnostic-only Fluctlight enrichment must not recurse on sink failure
 	}
 	observed := map[string]int{}
