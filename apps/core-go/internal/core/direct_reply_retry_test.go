@@ -43,9 +43,6 @@ func testDirectReplyRetryUsesExistingMedia(t *testing.T, failureMode string) {
 		recoveryRound = 5
 	}
 	router := newFakeProviderRouter().
-		on(directImageDiscoverySchema, func(map[string]any) fakeProviderResult {
-			return fakeProviderResult{Structured: map[string]any{"needed_tool": "media.image.generate"}}
-		}).
 		on(directMediaDeliveryCheckSchema, func(map[string]any) fakeProviderResult {
 			return fakeProviderResult{Structured: map[string]any{"claims": []any{}}}
 		}).

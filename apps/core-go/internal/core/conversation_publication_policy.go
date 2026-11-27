@@ -16,9 +16,7 @@ import (
 // committed, normal physical requests retain the selected Tool catalog and
 // cannot terminate through final JSON grammar. Media may accompany a reply but cannot
 // replace the private conversation message.
-type conversationPublicationPhysicalRequestPolicy struct {
-	directImageDiscoveryPrompt []*schema.Message
-}
+type conversationPublicationPhysicalRequestPolicy struct{}
 
 func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(ctx context.Context) (physicalModelRequestDecision, error) {
 	if err := ctx.Err(); err != nil {
@@ -81,14 +79,10 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 	if imageReplyPending || directReplyRetryFromContext(ctx).intentID != "" {
 		return replyRequest, nil
 	}
-	if len(results) > 0 && directImageCatalogPending(ctx, results) {
-		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
-			AllowedToolNames: []string{capabilityCatalogName}}, nil
-	}
 	if _, committed := committedMomentResult(adkContext.Trace); committed {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: append([]string{"moment.publish"}, repeatedDiscoveryExclusions(adkContext.Trace)...)}, nil
 	}
-	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: repeatedDiscoveryExclusions(adkContext.Trace), DisableThinking: len(p.directImageDiscoveryPrompt) != 0 && len(results) == 0}, nil
+	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: repeatedDiscoveryExclusions(adkContext.Trace)}, nil
 }
 
 // Consecutive invalid direct replies did not execute any effect. Bound this
@@ -222,9 +216,6 @@ func conversationPublicationOmission(ctx context.Context, message *schema.Messag
 			return true
 		}
 		_, results := bridge.Trace.Snapshot()
-		if directImageCatalogPending(ctx, results) && conversationLoopNeedsReply(ctx) {
-			return true
-		}
 		for _, result := range results {
 			if result.CapabilityName == "media.image.generate" && result.Status == "accepted" {
 				return true

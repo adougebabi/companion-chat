@@ -182,6 +182,7 @@ func TestKevToolSelectionAlwaysDisclosesOnlyMandatoryToolsAndOffersEveryOptional
 		{Name: "reply.like.optional", Description: "another message output", OutputRole: "conversation_message"},
 		{Name: "memory.recall", Description: "recall"},
 		{Name: actorFactCapabilityName, Description: "remember a fact about the other person"},
+		{Name: "memory_event", Description: "remember something that happened"},
 		{Name: scheduleActivityCapabilityName, Description: "schedule a life activity"},
 		{Name: scheduleInspectCapabilityName, Description: "read the schedule"},
 		{Name: scheduleEditCapabilityName, Description: "move, revise or cancel a schedule item"},
@@ -221,6 +222,7 @@ func TestKevToolSelectionAlwaysDisclosesOnlyMandatoryToolsAndOffersEveryOptional
 	if len(store.records) != 0 {
 		t.Fatal("preemptively selected every optional tool")
 	}
+	// media.image.generate is a first-round chat tool, so Kev is asked only about the rest.
 	if _, _, err := selection.load(ctx, []string{"media.image.generate", "visual_identity.initialize", "reply.like.optional", "memory.recall"}); err != nil {
 		t.Fatal(err)
 	}
@@ -228,7 +230,7 @@ func TestKevToolSelectionAlwaysDisclosesOnlyMandatoryToolsAndOffersEveryOptional
 	for _, record := range store.records {
 		candidates[record.CandidateID] = true
 	}
-	if len(candidates) != 4 || !candidates["media.image.generate"] || !candidates["visual_identity.initialize"] || !candidates["reply.like.optional"] || !candidates["memory.recall"] {
+	if len(candidates) != 3 || candidates["media.image.generate"] || !candidates["visual_identity.initialize"] || !candidates["reply.like.optional"] || !candidates["memory.recall"] {
 		t.Fatalf("optional Tool candidates=%#v", candidates)
 	}
 	for _, name := range []string{capabilityCatalogName} {

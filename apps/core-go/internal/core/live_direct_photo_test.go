@@ -8,7 +8,9 @@ import (
 	"time"
 )
 
-func TestLiveDirectPhotoFollowupUsesCatalogBeforeReply(t *testing.T) {
+// The chat model sees media.image.generate from the first request (no pre-turn
+// image check, no forced catalog step) and calls it itself on a follow-up.
+func TestLiveDirectPhotoFollowupCallsImageToolDirectly(t *testing.T) {
 	baseURL, model := liveProviderConfig(t)
 	decision := map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}}
 	prior := newFakeProviderRouter().on(directMediaDeliveryCheckSchema, func(map[string]any) fakeProviderResult {
@@ -47,7 +49,7 @@ func TestLiveDirectPhotoFollowupUsesCatalogBeforeReply(t *testing.T) {
 	app = newTestApp(t, repo, wire)
 	result, err := app.HandleTurn(liveCtx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "还没发哦", "idempotency_key": "photo-followup", "attachment_refs": []any{}})
 	var firstNative map[string]any
-	catalogLoaded, imageAccepted, replyAfterAcceptance := false, false, false
+	imageAccepted, replyAfterAcceptance := false, false
 	for i, row := range wire.rows {
 		req, response := mapValue(row["request"]), mapValue(row["response"])
 		var offered, called []string
@@ -69,10 +71,7 @@ func TestLiveDirectPhotoFollowupUsesCatalogBeforeReply(t *testing.T) {
 			}
 			receipt := decodeObject([]byte(stringValue(message["content"])))
 			data := mapValue(receipt["output"])
-			if receipt["status"] == "completed" && slices.Contains(arrayValue(data["loaded"]), any("media.image.generate")) {
-				catalogLoaded = true
-			}
-			if catalogLoaded && receipt["status"] == "accepted" {
+			if receipt["status"] == "accepted" {
 				imageAccepted = true
 			}
 			t.Logf("round %d tool receipt: status=%v warning=%v detail=%v loaded=%v", i+1, receipt["status"], data["warning_code"], data["detail"], data["loaded"])
@@ -97,9 +96,8 @@ func TestLiveDirectPhotoFollowupUsesCatalogBeforeReply(t *testing.T) {
 	if err != nil || queryErr != nil || intents != 1 || stringValue(result.Assistant["id"]) == "" || !replyAfterAcceptance {
 		t.Fatalf("live follow-up did not create one real image intent and reply: intents=%d calls=%d reply=%q turn=%v query=%v", intents, len(wire.rows), stringValue(result.Assistant["text"]), err, queryErr)
 	}
-	tools := arrayValue(firstNative["tools"])
-	if len(tools) != 3 || mapValue(mapValue(tools[0])["function"])["name"] != "capability_catalog" || r6PayloadHasTool(firstNative, "media.image.generate") {
-		t.Fatal("expected three baseline tools and catalog first")
+	if !r6PayloadHasTool(firstNative, "media.image.generate") || r6PayloadHasTool(firstNative, "schedule.replan") {
+		t.Fatal("the first request must offer the image tool directly and keep second-tier tools in the index")
 	}
 
 	ordinaryOffset := len(wire.rows)

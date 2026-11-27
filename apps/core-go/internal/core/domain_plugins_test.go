@@ -207,7 +207,7 @@ func TestDomainPluginDisabledToolsOnPhysicalRequests(t *testing.T) {
 				}
 				want := []string{}
 				for name := range formalAgentMandatoryTools(FormalAgentConversationCognition) {
-					if name != "moment.publish" || settings.Moment {
+					if (name != "moment.publish" || settings.Moment) && (name != "media.image.generate" || settings.Image) {
 						want = append(want, capabilitycontract.CapabilityWireName(name))
 					}
 				}

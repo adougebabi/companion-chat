@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -28,10 +29,10 @@ const directChatProtocol = `你就是下面「人格设定」里的这个人，�
 1. 说话：用你自己的语气自然回复，长短随情境，可以用（）写自己的动作神态，不写第三人称旁白。聊天不代表你们在同一个地方。
 2. 事实：「现在」里的时间、地点、在做的事、穿着、衣柜和日程就是你此刻的真实情况。「之前聊过」和历史消息只代表当时说过什么。不知道的事就说不知道，不要编。
 3. 记住对方：对方提到自己长期的情况（住在哪里、在国内还是国外、工作学习、作息、喜好、重要的人和事），先用 actor.fact.record 记下来再回复（对方亲口说的 assertion_type 用 explicit_statement）；「关于对方」里已经有的不用重复记。约见面、一起吃饭逛街之前先看「关于对方」，对方在外地或国外就不能当面约。
-4. 做事：换衣服、出门、买东西、改日程要真的调用工具去做，拿到结果再说；没做成就如实说没做成和原因。只是嘴上答应不算做了。答应调整自己的日程（推迟、提前、取消、换安排）时，这一轮就先 schedule.inspect 找到那一项，再用 schedule.edit 修改或 schedule.replan 重排，以工具结果为准回复。
+4. 做事：换衣服、出门、买东西、改日程要真的调用工具去做，拿到结果再说；没做成就如实说没做成和原因。只是嘴上答应不算做了。答应调整自己的日程（推迟、提前、取消、换安排）时，这一轮就先 schedule.inspect 找到那一项，再用 schedule.edit 修改（整段重排用「其他能力」里的 schedule.replan），以工具结果为准回复。
 5. 衣服：只能穿、只能说自己有「衣柜」里列出的衣服。想要新衣服就去买：用日程或活动工具安排去商场购物，买到的衣服会进衣柜。没有网购和快递。
 6. 拍照：对方想看照片而你也愿意时，用图片工具拍；照片拍好后会单独发过去，你可以像平时一样说"拍好了马上发你"。
-7. 工具：一开始只列出少数工具，其余能力用 capability_catalog 查（names 留空会列出全部用途），查到后按需加载再调用。
+7. 工具：常用的工具一开始就能直接用；其余能力列在下面「其他能力」里，需要时用 capability_catalog 的 names 填上名字加载，加载后下一步就能调用。
 8. 回复：最后用 conversation_reply 发出正文（text）。decision 写一句 response_intent 即可，其余字段有把握再填，没有就省略。`
 
 var directChatReplacedRules = []string{providerContextAuthorityRule, directMainConversationProtocol, factOnlyExecutionBoundary}
@@ -64,6 +65,36 @@ func renderDirectChatSystem(operationRules []string, persona map[string]any) str
 	}
 	appendChatPersona(&builder, persona)
 	return strings.TrimSpace(builder.String())
+}
+
+// directCapabilityIndex lists, one line each, the tools this turn may load but
+// that are not shown from the first round. Full schemas cost ~0.7KB per tool on
+// every model call; a line costs a few dozen bytes, and the model loads only
+// what it needs with capability_catalog(names) instead of a blind listing.
+func directCapabilityIndex(ctx context.Context, definitions []CapabilityDefinition) string {
+	shown := formalAgentMandatoryTools(FormalAgentConversationCognition)
+	lines := []string{}
+	seen := map[string]bool{}
+	for _, definition := range definitions {
+		name := definition.Name
+		if seen[name] || shown[name] || name == capabilityCatalogName || name == capabilityDiscoverName || strings.HasPrefix(name, "reply.") || !domainCapabilityEnabled(ctx, name) {
+			continue
+		}
+		seen[name] = true
+		purpose := capabilityDirectoryPurposes[name]
+		if purpose == "" {
+			purpose = definition.Description
+			if cut := strings.IndexAny(purpose, ".。"); cut > 0 {
+				purpose = purpose[:cut]
+			}
+		}
+		lines = append(lines, "- "+name+"："+strings.TrimSpace(purpose))
+	}
+	if len(lines) == 0 {
+		return ""
+	}
+	sort.Strings(lines)
+	return "## 其他能力\n\n需要时用 capability_catalog 的 names 加载（例如 {\"names\":[\"schedule.replan\"]}），加载后下一步就能调用：\n" + strings.Join(lines, "\n")
 }
 
 func directChatRules(operationRules []string) bool {

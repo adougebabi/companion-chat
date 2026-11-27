@@ -13,12 +13,24 @@ direct 主协议与执行边界）+ `# 人格设定`（逐项文本）；运行�
 direct 回复工具只公布 decision 的 response_intent、influences、appraisal、state_expression、
 goal_event_candidates、claims、thought、personality_decision，必填仅 response_intent。
 渲染器见 `chat_prompt_markdown.go`，约束测试见 `chat_prompt_markdown_test.go`。
-正式 Agent 的 `MandatoryTools` 首轮即公布（不经 capability_catalog，与 Kev 是否开启无关）；
-对话认知的首轮工具为 conversation_reply、capability_catalog、moment.publish、actor.fact.record、
-intention.schedule、schedule.inspect、schedule.edit、schedule.replan、wardrobe.inspect、wardrobe.wear。
-答应调整自己的日程时，聊天规则要求当轮 schedule.inspect 找到那一项，再 schedule.edit 或 schedule.replan 落实。`intention.schedule` 携带具体生活动作
+正式 Agent 的 `MandatoryTools` 首轮即公布（不经 capability_catalog，与 Kev 是否开启无关）。
+聊天工具分三层：
+1. 首轮常驻：conversation_reply、capability_catalog、moment.publish、actor.fact.record、memory_event、
+   media.image.generate、intention.schedule、schedule.inspect、schedule.edit、wardrobe.inspect、wardrobe.wear。
+   这些工具每次模型调用都会重发，聊天面使用精简定义（`chatToolDefinition`，只作用于 conversation
+   surface）：去掉 WakeUp/自主场景的说明；发图只保留 intent、capture、delivery_target，其余拍摄规划由
+   媒体管线补齐；回复只保留 text。`TestChatToolTiersStayWithinTheFirstRoundBudget` 约束首轮总量
+   不超过分层前（6782 字节）。
+2. 其他能力清单：其余已授权工具以「名称：用途」一行一个写进直接私聊提示词的「其他能力」段
+   （`directCapabilityIndex`，约 2KB，远小于完整定义约 23KB），模型用 capability_catalog 的 names
+   按名加载，下一步即可调用。
+3. 不再有回合前的「是否需要图片工具」预判调用（原 direct_image_discovery）和强制首步查目录；
+   是否拍照由角色在主回合自行决定。图片受理后的回复规则（directImageAcceptedReplyRule）保留。
+`intention.schedule` 携带具体生活动作
 （action_plan.kind 为 virtual_shopping/haircut/hair_dye）时，模型调用也直接建立临时目标与意向并排入
 日程，到点由意向触发器执行，购物结果入库衣柜；没有具体动作的愿望仍只提交 Goal Planner。
+答应调整自己的日程时，聊天规则要求当轮 schedule.inspect 找到那一项，再 schedule.edit 落实（整段重排
+从清单加载 schedule.replan）。
 `actor.fact.record` 记录对方自述的长期情况，location/country/city/residence/work/school/routine/
 family/likes/dislikes/plans 等属性进入「关于对方」常驻段。聊天中 assertion_type 为必填：
 对方亲口说的用 explicit_statement（记为 active）；inference 只用于模型自己的推断，记为 uncertain，

@@ -454,7 +454,7 @@ func (m *queuedToolCallingChatModel) preparePhysicalInput(ctx context.Context, i
 }
 
 func (m *queuedToolCallingChatModel) finishPhysicalInput(ctx context.Context, input []*schema.Message) ([]*schema.Message, error) {
-	input = cloneWireToolNames(directImageDiscoveryPhaseInput(ctx, factOnlyPhaseInput(ctx, input)))
+	input = cloneWireToolNames(directImageReplyPhaseInput(ctx, factOnlyPhaseInput(ctx, input)))
 	if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Refs != nil {
 		bridge.Refs.noteOfferedInfluenceRefs(input)
 	}
