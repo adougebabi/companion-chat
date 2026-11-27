@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Tabs, TabsTrigger } from "@/components/ui/tabs";
 import { ResponsiveTabsList } from '@/components/patterns';
-import { selector } from "@/state/view-model";
-import { Disclosure } from "@/react-app/controls";
 import { displayText, listValues, Fragment } from "@/react-app/render-helpers";
 import ProfileField from "@/react-app/shared/ProfileField";
 /** @param {any} input */
@@ -108,11 +106,7 @@ export default function ProfileForm(input = {}) {
         <ResponsiveTabsList
           value={selected}
           variant={props.replica ? "line" : "default"}
-          className={
-            props.replica
-              ? "replica-segment-tabs"
-              : undefined
-          }
+
         >
           {sections.value.map((group) => (
             <TabsTrigger key={group.key} value={group.key}>

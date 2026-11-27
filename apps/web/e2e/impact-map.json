@@ -33,7 +33,9 @@
     "vite.config.ts",
     "package.json",
     "tsconfig*.json",
-    "src/react-app/shared/CommandDialog.tsx"
+    "src/react-app/shared/CommandDialog.tsx",
+    "src/react-app/App.tsx",
+    "src/react-app/shared/WorkspaceNavigation.tsx"
   ],
   "areas": {
     "@schedule": [
@@ -163,6 +165,22 @@
       "src/react-app/shared/ProfileField.tsx",
       "src/approved-ui/profile-fields.mjs",
       "e2e/foundation-proposal.spec.ts"
+    ],
+    "@shared-tabs": [
+      "src/react-app/pages/SchedulePage.jsx",
+      "src/react-app/pages/GoalsPage.jsx",
+      "src/react-app/pages/DiaryPage.jsx",
+      "src/react-app/views/PeoplePage.jsx",
+      "src/react-app/views/WorldPage.jsx",
+      "src/react-app/views/CharacterDetailPage.jsx",
+      "src/react-app/views/WardrobePage.jsx",
+      "src/react-app/shared/ProfileGovernance.jsx",
+      "src/react-app/shared/PersonRecords.jsx",
+      "e2e/shared-tab-routes.spec.ts"
+    ],
+    "@data-closeout": [
+      "src/v3-domain/data-tools.js",
+      "e2e/data-closeout.spec.ts"
     ]
   },
   "nonUi": [

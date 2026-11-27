@@ -1,3 +1,4 @@
+import { ResponsiveTabsList } from '@/components/patterns';
 import {useIsMobile} from '../hooks/use-mobile';
 import { ProfileFieldsSummary } from "../shared/ProfileRecordSummary";
 import { readingFields } from "@/approved-ui/reading-fields.mjs";
@@ -14,7 +15,7 @@ import {
   SparklesIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge, Disclosure, FieldInput, Surface, Textarea } from "../controls";
 import { Input } from "@/components/ui/input";
 import { EmptyState, InlineFeedback } from "../shared/Presentation";
@@ -730,7 +731,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
         className="lp-stack"
       >
         <div className="lp-toolbar">
-          <TabsList variant="line" className="replica-segment-tabs">
+          <ResponsiveTabsList value={tab} variant="line">
             <TabsTrigger value="timeline">日程时间线</TabsTrigger>
             <TabsTrigger value="suggestions">
               调整建议{" "}
@@ -741,7 +742,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
               </span>
             </TabsTrigger>
             <TabsTrigger value="habits">生活倾向</TabsTrigger>
-          </TabsList>
+          </ResponsiveTabsList>
           <div className="lp-date">
             <Button
               variant="ghost"

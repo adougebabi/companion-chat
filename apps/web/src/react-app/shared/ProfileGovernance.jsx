@@ -1,3 +1,4 @@
+import { ResponsiveTabsList } from '@/components/patterns';
 import { useRef, useState } from "react";
 import {
   ArrowUpRightIcon,
@@ -6,7 +7,7 @@ import {
   ShieldCheckIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea, FieldInput, Disclosure, Badge } from "../controls";
 import {
   CapabilitySummary, ClaimReadingSummary, GovernanceHistorySummary, ProfileDiagnostic, ProfileExtensionsSummary, ProfileFieldsSummary,
@@ -387,11 +388,11 @@ export default function ProfileGovernance({
               setSelected(null);
             }}
           >
-            <TabsList variant="line" className="replica-segment-tabs">
+            <ResponsiveTabsList value={tab} variant="line">
               <TabsTrigger value="foundation">身份核心提议</TabsTrigger>
               <TabsTrigger value="capabilities">能力申请</TabsTrigger>
               <TabsTrigger value="self">发展中的自我</TabsTrigger>
-            </TabsList>
+            </ResponsiveTabsList>
             {notice && <WorkspaceInfo>{notice}</WorkspaceInfo>}
             <TabsContent value="foundation">
               <div className="companion-action-row">

@@ -209,9 +209,6 @@
   gap: 23px;
   min-width: 0;
 }
-.replica-people .replica-segment-tabs {
-  width: 100%;
-}
 .replica-people .people-search {
   position: relative;
   flex: 1;
@@ -298,10 +295,6 @@
   .replica-people .people-routine-row {
     grid-template-columns: 1fr;
   }
-}
-.replica-profile .replica-segment-tabs,
-.replica-world .replica-segment-tabs {
-  justify-content: flex-start;
 }
 .replica-people .companion-toolbar > .relative {
   width: 145px;

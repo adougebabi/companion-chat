@@ -44,7 +44,8 @@
 .replica-shell > [data-collapsible="icon"] .replica-logo { padding:0;justify-content:center; }
 .replica-shell > [data-collapsible="icon"] .replica-nav-content { padding:15px 10px;overflow-y:auto;overflow-x:hidden; }
 .replica-shell > [data-collapsible="icon"] .replica-nav-item > span { display:none; }
-.replica-shell > [data-collapsible="icon"] .replica-nav-footer { padding:18px;justify-content:center; }
+.replica-shell > [data-collapsible="icon"] .replica-nav-footer { padding:var(--spacing);justify-content:center; }
+.replica-shell > [data-collapsible="icon"] .replica-nav-footer > button { margin-inline:auto; }
 .replica-topbar { height:62px;min-height:62px;flex-shrink:0;border-bottom:1px solid #e2e7de;background:#ffffffeb;display:flex;align-items:center;padding:0 29px;gap:12px;z-index:30; }
 .replica-topbar .breadcrumb { margin:0; }
 .replica-topbar [data-slot="breadcrumb-list"] { font-size:11px;gap:10px;color:#89917f; }

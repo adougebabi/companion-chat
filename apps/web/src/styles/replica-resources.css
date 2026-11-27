@@ -295,12 +295,6 @@
 .replica-wardrobe {
   min-width: 0;
 }
-.replica-wardrobe [data-slot="tabs"] {
-  gap: 0;
-}
-.replica-wardrobe .replica-segment-tabs {
-  margin-bottom: 0;
-}
 .replica-wardrobe h2 {
   font-size: 19px;
   font-weight: 600;

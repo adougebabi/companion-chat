@@ -133,6 +133,14 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     return () => { viewport?.removeEventListener('resize', sync); viewport?.removeEventListener('scroll', sync); window.removeEventListener('resize', sync); root.removeAttribute('data-keyboard-open'); };
   }, [isMobile]);
   const [accountBusy,setAccountBusy]=useState(false);
+  const accountLogoutPending=useRef(false);
+  async function logout(){
+    if(accountLogoutPending.current)return;
+    accountLogoutPending.current=true;setAccountBusy(true);
+    try{await workspace.logout();setMoreOpen(false);}
+    catch(cause){toast.error(cause instanceof Error?cause.message:'退出未能确认，请重试');}
+    finally{accountLogoutPending.current=false;setAccountBusy(false);}
+  }
   const navigationTrigger=useRef<HTMLButtonElement>(null);
   const [preview, setPreview] = useState(true);
   const scrollPositions = useRef(new Map<string,number>());
@@ -311,7 +319,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   const focusPage = page === '初始化角色' || page === '登录';
   return (
     <>
-      <Sidebar collapsible="icon" variant="inset" className="replica-sidebar" returnFocus={()=>navigationTrigger.current}><WorkspaceNavigation page={page} character={current.id?current:character} characters={state.characters} onCharacterChange={(id)=>{workspace.select(id);navigate(page==="初始化角色"?"聊天":page);}} onNavigate={navigate} unread={state.notificationCount?.count||0} accountMenu={<DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" aria-label="账户菜单"><LogOutIcon size={14}/></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={()=>navigate('管理中心')}><UserRoundIcon/>账户与设置</DropdownMenuItem><DropdownMenuItem disabled={accountBusy} className="text-destructive focus:text-destructive" onSelect={async()=>{setAccountBusy(true);try{await workspace.logout();}catch(cause){toast.error(cause instanceof Error?cause.message:'退出未能确认，请重试');}finally{setAccountBusy(false);}}}><LogOutIcon/>{accountBusy?'正在退出…':'退出登录'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}/><SidebarRail aria-label="切换导航宽度"/></Sidebar>
+      <Sidebar collapsible="icon" variant="inset" className="replica-sidebar" returnFocus={()=>navigationTrigger.current}><WorkspaceNavigation page={page} character={current.id?current:character} characters={state.characters} onCharacterChange={(id)=>{workspace.select(id);navigate(page==="初始化角色"?"聊天":page);}} onNavigate={navigate} unread={state.notificationCount?.count||0} accountMenu={<DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size={sidebarOpen?"icon":"icon-lg"} aria-label="账户菜单"><LogOutIcon size={14}/></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={()=>navigate('管理中心')}><UserRoundIcon/>账户与设置</DropdownMenuItem><DropdownMenuItem disabled={accountBusy} className="text-destructive focus:text-destructive" onSelect={logout}><LogOutIcon/>{accountBusy?'正在退出…':'退出登录'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}/><SidebarRail aria-label="切换导航宽度"/></Sidebar>
       <SidebarInset tabIndex={-1} className="replica-main min-w-0 min-h-0 overflow-hidden" data-workspace-page={page} data-focus-page={focusPage || undefined}>
       <header className="mobile-app-bar">
         <div className="mobile-app-identity"><span className="mobile-brand-mark"><StoryMark/></span><div><strong>{workspacePageLabel(displayTitle)}</strong><span>{current.id ? current.name + '的小小世界' : '每一次相遇，都有新的故事'}</span></div></div>
@@ -377,7 +385,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
       <DetailSheet open={moreOpen} onOpenChange={setMoreOpen} title="探索你的世界" description="日常、创作与管理，都在这里。" hideDescription={false}>
         <div className="mobile-navigation-person"><CharacterAvatar name={current.name} initial={current.initial} color={current.color} src={current._directory?.avatar}/><div><small>正在相处</small><strong>{current.id ? current.name : '还没有选择角色'}</strong></div><Button variant="outline" onClick={() => navigate('角色库')}>切换角色</Button></div>
         <div className="mobile-navigation-groups">{workspaceNavigationGroups.map(group => <section key={group.label}><h3>{group.label}</h3><div>{group.items.map(([target,label,Icon]) => <Button variant="ghost" key={target} disabled={characterScopedPages.includes(target) && !current.id} onClick={() => navigate(target)}><Icon/><span>{label}</span><ChevronRightIcon/></Button>)}</div></section>)}</div>
-        <div className="mobile-navigation-footer"><Button variant="outline" onClick={() => navigate('管理中心')}><UserRoundIcon/>账户与设置</Button><Button variant="ghost" disabled={accountBusy} onClick={async () => {setAccountBusy(true);try {await workspace.logout();setMoreOpen(false);}catch(cause){toast.error(cause instanceof Error ? cause.message : '退出未能确认，请重试');}finally{setAccountBusy(false);}}}><LogOutIcon/>{accountBusy ? '正在退出…' : '退出登录'}</Button></div>
+        <div className="mobile-navigation-footer"><Button variant="outline" onClick={() => navigate('管理中心')}><UserRoundIcon/>账户与设置</Button><Button variant="ghost" disabled={accountBusy} onClick={logout}><LogOutIcon/>{accountBusy ? '正在退出…' : '退出登录'}</Button></div>
       </DetailSheet>
       </SidebarInset>
     </>

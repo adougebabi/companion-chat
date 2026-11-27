@@ -69,3 +69,21 @@ test('unread goal failure stays readonly, retry keeps its ID and long content re
  await page.screenshot({path:test.info().outputPath('goal-long-after-retry.png')});
  expect(reads).toBe(2);
 });
+
+test('cached goal content stays readable after detail failure but only a confirmed detail enables writes',{tag:'@goals'},async({page})=>{
+ let reads=0;
+ await page.route(/\/api\/fluctlights\/[^/]+\/goals\/goal-fixture-one$/,async route=>{
+  if(reads++===0){await new Promise(resolve=>setTimeout(resolve,600));await route.fulfill({status:503,json:{code:'unavailable',message:'目标详情需要重新读取。'}});return;}
+  await route.continue();
+ });
+ await page.goto(origin+'/#/c/'+fid+'/life/goal/goal-fixture-one');
+ const detail=page.getByRole('dialog',{name:'完成一幅新的水彩作品'});
+ await expect(detail.getByRole('button',{name:'重新读取目标详情',exact:true})).toBeVisible();
+ await expect(detail.locator('.lp-check-line').filter({hasText:'完成并保存画作'})).toBeVisible();
+ for(const name of ['编辑','暂停','核对进展','放下这个目标','取消这个目标'])await expect(detail.getByRole('button',{name,exact:true})).toBeDisabled();
+ await detail.getByRole('button',{name:'重新读取目标详情',exact:true}).click();
+ for(const name of ['编辑','暂停','放下这个目标','取消这个目标'])await expect(detail.getByRole('button',{name,exact:true})).toBeEnabled();
+ // The real fixture still has a pending evaluation; confirming the detail must not bypass it.
+ await expect(detail.getByRole('button',{name:'核对进展',exact:true})).toBeDisabled();
+ expect(reads).toBe(2);
+});

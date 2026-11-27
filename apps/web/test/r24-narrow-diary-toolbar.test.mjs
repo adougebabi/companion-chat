@@ -47,7 +47,6 @@ test('窄屏限定为单列 Tabs、整行搜索和下一行收藏/刷新，桌�
   const css = await readFile(new URL('../src/styles/replica-life.css', import.meta.url), 'utf8');
   const mobile = css.slice(css.indexOf('@media(max-width:600px){\n  .replica-diary .lp-toolbar'), css.indexOf('\n\n.replica-diary .lp-paper h2'));
   assert.match(mobile, /\.lp-toolbar\{[^}]*grid-template-columns:minmax\(0,1fr\)/);
-  assert.match(mobile, /\.lp-toolbar>\.replica-segment-tabs\{[^}]*width:100%/);
   assert.match(mobile, /\.replica-diary-search\{[^}]*grid-column:1 \/ -1;grid-row:1;[^}]*width:100%/);
   assert.match(mobile, /\.replica-diary-search input\{padding-right:12px\}/);
   assert.match(mobile, /\.replica-diary-options\{grid-column:1;grid-row:2;display:block\}/);

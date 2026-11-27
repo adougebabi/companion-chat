@@ -44,7 +44,8 @@ test('侧栏展开及收起时，用户区独立于导航滚动区，页头和�
     assert.match(checkLayout().textContent, /我的空间/);
     await view.click(view.host.querySelector('[data-slot="sidebar-trigger"]'));
     assert.equal(view.host.querySelector('[data-state]').dataset.state, 'collapsed');
-    assert.equal(checkLayout().textContent, '我');
+    assert.equal(checkLayout().querySelector('button').textContent, '账户菜单');
+    assert.equal(checkLayout().querySelector('.replica-owner-avatar'),null,'compact navigation preserves the account action instead of an inert avatar');
   } finally {await view.dispose();}
 });
 

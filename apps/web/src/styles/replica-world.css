@@ -1003,53 +1003,6 @@
   font-size: 11px;
   line-height: 1.5;
 }
-.replica-world .replica-segment-tabs {
-  display: flex;
-  width: 100%;
-  gap: 21px;
-  overflow: auto;
-  border-bottom: 1px solid #e2e7de;
-  scrollbar-width: none;
-  background: transparent;
-  border-radius: 0;
-  padding: 0;
-  height: auto;
-  max-width: 100%;
-}
-.replica-world .replica-segment-tabs [data-slot="tabs-trigger"] {
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0 2px 12px;
-  color: #7d8872;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  white-space: nowrap;
-  box-shadow: none;
-  background: transparent;
-  height: auto;
-  flex: none;
-  line-height: 1.5;
-}
-.replica-world
-  .replica-segment-tabs
-  [data-slot="tabs-trigger"][data-state="active"] {
-  color: #33563d;
-  border-bottom-color: #547b4b;
-  font-weight: 600;
-}
-.replica-world .replica-segment-tabs [data-slot="tabs-trigger"]::after {
-  display: none;
-}
-.replica-world .replica-segment-tabs [data-slot="tabs-trigger"] > span {
-  font-size: 9px;
-  background: #edf1e7;
-  padding: 1px 5px;
-  border-radius: 4px;
-  color: #8c967e;
-}
 .replica-world [data-slot="tabs-content"] .r-place-workspace {
   margin-top: 1px;
 }
@@ -1063,14 +1016,6 @@
   .replica-world .r-search [data-slot="input"] {
     height: 39px;
     min-height: 39px;
-  }
-}
-@media (max-width: 700px) {
-  .replica-world .replica-segment-tabs {
-    gap: 19px;
-  }
-  .replica-world .replica-segment-tabs [data-slot="tabs-trigger"] {
-    font-size: 11px;
   }
 }
 .replica-world [data-slot="card"] {
@@ -1169,12 +1114,6 @@
   color: #87907d;
   line-height: 1.8;
   margin-top: 5px;
-}
-.replica-world .replica-segment-tabs {
-  margin-bottom: 22px;
-}
-.replica-world [data-slot="tabs"] {
-  gap: 0;
 }
 .replica-world [data-slot="card"].r-place-tree {
   padding: 17px 12px;

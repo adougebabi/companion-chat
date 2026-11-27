@@ -1,3 +1,4 @@
+import { ResponsiveTabsList } from '@/components/patterns';
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRightIcon,
@@ -15,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Surface,
   FieldInput,
@@ -177,6 +178,7 @@ export default function GoalsPage({ route, onGo }) {
   const [selectedId, setSelectedId] = useState(""),
     [detail, setDetail] = useState(null),
     [detailLoading, setDetailLoading] = useState(false),
+    [detailConfirmedFor, setDetailConfirmedFor] = useState(""),
     [detailError, setDetailError] = useState(""),
     [detailFailure, setDetailFailure] = useState(null),
     [action, setAction] = useState(null),
@@ -221,6 +223,7 @@ export default function GoalsPage({ route, onGo }) {
   );
   const selected =
     detail?.id === selectedId ? detail : cache.current.get(selectedId);
+  const detailConfirmed=detailConfirmedFor===JSON.stringify([scope,selectedId])&&detail?.id===selectedId;
   function adopt(goal, stamp = ++readSequence.current) {
     if (!goal || typeof goal.id !== "string" || !goal.id)
       throw Error("目标身份尚未完整读到。");
@@ -293,6 +296,7 @@ export default function GoalsPage({ route, onGo }) {
     const stamp = ++readSequence.current,
       token = ++detailEpoch.current;
     setDetailLoading(true);
+    setDetailConfirmedFor("");
     setDetailError("");
     setDetailFailure(null);
     try {
@@ -300,7 +304,7 @@ export default function GoalsPage({ route, onGo }) {
       if (goal.id !== id) throw Error("目标身份不匹配，保留已读取的内容。");
       if (!live() || token !== detailEpoch.current) return;
       const value = adopt(goal, stamp);
-      if (detailId.current === id) setDetail(value);
+      if (detailId.current === id){setDetail(value);setDetailConfirmedFor(JSON.stringify([scope,id]));}
       return value;
     } catch (cause) {
       if (live() && token === detailEpoch.current){
@@ -392,6 +396,7 @@ export default function GoalsPage({ route, onGo }) {
     trigger.current = event?.currentTarget || document.activeElement;
     detailId.current = goal.id;
     setSelectedId(goal.id);
+    setDetailConfirmedFor("");
     setDetail(cache.current.get(goal.id) || (unread?null:goal));
     setRecords({
       evidence: { items: [], cursor: "", ready: false },
@@ -406,6 +411,7 @@ export default function GoalsPage({ route, onGo }) {
   function closeDetail() {
     detailId.current = "";
     setSelectedId("");
+    setDetailConfirmedFor("");
     setDetail(null);
     detailEpoch.current++;
     setRecordErrors({});
@@ -878,7 +884,7 @@ export default function GoalsPage({ route, onGo }) {
       <div className="lp-stack">
         <Tabs className="lp-stack" value={filter} onValueChange={setFilter}>
           <div className="lp-toolbar">
-            <TabsList variant="line" className="replica-segment-tabs">
+            <ResponsiveTabsList value={filter} variant="line">
               <TabsTrigger value="active">
                 正在追寻{" "}
                 <span>
@@ -891,7 +897,7 @@ export default function GoalsPage({ route, onGo }) {
               <TabsTrigger value="paused">暂时搁置</TabsTrigger>
               <TabsTrigger value="completed">已经做到</TabsTrigger>
               <TabsTrigger value="all">全部</TabsTrigger>
-            </TabsList>
+            </ResponsiveTabsList>
             <div className="replica-search replica-goal-search" data-has-query={!!query}>
               <SearchIcon size={15} />
               <Input
@@ -1057,7 +1063,7 @@ export default function GoalsPage({ route, onGo }) {
             <>
               <Button
                 variant="outline"
-                disabled={readonly || detailLoading}
+                disabled={readonly || !detailConfirmed || detailLoading}
                 onClick={() => editor(selected)}
               >
                 <Edit3Icon size={14} />
@@ -1066,7 +1072,7 @@ export default function GoalsPage({ route, onGo }) {
               {selected.status === "active" ? (
                 <Button
                   variant="outline"
-                  disabled={readonly}
+                  disabled={readonly || !detailConfirmed}
                   onClick={() => command(selected, "pause")}
                 >
                   <PauseIcon size={14} />
@@ -1076,7 +1082,7 @@ export default function GoalsPage({ route, onGo }) {
                 ["paused", "candidate"].includes(selected.status) && (
                   <Button
                     variant="outline"
-                    disabled={readonly}
+                    disabled={readonly || !detailConfirmed}
                     onClick={() => command(selected, "resume")}
                   >
                     <PlayIcon size={14} />
@@ -1087,6 +1093,7 @@ export default function GoalsPage({ route, onGo }) {
               <Button
                 disabled={
                   readonly ||
+                  !detailConfirmed ||
                   detailLoading ||
                   !["active", "paused"].includes(selected.status) ||
                   evaluationPending.includes(evalRequest?.status)
@@ -1228,7 +1235,7 @@ export default function GoalsPage({ route, onGo }) {
               <div className="lp-action-row">
                 <Button
                   variant="outline"
-                  disabled={readonly}
+                  disabled={readonly || !detailConfirmed}
                   onClick={() => command(selected, "abandon")}
                 >
                   放下这个目标
@@ -1236,7 +1243,7 @@ export default function GoalsPage({ route, onGo }) {
                 </Button>
                 <Button
                   variant="outline"
-                  disabled={readonly}
+                  disabled={readonly || !detailConfirmed}
                   onClick={() => command(selected, "cancel")}
                 >
                   取消这个目标

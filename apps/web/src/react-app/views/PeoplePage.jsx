@@ -1,3 +1,4 @@
+import { ResponsiveTabsList } from '@/components/patterns';
 import {
   ChevronRightIcon,
   MapPinIcon,
@@ -6,7 +7,7 @@ import {
   SearchIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ChoiceSelect, FieldInput, Badge } from "../controls";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
 import WorkspaceInfo from "../shared/WorkspaceInfo";
@@ -99,7 +100,7 @@ export default function PeoplePageView({ model: m }) {
         onValueChange={m.setTab}
         className="profile-main-tabs"
       >
-        <TabsList variant="line" className="replica-segment-tabs">
+        <ResponsiveTabsList value={m.tab} variant="line">
           <TabsTrigger value="people">
             世界中的人{" "}
             <span>{m.catalog.ready ? m.catalog.items.length : "…"}</span>
@@ -110,7 +111,7 @@ export default function PeoplePageView({ model: m }) {
           <TabsTrigger value="relationship">
             {m.actorId === m.owner ? "你们的关系" : "与该参与者的关系"}
           </TabsTrigger>
-        </TabsList>
+        </ResponsiveTabsList>
         <TabsContent value="people">
           <div className="people-tab-body">
             <PeopleReader source={m.catalog} label="世界人物" />

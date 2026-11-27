@@ -8,8 +8,8 @@
   :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) .r-inline-title {font-size:17px;line-height:1.6;}
   :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) :is(.r-toolbar,.r-inline-actions) {gap:10px;flex-wrap:wrap;min-width:0;}
   :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) .r-search {width:100%;min-width:0;flex:1;}
-  :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) :is(.replica-segment-tabs,.r-segmented-tabs) {max-width:100%;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;min-height:48px;gap:18px;}
-  :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) :is(.replica-segment-tabs,.r-segmented-tabs) > button {flex:none;min-height:48px;font-size:14px;}
+  :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) .r-segmented-tabs {max-width:100%;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;min-height:48px;gap:18px;}
+  :is(.replica-world,.replica-media,.replica-studio,.replica-wardrobe) .r-segmented-tabs > button {flex:none;min-height:48px;font-size:14px;}
   .replica-world .r-world-card {display:grid;grid-template-columns:96px minmax(0,1fr);overflow:hidden;}
   .replica-world .r-world-card > .r-world-art {height:100%;min-height:145px;}
   .replica-world .r-world-card .r-card-body {padding:16px;min-width:0;}

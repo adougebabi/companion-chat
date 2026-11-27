@@ -3,6 +3,7 @@
 起点：codex/fluctlight-meromero-plugin-humanization，bcc4074b，工作区干净。
 AEL：frontend-closeout-1127。只记录实际观察；静态核验不等于浏览器验收。源码简写中 pages/shared/views 指 apps/web/src/react-app 下对应目录，v3-domain/proto 指 apps/web/src/v3-domain 和 apps/web/src/v3/proto。
 截图放仓库外 /private/tmp/frontend-closeout-shots，不提交图片。
+本表为当前结论；下文保留各批次当时的验证快照，最终整体验收见末尾。
 
 | 入口与范围 | 实现位置 | 问题 / 依据 | 复用与处理 | 状态 / 证据 |
 | --- | --- | --- | --- | --- |
@@ -10,18 +11,18 @@ AEL：frontend-closeout-1127。只记录实际观察；静态核验不等于浏�
 | /diag/events 及其他分区、单条记录 | v3-domain/diagnostics.js、proto/components/diagnostic-card.js | 主要查询与高级/维护混排；reason_code 无条件失败 fallback | 常用查询直接展示，高级按需展开（手机共享 Sheet），显示已应用条件；状态范围驱动解释 | 已完成首批7cadbadd；Loop补充及最终验证见下文 |
 | 调用运行回放 | shared/DiagnosticReplayPanel.tsx、scenarios/install.ts | 独立 pre；mock 缺九来源与关联范围 | RawContent、DetailFields；补来源分页与 correlation fixture | 已完成首批7cadbadd；Loop补充及最终验证见下文 |
 | /diag/task/:id、任务抽屉、业务恢复 | pages/TaskDetailPage.tsx、shared/TaskExecutionResults.tsx | 空调用推断停止阶段、阶段原因不完整及残留分隔符 | 沿用 AsyncTaskStatus、WorkflowRecovery、MediaTaskRecovery；移除无依据推断与死分支 | 已完成首批7cadbadd；Loop补充及最终验证见下文 |
-| 日程 /life/schedule → /planning?section=promises | pages/SchedulePage.jsx、v3-domain/life-schedule.js | 可见约定入口进入另一完整日程工作区；旧页日期操作误跳普通日程路由，section未被主页面消费 | 收敛入口与专注分区，保留命令/快照 | 待当前批次完成 |
+| 日程 /life/schedule → /planning?section=promises | pages/SchedulePage.jsx、v3-domain/life-schedule.js | 约定入口套另一完整日程工作区；日期误跳普通路由 | 直接约定/意向/未来安排，主日程承接当天与习惯，保留建议及原回执 | 已完成0e1828c9；最终完整门禁见末尾 |
 | 目标主列表详情/编辑、/life/goal/:id | pages/GoalsPage.jsx、v3-domain/goal-editor.js | 同字段双实现；旧对象页与主页面在终态动作、只读约束、范围编辑和回执恢复上不等价，不能直接删入口 | 进一步比对字段与入口，局部共享 | 已完成：双入口复用，旧实现与样式已清理；正常门禁14通过/1配置跳过 |
-| 日程/目标/记忆/日记/衣柜/人物/世界 Tabs | pages 与 views 同名文件；replica-life/profile/world.css | 重复滚动与触发器几何；缺共享激活项自动入视野 | ResponsiveTabsList，保留业务状态值 | 待当前批次完成 |
-| /growth/memory/:id、反思对象页 | v3-domain/memory.js、reflection.js | 已确认路由，字段重复未确认 | 保留兼容，继续核实具体入口 | 不删除 |
+| 日程/目标/记忆/日记/衣柜/人物/世界 Tabs | pages/views/shared 同名组件；共享 responsive-tabs.tsx | 业务重复滚动/几何与激活项不可见 | 统一 ResponsiveTabsList，保留各自受控值，删除无使用方的旧样式 | 已完成；正式七主页面及两嵌入工作区三视口回归通过 |
+| /growth/memory/:id、反思对象页 | pages/MemoryPage.jsx、feature-routes.mjs | 独立详情/编辑/反馈与主页面重复 | 同一React详情和命令；删除memory.js与reflection.js旧对象实现，保留反思进度时间线 | 已完成fe2737ce；独立读取、历史来源、原始下载与反馈通过 |
 | /life/diary/:id、/life/shared，收藏/注记/回顾依据 | v3-domain/diary.js | 正文、来源、尝试已分层，独立命令仍必要 | 现有共享桥接与渐进披露 | 静态无需调整，未声称浏览器通过 |
 | 衣柜主列表/衣物对象详情 | views/WardrobePage.jsx、v3-domain/life-wardrobe.js | 对象详情包含治理历史，不等于旧列表 | 保留对象能力 | 除 Tabs 外静态无需调整 |
 | 人物目录/详情/新建/编辑/关于你 | pages/PeoplePage.jsx、views/PeoplePage.jsx | 各入口已经使用同一个 React 页面 | 保留 | 除 Tabs 外静态无需调整 |
-| 世界、地点、事件与物品对象页 | pages/WorldPage.jsx、v3-domain/world-*.js | 共享字段与命令弹层已有；不同对象各有业务职责 | 保留对象入口，复核组合 | 待实际场景核验 |
+| 世界、地点、事件与物品对象页 | pages/WorldPage.jsx、v3-domain/world-*.js | 主页面与完整工具部分重叠，但各有恢复/来源等独有职责；关系修订晚到行为缺保护 | 保留必要对象工具，修正关系存活/忙锁，统一Tabs | 关系及主世界/人物真实组合通过；其余独有工具静态无需整体重写 |
 | /media、媒体对象、视觉身份与生成 | pages/MediaPage.tsx、views/MediaWorkspace.jsx | 已统一 React 页面及共享筛选抽屉 | 保留 | 静态无需调整 |
 | /studio、/worlds、创作编辑/预览/素材 | DomainPage.tsx、feature-routes.mjs | 明确 native React 所有者 | 保留 | 静态无需调整 |
 | /feed、动态对象、筛选与发布 | views/FeedPage.jsx | DetailSheet、WorkspaceCommandDialog 已复用 | 保留 | 静态无需调整 |
-| /inbox | pages/InboxPage.jsx | 两项 Tabs 无确定布局问题 | 保留 | 静态无需调整 |
+| /inbox | pages/InboxPage.jsx、replica-management.css | 手机44px刷新控件占36px列宽，溢出8px；旧级联模拟测试写死旧尺寸 | 控件自身按共享模式；网格列按内容分配，换为真实Chromium回归 | 已完成210016c1；390/360/430手机与桌面对齐/筛选/刷新通过 |
 | /library、创建、资料查看 | App.tsx、views/CharacterWizard.jsx | 创建与资料抽屉已共享 | 保留 | 静态无需调整 |
 | 旧命令/抽屉桥接 | shared/DomainPrimitives.tsx、OverlayHost.tsx | 当前业务事件/FormData 的兼容路径，非死代码 | 保留；不另造 renderer | 已核实用途 |
 
@@ -59,7 +60,7 @@ AEL：frontend-closeout-1127。只记录实际观察；静态核验不等于浏�
 
 代表性截图：phone/desktop-calls-before.png 与 phone/desktop-calls-after.png；五状态本轮详情为 phone/tablet/desktop-turn-*.png，均在仓库外截图目录。事件列表修改前 fixture 未支持 events，旧截图仅作查询布局参考，不用来声称前后业务数据一致。
 
-后续尚未完成的批次、兼容路径与静态无需调整项沿上表继续；本批通过不等于整个收口任务完成。
+以上为首批交付时的验证快照；后续批次与最终汇总见下文，早期未完成状态不代表当前结论。
 
 ## 诊断补充：多轮 Loop 集中展示
 
@@ -83,14 +84,14 @@ AEL：frontend-closeout-1127。只记录实际观察；静态核验不等于浏�
 
 | 入口 | 实现位置（apps/web/src 下） | 结论 / 后续处理 |
 | --- | --- | --- |
-| 设置各分类、旧设置别名、移动分类目录 | react-app/pages/ManagementPage.jsx、react-app/views/ManagementPage.jsx、react-app/shared/SettingsSections.jsx | 已复用共享字段、目录、版本与幂等保存；不整体重写。插件开关旧单测断言待核实 |
+| 设置各分类、旧设置别名、移动分类目录 | react-app/pages/ManagementPage.jsx、react-app/views/ManagementPage.jsx、react-app/shared/SettingsSections.jsx | 已复用共享字段、目录、版本与幂等保存；不整体重写。插件共享checkbox的标签、草稿与显式保存已核实回归 |
 | 认证与初始化 /auth | react-app/pages/AuthPage.tsx、react-app/App.tsx | React字段错误聚焦、忙态与会话处理完整；静态无需调整，既有浏览器布局不等于真实登录联调 |
-| 桌面账户菜单 / 手机更多退出 | react-app/App.tsx | 确认重复的退出处理，可合并；保持后端确认成功后才清会话 |
-| 数据管理 /data、导入/导出 | v3-domain/data-tools.js、react-app/pages/DomainPage.tsx | 可见控件已桥接共享React；存在重复管理页头，单作品导出需手输ID，待后续收紧；导入校验与未知回执约束保留 |
-| 导入草稿 /data/pack/:id | v3-domain/data-tools.js | 首屏包ID/digest和资源ID占主位，待改为业务名称/类型与明确草稿入口，完整标识保留原始层 |
-| 修订查询 /data/revisions | v3-domain/data-tools.js | 已有中文摘要与原始下载；精确对象ID可归入高级条件，保留查询语义 |
+| 桌面账户菜单 / 手机更多退出 | react-app/App.tsx | 已合并退出处理；同步忙锁，后端确认成功后才关闭更多菜单/跳转；恢复紧凑侧栏账户入口 |
+| 数据管理 /data、导入/导出 | v3-domain/data-tools.js、react-app/pages/DomainPage.tsx | 可见控件沿用共享桥接，页头统一WorkspacePageHeader；限定作品ID是exportResourcePack的实际消费值，保留在已有高级限定导出中，不另建目录缓存；校验与未知回执约束保留 |
+| 导入草稿 /data/pack/:id | v3-domain/data-tools.js | 已改为作品名称与草稿操作优先；完整包/映射/版本保留原始下载，编辑与采用操作不变 |
+| 修订查询 /data/revisions | v3-domain/data-tools.js | 已有中文摘要与原始下载；精确对象移入共享高级筛选，新增未应用提示，表单和游标语义保持 |
 | 本地备份、回档说明、维护备份详情 | react-app/shared/LocalBackupsPanel.tsx、v3-domain/backups.js、v3-domain/data-tools.js | 明确备份边界、Owner隔离及隔离恢复，技术维护字段有实际消费方，静态无需整体调整 |
-| 身份修订与能力治理 | react-app/pages/GovernancePage.tsx | 状态约束与来源摘要已共享；身份提议目前只填JSON，需核实能否复用既有身份字段编辑器；能力交付版本是必要信息，保留 |
+| 身份修订与能力治理 | react-app/pages/GovernancePage.tsx | 状态约束与来源摘要已共享；身份提议已复用既有资料字段，并保留高级JSON和旧草稿；只创建提议；能力交付版本有真实消费方，保留 |
 
 ## 目标批次：对象入口复用
 
@@ -108,9 +109,9 @@ AEL：frontend-closeout-1127。只记录实际观察；静态核验不等于浏�
 | 世界/地点完整编辑 | 与主页面快速编辑部分字段重叠，但完整工具另有默认字段恢复、完整世界框架与草稿；保留真实兼容能力，不整页删除 |
 | 地点详情、世界事件 | 有人物/日程/实际影响等独有阅读内容，已渐进披露和原始下载；静态无需重做 |
 | 世界物品 | 主页面与独立详情均有取得范围，独立页另有来源、衣柜与聊天取得请求；两者已有版本/快照保护，保留语义边界 |
-| 人物关系修订 | 已有CAS与原始下载；确认保存/恢复await后缺少存活检查与忙锁，需修正旧请求离页后导航/刷新的问题 |
-| 记忆对象详情 | 当前React详情已覆盖正文、按修订来源、补偿恢复、纠错/遗忘和回执核对；可承接对象URL，须保留独立读取与来源返回 |
-| 反思对象详情 | React详情已覆盖来源、提议/实际处置、反馈原请求跟进；可承接refId，不能把认同改成直接采纳 |
+| 人物关系修订 | 已有CAS与原始下载；保存/恢复的存活检查与忙锁已补上；CAS/证据保持，离页与Owner切换回归通过 |
+| 记忆对象详情 | 当前React详情已覆盖正文、按修订来源、补偿恢复、纠错/遗忘和回执核对；已承接对象URL，独立读取与来源返回回归通过 |
+| 反思对象详情 | React详情已覆盖来源、提议/实际处置、反馈原请求跟进；已承接refId；认同继续走反馈请求，不直接采纳 |
 | 反思时间线 | 仍独有latest_task/window进度观察、隐藏页暂停与输入窗口诊断；未承接前保留该兼容入口 |
 
 ## 日程规划批次：直接工作面与重复清理
@@ -148,3 +149,30 @@ AEL：frontend-closeout-1127。只记录实际观察；静态核验不等于浏�
 - 通用CommandDialog改为复用WorkspaceDialog：手机完整工作面、标题/提交区固定、正文唯一滚动，忙态不可误关闭；错误滚动到可见位置并聚焦。原提交重试、状态查询、只读读回、同步最新基线和完整诊断下载保持各自语义。
 - 正式三视口9项浏览器用例覆盖正常提议、JSON错误保留与重读、字段切换、实际请求体/提交身份、只提议不应用、忙锁、原提交未知后的原样重试及等待期间新草稿保留。三张本地基准经实际截图审核，未放宽断言。
 - 验证：相关35项单测通过；**完整单测1416通过、0失败**；typecheck通过；完整正常UI gate **pass：408通过、0失败、29配置跳过**。真实Core联调与真机输入仍未验证。
+
+## 最后一批：共享标签、数据管理与账户入口
+
+- 日程、目标、日记、人物、世界、资料、衣柜及身份治理/人物记录九处普通line标签统一ResponsiveTabsList；衣柜继续使用原映射后的value，所有分区状态与业务事件保持。ProfileForm移除旧class。删除已无使用方的列表/触发器几何和间距补偿，保留其他r-segmented-tabs消费者，不追加覆盖规则。
+- 数据管理页头复用WorkspacePageHeader；完整导出/校验/未知导入回执与本地备份流程保留。导入草稿先显示作品名称与编辑/发布方向，原包ID/digest/资源映射/版本及未知字段均保留在完整原始下载中，编辑器跳转与采用版本不变。
+- 精确对象ID移入共享高级筛选；查询前提示输入未应用，只有显式查询才替换已应用条件并重置游标。关闭或未打开筛选后仍通过原FormData读取。真实浏览器核对修改草稿后的续页仍用旧条件，以及显式查询后的新条件/空游标。
+- 桌面与手机退出复用同一处理函数和同步忙锁；拒绝时保留工作区，确认成功后才跳转。新增回归发现紧凑侧栏隐藏了账户入口，现保留同一账户菜单图标，侧栏只调整自身布局，按钮使用已有icon-lg变体。平板与收起的桌面侧栏均验证可达、无溢出。
+- 组合fixture原初始化场景会截获已有角色的世界请求，造成世界与人物归属不一致；已让已有角色由World fixture提供数据，新创建角色仍归Creation fixture，并从同一目录读回所选共享世界的原身份。未新建mock体系，也未改变正式世界请求。
+- 三个只读独立复核中，诊断Loop和最后一批未发现实质缺陷；对象复核确认目标缓存可在详情失败后启用写入口。已补按Owner/fid/id绑定的详情确认状态：缓存可读，但全部详情写动作必须在本次独立读取成功后启用；原待评估约束继续生效。三视口新增失败/缓存/重读场景通过。
+- 初轮最终门禁438通过、3失败：两项为紧凑账户入口的有意整页基准差异，一项是组合创建fixture未按新目录世界读回。已分别实际审核后更新本地基准和修正fixture；未删除断言或放宽阈值。修正后重新执行完整正常门禁，结果见下表。
+
+## 最终整体验证
+
+| 项目 | 实际结果与边界 |
+| --- | --- |
+| 全量前端单测 | **1416通过，0失败** |
+| 正常UI gate，UI_GATE_BASE=bcc4074b | **pass：444通过，0失败，29配置跳过，0不稳定**；覆盖整个授权起点后的UI文件，包含全部共享和新增业务用例 |
+| Web typecheck | pass，含UI/e2e类型检查 |
+| 正式build、fixture排除、React依赖图 | pass，433个本地模块；无fixture或旧路由进入生产产物 |
+| 单一清单与独立复核 | 正式入口均有结论；已确认问题实际修改，保留各对象独有命令和兼容边界；复核发现的问题已补回归 |
+| 质量与变更检查 | 工具结果pass；质量脚本对JS/TS有1项未改动conversation.ts文件过长警告及格式提示，不冒充对所有JSX/TSX的完整质量证明；实际React变更另经typecheck、单测、浏览器和代码复核 |
+| 安全模式扫描 | 原始扫描为未通过：418文件中210项均是innerHTML模式告警。与本任务新增行相交8处已逐项核对：静态模板、React服务端转义、Field/esc、URI编码与原始下载编码；未确认新增可触发注入。JSON补丁字面键另有原型不变回归。此处不声称全仓安全审计通过，也不为消除模式告警改写所有兼容DOM |
+| 图片与Git | 截图和276张已审核基准只留本地/仓库外；提交执行图片钩子与暂存差异检查，不提交图片、不推送/部署 |
+| 后端真实联调 | 未验证，仍归既有环境等待任务；隔离fixture不替代线上证据 |
+| 真机键盘、安全区、系统UI | 未验证，模拟视口不替代真机 |
+
+本任务完成的是正式前端的有界扫描、确认冗余清理、共享组件复用和浏览器验收；未将所有兼容控制器重写为React。各批次的早期失败与修正证据保留在本文件和仓库外日志中。AEL正式检查绑定最终提交候选，服务器验收记录与本文本记录分别保留。

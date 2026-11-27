@@ -1,6 +1,7 @@
+import { ResponsiveTabsList } from '@/components/patterns';
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsTrigger } from "@/components/ui/tabs";
 import { Badge, Disclosure, Textarea } from "../controls";
 import WorkspaceDialog from "./WorkspaceDialog";
 import WorkspaceCommandDialog from "./WorkspaceCommandDialog";
@@ -203,13 +204,13 @@ export default function PersonRecords({ model: m, npc, placeName, onUpdated }) {
             setSelection(null);
           }}
         >
-          <TabsList variant="line" className="replica-segment-tabs">
+          <ResponsiveTabsList value={kind} variant="line">
             {Object.entries(labels).map(([value, label]) => (
               <TabsTrigger key={value} value={value}>
                 {label}
               </TabsTrigger>
             ))}
-          </TabsList>
+          </ResponsiveTabsList>
         </Tabs>
         <Button variant="ghost" disabled={records.busy} onClick={records.load}>
           刷新{labels[kind]}
