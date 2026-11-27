@@ -33,10 +33,10 @@ type actorFactCapability struct{ service *actorFactService }
 
 func actorFactDefinition() CapabilityDefinition {
 	return CapabilityDefinition{Name: actorFactCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description: "Remember a long-term fact the other person tells you about themselves (or correct/change one), so it stays in 关于对方 for every later turn. Prefer these attributes: location (where they are or live now, e.g. \"国外·伦敦\"), location_scope, timezone, occupation, school, routine, family, likes, dislikes, preferences, habits, important_people, plans. value is the fact in plain words; reason is why you record it. Omit actor_id for the person you are chatting with.",
+		Description: "Remember a long-term fact the person tells you about themselves (or a correction) so it stays in 关于对方. Attributes: location (where they are or live now, e.g. \"国外·伦敦\"), location_scope, timezone, occupation, school, routine, family, likes, dislikes, preferences, habits, important_people, plans. value: the fact in plain words. Omit actor_id for your chat partner. assertion_type: explicit_statement when they said it; inference only for your own guess (stays uncertain, not shown in 关于对方).",
 		Surfaces:    []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceNativeCognition}, FailurePolicy: FailurePolicyRequiredForVisibleClaim,
 		InputSchema: objectSchema(map[string]any{
-			"assertion_type": withToolDefault(enumStringSchema("explicit_statement", "inference"), "inference"),
+			"assertion_type": enumStringSchema("explicit_statement", "inference"),
 			"operation":      enumStringSchema("assert", "correct", "change"), "actor_id": stringSchema(), "attribute": map[string]any{"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
 			"value": map[string]any{"type": []any{"string", "boolean", "null"}}, "source_message_id": stringSchema(), "effective_at": stringSchema(),
 			"corrected_fact_ids": map[string]any{"type": "array", "maxItems": 16, "items": stringSchema()}, "reason": map[string]any{"type": "string", "minLength": 1, "maxLength": 500},
@@ -451,7 +451,10 @@ func (c actorFactCapability) NativeDefinition() CapabilityDefinition {
 	delete(properties, "source_message_id")
 	d.InputSchema["properties"] = properties
 	d.InputSchema["required"] = []string{"operation", "attribute", "value", "reason", "assertion_type"}
-	d.Description = "Record an Actor attribute from the current inbound user message. assertion_type is explicit_statement or inference; inference stays uncertain. Core binds the source."
+	// The chat model sees this definition, so it carries the full guidance: the
+	// base description used to be replaced by a one-liner, and the schema hinted
+	// "inference", which keeps a self-report uncertain and out of 关于对方.
+	d.Description = "Remember a long-term fact the person states about themselves in the current message (or a correction) so it stays in 关于对方. Attributes: location (where they are or live now, e.g. \"国外·伦敦\"), location_scope, timezone, occupation, school, routine, family, likes, dislikes, preferences, habits, important_people, plans. value: the fact in plain words. assertion_type: explicit_statement when they said it (usual); inference only for your own guess (stays uncertain, not shown in 关于对方). Core binds the source."
 	return d
 }
 func (c actorFactCapability) BindNativeArguments(raw json.RawMessage, _ ContextProjection) (json.RawMessage, error) {

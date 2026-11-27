@@ -15,11 +15,14 @@ goal_event_candidates、claims、thought、personality_decision，必填仅 resp
 渲染器见 `chat_prompt_markdown.go`，约束测试见 `chat_prompt_markdown_test.go`。
 正式 Agent 的 `MandatoryTools` 首轮即公布（不经 capability_catalog，与 Kev 是否开启无关）；
 对话认知的首轮工具为 conversation_reply、capability_catalog、moment.publish、actor.fact.record、
-intention.schedule、wardrobe.inspect、wardrobe.wear。`intention.schedule` 携带具体生活动作
+intention.schedule、schedule.inspect、schedule.edit、schedule.replan、wardrobe.inspect、wardrobe.wear。
+答应调整自己的日程时，聊天规则要求当轮 schedule.inspect 找到那一项，再 schedule.edit 或 schedule.replan 落实。`intention.schedule` 携带具体生活动作
 （action_plan.kind 为 virtual_shopping/haircut/hair_dye）时，模型调用也直接建立临时目标与意向并排入
 日程，到点由意向触发器执行，购物结果入库衣柜；没有具体动作的愿望仍只提交 Goal Planner。
 `actor.fact.record` 记录对方自述的长期情况，location/country/city/residence/work/school/routine/
-family/likes/dislikes/plans 等属性进入「关于对方」常驻段。
+family/likes/dislikes/plans 等属性进入「关于对方」常驻段。聊天中 assertion_type 为必填：
+对方亲口说的用 explicit_statement（记为 active）；inference 只用于模型自己的推断，记为 uncertain，
+不进入「关于对方」。工具 schema 不提供默认值，以免模型照默认值把自述记成推断。
 
 所有正式 Agent 共享一个前置 `# 运行协议` system 边界。已有任务协议不叠加
 第二套协议；相同规则去重；没有人格资料的分析任务不加入空人格段。

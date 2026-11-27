@@ -117,3 +117,31 @@ func TestChatMarkdownKeepsUnknownEmptyAndOpaqueValues(t *testing.T) {
 		}
 	}
 }
+
+// Regression: a self-reported "我在国外" never reached 关于对方 because the chat
+// tool hinted assertion_type=inference (kept uncertain, filtered out), and an
+// agreed schedule change was only promised because the schedule tools were not
+// visible without a catalog lookup.
+func TestChatSelfReportedFactsAndScheduleChangesAreActionable(t *testing.T) {
+	native := actorFactCapability{}.NativeDefinition()
+	assertion := mapValue(mapValue(native.InputSchema["properties"])["assertion_type"])
+	if _, hinted := assertion["default"]; hinted {
+		t.Fatalf("assertion_type must not hint a default: %#v", assertion)
+	}
+	for _, want := range []string{"explicit_statement", "inference", "关于对方", "location"} {
+		if !strings.Contains(native.Description, want) {
+			t.Fatalf("native description lacks %q: %s", want, native.Description)
+		}
+	}
+	mandatory := formalAgentMandatoryTools(FormalAgentConversationCognition)
+	for _, name := range []string{scheduleInspectCapabilityName, scheduleEditCapabilityName, "schedule.replan", actorFactCapabilityName} {
+		if !mandatory[name] {
+			t.Fatalf("%s is not visible from the first round", name)
+		}
+	}
+	for _, want := range []string{"explicit_statement", "schedule.inspect", "schedule.edit", "schedule.replan"} {
+		if !strings.Contains(directChatProtocol, want) {
+			t.Fatalf("direct chat rules lack %q", want)
+		}
+	}
+}
