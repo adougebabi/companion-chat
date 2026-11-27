@@ -165,7 +165,7 @@ runner 写命令和显式 artifact upload 在网络写入前，将完整请求�
 
 ## 远程父级集成与有限失败复核
 
-所有必需叶子达标后，由宿主同步所需源码，在最终父候选上 capture/publish 当前上下文，再调用 `ael task integrate --task EPIC --context CONTEXT --expected-revision REV --operation-id OP --idempotency-key KEY --json`。声明完整影响文件的任务另提供 `--impact-artifact ARTIFACT_ID`。Server 校验同一仓库、不可变清单、输出附件、规范依据和工作区责任。Remote 采用 `parent_rechecked`，所有叶子的必需检查须映射到含义及配置一致的父检查，并在最终候选上重新执行。后一叶子从前一叶子的结果开始并改写同一文件时，Server 依据两者的受验输入/结果清单接受该改写；领取执行前已在工作区改动的，Server 依据同一工作区的观察记录（前一叶子验收结果之后只有本叶子观察过该工作区）认定起点。仍应先领取执行再改代码，并避免在两者之间让其他任务观察同一工作区。集成拒绝的 detail 会给出叶子与文件；已完成叶子不能也无需重新打开，`EPIC_RECHECK_REQUIRED` 通过编辑父定义补充映射检查（`affected_tasks` 列出叶子）解决。`impact_unknown` 保留输入影响未知事实。此路径的版本证明来自候选清单和重新检查，Git 祖先关系仍由宿主核查。
+所有必需叶子达标后，由宿主同步所需源码，在最终父候选上 capture/publish 当前上下文，再调用 `ael task integrate --task EPIC --context CONTEXT --expected-revision REV --operation-id OP --idempotency-key KEY --json`。声明完整影响文件的任务另提供 `--impact-artifact ARTIFACT_ID`。Server 校验同一仓库、不可变清单、输出附件、规范依据和工作区责任。Remote 采用 `parent_rechecked`，所有叶子的必需检查须映射到含义及配置一致的父检查，并在最终候选上重新执行。后一叶子从前一叶子的结果开始并改写同一文件时，Server 依据两者的受验输入/结果清单接受该改写；领取执行前已在工作区改动的，Server 依据同一工作区的观察记录（前一叶子验收结果之后只有本叶子观察过该工作区）认定起点。仍应先领取执行再改代码，并避免在两者之间让其他任务观察同一工作区。集成拒绝的 detail 会给出叶子与文件；最后一个叶子验收后，分支又合入父任务之外的改动（合并、独立任务、知识索引刷新）时，不要补建事后叶子或退回旧提交集成，应在最终候选上加 `--external-file PRIVATE_JSON` 声明 `{"base":"最后验收的必需叶子","sources":["提交/合并/任务"],"reason":"说明"}`：起点叶子验收结果之后的差异记为外部改动并在看板展示，起点结果中不存在的叶子内容仍会被拒绝，所有叶子检查照常在最终候选复验。已完成叶子不能也无需重新打开，`EPIC_RECHECK_REQUIRED` 通过编辑父定义补充映射检查（`affected_tasks` 列出叶子）解决。`impact_unknown` 保留输入影响未知事实。此路径的版本证明来自候选清单和重新检查，Git 祖先关系仍由宿主核查。
 
 消费 `runner next --parent EPIC` 并通过 `runner claim` 领取准备后的父级检查。宿主运行约定检查，按原租约提交结论；仅在明确约定截图等附件时上传。人工检查可通过聊天决策入口或看板记录 reviewer/admin 对当前候选的结论。新增父候选观察后，重新准备集成与检查。
 
