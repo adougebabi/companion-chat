@@ -151,6 +151,10 @@
       "src/v3-domain/reflection.js",
       "e2e/growth-details.spec.ts",
       "src/v3-domain/memory.js"
+    ],
+    "@relation": [
+      "src/v3-domain/world-details.js",
+      "e2e/relation-revisions.spec.ts"
     ]
   },
   "nonUi": [

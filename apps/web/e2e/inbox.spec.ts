@@ -31,3 +31,28 @@ test.describe('inbox: notifications and pending (scenario preview)', { tag: ['@i
     await expect(dialog.locator('.replica-task-overview')).toContainText('需要处理', { timeout: 20_000 });
   });
 });
+
+test('actual inbox toolbar preserves desktop alignment and phone touch targets', {tag:'@inbox'}, async({page})=>{
+ await page.goto(`${SCENARIO_ORIGIN}/?scenario=inbox`);
+ const toolbar=page.locator('.replica-inbox-toolbar');
+ const select=toolbar.getByRole('combobox'),tabs=toolbar.getByRole('tablist'),refresh=toolbar.getByRole('button',{name:'重新读取通知'});
+ await expect(refresh).toBeVisible();
+ const boxes=await Promise.all([select,tabs,refresh].map(node=>node.boundingBox()));
+ const phone=page.viewportSize()!.width<640;
+ for(const box of boxes){expect(box).not.toBeNull();expect(box!.height).toBeGreaterThanOrEqual(phone?40:36);if(!phone)expect(box!.height).toBe(36);}
+ const centers=boxes.map(box=>box!.y+box!.height/2);
+ expect(Math.max(...centers)-Math.min(...centers)).toBeLessThanOrEqual(1);
+ await expectNoLayoutDefects(page,toolbar,{minTarget:phone?40:0});
+ if(phone){
+  for(const width of [360,430]){
+   await page.setViewportSize({width,height:844});
+   await expect.poll(async()=>Math.round((await toolbar.boundingBox())!.width)).toBe(width-36);
+   await expectNoLayoutDefects(page,toolbar,{minTarget:40});
+  }
+ }
+ await select.click();
+ await page.getByRole('option',{name:'林夏',exact:true}).click();
+ await expect(select).toHaveText('林夏');
+ await refresh.click();
+ await expect(select).toHaveText('林夏');
+});

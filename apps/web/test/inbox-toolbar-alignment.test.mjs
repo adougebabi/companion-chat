@@ -31,14 +31,14 @@ test('inbox toolbar centers desktop controls without wrapping and uses a centere
   const mobile=rules.find(rule=>rule.conditionText==='(max-width:700px)').cssRules;
   const mobileToolbar=[...mobile].find(rule=>rule.selectorText==='.replica-inbox-toolbar').style;
   assert.equal(mobileToolbar.getPropertyValue('display'),'grid');
-  assert.equal(mobileToolbar.getPropertyValue('grid-template-columns'),'auto minmax(0,1fr) 36px');
+  assert.equal(mobileToolbar.getPropertyValue('grid-template-columns'),'auto minmax(0,1fr) auto');
   assert.equal(mobileToolbar.getPropertyValue('align-items'),'center');
   assert.equal(mobileToolbar.getPropertyValue('gap'),'8px');
   for(const media of rules.filter(rule=>rule.cssRules)){
     for(const rule of media.cssRules){
       if(rule.selectorText!=='.replica-inbox-toolbar')continue;
       for(const property of ['display','grid-template-columns','align-items','flex-wrap','gap']){
-        const mobileValues={display:'grid','grid-template-columns':'auto minmax(0,1fr) 36px','align-items':'center','flex-wrap':'nowrap',gap:'8px'};
+        const mobileValues={display:'grid','grid-template-columns':'auto minmax(0,1fr) auto','align-items':'center','flex-wrap':'nowrap',gap:'8px'};
         const expected=media.conditionText==='(max-width:700px)'?mobileValues[property]:base.getPropertyValue(property);
         assert.ok(!rule.style.getPropertyValue(property)||rule.style.getPropertyValue(property)===expected,`${media.conditionText} preserves ${property}`);
       }
