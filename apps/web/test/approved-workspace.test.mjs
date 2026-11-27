@@ -1,7 +1,7 @@
 import test from "node:test";
 
 import assert from "node:assert/strict";
-import { createServer } from "vite";
+import { createServer } from "./support/module-server.mjs";
 import { fileURLToPath } from "node:url";
 test("approved workspace drops late reads, recovers original commands after switching, and checkpoints request observers", async () => {
   const previous = {

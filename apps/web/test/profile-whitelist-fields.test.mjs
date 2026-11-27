@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import React from "react";
-import { createServer } from "vite";
+import { createServer } from "./support/module-server.mjs";
 import { installDOM, mountReact } from "./helpers/react-dom.mjs";
 
 const dom = installDOM();

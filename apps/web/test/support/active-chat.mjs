@@ -1,4 +1,4 @@
-import {createServer} from 'vite';
+import {createServer} from './module-server.mjs';
 import {fileURLToPath} from 'node:url';
 import {proxy,snapshot,subscribe} from 'valtio/vanilla';
 import {installDOM,mountReact,act} from '../helpers/react-dom.mjs';

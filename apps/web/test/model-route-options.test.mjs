@@ -44,7 +44,7 @@ test('覆盖选项按业务分组，只包含可写路由并保留原始保存�
 });
 
 test('真实管理页面显示分组中文选项，选择后标题保持中文且不触发写入', async () => {
-  const {createServer} = await import('vite');
+  const {createServer} = await import('./support/module-server.mjs');
   const {fileURLToPath} = await import('node:url');
   const {proxy, snapshot, subscribe} = await import('valtio/vanilla');
   const {mountReact, installDOM} = await import('./helpers/react-dom.mjs');

@@ -1,4 +1,4 @@
-import {createServer} from 'vite';
+import {createServer} from './module-server.mjs';
 import {fileURLToPath} from 'node:url';
 import {installDOM,mountReact,act} from '../helpers/react-dom.mjs';
 export function profileDetail({id='fixture-role',status='active',active='warm',revision=2,name='角色'}={}){return {id,status,current_revision:4,identity:{name,background:'真实背景',timezone:'Asia/Shanghai'},core_persona:{identity:{name,timezone:'Asia/Shanghai'},personality:{},behavioral_policy:{},life_profile:{},personality_system:{profiles:[{id:'warm',name:'日常人格'},{id:'focused',name:'专注人格'}]}},personality_runtime:{active_profile_id:active,revision},current_state:{appearance:null},developing_self:{claims:[]}};}

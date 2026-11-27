@@ -2,7 +2,7 @@ import test from 'node:test';
 import {ref as untracked} from 'valtio/vanilla';
 import assert from 'node:assert/strict';
 
-import {createServer} from 'vite';
+import {createServer} from './support/module-server.mjs';
 import {fileURLToPath} from 'node:url';
 
 test('leaving a source page while its conversation read is pending cannot replace the selected role',async()=>{

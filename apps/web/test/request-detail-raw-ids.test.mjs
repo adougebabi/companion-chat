@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {JSDOM} from 'jsdom';
-import {createServer} from 'vite';
+import {createServer} from './support/module-server.mjs';
 
 const vite = await createServer({
   root: fileURLToPath(new URL('../',import.meta.url)),

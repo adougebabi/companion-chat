@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createServer} from 'vite';
+import {createServer} from './support/module-server.mjs';
 import {fileURLToPath} from 'node:url';
 import {configurationFields,conversationReplyDisplayValue} from '../src/v3/proto/components/configuration-fields.js';
 import {SavedReplySummary} from '../src/v3/proto/components/configuration-summary.js';

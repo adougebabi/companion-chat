@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
+import { createServer } from "./support/module-server.mjs";
 import { act, installDOM, mountReact } from "./helpers/react-dom.mjs";
 import { avatarInitial, avatarSource } from "../src/lib/avatar-presentation.mjs";
 import { Avatar } from "../src/v3/proto/components/avatar.js";

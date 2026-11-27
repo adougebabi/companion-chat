@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'vite';
+import { createServer } from './support/module-server.mjs';
 import { fileURLToPath } from 'node:url';
 
 // Explicit transport fixture: verifies adapter/client behavior, not live Core,

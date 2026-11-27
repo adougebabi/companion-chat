@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import { createServer } from 'vite';
+import { createServer } from './support/module-server.mjs';
 import { fileURLToPath } from 'node:url';
 import { profileFields, profileChanges } from '../src/approved-ui/profile-fields.mjs';
 import { readApprovedCreationProgress } from '../src/approved-ui/creation-progress.mjs';

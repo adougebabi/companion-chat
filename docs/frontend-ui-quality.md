@@ -3,7 +3,8 @@
 真实 Chromium（Playwright）中的布局、交互与视觉检查。jsdom 断言和 CSS 文本检查
 不能替代它；只有门禁结果为 `pass`（或 `not-applicable`）时才能报告 UI 验收通过。
 
-设计规范与共享组件清单见 [`.impeccable.md`](../.impeccable.md)。
+设计规范与共享组件清单见 [`.impeccable.md`](../.impeccable.md)；jsdom 单元测试的运行方式见
+[前端单元测试](frontend-unit-tests.md)。
 
 ## 组成
 

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { proxy, snapshot, subscribe } from "valtio/vanilla";
-import { createServer } from "vite";
+import { createServer } from "./support/module-server.mjs";
 import { act, installDOM, mountReact } from "./helpers/react-dom.mjs";
 
 const timestamp = "2026-11-23T01:34:56.000Z";
