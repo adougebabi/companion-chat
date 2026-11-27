@@ -66,7 +66,11 @@
       "src/react-app/shared/DiagnosticRecords.tsx",
       "src/approved-ui/task-presentation.mjs",
       "src/approved-ui/task-model-call-presentation.mjs",
-      "e2e/task-diagnostics.spec.ts"
+      "e2e/task-diagnostics.spec.ts",
+      "src/react-app/shared/DiagnosticReplayPanel.tsx",
+      "src/v3-domain/diagnostics.js",
+      "src/v3/proto/components/diagnostic-card.js",
+      "e2e/diagnostic-content.spec.ts"
     ],
     "@visual-identity": [
       "src/v3/scenarios/**",

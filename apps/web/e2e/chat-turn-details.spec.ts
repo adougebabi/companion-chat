@@ -52,6 +52,7 @@ test.describe('chat turn details (scenario preview)', { tag: ['@chat-turn'] }, (
     const failed = sheet.locator('.replica-task-result-list > li[data-call-status="failure"]');
     await expect(failed.locator('.replica-task-round-trigger')).toHaveAttribute('aria-expanded', 'true');
     await expect(failed.getByRole('region', { name: '调用错误' })).toContainText('provider_unavailable');
+    await expect(failed.getByRole('tablist')).toHaveCount(0);
     await expect(sheet.getByRole('region', { name: 'Agent 运行' })).toContainText('执行失败');
 
     const first = sheet.locator('.replica-task-result-list > li').first();
@@ -63,5 +64,11 @@ test.describe('chat turn details (scenario preview)', { tag: ['@chat-turn'] }, (
     await sheet.getByRole('button', { name: '技术信息' }).click();
     await expect(sheet.getByText('turn:turn-failed').first()).toBeVisible();
     await expectNoLayoutDefects(page, sheet, { minTarget: 0 });
+    await failed.getByRole('link', { name: '查看完整调用记录与来源' }).click();
+    await expect(page).toHaveURL(/diag\/record\/model-runs/);
+    await expect(page.getByRole('button', { name: '重新读取实际状态' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '下载完整原始记录' })).toHaveAttribute('download','fluctlight-record.json');
+    await page.getByRole('link', { name: '返回排查来源' }).click();
+    await expect(page).toHaveURL(/c\/fl-scn-linxia/);
   });
 });

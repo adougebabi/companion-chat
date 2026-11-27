@@ -99,3 +99,16 @@ test('task model errors and raw model records stay readable and download-only',a
   assert.deepEqual(values.find(value=>value?.ref===record.ref),record);assert.ok(values.some(value=>value?.error_code===record.data.error_code));noRaw();
  }finally{URL.createObjectURL=create;URL.revokeObjectURL=revoke;anchor.click=click;await v.dispose();}
 });
+
+test('production diagnostic card scopes reason codes to recorded failure states',async()=>{
+ const {DiagnosticCard}=await vite.ssrLoadModule('/src/v3/proto/components/diagnostic-card.js');
+ for(const status of ['queued','started','cancelled','completed','future_state',undefined]){
+  const html=DiagnosticCard({kind:'events',ref:'event',data:{event_type:'workflow.status',payload:{status,reason_code:'unknown_reason'}}});
+  const host=document.createElement('div');host.innerHTML=html;
+  assert.doesNotMatch(host.textContent,/本次执行未完成|失败记录/);
+  assert.match(host.textContent,/事件发生时的状态快照/);
+ }
+ const html=DiagnosticCard({kind:'events',ref:'event',data:{payload:{status:'queued',reason_code:'retry_scheduled',safe_cause:'等待执行器接单。'}}});
+ assert.match(html,/等待执行器接单/);
+ assert.match(DiagnosticCard({kind:'events',ref:'failed',data:{payload:{status:'failed',reason_code:'unrecognized_failure'}}}),/本次执行未完成/);
+});

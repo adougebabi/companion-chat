@@ -16,7 +16,9 @@ export function installApiScenarios(){
  const params=new URLSearchParams(location.search);
  const scenario:Scenario=scenarios.find(entry=>entry.id===params.get('scenario'))||scenarios[0];
  if(!location.hash||location.hash==='#'||location.hash==='#/')history.replaceState(null,'',location.pathname+location.search+scenario.hash);
- const data=createDataset(),failures=new Map<RegExp,number>(),unmatched:string[]=[];
+ const data=createDataset();
+ const eventRecords=Object.values(data.tasks).flatMap(task=>task.steps.map((step:any)=>({id:task.task_id+'-'+step.id,ref:task.task_id+'-'+step.id,kind:'events',occurred_at:step.at,data:{event_type:step.event_type,correlation_id:task.correlation_id,intent_id:task.task_id,fluctlight_id:task.fluctlight_id,payload:{status:step.status,reason_code:step.reason_code||'dispatch_accepted'}}})));
+ const failures=new Map<RegExp,number>(),unmatched:string[]=[];
  // Only the inbox scenario carries notifications and pending items, so the
  // unread badge of every other scenario stays as it was.
  if(scenario.id!=='inbox'){data.notifications=[];data.pending=data.pending.map(group=>({...group,count:0,items:[]}));}
@@ -97,8 +99,20 @@ export function installApiScenarios(){
    const kind=decodeURIComponent(match[1]),page=(items:unknown[])=>json(200,{items,next_cursor:'',snapshot:'scenario-snapshot-1',as_of:new Date().toISOString(),filters:Object.fromEntries(q),snapshot_semantics:'creation_membership; mutable states reflect each read',coverage:'actual owning records'});
    if(kind==='model-runs'){const id=q.get('correlationId')||'';return page((data.calls[id]||[]).map((seed,index)=>callRecord(id,seed,index)));}
    if(kind==='agent-runs')return page(data.agentRuns[q.get('correlationId')||'']||[]);
-   if(kind==='workflow-intents'){const type=q.get('intentType');return page(Object.values(data.tasks).filter(entry=>!type||entry.kind===type).map(entry=>({id:entry.task_id,ref:'intent:'+entry.task_id,kind:'workflow-intents',occurred_at:entry.created_at,data:{...entry,intent_id:entry.task_id,intent_type:entry.kind}})));}
+   if(kind==='workflow-intents'){const type=q.get('intentType'),correlation=q.get('correlationId');return page(Object.values(data.tasks).filter(entry=>(!type||entry.kind===type)&&(!correlation||entry.correlation_id===correlation)).map(entry=>({id:entry.task_id,ref:'intent:'+entry.task_id,kind:'workflow-intents',occurred_at:entry.created_at,data:{...entry,intent_id:entry.task_id,intent_type:entry.kind}})));}
    if(kind==='media-prompts')return page(data.media[q.get('correlationId')||'']||[]);
+   if(kind==='events'){
+    const rows=eventRecords.filter(row=>(!q.get('correlationId')||row.data.correlation_id===q.get('correlationId'))&&(!q.get('status')||row.data.payload.status===q.get('status'))&&(!q.get('q')||JSON.stringify(row).includes(q.get('q')!)));
+    const offset=Number(q.get('cursor')?.match(/^events:(\d+)$/)?.[1]||0);
+    return json(200,{items:rows.slice(offset,offset+3),next_cursor:rows.length>offset+3?'events:'+String(offset+3):'',snapshot:'scenario-events',as_of:'2026-11-24T08:30:00Z',filters:Object.fromEntries(q)});
+   }
+   if(['turns','links','media-recoveries','kev','lifecycle'].includes(kind))return page([]);
+  }
+  if(method==='GET'&&(match=path.match(/^\/api\/diagnostic-records\/([^/]+)\/(.+)$/))){
+   const kind=decodeURIComponent(match[1]),ref=decodeURIComponent(match[2]);
+   const records=kind==='events'?eventRecords:kind==='model-runs'?Object.entries(data.calls).flatMap(([id,seeds])=>seeds.map((seed,index)=>callRecord(id,seed,index))):kind==='workflow-intents'?Object.values(data.tasks).map(task=>({kind,ref:'intent:'+task.task_id,data:{...task,intent_id:task.task_id,intent_type:task.kind},occurred_at:task.created_at})):kind==='media-prompts'?Object.values(data.media).flat():[];
+   const row=records.find(row=>row.ref===ref);
+   return row?json(200,row):json(404,{code:'not_found',message:'记录未读到'});
   }
   if((match=path.match(/^\/api\/fluctlights\/([^/]+)\/(visual-identity|visual-identity\/timeline|visual-brief|visual-brief\/history|visual-sessions\/([^/]+)\/resume-reviewed)$/))&&decodeURIComponent(match[1])===scenarioCharacter.id){
    const empty={items:[],next_cursor:''};

@@ -31,7 +31,7 @@ test('readonly playback retains failed and successful attempts and separate tool
   ]):page());
   const view=await mount(w);
   try {
-    const shown=()=>view.host.querySelector('[data-testid=replay-record]').textContent;
+    await view.click(view.host.querySelector('.replica-raw-content-trigger'));const shown=()=>view.host.querySelector('[data-testid=replay-record]').textContent;
     assert.match(shown(),/adk.tool.requested/);
     await view.click(button(view.host,'下一条记录'));assert.match(shown(),/failed/);
     await view.click(button(view.host,'下一条记录'));assert.match(shown(),/completed/);
@@ -74,7 +74,7 @@ test('missing content, absent time and empty sources keep their actual storage m
   try {
     assert.match(view.host.textContent,/时间未记录/);
     assert.match(view.host.textContent,/缺失或已清理/);
-    assert.match(view.host.querySelector('pre').textContent,/"prompt": null/);
+    await view.click(view.host.querySelector('.replica-raw-content-trigger'));assert.match(view.host.querySelector('pre').textContent,/"prompt": null/);
     assert.doesNotMatch(view.host.textContent,/已发送|已交付|回放完整/);
   } finally {await view.dispose();}
 });

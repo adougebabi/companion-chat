@@ -297,6 +297,27 @@
       }
     },
     {
+      "path": "docs/reports/frontend-closeout-1127.md",
+      "hash": "8ea3b44af89f9ed6c5ee5bc75e7b8c39a8a225b573f95e80efd1318142c419fb",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/reports/frontend-closeout-1127.md",
+        "title": "frontend-closeout-1127.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/reports/frontend-closeout-1127.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/reports/frontend-closeout-1127.md",
+        "hash": "8ea3b44af89f9ed6c5ee5bc75e7b8c39a8a225b573f95e80efd1318142c419fb",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
       "path": "docs/v3-llm-acceptance.md",
       "hash": "f27a8bccbcf69842f5d1a9c902ded4a31c2f311a282608a47f7a8f07a2407a4a",
       "action": "historical",
@@ -971,7 +992,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 44,
+    "historical": 45,
     "retired": 1
   }
 }

@@ -74,7 +74,7 @@ test('readable task title and subtitle keep exact records in downloads without e
 });
 test('task reasons translate only known causes, unknown types stay readable and pending source links do not claim recovery',async()=>{
  const {taskEventReason,taskTypeLabel,taskSourceLabel}=await vite.ssrLoadModule('/src/approved-ui/task-presentation.mjs');
- assert.match(taskEventReason({reason_code:'initialization_role_unconfigured'}),/通用模型/);assert.match(taskEventReason({reason:'已保留真实原因'}),/已保留真实原因/);assert.equal(taskEventReason({reason:'unrecognized raw cause'}),'本次执行未完成，详细原因已保留在原始记录中。');assert.doesNotMatch(taskEventReason({reason:'unrecognized raw cause'}),/unrecognized raw cause/);assert.equal(taskTypeLabel({kind:'unknown.internal'}),'其他后台任务');assert.equal(taskSourceLabel({status:'queued',runs:0}),'查看初始衣柜准备');
+ assert.match(taskEventReason({status:'failed',reason_code:'initialization_role_unconfigured'}),/通用模型/);assert.match(taskEventReason({reason:'已保留真实原因'}),/已保留真实原因/);assert.equal(taskEventReason({reason:'unrecognized raw cause'}),'');assert.doesNotMatch(taskEventReason({reason:'unrecognized raw cause'}),/unrecognized raw cause/);assert.equal(taskTypeLabel({kind:'unknown.internal'}),'其他后台任务');assert.equal(taskSourceLabel({status:'queued',runs:0}),'查看初始衣柜准备');
 });
 
 test('queued unattempted task uses a preparation link while retaining the backend domain target',async()=>{

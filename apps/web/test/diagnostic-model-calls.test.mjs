@@ -55,11 +55,11 @@ test('formal call detail opens and closes readonly replay through diagnostic GET
  try{
   await v.click(v.host.querySelector('[data-testid=diag-open-replay-entry]'));
   const dialog=document.querySelector('[role=dialog]');
-  await v.click(button(dialog,'只读回放此运行'));
+  await act(async()=>button(dialog,'只读回放此运行').dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true})));await v.flush();
   assert.match(dialog.querySelector('[data-testid=replay-record]').textContent,/tool-failed/);
   assert.equal(reads.filter(read=>read.limit===30).length,9);
   assert.ok(reads.filter(read=>read.limit===30).every(read=>read.correlationId==='formal-parent'));
-  await v.click(button(dialog,'收起只读回放'));
+  await act(async()=>button(dialog,'请求与返回').dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true})));await v.flush();
   assert.equal(dialog.querySelector('[data-testid=diagnostic-replay]'),null);
  }finally{await v.dispose();}
 });

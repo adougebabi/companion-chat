@@ -1,7 +1,10 @@
 import {useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore} from 'react';
 import {Button} from '@/components/ui/button';
 import {useWorkspace} from '../page';
-import {errorMessage} from '@/v3/domain-presentation.mjs';
+import {errorMessage,stateLabel} from '@/v3/domain-presentation.mjs';
+import {DetailFields,Feedback,RecordList,RecordListItem} from '@/components/patterns';
+import RawContent from './RawContent';
+import {taskEventReason,taskEventTitle} from '@/approved-ui/task-presentation.mjs';
 
 const sourceLabels = {
   events: '事件与工具',
@@ -29,6 +32,7 @@ export default function DiagnosticReplayPanel({correlationId}: {correlationId: s
   const pending = useRef(new Set<string>());
   const [state, setState] = useState<{identity: string; sources: Partial<Record<SourceKind, SourcePage>>}>({identity: '', sources: {}});
   const [selectedKey, setSelectedKey] = useState('');
+  const detailRef = useRef<HTMLElement>(null);
 
   const load = useCallback(async (kind: SourceKind, cursor: string, epoch: number) => {
     const requestKey = JSON.stringify([epoch, kind, cursor]);
@@ -90,15 +94,21 @@ export default function DiagnosticReplayPanel({correlationId}: {correlationId: s
     <h3>只读记录回放</h3>
     <p className="text-sm text-muted-foreground">按已存时间排序；时间相同或未记录时，先后顺序待核对。各来源按自己的创建快照分页，可变状态为读取时状态。缺失或已清理的输入、工具回执和发布结果仍需核对。</p>
     <p role="status">已读取 {rows.length} 条记录{loading ? '，正在读取来源…' : ''}{unread.length ? `，${unread.length} 个来源仍有后续页` : ''}{errors.length ? `，${errors.length} 个来源读取失败` : ''}。</p>
+    {rows.length>0&&<RecordList label="已读取的运行过程">{rows.map(row=>{
+      const data={...row.data,...row.data?.payload},reason=taskEventReason(data);
+      return <RecordListItem key={recordKey(row)} title={sourceLabels[row.kind as SourceKind]+' · '+taskEventTitle(data)} status={stateLabel(data.status,'状态未记录')} meta={row.occurred_at||'时间未记录'} actions={<Button variant="link" onClick={()=>{setSelectedKey(recordKey(row));requestAnimationFrame(()=>detailRef.current?.scrollIntoView({block:'start',behavior:'smooth'}));}}>查看这条记录</Button>}>{reason&&<p>{reason}</p>}</RecordListItem>;
+    })}</RecordList>}
     <div className="flex flex-wrap gap-2">
       <Button variant="outline" disabled={!selected || selectedIndex === 0} onClick={() => setSelectedKey(recordKey(rows[selectedIndex - 1]))}>上一条记录</Button>
       <Button variant="outline" disabled={!selected || selectedIndex >= rows.length - 1} onClick={() => setSelectedKey(recordKey(rows[selectedIndex + 1]))}>下一条记录</Button>
       {selected && <span>{selectedIndex + 1} / {rows.length}</span>}
     </div>
-    {selected && <article data-testid="replay-record" className="grid gap-2">
+    {selected && <article ref={detailRef} data-testid="replay-record" className="grid gap-2">
       <h4>{sourceLabels[selected.kind as SourceKind] || selected.kind} · {selected.data?.event_type || selected.data?.status || '已记录'}</h4>
-      <p>{selected.occurred_at || '时间未记录'}</p>
-      <pre className="replica-model-call-wire">{JSON.stringify(selected, null, 2)}</pre>
+      <DetailFields items={[{label:'记录时间',value:selected.occurred_at || '时间未记录'},{label:'记录引用',value:selected.ref},{label:'状态范围',value:selected.kind==='events'?'事件发生时的快照':'本次读取的来源记录'}]}/>
+      {taskEventReason({...selected.data,...selected.data?.payload})&&<Feedback kind="information">{taskEventReason({...selected.data,...selected.data?.payload})}</Feedback>}
+      <RawContent label="完整回放记录" value={selected} missing="记录未读到"/>
+      <Button asChild variant="link"><a href={'#/diag/record/'+encodeURIComponent(selected.kind)+'/'+encodeURIComponent(selected.ref)}>查看此条完整记录与来源</a></Button>
     </article>}
     {!loading && !rows.length && !errors.length && <p>该关联范围没有可回放记录，原任务结果仍需核对。</p>}
     {sourceKinds.map(kind => {

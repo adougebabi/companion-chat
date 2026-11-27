@@ -25,7 +25,7 @@ export default function TaskExecutionResults({task,calls,available,isReflection=
    {calls.busy&&!calls.ready&&<ReadState>正在读取模型调用…</ReadState>}
    {calls.error&&<Feedback kind={calls.ready?'warning':'error'} actions={<Button variant="outline" onClick={calls.retry}>重新读取模型调用</Button>}>{calls.error}</Feedback>}
    {!available&&<p className="replica-inbox-caption">此任务没有可关联的模型调用记录。</p>}
-   {calls.ready&&!rounds.length&&<p className="replica-inbox-caption">{['failed','dead_letter'].includes(task.status)?'没有模型调用记录：任务在调用模型之前已经停止。':'还没有模型调用记录。'}</p>}
+   {calls.ready&&!rounds.length&&<p className="replica-inbox-caption">{['failed','dead_letter'].includes(task.status)?'当前未读到模型调用记录；不能据此判断任务停在哪个阶段。':'还没有模型调用记录。'}</p>}
    {rounds.length>0&&<ol className="replica-task-result-list">{rounds.map(({record,call,label,status}:any)=><li key={record.ref} data-call-status={status}>
     <Collapsible className="replica-task-result-row" defaultOpen={record.ref===firstFailure}>
      <CollapsibleTrigger asChild><Button type="button" variant="ghost" className="replica-task-round-trigger"><span>{label}</span><DiagnosticStatus status={call.status} label={status==='success'?'成功':status==='failure'?'失败':undefined}/><span className="replica-task-round-duration">{callDurationLabel(call,{includeSource:false})}</span><ChevronDown size={14}/></Button></CollapsibleTrigger>

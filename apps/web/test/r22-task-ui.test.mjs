@@ -36,9 +36,9 @@ test('r22 execution results count physical calls, disclose each input/output/err
  }finally{await v.dispose();}
 });
 
-test('r22 failed pre-model task reports zero physical rounds without turning nine lifecycle events into attempts',async()=>{
+test('r22 failed task with no recorded calls reports zero physical rounds without turning nine lifecycle events into attempts',async()=>{
  const task={task_id:'pre-model',status:'failed',correlation_id:'pre-model-correlation',runs:2,steps:lifecycle()},v=await mountReact(vite,Record,{workspace:workspace(task),props:{taskId:task.task_id,onClose(){}}});
- try{await tab(v,'模型调用');await modelCalls(v,document.querySelector('[data-slot=sheet-content]'));const sheet=document.querySelector('[data-slot=sheet-content]');assert.equal(callsHead(sheet),'模型调用0 次');assert.match(sheet.textContent,/任务在调用模型之前已经停止/);assert.equal(sheet.querySelector('.replica-task-result-list'),null);await tab(v,'执行阶段');assert.equal(sheet.querySelectorAll('.replica-task-history>li').length,9);}finally{await v.dispose();}
+ try{await tab(v,'模型调用');await modelCalls(v,document.querySelector('[data-slot=sheet-content]'));const sheet=document.querySelector('[data-slot=sheet-content]');assert.equal(callsHead(sheet),'模型调用0 次');assert.match(sheet.textContent,/不能据此判断任务停在哪个阶段/);assert.equal(sheet.querySelector('.replica-task-result-list'),null);await tab(v,'执行阶段');assert.equal(sheet.querySelectorAll('.replica-task-history>li').length,9);}finally{await v.dispose();}
 });
 
 test('r22 task round pagination retries original correlation and discards responses after task changes',async()=>{
