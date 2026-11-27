@@ -259,11 +259,17 @@ func (a *App) decideKev(ctx context.Context, point string, scope decision.Scope,
 	return r, out, err
 }
 
+// wakeUpKevEnabled treats unreadable Kev settings as Kev being off: Kev is an
+// optional judgment, never a precondition for waking up.
 func wakeUpKevEnabled(ctx context.Context, service *decision.Service, manual bool) (bool, error) {
 	if manual {
 		return false, ctx.Err()
 	}
-	return service.EnabledWithError(ctx, "runtime.wakeup")
+	enabled, err := service.EnabledWithError(ctx, "runtime.wakeup")
+	if err != nil {
+		return false, ctx.Err()
+	}
+	return enabled, nil
 }
 
 // kevAutomaticGate retains the original execution budget and source identity.
@@ -283,10 +289,9 @@ type kevDeferralStore interface {
 
 func (a *App) kevAutomaticGateWithStore(ctx context.Context, point, owner, candidate string, state any, store kevDeferralStore) (bool, time.Time, error) {
 	service := a.kevService()
-	enabled, enabledErr := service.EnabledWithError(ctx, point)
-	if enabledErr != nil && point == "runtime.wakeup" {
-		return false, time.Time{}, enabledErr
-	}
+	// Kev is optional: an unreadable or disabled setting runs the original
+	// process instead of holding it.
+	enabled, _ := service.EnabledWithError(ctx, point)
 	if !enabled {
 		return true, time.Time{}, ctx.Err()
 	}
@@ -296,15 +301,9 @@ func (a *App) kevAutomaticGateWithStore(ctx context.Context, point, owner, candi
 			return false, time.Time{}, parentErr
 		}
 		slog.Warn("kev_settings_unavailable", "decision_point", point)
-		if point == "runtime.wakeup" {
-			return false, time.Time{}, err
-		}
 		return true, time.Time{}, nil
 	}
 	if store == nil {
-		if point == "runtime.wakeup" {
-			return false, time.Time{}, errors.New("kev_deferral_store_unavailable")
-		}
 		return true, time.Time{}, nil
 	}
 	var count int
@@ -315,12 +314,9 @@ func (a *App) kevAutomaticGateWithStore(ctx context.Context, point, owner, candi
 			return false, time.Time{}, parentErr
 		}
 		slog.Warn("kev_deferral_read_failed", "decision_point", point)
-		if point == "runtime.wakeup" {
-			return false, time.Time{}, err
-		}
 		return true, time.Time{}, nil
 	}
-	if count >= c.MaxDeferrals && point != "runtime.wakeup" {
+	if count >= c.MaxDeferrals {
 		if err := service.RecordOriginal(ctx, point, decision.Scope{ActorSelf: owner, Agent: point, RunID: candidate}, candidate, "max_deferral_original"); err != nil {
 			slog.Warn("kev_application_record_failed")
 		}
@@ -331,24 +327,16 @@ func (a *App) kevAutomaticGateWithStore(ctx context.Context, point, owner, candi
 		return false, until, nil
 	}
 	instructions := "Should this eligible automatic process run now? Answer no only when it can safely be deferred; unclear means use its original process."
-	if point == "runtime.wakeup" {
-		instructions = "Should this automatic wake-up run now? Answer yes to wake, no to defer; unclear means wait and ask again later."
-	}
 	r, out, err := a.decideKev(ctx, point, decision.Scope{ActorSelf: owner, Agent: point, RunID: candidate, CorrelationID: providerCorrelation(ctx)}, state, candidate, instructions)
 	if err != nil {
-		return false, time.Time{}, err
-	}
-	waitForDecision := false
-	if out == decision.Original && point == "runtime.wakeup" {
-		current, _, _, readErr := service.Settings.Read(ctx)
-		if readErr != nil {
-			return false, time.Time{}, readErr
+		if parentErr := ctx.Err(); parentErr != nil {
+			return false, time.Time{}, parentErr
 		}
-		// Disabling the point while a request is in flight restores the normal
-		// ungated path. An enabled point waits for a usable decision instead.
-		waitForDecision = current.Allows(point)
+		// An unreachable or failing Kev never blocks the original process.
+		slog.Warn("kev_decision_unavailable", "decision_point", point)
+		return true, time.Time{}, nil
 	}
-	if out != decision.No && !waitForDecision {
+	if out != decision.No {
 		status := "applied"
 		if out == decision.Original {
 			status = "original_used"
@@ -362,9 +350,6 @@ func (a *App) kevAutomaticGateWithStore(ctx context.Context, point, owner, candi
 	_, err = store.Exec(ctx, `INSERT INTO public.kev_deferrals(decision_point,actor_self,candidate_id,deferral_count,deferred_until) VALUES($1,$2,$3,1,$4) ON CONFLICT(decision_point,actor_self,candidate_id) DO UPDATE SET deferral_count=LEAST(kev_deferrals.deferral_count::bigint+1,$5)::integer,deferred_until=excluded.deferred_until`, point, owner, candidate, until, c.MaxDeferrals)
 	if err != nil {
 		status := "original_used"
-		if point == "runtime.wakeup" {
-			status = "not_applied"
-		}
 		if finishErr := r.Finish(ctx, status, "deferral_persistence_failed", candidate); finishErr != nil {
 			slog.Warn("kev_application_record_failed", "decision_id", r.Record.ID)
 		}
@@ -372,16 +357,9 @@ func (a *App) kevAutomaticGateWithStore(ctx context.Context, point, owner, candi
 			return false, time.Time{}, parentErr
 		}
 		slog.Warn("kev_deferral_persistence_failed", "decision_point", point)
-		if point == "runtime.wakeup" {
-			return false, time.Time{}, err
-		}
 		return true, time.Time{}, nil
 	}
-	if waitForDecision {
-		_ = r.Finish(ctx, "not_applied", "wakeup_waiting_for_decision", candidate)
-	} else {
-		_ = r.Finish(ctx, "applied", "deferred", candidate)
-	}
+	_ = r.Finish(ctx, "applied", "deferred", candidate)
 	return false, until, nil
 }
 

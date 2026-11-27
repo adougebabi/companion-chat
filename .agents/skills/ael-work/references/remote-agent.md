@@ -26,7 +26,7 @@ init 默认共用机器级 CLI，支持 `--prefix DIR --from CLIENT_PACKAGE`。�
 
 ### 常规领取与提交
 
-`runner claim --runner RUNNER --file PRIVATE_CLAIM_JSON --out PRIVATE_CLAIM_RECEIPT` 返回的私有文件可直接用于 `--lease-file`。CLI 从中读取任务、领取版本和租约；检查方式可从领取的检查定义取得。有可靠宿主 PID 时，领取时传 `--owner-pid PID`，或由宿主设置 `AEL_RUNNER_OWNER_PID`。CLI 在首个心跳成功后返回 keeper_pid，此后自动续租，宿主退出后停止。对已有回执可单独启动 keepalive。手动 heartbeat 的私有请求只需 operation_id、idempotency_key，成功后更新同一租约文件。
+`runner claim --runner RUNNER --file PRIVATE_CLAIM_JSON --out PRIVATE_CLAIM_RECEIPT` 返回的私有文件可直接用于 `--lease-file`。CLI 从中读取任务、领取版本和租约；检查方式可从领取的检查定义取得。有可靠宿主 PID 时，领取时传 `--owner-pid PID`，或由宿主设置 `AEL_RUNNER_OWNER_PID`。CLI 返回 keeper_pid，此后自动续租，宿主退出后停止。keeper 启动问题不会使已成功的领取失败：首个心跳较慢时返回 `warnings` 中的 `KEEPER_UNCONFIRMED`，keeper 继续在后台续租（日志在 `CLAIM.keeper.log`），可通过租约文件中 lease_until 是否推进确认；keeper 未能启动时返回 `KEEPER_FAILED`，按提示单独运行 `runner keepalive`。对已有回执可单独启动 keepalive。手动 heartbeat 的私有请求只需 operation_id、idempotency_key，成功后更新同一租约文件。
 
 普通实施与分析在 summary 写明改了什么、如何处理、已验证和待验证事项。简单任务一两句即可。完整提交后读取 next_action，继续尚未满足的必需检查。
 
@@ -59,13 +59,14 @@ init 默认共用机器级 CLI，支持 `--prefix DIR --from CLIENT_PACKAGE`。�
 1. `runner register --file PRIVATE_JSON --operation-id OP --idempotency-key KEY`：文件含 id、workspace_id、checkout_id、repository、version、capabilities（例如 development、model、scenario）、expected_revision:"absent"。可选 alias 和 machine 提供客户端别名与设备声明，未提供时使用 runner ID 并显示设备未声明。这是身份/能力声明，不是 OS 隔离证明。
 2. `task show --task ID` / `next --task ID` 取得 revision、next_action、current_step；父范围先 `runner next --runner ID --parent EPIC` 查询合法后继，再 claim，不凭查询直接工作。人工责任保持 wait_human；父级叶子与集成条件继续生效。
 3. `candidate capture --task ID --repository REPO --checkout CHECKOUT --workspace WORKSPACE --runner ID --expected-revision REV --operation-id OP --idempotency-key KEY`，然后 context publish/show，核对实际原文、版本、workspace_matches、validity。
-4. `runner claim --runner ID --file PRIVATE_JSON --out NEW_PRIVATE_FILE`：请求含 task_id、可选 parent_id、context_id、expected_revision、operation_id、idempotency_key。请求文件必须私有（0600），返回的 attempt/token 仅保存到新私有文件，可读及 JSON 输出均不打印 token。保存领取请求用于响应丢失时原键重试到新文件；这只读取原领取结果，不重新授权。
+4. `runner claim --runner ID --file PRIVATE_JSON --out NEW_PRIVATE_FILE`：请求含 task_id、可选 parent_id、context_id、expected_revision、operation_id、idempotency_key。请求文件必须私有（0600），返回的 attempt/token 仅保存到新私有文件，可读及 JSON 输出均不打印 token。保存领取请求用于响应丢失时原键重试到新文件；这只读取原领取结果，不重新授权。领取结果以 `--out` 租约文件为准：返回码 0 且该文件存在即已领取，不依赖标准输出是否可解析；标准输出写出失败时返回 `OUTPUT_WRITE_FAILED` 并给出已保存的租约文件路径。`RUNNER_WIP` 的 detail 列出占用该 runner 的 task、attempt、unit 与状态，先提交、interrupt 或 recover 该单元再领取。
 5. 由 Agent 从私有 claim 文件取 attempt.id/token/fence，以私有 JSON 请求调用 `runner heartbeat` / `runner progress` / `runner interrupt`。共有 task_id、attempt_id、token、fence、operation_id、idempotency_key；progress 另含 summary/next/stage，interrupt 另含 reason。续租按当前租约期限进行，无常驻助手也可工作。撤权/过期停止提交有效结果；停工是 Agent 的责任，AEL 不杀宿主进程。失联展示最后上报/未知。
-6. 未在领取时绑定 keeper 时，开始可能耗时的工具调用前，宿主并行运行 `runner keepalive --lease-file CLAIM --owner-pid HOST_PID`，绑定本次执行的常驻 Agent 或真实长步骤进程，并监视退出状态。续租不用询问用户。宿主结束、失权或通信失败后核对回执及当前责任；禁止把租约过期当作旧执行者停工的证明。自行使用宿主工具完成本责任。只验收任务不得修改源码。结果产生后 `runner observe --runner ID --repository REPO --file PRIVATE_JSON` 读取本项目候选并提交已有 Attempt observe；文件含共有租约字段及领取时 expected_revision。也可在文件中提供 candidate，此时不传 repository。observe 不启动检查或复制工作区。
+6. 未在领取时绑定 keeper 时，开始可能耗时的工具调用前，宿主并行运行 `runner keepalive --lease-file CLAIM --owner-pid HOST_PID`，绑定本次执行的常驻 Agent 或真实长步骤进程，并监视退出状态。续租不用询问用户。宿主结束、失权或通信失败后核对回执及当前责任；禁止把租约过期当作旧执行者停工的证明。自行使用宿主工具完成本责任。只验收任务不得修改源码。结果产生后 `runner observe --runner ID --repository REPO --file PRIVATE_JSON` 读取本项目候选并提交已有 Attempt observe；文件含共有租约字段及领取时 expected_revision。也可在文件中提供 candidate，此时不传 repository。observe 不启动检查或复制工作区。候选包含 Git HEAD 与工作区内容：执行步骤若要以提交验收，先提交再 observe/submit；带 `--repository` 登记执行候选时如有未提交改动，输出 `warnings` 中的 `CANDIDATE_UNCOMMITTED`，此后在检查完成前不得提交、amend、stash 或 reset，否则候选改变。
 7. 仅当约定需要单独上传文件时使用 `artifact upload --task ID --attempt AT --candidate HASH --file LOCAL --lease-file PRIVATE_JSON --expected-revision CLAIM_REV --operation-id OP --idempotency-key KEY`。lease-file 含 runner_id、task_id、attempt_id、token、fence、expected_revision、lease_until（RFC3339；续租后更新）。上传后原件固定。只选任务所需依据、报告、日志与截图；不默认上传所有源码、HOME、聊天或密钥。
 8. `runner submit --runner ID --file PRIVATE_JSON` 的低层请求含共有租约字段、expected_revision、candidate_id、result、bindings。result.artifacts 可为空；提交实际文件时列出已 finalized 的 ID，bindings 填各 ID 对应的路径。文件的任务、attempt、候选、租约和哈希仍会校验。非 verify 阶段省略 method、exit_code、inputs。
 9. verify 使用定义声明的 method 和实际 status，命令的 exit_code 必须与 pass/fail 相符。summary 记录观察。显式约定的附件仍需上传；沿用旧式 `runtime:report.json` 时仍校验 candidate、check、definition_revision、plan_revision、method、source、observations 和 covers。旧式 source 是 `external-METHOD:RUNNER`。
-10. 提交后消费 `next.next_action`：repair 留在同一叶子修复；continue 领取下一个当前责任；completed 后读取父范围后继，能力授权满足则继续。交接结束当前角色，由已有外部 Bot 自行领取。等待环境/人工时记录恢复条件，不循环伪进展。`runner receipt --runner ID --idempotency-key KEY` 查原提交回执；重复同一 submit 返回相同结果，不重复推进。旧回执不是新写授权。达到重复失败预算按既有复核规则停止，不改类别规避。
+10. 验收领取返回 `CANDIDATE_CHANGED` 时，detail 给出已提交候选与本次观察到的候选。能还原原工作区则还原后重新发布 context 再领取；无法还原（例如未提交改动随后被提交）时，由 executor 自行执行 detail 中的 `resume --task ID --return-to execute --expected-revision REV --operation-id OP --idempotency-key KEY`，回到执行步骤后重新登记当前候选、提交并验收，无需审核者介入。
+11. 提交后消费 `next.next_action`：repair 留在同一叶子修复；continue 领取下一个当前责任；completed 后读取父范围后继，能力授权满足则继续。交接结束当前角色，由已有外部 Bot 自行领取。等待环境/人工时记录恢复条件，不循环伪进展。`runner receipt --runner ID --idempotency-key KEY` 查原提交回执；重复同一 submit 返回相同结果，不重复推进。旧回执不是新写授权。达到重复失败预算按既有复核规则停止，不改类别规避。
 
 已提交结果出现 CI 失败或其他反馈时，按 [FEEDBACK](workflow.md#10-feedback修正与独立新工作) 核对实际原因和范围。已完成任务的交付修正可在原任务下追加普通附件，沿用 [命令与恢复](commands.md#已完成任务的交付修正) 的修订与鉴权校验。需要远端 CI 成功的交付以最终提交或合并候选的实际结果为准。
 
@@ -164,7 +165,7 @@ runner 写命令和显式 artifact upload 在网络写入前，将完整请求�
 
 ## 远程父级集成与有限失败复核
 
-所有必需叶子达标后，由宿主同步所需源码，在最终父候选上 capture/publish 当前上下文，再调用 `ael task integrate --task EPIC --context CONTEXT --expected-revision REV --operation-id OP --idempotency-key KEY --json`。声明完整影响文件的任务另提供 `--impact-artifact ARTIFACT_ID`。Server 校验同一仓库、不可变清单、输出附件、规范依据和工作区责任。Remote 采用 `parent_rechecked`，所有叶子的必需检查须映射到含义及配置一致的父检查，并在最终候选上重新执行。`impact_unknown` 保留输入影响未知事实。此路径的版本证明来自候选清单和重新检查，Git 祖先关系仍由宿主核查。
+所有必需叶子达标后，由宿主同步所需源码，在最终父候选上 capture/publish 当前上下文，再调用 `ael task integrate --task EPIC --context CONTEXT --expected-revision REV --operation-id OP --idempotency-key KEY --json`。声明完整影响文件的任务另提供 `--impact-artifact ARTIFACT_ID`。Server 校验同一仓库、不可变清单、输出附件、规范依据和工作区责任。Remote 采用 `parent_rechecked`，所有叶子的必需检查须映射到含义及配置一致的父检查，并在最终候选上重新执行。后一叶子从前一叶子的结果开始并改写同一文件时，Server 依据两者的受验输入/结果清单接受该改写；领取执行前已在工作区改动的，Server 依据同一工作区的观察记录（前一叶子验收结果之后只有本叶子观察过该工作区）认定起点。仍应先领取执行再改代码，并避免在两者之间让其他任务观察同一工作区。集成拒绝的 detail 会给出叶子与文件；最后一个叶子验收后，分支又合入父任务之外的改动（合并、独立任务、知识索引刷新）时，不要补建事后叶子或退回旧提交集成，应在最终候选上加 `--external-file PRIVATE_JSON` 声明 `{"base":"最后验收的必需叶子","sources":["提交/合并/任务"],"reason":"说明"}`：起点叶子验收结果之后的差异记为外部改动并在看板展示，起点结果中不存在的叶子内容仍会被拒绝，所有叶子检查照常在最终候选复验。已完成叶子不能也无需重新打开，`EPIC_RECHECK_REQUIRED` 通过编辑父定义补充映射检查（`affected_tasks` 列出叶子）解决。`impact_unknown` 保留输入影响未知事实。此路径的版本证明来自候选清单和重新检查，Git 祖先关系仍由宿主核查。
 
 消费 `runner next --parent EPIC` 并通过 `runner claim` 领取准备后的父级检查。宿主运行约定检查，按原租约提交结论；仅在明确约定截图等附件时上传。人工检查可通过聊天决策入口或看板记录 reviewer/admin 对当前候选的结论。新增父候选观察后，重新准备集成与检查。
 

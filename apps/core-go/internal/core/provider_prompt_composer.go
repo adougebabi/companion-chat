@@ -231,6 +231,9 @@ func renderProviderSystemForSurface(surface ProviderContextSurface, operationRul
 		appendProviderPersona(&builder, persona, role)
 		return builder.String()
 	}
+	if surface == ProviderContextSurfaceConversationMain && directChatRules(operationRules) {
+		return renderDirectChatSystem(operationRules, persona)
+	}
 	if surface == ProviderContextSurfaceFactOnlyCognition {
 		var builder strings.Builder
 		builder.WriteString("# 运行协议\n\n" + factOnlyCognitionProtocol)
@@ -242,14 +245,18 @@ func renderProviderSystemForSurface(surface ProviderContextSurface, operationRul
 				builder.WriteString("\n\n" + rule)
 			}
 		}
-		appendProviderPersona(&builder, persona, role)
+		appendChatPersona(&builder, persona)
 		return strings.TrimSpace(builder.String())
 	}
 	if surface == ProviderContextSurfaceFactOnlyReply || surface == ProviderContextSurfaceMomentReply {
 		var builder strings.Builder
 		builder.WriteString("# 运行协议\n\n")
 		builder.WriteString(strings.Join(operationRules, "\n\n"))
-		appendProviderPersona(&builder, persona, role)
+		if surface == ProviderContextSurfaceFactOnlyReply {
+			appendChatPersona(&builder, persona)
+		} else {
+			appendProviderPersona(&builder, persona, role)
+		}
 		return strings.TrimSpace(builder.String())
 	}
 	if surface != ProviderContextSurfaceWakeUp {

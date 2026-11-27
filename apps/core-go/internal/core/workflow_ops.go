@@ -626,6 +626,13 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 			break
 		}
 	}
+	// Reflection must also see what the character itself said in each turn,
+	// or it can never notice its own false claims. The inbox payload stays
+	// untouched; the published reply is attached to this in-memory copy only.
+	if err := a.attachReflectionSelfReplies(ctx, fluctlightID, evidence); err != nil {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		return nil, err
+	}
 	// Appraisal is an authoritative semantic interpretation of each processed
 	// fact. Merge it into the corresponding source event rather than appending a
 	// second evidence row with the window's maximum sequence. This keeps one

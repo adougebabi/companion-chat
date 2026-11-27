@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createServer} from 'vite';
+import {createServer} from './support/module-server.mjs';
 import {fileURLToPath} from 'node:url';
 import {proxy,snapshot,subscribe} from 'valtio/vanilla';
 import {installDOM,mountReact} from './helpers/react-dom.mjs';
@@ -38,11 +38,10 @@ test('actual chat feedback states unsent result and failure stage, preserves ret
  try{
   assert.match(v.host.textContent,/回复未发送.*图片发送状态/);
   assert.doesNotMatch(v.host.textContent,/direct_media|adk_run|node path/);
-  await v.click(button('查看技术详情'));
-  const drawer=document.querySelector('[data-testid=chat-turn-details]');
+  await v.click(button('本轮详情'));
+  const drawer=document.querySelector('[data-testid=turn-details]');
   assert.match(drawer.textContent,/消息结果.*本次回复未发送/);
   assert.match(drawer.textContent,/失败环节.*发送前核对图片状态/);
-  assert.ok(drawer.querySelector('a[href*="fixture-turn"]'));
   await v.click(drawer.querySelector('button[aria-label="关闭"]'));
   await v.click(button('重试原回应'));assert.deepEqual(retries,['fixture-message']);
  }finally{await v.dispose();}

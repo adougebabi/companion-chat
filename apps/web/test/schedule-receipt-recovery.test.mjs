@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createServer } from "vite";
+import { createServer } from "./support/module-server.mjs";
 import { fileURLToPath } from "node:url";
 test("malformed or foreign schedule receipts preserve the original body and idempotency through provider recreation", async () => {
   const old = { sessionStorage: globalThis.sessionStorage };

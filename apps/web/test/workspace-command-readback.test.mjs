@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createServer } from "vite";
+import { createServer } from "./support/module-server.mjs";
 import { fileURLToPath } from "node:url";
 import { installDOM } from "./helpers/react-dom.mjs";
 test("a received direct-write result permits readback recovery only, fencing repeated admission until the result is readable", async () => {

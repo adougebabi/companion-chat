@@ -81,7 +81,7 @@ func ownerLifeRequiredExecutionContext(ctx context.Context, trace *ADKCapability
 	if !domainCapabilityEnabled(ctx, action) {
 		return ctx, errOwnerLifeExecutionMissing
 	}
-	if selection := kevSelection(ctx); selection != nil && !publicBaselineTool(action) {
+	if selection := kevSelection(ctx); selection != nil && !selection.baselineTool(action) {
 		loaded, _, err := selection.load(ctx, []string{action})
 		if err != nil {
 			return ctx, err

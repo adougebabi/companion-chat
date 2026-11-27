@@ -205,9 +205,11 @@ func TestDomainPluginDisabledToolsOnPhysicalRequests(t *testing.T) {
 				} else if _, err := m.Generate(ctx, []*schema.Message{schema.UserMessage("ordinary conversation")}, model.WithTools(infos)); err != nil {
 					t.Fatal(err)
 				}
-				want := []string{capabilitycontract.CapabilityWireName(capabilityCatalogName), capabilitycontract.CapabilityWireName(conversationReplyCapabilityName)}
-				if settings.Moment {
-					want = append(want, capabilitycontract.CapabilityWireName("moment.publish"))
+				want := []string{}
+				for name := range formalAgentMandatoryTools(FormalAgentConversationCognition) {
+					if name != "moment.publish" || settings.Moment {
+						want = append(want, capabilitycontract.CapabilityWireName(name))
+					}
 				}
 				sort.Strings(seen)
 				sort.Strings(want)
@@ -236,7 +238,7 @@ func TestDomainPluginWriterAndVisualReplayBoundaries(t *testing.T) {
 		for _, raw := range arrayValue(payload["messages"]) {
 			messages.WriteString(stringValue(mapValue(raw)["content"]))
 		}
-		if !strings.Contains(messages.String(), `"image_generation_registered":false`) {
+		if !strings.Contains(messages.String(), "能拍照发图：否") {
 			t.Error("Writer did not receive the disabled capability fact")
 		}
 		return fakeProviderResult{Text: "普通文字回复。"}

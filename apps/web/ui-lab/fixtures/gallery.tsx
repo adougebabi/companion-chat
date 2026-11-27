@@ -12,6 +12,7 @@ import {
   MobileNavigation, ResponsiveSheet, AsyncTaskStatus, DataState, DetailFields, DetailSheet, EditSheet, Feedback, FormActions, FormField, FormSection,
   PageContainer, PageSection, RecordList, RecordListItem, ResponsiveTabs, type AsyncTaskState, type FeedbackKind,
 } from '@/components/patterns';
+import TurnDetailsDrawer, { type TurnRecord, type TurnRecordReader } from '@/react-app/shared/TurnTimeline';
 import WorkspaceDialog from '@/react-app/shared/WorkspaceDialog';
 import { events } from './events';
 import { GALLERY_CATALOG, type GalleryId } from './gallery-catalog';
@@ -203,6 +204,55 @@ function MigratedDrawerFrame({ state }: { state: string }) {
   );
 }
 
+// Owner diagnostic records as /api/diagnostic-records/{kind} returns them (raw snake_case rows).
+const TURN = 'turn-fixture-0001';
+const at = (second: number) => new Date(Date.UTC(2026, 10, 16, 2, 29, second)).toISOString();
+function modelRun(n: number, patch: Record<string, unknown>): TurnRecord {
+  const created = at(n * 6), seconds = Number(patch.seconds ?? 2.4);
+  const data: Record<string, unknown> = {
+    id: `mr-${n}`, correlation_id: `turn:${TURN}`, logical_run_id: `run-${n < 3 ? 1 : 2}`, model_call_id: `mc-${n}`, sequence: n < 3 ? n : n - 2, round_count: 2,
+    status: 'completed', stage: 'final_response', model_id: 'qwen3-32b', fluctlight_id: 'fl-linxia', queued_at: created, created_at: created, started_at: created,
+    completed_at: new Date(Date.parse(created) + seconds * 1000).toISOString(), latency_ms: Math.round(seconds * 1000),
+    prompt: { messages: [{ role: 'system', content: '你是林夏。' }, { role: 'user', content: '今天去看展了吗？' }] }, response: { content: '去了，人不多，下次一起去。' }, ...patch,
+  };
+  delete data.seconds;
+  return { id: `mr-${n}`, ref: `mr-${n}`, kind: 'model-runs', occurred_at: created, data };
+}
+const agentRun = (id: string, agent: string, patch: Record<string, unknown> = {}): TurnRecord =>
+  ({ id, ref: id, kind: 'agent-runs', occurred_at: at(0), data: { fluctlight_id: 'fl-linxia', agent_id: agent, run_id: id, correlation_id: `turn:${TURN}`, status: 'completed', source: 'agent_runs', started_at: at(0), ...patch } });
+function turnRecords(state: string): { modelRuns: TurnRecord[]; agentRuns: TurnRecord[] } {
+  if (state === 'empty') return { modelRuns: [], agentRuns: [] };
+  if (state === 'long') return {
+    modelRuns: [modelRun(1, { role: 'fact_only_reply', status: 'failed', stage: 'failed', seconds: 41.5, response: undefined, model_id: LONG_WORD, error_code: 'schema_mismatch', error: `${LONG}。${LONG_WORD}`, prompt: Array.from({ length: 40 }, (_, i) => `第 ${i + 1} 段：${LONG}`).join('\n') }),
+      modelRun(2, { role: 'fact_only_reply', seconds: 12, response: Array.from({ length: 30 }, (_, i) => `输出 ${i + 1}：${LONG}${LONG_WORD}`).join('\n') })],
+    agentRuns: [agentRun('ar-long', LONG_WORD, { status: 'failed', failure_code: 'agent_run_failed', failure_stage: LONG_WORD })],
+  };
+  // Returned newest first on purpose: the timeline orders by recorded time.
+  return {
+    modelRuns: [
+      modelRun(4, { role: 'fact_only_reply', seconds: 3.1 }),
+      modelRun(3, { role: 'fact_only_reply', status: 'failed', stage: 'failed', seconds: 30, response: undefined, error_code: 'provider_unavailable', error: 'provider HTTP 503: upstream overloaded' }),
+      modelRun(2, { scenario: 'tools.select', role: 'kev_decision', seconds: 0.9, response: { tools: ['wardrobe.read'] } }),
+      modelRun(1, { role: 'conversation_cognition', seconds: 2.1 }),
+    ],
+    agentRuns: [agentRun('ar-1', 'conversation_cognition', { status: 'failed', failure_code: 'agent_run_failed', failure_stage: 'reply' }), agentRun('ar-2', 'reflection')],
+  };
+}
+function turnReader(state: string): TurnRecordReader {
+  return async kind => {
+    record('turn-read', kind);
+    if (state === 'loading') return new Promise(() => {});
+    if (state === 'read-error') throw new Error('诊断服务暂时没有响应（fixture）。');
+    const rows = turnRecords(state);
+    return { items: kind === 'model-runs' ? rows.modelRuns : rows.agentRuns, next_cursor: '' };
+  };
+}
+function TurnDetailsDemo({ state }: { state: string }) {
+  const [open, setOpen] = useState(true);
+  if (!open) return <Button type="button" variant="outline" onClick={() => setOpen(true)}>重新打开</Button>;
+  return <TurnDetailsDrawer turnId={state === 'long' ? `${TURN}-${LONG_WORD}` : TURN} read={turnReader(state)} onClose={() => setOpen(false)} />;
+}
+
 function NavigationDemo({state}: {state: string}) {
   const [value, setValue] = useState('chat');
   return <MobileNavigation value={value} onSelect={next => {setValue(next); record('navigate', next);}} items={[
@@ -225,6 +275,7 @@ function WorkspaceDialogDemo({state}: {state: string}) {
   </WorkspaceDialog></>;
 }
 const RENDER: Record<GalleryId, (state: string) => ReactNode> = {
+  'turn-details': s => <TurnDetailsDemo state={s} />,
   'workspace-dialog': s => <WorkspaceDialogDemo state={s}/>,
   'mobile-navigation': s => <NavigationDemo state={s}/>,
   'bottom-sheet': s => <SheetDemo kind="detail" state={s} mobileMode="sheet"/>,

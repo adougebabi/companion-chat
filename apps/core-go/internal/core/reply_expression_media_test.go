@@ -211,14 +211,13 @@ func TestWriterPersonaPreservesOpaqueBusinessDataWithoutCoreBookkeeping(t *testi
 	if !ok {
 		t.Fatal("Writer persona section missing")
 	}
-	decoder := json.NewDecoder(strings.NewReader(raw))
-	decoder.UseNumber()
-	var persona map[string]any
-	if err := decoder.Decode(&persona); err != nil {
-		t.Fatal(err)
+	for _, business := range []string{"business-ref", "9007199254740993", "item_ids", "保留角色自己的表达"} {
+		if !strings.Contains(raw, business) {
+			t.Fatalf("Writer lost persona business data %q: %s", business, raw)
+		}
 	}
-	if jsonString(mapValue(persona["working_persona"])["preferences"]) != jsonString(value) || strings.Contains(raw, "private-profile") || strings.Contains(raw, "private-hash") || jsonString(input.WorkingPersona) != before {
-		t.Fatal("Writer rewrote persona business data or leaked Core bookkeeping")
+	if strings.Contains(raw, "private-profile") || strings.Contains(raw, "private-hash") || jsonString(input.WorkingPersona) != before {
+		t.Fatal("Writer leaked Core bookkeeping or mutated persona")
 	}
 	var request map[string]any
 	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {

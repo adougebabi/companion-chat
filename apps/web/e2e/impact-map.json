@@ -1,5 +1,5 @@
 {
-  "$comment": "Which browser checks a changed file needs. Paths are relative to apps/web. 'shared' changes run every spec (layout + visual). 'areas' maps files to Playwright tags. 'nonUi' files need no browser check. Any other file under src/ is reported as UNCOVERED (unverified), never silently passed. Keep this map honest: list a file under an area only if that area's specs actually render it.",
+  "$comment": "Which browser checks a changed file needs. Paths are relative to apps/web. 'shared' changes run every spec (layout + visual). 'areas' maps files to Playwright tags; a spec or UI Lab fixture runs only its own tags (visual.spec carries @patterns and @schedule). 'nonUi' files need no browser check. Any other file under src/, e2e/ or ui-lab/ is reported as UNCOVERED (unverified), never silently passed. Keep this map honest: list a file under an area only if that area's specs actually render or run it.",
   "shared": [
     "src/styles/**",
     "src/components/**",
@@ -22,8 +22,13 @@
     "src/v3/proto/components/forms.js",
     "src/v3/proto/components/controls.js",
     "src/v3/proto/ui.js",
-    "e2e/**",
-    "ui-lab/**",
+    "e2e/support/**",
+    "e2e/playwright.config.ts",
+    "e2e/impact-map.json",
+    "e2e/visual-baselines.lock.json",
+    "ui-lab/index.html",
+    "ui-lab/main.tsx",
+    "ui-lab/fixtures/events.ts",
     "index.html",
     "vite.config.ts",
     "package.json",
@@ -40,7 +45,11 @@
       "src/v3/proto/components/async-page.js",
       "src/v3/presentation-time.mjs",
       "src/v3/zoned-input.mjs",
-      "src/react-app/pages/DomainPage.tsx"
+      "src/react-app/pages/DomainPage.tsx",
+      "e2e/schedule-settings.spec.ts",
+      "e2e/visual.spec.ts",
+      "e2e/layout-checker.self-test.spec.ts",
+      "ui-lab/fixtures/schedule-settings.ts"
     ],
     "@overlay": [
       "src/react-app/shared/PeopleSourceSheet.jsx"
@@ -56,11 +65,13 @@
       "src/react-app/shared/WorkflowRecovery.tsx",
       "src/react-app/shared/DiagnosticRecords.tsx",
       "src/approved-ui/task-presentation.mjs",
-      "src/approved-ui/task-model-call-presentation.mjs"
+      "src/approved-ui/task-model-call-presentation.mjs",
+      "e2e/task-diagnostics.spec.ts"
     ],
     "@visual-identity": [
       "src/v3/scenarios/**",
-      "src/react-app/shared/VisualWorkspace.jsx"
+      "src/react-app/shared/VisualWorkspace.jsx",
+      "e2e/visual-submission-review.spec.ts"
     ],
     "@inbox": [
       "src/v3/scenarios/**",
@@ -68,7 +79,26 @@
       "src/react-app/pages/InboxPage.jsx",
       "src/approved-ui/notification-previews.mjs",
       "src/approved-ui/notification-title.mjs",
-      "src/v3/pending-presentation.mjs"
+      "src/v3/pending-presentation.mjs",
+      "e2e/inbox.spec.ts"
+    ],
+    "@chat-turn": [
+      "src/v3/scenarios/**",
+      "src/react-app/pages/ChatPage.tsx",
+      "src/react-app/components/ChatTurnFeedback.tsx",
+      "src/react-app/shared/TurnTimeline.tsx",
+      "src/react-app/shared/DiagnosticStatus.tsx",
+      "src/react-app/shared/ModelCallDetails.tsx",
+      "src/approved-ui/task-model-call-presentation.mjs",
+      "src/approved-ui/task-presentation.mjs",
+      "e2e/chat-turn-details.spec.ts"
+    ],
+    "@patterns": [
+      "src/react-app/shared/TurnTimeline.tsx",
+      "e2e/gallery.spec.ts",
+      "e2e/visual.spec.ts",
+      "ui-lab/fixtures/gallery.tsx",
+      "ui-lab/fixtures/gallery-catalog.ts"
     ],
     "@mobile": [
       "src/react-app/App.tsx",
@@ -95,7 +125,9 @@
       "src/react-app/views/CharacterWizard.jsx",
       "src/approved-ui/creation-progress.mjs",
       "src/react-app/pages/StudioEditorPage.tsx",
-      "src/react-app/shared/ConversationHistory.tsx"
+      "src/react-app/shared/ConversationHistory.tsx",
+      "e2e/chat-mobile-overlays.spec.ts",
+      "e2e/mobile-workspace.spec.ts"
     ]
   },
   "nonUi": [

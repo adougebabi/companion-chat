@@ -674,32 +674,6 @@ func directMediaSubjectResidue(value string) string {
 	return value
 }
 
-// Only the paired Core ToolCall/ToolResult in this exact turn can associate an
-// intent with the current request. User text and model-supplied IDs cannot.
-func directCurrentMediaIntents(trace *ADKCapabilityTrace, reply CapabilityInvocation) map[string]bool {
-	result := map[string]bool{}
-	if trace == nil {
-		return result
-	}
-	invocations, results := trace.Snapshot()
-	calls := map[string]bool{}
-	for _, call := range invocations {
-		if call.CapabilityName == "media.image.generate" && call.SourceFactID == reply.SourceFactID &&
-			call.Metadata.AuthorizationActorID == reply.Metadata.AuthorizationActorID && call.Metadata.FluctlightID == reply.Metadata.FluctlightID &&
-			call.Metadata.ConversationID == reply.Metadata.ConversationID {
-			calls[call.CallID] = true
-		}
-	}
-	for _, receipt := range results {
-		if calls[receipt.CallID] && receipt.CapabilityName == "media.image.generate" && (receipt.Status == "accepted" || receipt.Status == "completed") {
-			if id := stringValue(mapValue(receipt.Output)["media_intent_id"]); id != "" {
-				result[id] = true
-			}
-		}
-	}
-	return result
-}
-
 func requireDirectMediaDeliveriesTx(ctx context.Context, q lifeContextQuerier, owner, subject, fluctlight, conversation string, refs, rawIntentIDs []any) error {
 	if len(refs) == 0 {
 		return nil

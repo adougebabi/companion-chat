@@ -45,7 +45,15 @@ guards are separate existing contracts, never excuses for a prompt token cap.
 - One leading system protocol: shared authority rules once, task rules once,
   trusted Working Persona only when needed. Analysis tasks do not add an empty
   persona/roleplay section. Persona meaning is unchanged.
-- Structured model data uses deterministic JSON everywhere. Stable task facts
+- Chat surfaces (direct main turn, fact-only cognition, Writer) are the one
+  exception to JSON task views: their runtime context is readable Markdown
+  (现在 / 关于对方 / 目标与打算 / 你记得的事 / 之前聊过) and the persona is
+  labelled text. Former interpretation metadata (`*_semantics`, provenance,
+  lineage, source_kind) is not rendered; inference is marked "（推测）"; empty,
+  false and unknown values are rendered ("无", "否", "未知"); opaque business
+  values (`promptOpaqueDataField`, world_environment) stay inline JSON. Guarded
+  by `chat_prompt_markdown_test.go`.
+- Other structured model data uses deterministic JSON. Stable task facts
   may precede volatile Runtime Context for caching; a fact has one owner and
   must not be repeated across stable/runtime/current input.
 - Private chat retains original user/assistant roles, content, order and sender

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createServer} from 'vite';
+import {createServer} from './support/module-server.mjs';
 import {fileURLToPath} from 'node:url';
 import {mountReact,installDOM,act} from './helpers/react-dom.mjs';
 const env=installDOM();
@@ -21,25 +21,29 @@ test('studio notification and pending task labels localize the same actual kind'
  try{assert.match(view.host.querySelector('.replica-pending-card').textContent,/创作内容生成/);assert.doesNotMatch(view.host.textContent,/studio\.generate/);}finally{await view.dispose();}
 });
 
-test('chat technical details open a right Sheet and raw JSON is collapsed; inspection never retries',async()=>{
+test('chat turn details open a right Sheet; ids and raw JSON stay collapsed; inspection never retries',async()=>{
  const {default:TurnFeedback}=await load('react-app/components/ChatTurnFeedback.tsx');
  const message={id:'r34-message',turnId:'r34-turn',turnStatus:'failed',turnRetryable:true,turnErrorCode:'request_timeout'};
- let retries=0,reads=0;
- const view=await mountReact(vite,TurnFeedback,{props:{message,messages:[],store:{sending:false,retrying:false,error:'',retryMessage(){retries++;},refreshActiveTurn(){reads++;}}}});
+ let retries=0,reads=0;const queries=[];
+ const workspace={state:{session:{actorId:'r34'}},subscribe:()=>()=>{},getSnapshot:()=>workspace.state,services:{diagnosticsClient:{page:async(kind,options)=>{queries.push([kind,options.correlationId]);return {items:[],next_cursor:''};}}}};
+ const view=await mountReact(vite,TurnFeedback,{workspace,props:{message,messages:[],store:{sending:false,retrying:false,error:'',retryMessage(){retries++;},refreshActiveTurn(){reads++;}}}});
  try{
-  const trigger=button(view.host,'查看技术详情');trigger.focus();
+  const trigger=button(view.host,'本轮详情');trigger.focus();
   assert.equal(view.host.querySelector('pre'),null);
-  await view.click(trigger);
-  const sheet=document.querySelector('[data-testid="chat-turn-details"]');
+  await view.click(trigger);await view.flush();
+  const sheet=document.querySelector('[data-testid="turn-details"]');
   assert.equal(sheet.dataset.side,'right');assert.equal(sheet.getAttribute('role'),'dialog');
-  assert.match(sheet.textContent,/回应检查结果.*执行失败/s);assert.match(sheet.textContent,/r34-turn/);
+  assert.match(sheet.textContent,/本轮详情.*执行失败/s);
+  assert.deepEqual(queries.sort(),[['agent-runs','turn:r34-turn'],['model-runs','turn:r34-turn']]);
+  assert.match(sheet.textContent,/这一轮没有记录到模型调用/);
+  assert.doesNotMatch(sheet.textContent,/r34-turn/,'internal ids stay behind 技术信息');
   assert.equal(sheet.querySelector('pre'),null,'raw JSON is absent until explicit disclosure');
-  await view.click(button(sheet,'原始 JSON'));
+  await view.click(button(sheet,'技术信息'));
   assert.match(sheet.querySelector('pre').textContent,/request_timeout/);
-  assert.match(sheet.querySelector('a').href,/correlationId=turn%3Ar34-turn/);
+  assert.match(sheet.textContent,/turn:r34-turn/);
   assert.equal(retries,0);assert.equal(reads,0);
   await act(async()=>sheet.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));
-  await view.flush();assert.equal(document.querySelector('[data-testid="chat-turn-details"]'),null);
+  await view.flush();assert.equal(document.querySelector('[data-testid="turn-details"]'),null);
   assert.equal(document.activeElement,trigger,'closing restores the original message action');
  }finally{await view.dispose();}
 });

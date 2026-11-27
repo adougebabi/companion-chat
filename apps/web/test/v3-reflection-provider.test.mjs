@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createServer} from 'vite';
+import {createServer} from './support/module-server.mjs';
 import {fileURLToPath} from 'node:url';
 
 // Explicit transport fixture only; actual V2 production/consumption has its PG

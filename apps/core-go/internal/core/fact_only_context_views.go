@@ -51,6 +51,9 @@ func factOnlyContextFacts(projection ContextProjection, cognition bool) factOnly
 		"current_state":   factOnlyCurrentState(projection, cognition),
 		"goals":           factOnlyGoals(goals, projection, cognition),
 	}
+	if projection.Wardrobe != nil {
+		facts["wardrobe"] = projection.Wardrobe
+	}
 	if background := compactActorBackground(projection); len(background) > 0 {
 		if cognition {
 			facts["actor_background"] = background

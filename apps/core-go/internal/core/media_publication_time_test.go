@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"errors"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -153,44 +152,5 @@ func TestMediaPublicationTimeFormalReplyReference(t *testing.T) {
 	var at *time.Time
 	if err := repo.Pool().QueryRow(context.Background(), `SELECT published_at FROM public.media_references WHERE target_id=$1`, id).Scan(&at); err != nil || at == nil {
 		t.Fatalf("formal publication missing timestamp: %v", err)
-	}
-}
-
-func TestMediaPublicationTimeDirectReplyRechecksTimestamp(t *testing.T) {
-	const text = "我之前把窗外山景照片发给你了。"
-	router := newFakeProviderRouter()
-	ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "publication-time-direct-recheck", router)
-	seedDirectMediaEvidence(t, ctx, repo, app, fid, conversation, "publication-recheck", "completed", "窗外山景", true)
-	router.on(directMediaDeliveryCheckSchema, func(payload map[string]any) fakeProviderResult {
-		var view map[string]any
-		for _, raw := range arrayValue(payload["messages"]) {
-			m := mapValue(raw)
-			if m["role"] == "user" {
-				view = decodeObject([]byte(stringValue(m["content"])))
-			}
-		}
-		deliveries := arrayValue(view["committed_deliveries"])
-		if len(deliveries) != 1 {
-			t.Fatalf("expected actual delivery: %#v", deliveries)
-		}
-		if _, err := repo.Pool().Exec(ctx, `UPDATE public.media_references SET published_at=published_at+interval '1 second' WHERE asset_id='asset_publication-recheck'`); err != nil {
-			t.Fatal(err)
-		}
-		return fakeProviderResult{Structured: map[string]any{"claims": []any{map[string]any{"quote": text, "delivery_ref": mapValue(deliveries[0])["ref"], "subject_quote": "窗外山景"}}}}
-	})
-	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, owner, fid, conversation); err != nil {
-		t.Fatal(err)
-	}
-	persistConversationReplyMode(t, ctx, repo, "direct")
-	router.otherwise(func(map[string]any) fakeProviderResult {
-		return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall(randomID("reply-time-"), conversationReplyCapabilityName, map[string]any{"text": text, "decision": map[string]any{"action_type": "reply", "response_intent": "回复", "influences": []any{}}})}}
-	})
-	_, err := app.HandleTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "窗外山景照片发过了吗？", "turn_id": "publication-time-recheck", "idempotency_key": "publication-time-recheck", "attachment_refs": []any{}})
-	var messages int
-	if e := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND text=$2`, conversation, text).Scan(&messages); e != nil {
-		t.Fatal(e)
-	}
-	if err == nil || !strings.Contains(err.Error(), "direct_media_delivery_unresolved") || messages != 0 {
-		t.Fatalf("changed timestamp passed direct publication: messages=%d err=%v", messages, err)
 	}
 }

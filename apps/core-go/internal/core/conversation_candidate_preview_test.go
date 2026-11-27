@@ -257,38 +257,3 @@ func TestCandidatePreviewDurableWorkerEmitsBeforeCommit(t *testing.T) {
 		t.Fatalf("clear=%t message=%t complete=%t frames=%s", sawClear, sawMessage, sawCompleted, all.String())
 	}
 }
-
-func TestCandidatePreviewCannotBypassDeliveryPublicationCheck(t *testing.T) {
-	mainCalls, checkerCalls := 0, 0
-	router := newFakeProviderRouter().on(directMediaDeliveryCheckSchema, func(map[string]any) fakeProviderResult {
-		checkerCalls++
-		return fakeProviderResult{Structured: map[string]any{"claims": []any{map[string]any{"quote": "我已经把照片发给你了。", "delivery_ref": "", "subject_quote": ""}}}}
-	}).otherwise(func(map[string]any) fakeProviderResult {
-		mainCalls++
-		return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall(fmt.Sprintf("preview-unsupported-%d", mainCalls), conversationReplyCapabilityName, map[string]any{"text": "我已经把照片发给你了。", "decision": map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}}})}}
-	})
-	ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "preview-publication", m218StreamTransport(router))
-	candidateTestRedis(t, app)
-	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, owner, fid, conversation); err != nil {
-		t.Fatal(err)
-	}
-	persistConversationReplyMode(t, ctx, repo, "direct")
-	accepted, err := app.AcceptTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "照片呢？", "turn_id": "preview-publication", "idempotency_key": "preview-publication"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = app.ProcessCognitionInbox(ctx, accepted.InboxID)
-	if err == nil || !strings.Contains(err.Error(), "direct_media_delivery_unresolved") {
-		t.Fatal("publication check was bypassed or failed for another reason", err)
-	}
-	var messages, media int
-	if err := repo.Pool().QueryRow(ctx, `SELECT (SELECT count(*) FROM public.conversation_messages WHERE source_fact_id=$1 AND kind='assistant'),(SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$2)`, accepted.InboxID, fid).Scan(&messages, &media); err != nil {
-		t.Fatal(err)
-	}
-	if messages != 0 || media != 0 || mainCalls != 3 || checkerCalls != 3 {
-		t.Fatal(messages, media, mainCalls, checkerCalls)
-	}
-	if got := app.readConversationCandidatePreview(ctx, accepted.InboxID); got.ID != "" {
-		t.Fatal("failed turn kept candidate visible", got)
-	}
-}

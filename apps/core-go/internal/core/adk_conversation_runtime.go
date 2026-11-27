@@ -299,10 +299,10 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		decode := adkContext.Refs.decodeArguments
 		switch capability.(type) {
 		case directMainReplyCapability:
-			replyOnly := modelIdentity.PublicationCorrection || directReplyRetryFromContext(ctx).intentID != "" || directImageReplyPending(ctx, priorResults)
-			discardInvalidInfluences := replyOnly || directMainInvalidReplyAttempts(i.trace) >= 2
+			// Unresolved influence refs are metadata errors: drop them on the
+			// first attempt instead of sending the reply back to the model.
 			decode = func(raw json.RawMessage) (json.RawMessage, error) {
-				return adkContext.Refs.decodeDirectReplyArguments(raw, projection.ReferenceIndex, discardInvalidInfluences)
+				return adkContext.Refs.decodeDirectReplyArguments(raw, projection.ReferenceIndex, true)
 			}
 		case factOnlyReplyCapability:
 			decode = adkContext.Refs.decodePrivateReplyArguments
@@ -353,25 +353,11 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		selection.mu.Lock()
 		loaded := selection.loaded[capabilityName]
 		selection.mu.Unlock()
-		if !loaded && !publicBaselineTool(capabilityName) {
+		if !loaded && !selection.baselineTool(capabilityName) {
 			i.recordADKToolDiagnostic(ctx, "adk.tool.recommendation_warning", callID, capabilityName, "warning", "tool_not_disclosed", argumentsJSON)
 		}
 	}
 	i.trace.AppendInvocation(invocation)
-	if capabilityName == conversationReplyCapabilityName || capabilityName == "media.image.generate" {
-		if reply, found := i.scopeRegistry.Lookup(conversationReplyCapabilityName); found {
-			if _, direct := reply.(directMainReplyCapability); direct {
-				if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Refresh.directMediaReplyBatch(modelIdentity.ModelCallSequence, callID) {
-					result := CapabilityResult{CallID: callID, CapabilityName: capabilityName, Status: "rejected",
-						ErrorCode: "direct_media_reply_separate_turn_required", Output: map[string]any{"detail": "This call was not executed. Decide whether to request media or reply; use separate model turns and the actual tool result before making a completion claim."},
-						ProviderRequestID: modelIdentity.ProviderRequestID, CorrelationID: "capability:" + callID}
-					i.trace.AppendResult(result)
-					i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
-					return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: result}, definition)
-				}
-			}
-		}
-	}
 	if rejection := kevRejectNativeTool(ctx, capabilityName, arguments); rejection != "" {
 		result := failedCapabilityResultDetail(invocation, rejection, false, "The capability was not admitted for this request")
 		i.trace.AppendResult(result)

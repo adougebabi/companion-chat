@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile, readdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
-import {createServer} from 'vite';
+import {createServer} from './support/module-server.mjs';
 import {React, act, installDOM, mountReact} from './helpers/react-dom.mjs';
 
 const env = installDOM();

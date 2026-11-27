@@ -1,7 +1,7 @@
 // Invoked only by TestModelManagementReactHTTPPersistenceAndRuntime. The
 // transport adds synthetic session/CSRF headers for the isolated Go test server.
 import assert from 'node:assert/strict';
-import { createServer } from 'vite';
+import { createServer } from './support/module-server.mjs';
 import { fileURLToPath } from 'node:url';
 import { proxy, snapshot, subscribe } from 'valtio/vanilla';
 import { act, installDOM, mountReact } from './helpers/react-dom.mjs';

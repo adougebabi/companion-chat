@@ -28,7 +28,7 @@ type scheduleActivityWriter interface {
 func scheduledActivityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: scheduleActivityCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:     "Active goal_ref: schedule action_plan. No goal_ref: request Planner, no action.",
+		Description:     "Put a real life activity on your schedule. To buy clothes: action_plan {kind:\"virtual_shopping\", duration_minutes:15-240, items:[{category, slot, description}]} with optional preferred_start_at; at that time you go to the shop and bought items enter your wardrobe. Also haircut (desired_hair_length) and hair_dye (desired_hair_color). goal_ref links an existing goal; without a concrete action_plan kind the wish only goes to goal planning.",
 		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
 		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
 		RequiredContext: []ContextSlot{SlotCurrentLife, SlotAgency},
@@ -60,6 +60,17 @@ func (c scheduleActivityCapability) Execute(_ context.Context, invocation Capabi
 	return executeToolRequired(invocation)
 }
 
+// scheduledLifeActionConcrete reports a model request that names an executable
+// life action, so the character can put it on its own schedule.
+func scheduledLifeActionConcrete(args map[string]any) bool {
+	switch stringValue(mapValue(args["action_plan"])["kind"]) {
+	case "virtual_shopping", "haircut", "hair_dye":
+		return true
+	default:
+		return false
+	}
+}
+
 func scheduledActionPlanFromArguments(args map[string]any) (map[string]any, error) {
 	plan := cloneMap(mapValue(args["action_plan"]))
 	if plan == nil {
@@ -81,7 +92,9 @@ func (c scheduleActivityCapability) Prepare(ctx context.Context, invocation Capa
 	if err != nil {
 		return invocation, err
 	}
-	if invocation.Metadata.Source != "direct" && stringValue(args["goal_ref"]) == "" {
+	// A concrete life action (shopping, haircut, dyeing) is scheduled directly
+	// even without an existing Goal; only a vague wish goes to the Planner.
+	if invocation.Metadata.Source != "direct" && stringValue(args["goal_ref"]) == "" && !scheduledLifeActionConcrete(args) {
 		if strings.TrimSpace(stringValue(args["goal"])) == "" {
 			return invocation, ErrInvalidArguments
 		}

@@ -1,4 +1,4 @@
-import {createServer} from 'vite';
+import {createServer} from './module-server.mjs';
 import {fileURLToPath} from 'node:url';
 import {after} from 'node:test';
 const vite=await createServer({root:fileURLToPath(new URL('../../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});

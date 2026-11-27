@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {JSDOM} from 'jsdom';
-import {createServer} from 'vite';
+import {createServer} from './support/module-server.mjs';
 import {fileURLToPath} from 'node:url';
 import {React,renderReact} from './helpers/react-dom.mjs';
 const nextTick=()=>Promise.resolve();

@@ -628,22 +628,18 @@ func TestInitializationTextToStoredPortraitToFormalRequest(t *testing.T) {
 	if _, err := app.RunConversationCognitionAgent(ctx, ConversationCognitionAgentInput{AuthorizationActorID: ownerID, FluctlightID: fluctlightID, RunID: "portrait-after-haircut", CurrentInput: "你现在的头发怎么样？"}); err != nil {
 		t.Fatal(err)
 	}
-	currentAppearance := func(wire string) map[string]any {
+	runtimeBody := func(wire string) string {
 		for _, raw := range arrayValue(decodeObject([]byte(wire))["messages"]) {
 			content := stringValue(mapValue(raw)["content"])
 			if strings.HasPrefix(content, "[RUNTIME CONTEXT]\n") {
-				var runtime map[string]any
-				body := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
-				if err := json.Unmarshal([]byte(body), &runtime); err != nil {
-					t.Fatalf("physical runtime context is not JSON: %v", err)
-				}
-				return mapValue(mapValue(mapValue(runtime["current_state"])["data"])["appearance"])
+				return strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
 			}
 		}
 		t.Fatal("physical request has no authoritative runtime context")
-		return nil
+		return ""
 	}
-	if mapValue(currentAppearance(finalWire)["body_fields"])["hair_length"] != "short" || mapValue(currentAppearance(initialWire)["body_fields"])["hair_length"] != "long" || strings.Contains(finalWire, "起初留长发") || !strings.Contains(finalWire, "白衬衫") {
+	// Chat runtime context is Markdown: body fields render as "hair_length：value".
+	if !strings.Contains(runtimeBody(finalWire), "hair_length：short") || !strings.Contains(runtimeBody(initialWire), "hair_length：long") || strings.Contains(finalWire, "起初留长发") || !strings.Contains(finalWire, "白衬衫") {
 		t.Fatalf("final Provider request did not replace current appearance: first=%s after=%s", initialWire, finalWire)
 	}
 	detail, err := app.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName: personaDetailCapabilityName, OperationID: "portrait-current-appearance",

@@ -3,7 +3,7 @@ import test from "node:test";
 	import { fileURLToPath } from "node:url";
 
 
-import { createServer } from "vite";
+import { createServer } from "./support/module-server.mjs";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ref } from "valtio/vanilla";

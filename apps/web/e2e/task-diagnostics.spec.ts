@@ -114,7 +114,8 @@ test.describe('task detail and diagnostics (scenario preview)', { tag: ['@task-d
   });
 
   test('slow reads show progress on the refresh control while keeping the confirmed state', async ({ page }) => {
-    test.setTimeout(90_000); // every request in this scenario is delayed by 2.5 s
+    // Every read in this scenario is delayed by 0.8 s: long enough to observe
+    // the in-progress state, short enough for the default test timeout.
     const dialog = await openTask(page, 'task-slow');
     await dialog.getByRole('button', { name: '刷新任务状态' }).click();
     await expect(dialog.getByRole('button', { name: '正在刷新…' })).toBeDisabled();

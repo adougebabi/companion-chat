@@ -115,35 +115,30 @@ func TestPrivateReplyWaitsForFreshScheduleAfterSameBatchPlanning(t *testing.T) {
 	}
 }
 
-func TestSameBatchSideEffectMustPrecedeVisibleReply(t *testing.T) {
+func TestSameBatchRecordingAndMediaToolsDoNotBlockVisibleReply(t *testing.T) {
 	app := &App{}
 	registry, err := NewCapabilityRegistry(builtinCapabilities(app)...)
 	if err != nil {
 		t.Fatal(err)
 	}
 	app.Capabilities = registry
-	for _, name := range []string{"memory_event", actorFactCapabilityName, "active_memory_event"} {
-		trace := &ADKCapabilityTrace{}
+	for _, name := range []string{"memory_event", actorFactCapabilityName, "active_memory_event", "media.image.generate"} {
 		refresh := &runtimeContextRefresh{}
-		calls := []schema.ToolCall{
+		refresh.noteModelToolCalls(1, []schema.ToolCall{
 			{ID: "reply-first", Function: schema.FunctionCall{Name: conversationReplyCapabilityName}},
 			{ID: "effect-second", Function: schema.FunctionCall{Name: name}},
+		})
+		if code, _, blocked := replyBlockedBySameBatchSideEffect(refresh, 1, "reply-first", app); blocked {
+			t.Fatalf("%s in the same batch blocked the reply: %s", name, code)
 		}
-		trace.RecordModelToolCalls("provider-request-1", 1, calls)
-		refresh.noteModelToolCalls(1, calls)
-		invoker := newAppADKCapabilityInvoker(app, ADKCapabilityRequest{
-			FluctlightID: "fluctlight-1", ConversationID: "conversation-1", SourceFactID: "fact-1", ActionID: "turn-1",
-			Surface: CapabilitySurfaceConversation,
-		}, trace)
-		ctx := withADKCapabilityContext(context.Background(), invoker, trace, refresh)
-		result, err := invoker.(ADKCapabilityInvokerWithID).ExecuteWithID(ctx, "reply-first", conversationReplyCapabilityName, `{"text":"我先回复，稍后记录"}`)
-		if err != nil || !strings.Contains(result, "side_effect_before_reply_required") {
-			t.Fatalf("%s same-batch reply was not rejected: result=%s err=%v", name, result, err)
-		}
-		_, results := trace.Snapshot()
-		if len(results) != 1 || results[0].Status != "rejected" || results[0].ErrorCode != "side_effect_before_reply_required" {
-			t.Fatalf("%s rejection result=%#v", name, results)
-		}
+	}
+	wardrobe := &runtimeContextRefresh{}
+	wardrobe.noteModelToolCalls(1, []schema.ToolCall{
+		{ID: "reply", Function: schema.FunctionCall{Name: conversationReplyCapabilityName}},
+		{ID: "wear", Function: schema.FunctionCall{Name: wardrobeWearCapabilityName}},
+	})
+	if code, _, blocked := replyBlockedBySameBatchSideEffect(wardrobe, 1, "reply", app); !blocked || code != "wardrobe_context_refresh_required" {
+		t.Fatalf("a reply depending on a same-batch wardrobe change was not deferred: %s", code)
 	}
 	refresh := &runtimeContextRefresh{}
 	refresh.noteModelToolCalls(1, []schema.ToolCall{

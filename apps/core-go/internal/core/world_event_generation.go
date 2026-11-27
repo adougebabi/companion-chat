@@ -341,9 +341,16 @@ func (a *App) GenerateWorldEventCycle(ctx context.Context, world string) (result
 		}
 	}
 	scope := decision.Scope{ActorSelf: "world:" + world, ActorUser: stringValue(data["owner_actor_id"]), Agent: "world_event_generation", RunID: id, CorrelationID: correlation, StateVersion: stableDigest(jsonString(data))}
-	r, outcome, err := a.decideKev(ctx, "world.event.admit", scope, worldEventAdmissionState(data, proposal), id, "Decide whether this candidate may enter the world's executable event store. Require consistency with the actual world, locations, present participants and recent events. Do not approve invented identity/presence, incoherent or unsupported harm, or treating plans as completed facts. No means reject; unclear means do not admit.")
-	if err != nil {
-		return nil, err
+	// Kev is optional. With the point off (or its settings unreadable) the
+	// validated candidate is admitted by the rule checks below alone.
+	kevOn, _ := a.kevService().EnabledWithError(ctx, "world.event.admit")
+	var r decision.Result
+	outcome := decision.Yes
+	if kevOn {
+		r, outcome, err = a.decideKev(ctx, "world.event.admit", scope, worldEventAdmissionState(data, proposal), id, "Decide whether this candidate may enter the world's executable event store. Require consistency with the actual world, locations, present participants and recent events. Do not approve invented identity/presence, incoherent or unsupported harm, or treating plans as completed facts. No means reject; unclear means do not admit.")
+		if err != nil {
+			return nil, err
+		}
 	}
 	if outcome != decision.Yes {
 		status := "awaiting_kev"
@@ -394,17 +401,19 @@ func (a *App) GenerateWorldEventCycle(ctx context.Context, world string) (result
 		if !a.now().UTC().Before(next) {
 			return errors.New("world_event_candidate_expired")
 		}
-		var rawConfig string
-		var version int64
-		if err := tx.QueryRow(ctx, `SELECT value_json,revision FROM public.runtime_settings WHERE key='kev' FOR SHARE`).Scan(&rawConfig, &version); err != nil {
-			return err
-		}
-		config, err := decodeKevConfig([]byte(rawConfig))
-		if err != nil {
-			return err
-		}
-		if version != r.Record.ConfigVersion || !config.Allows("world.event.admit") {
-			return errors.New("world_event_kev_config_changed")
+		if kevOn {
+			var rawConfig string
+			var version int64
+			if err := tx.QueryRow(ctx, `SELECT value_json,revision FROM public.runtime_settings WHERE key='kev' FOR SHARE`).Scan(&rawConfig, &version); err != nil {
+				return err
+			}
+			config, err := decodeKevConfig([]byte(rawConfig))
+			if err != nil {
+				return err
+			}
+			if version != r.Record.ConfigVersion || !config.Allows("world.event.admit") {
+				return errors.New("world_event_kev_config_changed")
+			}
 		}
 		definition := mapValue(proposal["event"])
 		current, err := a.worldEventGenerationContextWith(ctx, tx, world)
@@ -470,7 +479,7 @@ func (a *App) GenerateWorldEventCycle(ctx context.Context, world string) (result
 		audit := r.Record
 		audit.ApplicationStatus = "applied"
 		audit.ActionID = stringValue(admittedRun["id"])
-		tag, err := tx.Exec(ctx, `UPDATE public.world_event_generations SET status='approved',kev_decision_id=$2,kev_record=$3,template_id=$4,run_id=$5,updated_at=now() WHERE id=$1 AND status IN('review_pending','awaiting_kev')`, id, r.Record.ID, jsonBytes(audit), template, admittedRun["id"])
+		tag, err := tx.Exec(ctx, `UPDATE public.world_event_generations SET status='approved',kev_decision_id=$2,kev_record=$3,template_id=$4,run_id=$5,updated_at=now() WHERE id=$1 AND status IN('review_pending','awaiting_kev')`, id, nullableString(r.Record.ID), kevAuditRecord(kevOn, audit), template, admittedRun["id"])
 		if err == nil && tag.RowsAffected() != 1 {
 			return ErrLifeContextStale
 		}
@@ -493,6 +502,14 @@ func (a *App) GenerateWorldEventCycle(ctx context.Context, world string) (result
 	}
 	result["status"], result["generation_id"], result["run_id"] = "approved", id, admittedRun["id"]
 	return result, nil
+}
+
+// kevAuditRecord stores the Kev audit only when Kev actually decided.
+func kevAuditRecord(kevOn bool, audit decision.Record) any {
+	if !kevOn {
+		return nil
+	}
+	return jsonBytes(audit)
 }
 
 func (a *App) executeAmbientWorldEvent(ctx context.Context, run map[string]any, at time.Time) error {

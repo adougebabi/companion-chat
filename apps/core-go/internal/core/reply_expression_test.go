@@ -117,7 +117,7 @@ func TestPrivateChatPersonaAppearanceHistoryFinalSelection(t *testing.T) {
 		t.Fatal(err)
 	}
 	wire := jsonString(prompt.Messages)
-	for _, required := range []string{"极度通透敏锐", "刻意示弱", "情绪留白", "乱了阵脚", "原文完整保留", "挑选新书与调试咖啡豆", "灵魂共谋者", `\"success_criteria\":[]`, "text_chat", "past_message_verbatim_not_current_event_proof", "在干嘛呢？"} {
+	for _, required := range []string{"极度通透敏锐", "刻意示弱", "情绪留白", "乱了阵脚", "原文完整保留", "挑选新书与调试咖啡豆", "灵魂共谋者", "完成条件：无", "text_chat", "在干嘛呢？"} {
 		if !strings.Contains(wire, required) {
 			t.Errorf("required semantic/source missing: %s", required)
 		}
@@ -353,7 +353,7 @@ func TestPrivateChatHistoryKeepsUnquotedPromisesAndRefusals(t *testing.T) {
 	if prompt.Messages[2]["role"] != "user" || prompt.Messages[3]["role"] != "assistant" || prompt.Messages[3]["content"] != text || prompt.Messages[4]["role"] != "assistant" || prompt.Messages[4]["content"] != input.Projection.RecentMessages[2]["text"] {
 		t.Fatal("unmarked mixed history/continuous roles altered")
 	}
-	if !strings.Contains(jsonString(prompt.Messages), "2026-10-14T17:40") || jsonString(input) != before {
+	if !strings.Contains(jsonString(prompt.Messages), "10月14日 周三 17:40") || jsonString(input) != before {
 		t.Fatal("body title overrode clock or source mutated")
 	}
 }

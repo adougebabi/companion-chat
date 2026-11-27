@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'vite';
+import { createServer } from './support/module-server.mjs';
 import { fileURLToPath } from 'node:url';
 
 test('persona provider observes the owned accepted task and aborting observation sends no cancellation',async()=>{

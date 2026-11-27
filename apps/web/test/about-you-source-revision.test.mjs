@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { createServer } from 'vite';
+import { createServer } from './support/module-server.mjs';
 
 const vite = await createServer({
   root: fileURLToPath(new URL('../', import.meta.url)),

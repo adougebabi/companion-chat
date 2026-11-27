@@ -277,6 +277,29 @@ func (s *WardrobeService) effectiveProfileID(ctx context.Context, query DBTX, fl
 	return active, nil
 }
 
+// ownedWardrobeSummaryLimit bounds the domain query; it is a row count, not
+// a prompt token budget.
+const ownedWardrobeSummaryLimit = 80
+
+// readOwnedWardrobeSummary returns what the character actually owns, so chat
+// never has to guess (or invent) wardrobe contents.
+func readOwnedWardrobeSummary(ctx context.Context, query DBTX, fluctlightID string) ([]map[string]any, error) {
+	rows, err := query.Query(ctx, `SELECT category,description,availability FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND archived_at IS NULL ORDER BY category,acquired_at,id LIMIT $2`, fluctlightID, ownedWardrobeSummaryLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]map[string]any, 0)
+	for rows.Next() {
+		var category, description, availability string
+		if err := rows.Scan(&category, &description, &availability); err != nil {
+			return nil, err
+		}
+		items = append(items, map[string]any{"category": category, "description": description, "availability": availability})
+	}
+	return items, rows.Err()
+}
+
 func readCurrentWornItems(ctx context.Context, query DBTX, fluctlightID string) ([]map[string]any, error) {
 	rows, err := query.Query(ctx, `SELECT w.slot,i.id,i.category,i.description,i.ownership,i.availability,`+inventorySourceVerifiedSQL+` FROM public.fluctlight_worn_items w JOIN public.fluctlight_wardrobe_items i ON i.fluctlight_id=w.fluctlight_id AND i.id=w.item_id WHERE w.fluctlight_id=$1 ORDER BY w.slot`, fluctlightID)
 	if err != nil {

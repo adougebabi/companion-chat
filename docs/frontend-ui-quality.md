@@ -3,7 +3,8 @@
 真实 Chromium（Playwright）中的布局、交互与视觉检查。jsdom 断言和 CSS 文本检查
 不能替代它；只有门禁结果为 `pass`（或 `not-applicable`）时才能报告 UI 验收通过。
 
-设计规范与共享组件清单见 [`.impeccable.md`](../.impeccable.md)。
+设计规范与共享组件清单见 [`.impeccable.md`](../.impeccable.md)；jsdom 单元测试的运行方式见
+[前端单元测试](frontend-unit-tests.md)。
 
 ## 组成
 
@@ -12,14 +13,17 @@
 | 共享组件 | `apps/web/src/components/patterns/`、`responsive-sheet.tsx`、`responsive-tabs.tsx` |
 | UI Lab（仅开发与测试，固定 fixture） | `apps/web/ui-lab/`，`/ui-lab/?fixture=gallery`、`?fixture=schedule-settings` |
 | 布局检查器 | `apps/web/e2e/support/layout.ts` |
-| 用例 | `e2e/schedule-settings.spec.ts`（@schedule）、`e2e/gallery.spec.ts`（@patterns）、`e2e/visual.spec.ts`（@visual）、`e2e/layout-checker.self-test.spec.ts`（@gate） |
+| 用例 | `e2e/visual.spec.ts`（@visual，每个组件状态在三个视口各打开一次：先做布局检查，再截图对比基准）、`e2e/gallery.spec.ts`（@patterns，组件交互与索引页）、`e2e/schedule-settings.spec.ts`（@schedule）、各业务场景 spec、`e2e/layout-checker.self-test.spec.ts`（@gate） |
 | 改动影响映射 | `e2e/impact-map.json` |
 | 门禁 | `apps/web/scripts/ui-gate.mjs` |
 | 视觉基准管理 | `apps/web/scripts/ui-baselines.mjs`，基准位于仓库根 `.ui-baselines/<环境>/`（不提交） |
 | CI | `.github/workflows/fluctlight-ui-quality.yml` |
 | 静态归属检查 | `apps/web/test/overlay-geometry-ownership.test.mjs`（jsdom 套件内） |
 
-三个视口：390×844（手机）、768×1024（平板）、1440×900（桌面）。时钟固定为
+三个视口：390×844（手机）、768×1024（平板）、1440×900（桌面）。布局与视觉检查覆盖三个视口；
+只做交互的 spec（gallery 交互、任务诊断、收件箱、形象提交审核、本轮详情、检查器自测）
+不跑平板视口，因为它们在平板上没有专属逻辑。Playwright 默认用满全部 CPU 核心，
+可用 `UI_GATE_WORKERS` 覆盖。时钟固定为
 2026-11-16 10:30（北京时间），数据全部来自 fixture，不访问网络。
 
 ## 检查内容
@@ -42,6 +46,7 @@ pnpm --filter @fluctlight/web ui-lab                # 浏览 UI Lab
 pnpm --filter @fluctlight/web ui:gate               # 按改动范围检查（相对默认分支）
 pnpm --filter @fluctlight/web ui:gate -- --files src/v3-domain/life-schedule.js
 pnpm --filter @fluctlight/web ui:gate:full          # 发布前 / 全站
+pnpm --filter @fluctlight/web ui:gate:failed        # 修复回路：只重跑上次失败的用例（结果不算验收）
 pnpm --filter @fluctlight/web ui:baselines status   # 基准审核状态
 ```
 
@@ -51,7 +56,12 @@ pnpm --filter @fluctlight/web ui:baselines status   # 基准审核状态
 ## 范围策略
 
 - **普通业务改动**：`impact-map.json` 中的区域标签对应的用例（含该区域的视觉基准）+ `@gate`。
-- **共享组件或全局 CSS 改动**（`shared`）：全部用例与全部视觉基准。
+- **共享组件或全局 CSS 改动**（`shared`）：全部用例与全部视觉基准。只改某个 spec 或 UI Lab fixture
+  时只跑它对应的标签（`visual.spec` 同时属于 @patterns 和 @schedule）；`e2e/support/**`、
+  Playwright 配置、影响映射和 UI Lab 入口仍算 shared。`src/`、`e2e/`、`ui-lab/` 下没有归类的文件
+  报 `unverified`。
+- **只重跑上次失败项**：`--failed`（Playwright `--last-failed`）。结果最多是 `unverified`，
+  修好后仍需跑一次常规门禁才能报告 UI 验收。
 - **完整全站检查**：`--full`，CI 每晚 02:30（北京时间）及手动 `mode=full`（发布前）。
 - **没有浏览器覆盖的 UI 文件**：结果为 `unverified` 并列出文件，需要补 UI Lab fixture / 用例，
   或在映射中如实归类；不会被静默判为通过。

@@ -3,7 +3,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 import React from "react";
-import { createServer } from "vite";
+import { createServer } from "./support/module-server.mjs";
 import { mountReact } from "./helpers/react-dom.mjs";
 import { profileFields, profileChanges } from "../src/approved-ui/profile-fields.mjs";
 import { formatDisplayValue } from "../src/lib/fluctlight-display.ts";

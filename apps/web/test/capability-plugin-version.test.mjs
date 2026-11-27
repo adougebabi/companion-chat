@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
-import {createServer} from 'vite';
+import {createServer} from './support/module-server.mjs';
 import {mountReact} from './helpers/react-dom.mjs';
 
 test('能力插件摘要隐藏技术字段，每个诊断入口下载对应的完整原始记录', async t => {

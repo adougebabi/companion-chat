@@ -3,7 +3,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createServer } from "vite";
+import { createServer } from "./support/module-server.mjs";
 
 test("reopening after transport loss renders the persisted worker failure and retry button", async () => {
   const original = { window: globalThis.window, fetch: globalThis.fetch, localStorage: globalThis.localStorage };

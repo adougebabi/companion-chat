@@ -2,8 +2,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { GALLERY_CATALOG } from '../ui-lab/fixtures/gallery-catalog';
 import { expectNoLayoutDefects } from './support/layout';
 
-// Every shared pattern × every applicable state × phone/tablet/desktop in real
-// Chromium. Fixture data is fixed; the clock is frozen.
+// Shared-pattern interactions and the gallery index in real Chromium. The
+// per-state layout checks run in visual.spec.ts, in the same page load as the
+// approved screenshot. Fixture data is fixed; the clock is frozen.
 const FIXED_NOW = new Date('2026-11-16T10:30:00+08:00');
 const isPhone = (page: Page) => page.viewportSize()!.width < 640;
 const events = (page: Page) => page.evaluate(() => (window as any).__uiLabEvents as { action: string; args: any[] }[]);
@@ -12,44 +13,6 @@ async function open(page: Page, component: string, state: string) {
   await page.clock.setFixedTime(FIXED_NOW);
   await page.goto(`/ui-lab/?fixture=gallery&component=${component}&state=${state}`);
   await expect(page.locator(`[data-gallery-target][data-state="${state}"]`)).toBeAttached();
-}
-
-for (const [id, entry] of Object.entries(GALLERY_CATALOG)) {
-  test.describe(`${entry.title} (${id})`, { tag: ['@patterns', ...(id.startsWith('migrated-') ? ['@overlay'] : [])] }, () => {
-    for (const state of entry.states) {
-      test(`${state}: renders without layout defects`, async ({ page }) => {
-        await open(page, id, state);
-        const minTarget = isPhone(page) ? 40 : 0;
-        await expectNoLayoutDefects(page, page.locator('[data-ui-lab-page]'), { minTarget });
-        if (entry.overlay) {
-          const sheet = page.getByRole('dialog');
-          await expect(sheet).toBeVisible();
-          const vw = page.viewportSize()!.width;
-          // Wait for the Radix entrance transition before asserting geometry.
-          await sheet.evaluate(async element => {await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => {})));});
-          const box = (await sheet.boundingBox())!;
-          if (isPhone(page) && (id === 'compact-dialog' || id === 'workspace-dialog' && state === 'dialog')) {
-            expect(box.width).toBeCloseTo(vw - 36, 0);
-            expect(box.x).toBeCloseTo(18, 0);
-          } else if (!isPhone(page) && id === 'workspace-dialog') {
-            expect(box.x + box.width / 2).toBeCloseTo(vw / 2, 0);
-          } else {
-            expect(box.x + box.width).toBeCloseTo(vw, 0);
-            if (isPhone(page)) expect(box.width).toBeCloseTo(vw, 0);
-          }
-          if (isPhone(page) && (id === 'bottom-sheet' || id === 'workspace-dialog' && state === 'sheet')) {
-            expect(box.y + box.height).toBeCloseTo(page.viewportSize()!.height, 0);
-            expect(box.height).toBeLessThanOrEqual(page.viewportSize()!.height * .88 + 1);
-          }
-          await expectNoLayoutDefects(page, sheet, { minTarget });
-          // Footer actions are reachable without scrolling the body.
-          const footer = sheet.locator('[data-responsive-sheet-part="footer"], [data-slot="dialog-footer"]');
-          if (await footer.count()) await expect(footer).toBeInViewport({ ratio: 1 });
-        }
-        await page.screenshot({ path: test.info().outputPath(`${id}-${state}.png`) });
-      });
-    }
-  });
 }
 
 test('gallery index lists every component and links to its first state', { tag: '@patterns' }, async ({ page }) => {
@@ -135,6 +98,57 @@ test.describe('interactions', { tag: ['@patterns', '@overlay'] }, () => {
     await expect(sheet.locator('[data-responsive-sheet-part="header"]')).toHaveClass(/sr-only/);
     await page.keyboard.press('Escape');
     await expect(sheet).toBeHidden();
+  });
+
+  test('turn details: failed call opens with its cause, other calls expand to request/response, whole turn copies as JSON', async ({ page }) => {
+    await page.addInitScript(() => {
+      (window as any).__copied = [];
+      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text: string) => { (window as any).__copied.push(text); } } });
+    });
+    await open(page, 'turn-details', 'normal');
+    const sheet = page.getByRole('dialog', { name: '本轮详情' });
+    await expect(sheet.locator('[data-turn-summary]')).toContainText('共 4 次模型调用，第 3 次失败：模型服务处理本次请求时返回错误（HTTP 503）');
+    const rows = sheet.locator('.replica-task-result-list > li');
+    await expect(rows).toHaveCount(4);
+    // Chronological, although the fixture returns newest first.
+    await expect(rows.nth(0)).toContainText('1. 对话思考');
+    await expect(rows.nth(2)).toContainText('3. 聊天回复');
+    for (const index of [0, 1, 3]) await expect(rows.nth(index).locator('.replica-task-round-trigger')).toHaveAttribute('aria-expanded', 'false');
+    const failed = rows.nth(2);
+    await expect(failed.locator('.replica-task-round-trigger')).toHaveAttribute('aria-expanded', 'true');
+    await expect(failed.getByRole('region', { name: '失败原因' })).toContainText('HTTP 503');
+    await expect(failed.getByRole('region', { name: '调用错误' })).toContainText('provider_unavailable');
+    // Agent runs: readable names and the failure, ids stay in 技术信息.
+    await expect(sheet.getByRole('region', { name: 'Agent 运行' })).toContainText('对话思考');
+    await expect(sheet.getByRole('region', { name: 'Agent 运行' })).not.toContainText('conversation_cognition');
+
+    const first = rows.nth(0);
+    await first.locator('.replica-task-round-trigger').click();
+    await expect(first.locator('.replica-task-round-trigger')).toHaveAttribute('aria-expanded', 'true');
+    await first.getByRole('button', { name: /^请求内容/ }).click();
+    await expect(first.getByText('今天去看展了吗？')).toBeVisible();
+    await first.getByRole('button', { name: /^返回内容/ }).click();
+    await expect(first.getByText('去了，人不多，下次一起去。')).toBeVisible();
+    await expectNoLayoutDefects(page, sheet, { minTarget: 0 });
+
+    await sheet.getByRole('button', { name: '复制整轮 JSON' }).click();
+    await expect(sheet.getByRole('button', { name: '已复制' })).toBeVisible();
+    const copied = JSON.parse((await page.evaluate(() => (window as any).__copied as string[]))[0]);
+    expect(copied.turnId).toBe('turn-fixture-0001');
+    expect(copied.modelRuns.map((row: any) => row.ref)).toEqual(['mr-1', 'mr-2', 'mr-3', 'mr-4']);
+    expect(copied.agentRuns).toHaveLength(2);
+    expect(copied.modelRuns[2].data).toMatchObject({ status: 'failed', error_code: 'provider_unavailable' });
+  });
+
+  test('turn details: read error offers a retry that reads again', async ({ page }) => {
+    await open(page, 'turn-details', 'read-error');
+    const sheet = page.getByRole('dialog', { name: '本轮详情' });
+    await expect(sheet.getByRole('alert')).toContainText('诊断服务暂时没有响应');
+    await expect(sheet.getByRole('button', { name: '复制整轮 JSON' })).toBeDisabled();
+    const reads = async () => (await events(page)).filter(e => e.action === 'turn-read').length;
+    const before = await reads();
+    await sheet.getByRole('button', { name: '重新读取本轮记录' }).click();
+    await expect.poll(reads).toBeGreaterThan(before);
   });
 
   test('data and task states expose retry/cancel actions that reach the fixture', async ({ page }) => {
