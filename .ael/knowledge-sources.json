@@ -214,7 +214,7 @@
     },
     {
       "path": "docs/frontend-ui-quality.md",
-      "hash": "5ae9486d0c60d73db342164c73fc2d0ecd6261f1cda94a8165750f6ec8b9ff06",
+      "hash": "2ab9de01ce4ea3a9ba15822a00cb06a311f4852e77bf2905704ad75e74625734",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -228,7 +228,28 @@
         "tasks": null,
         "critical": false,
         "path": "docs/frontend-ui-quality.md",
-        "hash": "5ae9486d0c60d73db342164c73fc2d0ecd6261f1cda94a8165750f6ec8b9ff06",
+        "hash": "2ab9de01ce4ea3a9ba15822a00cb06a311f4852e77bf2905704ad75e74625734",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "docs/frontend-unit-tests.md",
+      "hash": "74782e9e050aad35b2c3d793507b5fd25d962d49f523c74a0b174e98d673cef5",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/frontend-unit-tests.md",
+        "title": "frontend-unit-tests.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/frontend-unit-tests.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/frontend-unit-tests.md",
+        "hash": "74782e9e050aad35b2c3d793507b5fd25d962d49f523c74a0b174e98d673cef5",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -950,7 +971,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 43,
+    "historical": 44,
     "retired": 1
   }
 }
