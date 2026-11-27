@@ -214,7 +214,7 @@
     },
     {
       "path": "docs/frontend-ui-quality.md",
-      "hash": "2ab9de01ce4ea3a9ba15822a00cb06a311f4852e77bf2905704ad75e74625734",
+      "hash": "aba32dfb57ed30eb128bc0517d83e52269cd970f4a5745e8970df99c83e81cb1",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -228,7 +228,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/frontend-ui-quality.md",
-        "hash": "2ab9de01ce4ea3a9ba15822a00cb06a311f4852e77bf2905704ad75e74625734",
+        "hash": "aba32dfb57ed30eb128bc0517d83e52269cd970f4a5745e8970df99c83e81cb1",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }

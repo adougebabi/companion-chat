@@ -23,6 +23,7 @@ if (!approving && process.argv.some(arg => arg === '-u' || arg.startsWith('--upd
 
 export default defineConfig({
   testDir: '.',
+  globalSetup: './support/build-product.mjs',
   outputDir: '../test-results/ui',
   snapshotPathTemplate: `${baselineDir()}/{projectName}/{arg}{ext}`,
   updateSnapshots: approving ? 'all' : 'none',
@@ -52,6 +53,10 @@ export default defineConfig({
     { name: 'desktop-1440', use: { ...desktopChrome, viewport: { width: 1440, height: 900 } } },
   ],
   webServer: [
+    {
+      command: 'node scripts/mobile-mock-preview.mjs', cwd: '..',
+      url: 'http://127.0.0.1:5197/', reuseExistingServer: !process.env.CI, timeout: 120_000,
+    },
     {
       command: `node ./node_modules/vite/bin/vite.js --port ${port} --strictPort --host 127.0.0.1`,
       cwd: '..',

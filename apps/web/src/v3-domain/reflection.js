@@ -5,6 +5,7 @@ import {reflectionClient} from '../v3/proto/services.js';
 import {asyncPage,requestReceipt,instant} from '../v3/proto/components/async-page.js';
 import {CursorPager,bindCursorPager} from '../v3/proto/components/cursor-pager.js';
 import {mountCursorRecords} from '../v3/proto/components/cursor-records.js';
+import {profileEnumLabel,reflectionSubject} from '../approved-ui/behavior-enum-labels.mjs';
 import {scoreText} from '../approved-ui/memory-record-summary.mjs';
 import {RawRecordDownload} from '../v3/proto/components/records.js';
 import {Field} from '../v3/proto/components/forms.js';
@@ -89,14 +90,6 @@ const candidateTextFields={
   dominant_patterns:'主要情绪规律',triggers:'情绪触发因素',recovery_patterns:'恢复方式',conflicts:'情绪冲突',
 };
 const candidateTimes={valid_from:'生效时间',valid_until:'有效期至',preferred_time:'期望行动时间',expiration:'截止时间'};
-const changeSubjects={
-  'baseline.pleasure':'愉悦程度','baseline.arousal':'唤醒程度','baseline.dominance':'掌控感',
-  'traits.openness':'开放性','traits.conscientiousness':'尽责性','traits.extraversion':'外向性',
-  'traits.agreeableness':'亲和性','traits.emotional_stability':'情绪稳定性','expression.warmth':'表达温暖度',
-  'expression.initiative':'表达主动性','expression.playfulness':'表达活泼度',
-  'communication.tone':'交流语气','response.style':'回应方式','initiative.mode':'主动沟通方式',
-  'conflict.approach':'冲突处理方式','support.style':'支持方式',
-};
 const selfCategories={
   preference:'偏好',habit:'习惯',sensitivity:'敏感点',emotion_pattern:'情绪模式',
   self_perception:'自我认识',capability:'能力',interest:'兴趣',
@@ -159,18 +152,23 @@ function reflectionChanges(record,charId){
 
   function paint(candidate,label,decision){
     const trigger=candidate?.typed_trigger;
+    const subject=reflectionSubject(candidate?.field_path||candidate?.target);
     const facts=reflectionFacts([
       ['处理结果',labelFor(dispositions,decision?.disposition)],
       ['处理原因',labelFor(reasons,decision?.reason_code)],
       ['提议操作',labelFor(operations,candidate?.operation)],
-      ['调整对象',labelFor(changeSubjects,candidate?.field_path||candidate?.target)],
+      ['调整对象',subject.label],
       ['认识类别',labelFor(selfCategories,candidate?.category)],
       ['变化方向',labelFor(directions,candidate?.direction)],
       ['重要程度',scoreText(candidate?.importance)],
       ['情感意义',scoreText(candidate?.emotional_significance)],
       ...Object.entries(candidateTextFields).map(([key,fieldLabel])=>{
         const value=candidate?.[key];
-        return [fieldLabel,Array.isArray(value)?value.map(reflectionText).filter(Boolean).join('、'):reflectionText(value)];
+        const display=item=>{
+          const text=reflectionText(item);
+          return key==='semantic_value'?profileEnumLabel(text,subject.path):text;
+        };
+        return [fieldLabel,Array.isArray(value)?value.map(display).filter(Boolean).join('、'):display(value)];
       }),
       ...Object.entries(candidateTimes).map(([key,fieldLabel])=>[fieldLabel,reflectionTime(candidate?.[key])]),
       ['触发条件',labelFor({time:'到达指定时间',event:'相关事件发生',semantic:'符合语义条件'},trigger?.type)],

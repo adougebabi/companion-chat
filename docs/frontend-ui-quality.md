@@ -105,3 +105,33 @@ pnpm --filter @fluctlight/web ui:baselines status   # 基准审核状态
 ## 开发流程
 
 见 `AGENTS.md`「前端 UI 验收」。
+
+## 新版手机工作区（2026-11-26）
+
+设计裁定记录在 `.impeccable.md`。手机底栏、全屏详情、底部筛选和紧凑弹窗
+在 UI Lab 的 `mobile-navigation`、`detail-sheet`、`bottom-sheet`、`compact-dialog`
+中覆盖适用状态。移动页面回归位于 `e2e/mobile-workspace.spec.ts`（`@mobile`），
+使用正式 React 路由、生产 controller 与隔离 HTTP fixture；不是 Demo 的另一套 renderer。
+
+本地查看全部业务页的 mock 工作区：
+
+```sh
+pnpm --filter @fluctlight/web dev:mobile-mock
+# http://127.0.0.1:5197/#/library
+```
+
+该命令仅在 loopback 启动 Vite（默认5197）与 HTTP fixture（默认5196），不代理到真实
+Core、模型或图片服务，不持久化生产数据。`UI_MOBILE_PORT` 与
+`UI_MOBILE_FIXTURE_PORT` 可指定两个不同端口。原 `dev:mock` 保留 API scenarios
+入口，侧重诊断与恢复场景。浏览器回归禁止外部网络请求；未支持的接口不能视为通过。
+
+手机验收除390×844外，关键交互检查360×740、430×932，以及639/640/1023/1024
+断点；768×1024与1440×900检查平板和桌面兼容。模拟可视视口变化用于验证布局机制，
+不能代替iOS/Android真机的软键盘、安全区或地址栏伸缩验收。
+
+### 聊天浮层的生产构建回归
+
+`chat-mobile-overlays.spec.ts` 在隔离 HTTP fixture 提供的 **dist 产物**上检查手机会话菜单、
+菜单到历史的切换、历史全屏几何、长内容滚动、固定底部操作、关闭焦点与输入草稿。
+`e2e/support/build-product.mjs` 在每轮浏览器检查前构建一次生产产物，避免仅用 Vite
+开发模式漏掉 CSS 优化产生的定位差异。开发模式通过不能替代该检查。

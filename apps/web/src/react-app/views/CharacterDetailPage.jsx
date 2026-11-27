@@ -33,17 +33,17 @@ import WorkspaceDialog from "../shared/WorkspaceDialog";
 import WorkspaceInfo from "../shared/WorkspaceInfo";
 import LoadingState from "../shared/LoadingState";
 import {
-  ProfileDiagnostic, ProfileFieldsSummary, ProfileNote, ProfileTime, profileText,
+  ProfileDiagnostic, ProfileExtensionsSummary, ProfileFieldsSummary, ProfileNote, ProfileTime, profileText,
   profileFieldsForReading, personalityShape, behaviorShape, lifeShape,
   systemShape, currentStateShape, WorkingPortraitSummary,
-  describeProfileExpression, describeProfileMood, describeProfileCurrentState,
+  describeProfileExpression, describeProfileCurrentState,
 } from "../shared/ProfileRecordSummary";
 import RequestStatus from "../shared/RequestStatus";
 import WearingSummary from "../shared/WearingSummary";
 import useWorkspaceRead from "../shared/useWorkspaceRead";
 import { EmptyState, InlineFeedback } from "../shared/Presentation";
 import { ActionFeedback } from "../components";
-import { profileChanges } from "@/approved-ui/profile-fields.mjs";
+import { behavioralFields, profileChanges } from "@/approved-ui/profile-fields.mjs";
 import {
   semanticEntries,
   workingPersonaPresentation,
@@ -259,27 +259,22 @@ export default function CharacterDetailPageView({ model: m }) {
     tags = Array.isArray(identity.tags)
       ? identity.tags.filter((v) => typeof v === "string")
       : [];
-  const policyFact = (key) => {
-    const policy = core.behavioral_policy;
-    const recorded = Object.hasOwn(policy, key)
+  const policy = core.behavioral_policy;
+  const policyValue = (key) =>
+    Object.hasOwn(policy, key)
       ? policy[key]
       : Object.hasOwn(policy.expression || {}, key)
         ? policy.expression[key]
         : key === "response_style"
           ? policy.reply_style
           : undefined;
-    const value = profileFieldsForReading(recorded, true);
-    return key === "message_length"
-      ? { short: "简短", medium: "适中", long: "详细" }[value] || value
-      : value;
-  };
-  const primaryPolicyFields = ["response_style", "reply_style", "message_length", "conflict_style", "refusal_style"];
-  const extraPolicy = { ...core.behavioral_policy, expression: { ...core.behavioral_policy.expression } };
-  for (const key of primaryPolicyFields) {
-    const shown = policyFact(key === "reply_style" ? "response_style" : key);
-    const display = (value) => key === "message_length" ? ({ short: "简短", medium: "适中", long: "详细" }[value] || value) : value;
-    if (display(extraPolicy[key]) === shown) delete extraPolicy[key];
-    if (display(extraPolicy.expression[key]) === shown) delete extraPolicy.expression[key];
+  const primaryPolicyFields = ["response_style", "message_length", "conflict_style", "refusal_style"];
+  const policyOverview = primaryPolicyFields.map(key => [behavioralFields[key], key, profileFieldsForReading(policyValue(key), true)]);
+  const extraPolicy = { ...policy, expression: { ...policy.expression } };
+  for (const key of [...primaryPolicyFields, "reply_style"]) {
+    const shown = policyValue(key === "reply_style" ? "response_style" : key);
+    if (extraPolicy[key] === shown) delete extraPolicy[key];
+    if (extraPolicy.expression[key] === shown) delete extraPolicy.expression[key];
   }
   const workingSource = snapshot.groups.find((group) => group.key === "working")?.value,
     working = workingPersonaPresentation(workingSource),
@@ -495,9 +490,10 @@ export default function CharacterDetailPageView({ model: m }) {
                     </Button>
                   }
                 >
-                  <OverviewFacts identity={identity} entries={[["回复风格","response_style",policyFact("response_style")],["消息长短","message_length",policyFact("message_length")],["分歧处理","conflict_style",policyFact("conflict_style")],["拒绝方式","refusal_style",policyFact("refusal_style")]]}/>
+                  <OverviewFacts identity={identity} entries={policyOverview} />
                   {hasVisibleSemanticValue(identity.core_values)&&<Block title="核心价值观" value={identity.core_values} identity={identity}/>}
                   <ProfileFieldsSummary value={extraPolicy} shape={behaviorShape} identity={identity} present={describeProfileExpression} />
+                  <ProfileExtensionsSummary value={extraPolicy} />
                 </Section>
               </div>
               <div className="companion-stack">
@@ -526,6 +522,7 @@ export default function CharacterDetailPageView({ model: m }) {
                     </p>
                   )}
                   <ProfileFieldsSummary value={personality} shape={personalityShape} identity={identity} present={describeProfileExpression} />
+                  <ProfileExtensionsSummary value={personality} />
                   <ProfileDiagnostic value={personality} title="原始性格记录（诊断）" />
                 </Section>
                 <Surface className="companion-portrait-note">
@@ -534,6 +531,7 @@ export default function CharacterDetailPageView({ model: m }) {
                     {!workingProfileMismatch && working?.status && <Badge variant="outline">{stateLabel(working.status)}</Badge>}
                   </div>
                   <WorkingPortraitSummary value={workingSource} activeProfileId={snapshot.activeProfileId} identity={identity} localizePolicy />
+                  <ProfileExtensionsSummary value={workingSource} />
                   <ProfileDiagnostic value={workingSource} title="原始表达画像记录（诊断）" />
                   <span>人格设定与最近生活共同影响此刻的表达</span>
                 </Surface>
@@ -586,6 +584,7 @@ export default function CharacterDetailPageView({ model: m }) {
                           </Badge>
                         </div>
                         <ProfileFieldsSummary value={m.personaValue(p)} identity={identity} present={describeProfileExpression} />
+                        <ProfileExtensionsSummary value={p} />
                         <ProfileDiagnostic value={p} title="原始人格档案（诊断）" />
                       </article>
                     ))}
@@ -600,7 +599,7 @@ export default function CharacterDetailPageView({ model: m }) {
                   <p className="companion-body-text">
                     人格切换和生活事实分别记录，实际穿着、所在世界和已经发生的经历继续以对应读面为准。
                   </p>
-                  <ProfileFieldsSummary value={d.core_persona?.personality_system} shape={systemShape} identity={identity} />
+                  <ProfileFieldsSummary value={d.core_persona?.personality_system} shape={systemShape} field="personality_system" identity={identity} />
                 </Section>
               </div>
               <Section
@@ -623,6 +622,7 @@ export default function CharacterDetailPageView({ model: m }) {
                           )?.name || "目标人格"}
                         </h4>
                         <ProfileNote value={item.reason} label="切换原因" />
+                        <ProfileExtensionsSummary value={switchSources[index]} />
                         <ProfileDiagnostic value={switchSources[index]} title="原始人格切换记录（诊断）" />
                       </div>
                     ))}
@@ -664,6 +664,7 @@ export default function CharacterDetailPageView({ model: m }) {
                 }
               >
                 <ProfileFieldsSummary value={core.life_profile} shape={lifeShape} identity={identity} />
+                <ProfileExtensionsSummary value={core.life_profile} />
               </Section>
               <div className="companion-stack">
                 <Section title="此刻状态">
@@ -698,7 +699,7 @@ export default function CharacterDetailPageView({ model: m }) {
                   />
                   <Fact
                     label="心情"
-                    value={describeProfileMood(profileFieldsForReading(d.inner_state?.mood || d.current_state?.mood, currentStateShape.mood))}
+                    value={profileFieldsForReading(d.inner_state?.mood || d.current_state?.mood, currentStateShape.mood)}
                     identity={identity}
                   />
                   <div className="profile-key-value">
@@ -710,6 +711,7 @@ export default function CharacterDetailPageView({ model: m }) {
                     />
                   </div>
                   <ProfileFieldsSummary value={d.current_state} shape={currentStateShape} identity={identity} title="实际外观与状态" present={describeProfileCurrentState} />
+                  <ProfileExtensionsSummary value={d.current_state} />
                   <ProfileDiagnostic value={d.current_state} title="原始当前状态记录（诊断）" />
                   <div className="companion-action-row">
                     <Button
@@ -761,6 +763,7 @@ export default function CharacterDetailPageView({ model: m }) {
                     </p>
                   )}
                   <ProfileFieldsSummary value={d.developing_self} shape={{ summary: true, claims: { claim: true, summary: true, description: true } }} identity={identity} title="档案中的发展记录" />
+                  <ProfileExtensionsSummary value={d.developing_self} />
                   <ProfileDiagnostic value={d.developing_self} title="原始发展记录（诊断）" />
                   <Button
                     variant="ghost"
@@ -808,6 +811,7 @@ export default function CharacterDetailPageView({ model: m }) {
                       </h4>
                       <ProfileNote value={item.reason} label="修订原因" />
                       <ProfileFieldsSummary value={item.changes} identity={identity} title="本次修改" showClears />
+                      <ProfileExtensionsSummary value={item} />
                       <ProfileDiagnostic value={item} title="原始资料修订记录（诊断）" />
                     </div>
                   ))}
@@ -1145,6 +1149,7 @@ export default function CharacterDetailPageView({ model: m }) {
       >
         <ProfileNote value={initialization} label="初始来源" />
         <ProfileFieldsSummary value={{ ...core, personality }} identity={identity} present={describeProfileExpression} />
+        <ProfileExtensionsSummary value={d} />
         <ProfileDiagnostic value={d} title="原始角色档案（诊断）" />
       </WorkspaceDialog>
       {!m.editing.value && tab !== "persona" && (

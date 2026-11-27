@@ -99,6 +99,33 @@
       "e2e/visual.spec.ts",
       "ui-lab/fixtures/gallery.tsx",
       "ui-lab/fixtures/gallery-catalog.ts"
+    ],
+    "@mobile": [
+      "src/react-app/App.tsx",
+      "src/react-app/hooks/use-mobile.ts",
+      "src/react-app/shared/WorkspaceNavigation.tsx",
+      "src/react-app/shared/SettingsField.tsx",
+      "src/react-app/shared/PreparationSteps.jsx",
+      "src/react-app/shared/MediaGeneration.jsx",
+      "src/react-app/shared/WorkspaceDialog.tsx",
+      "src/react-app/pages/ChatPage.tsx",
+      "src/react-app/pages/LibraryPage.jsx",
+      "src/react-app/pages/DiaryPage.jsx",
+      "src/react-app/pages/MemoryPage.jsx",
+      "src/react-app/pages/SchedulePage.jsx",
+      "src/react-app/views/NowPage.jsx",
+      "src/react-app/views/FeedPage.jsx",
+      "src/react-app/views/WardrobePage.jsx",
+      "src/react-app/views/WorldPage.jsx",
+      "src/react-app/views/MediaWorkspace.jsx",
+      "src/react-app/views/ManagementPage.jsx",
+      "src/react-app/views/StudioEditor.jsx",
+      "src/react-app/views/CharacterWizard.jsx",
+      "src/approved-ui/creation-progress.mjs",
+      "src/react-app/pages/StudioEditorPage.tsx",
+      "src/react-app/shared/ConversationHistory.tsx",
+      "e2e/chat-mobile-overlays.spec.ts",
+      "e2e/mobile-workspace.spec.ts"
     ]
   },
   "nonUi": [

@@ -1,5 +1,6 @@
 import { semanticEntries } from "./profile-presentation.mjs";
 import { bodyFieldVisible } from "../lib/body-field-presentation.mjs";
+import { profileEnumLabel, profileEnumOptions, profileFieldLabel, profileFieldPath } from "./behavior-enum-labels.mjs";
 const clone = (value) =>
   value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 export const identityFields = {
@@ -22,23 +23,12 @@ export const identityFields = {
   worldview: "世界观",
   notes: "备注",
 };
-export const behavioralFields = {
-  response_style: "回复风格",
-  message_length: "消息长短",
-  emoji_frequency: "表情频率",
-  punctuation_style: "标点习惯",
-  humor_style: "幽默方式",
-  sarcasm_tendency: "调侃倾向",
-  directness: "直接程度",
-  initiative: "主动性",
-  topic_initiation: "开启话题",
-  silence_tolerance: "对沉默的接受程度",
-  response_delay: "回应节奏",
-  emotional_expression: "情绪表达",
-  conflict_style: "分歧处理",
-  refusal_style: "拒绝方式",
-  intimacy_expression: "亲密表达",
-};
+export const behavioralFields = Object.fromEntries([
+  "response_style", "message_length", "emoji_frequency", "punctuation_style",
+  "humor_style", "sarcasm_tendency", "directness", "initiative", "topic_initiation",
+  "silence_tolerance", "response_delay", "emotional_expression", "conflict_style",
+  "refusal_style", "intimacy_expression",
+].map(field => [field, profileFieldLabel(field, true)]));
 const policyNumbers = new Set([
   "emoji_frequency",
   "sarcasm_tendency",
@@ -59,13 +49,7 @@ const technical = (key) =>
   ) || /_(?:id|ids|version|revision|at)$/.test(key);
 const readOnlyLife = new Set(["wardrobe_items", "relationship_seeds"]);
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const fieldOptions = {
-  message_length: [
-    ["short", "简短"],
-    ["medium", "适中"],
-    ["long", "详细"],
-  ],
-};
+const messageLengths = profileEnumOptions("message_length");
 export function coreFromDetail(detail) {
   return {
     identity: clone(detail.identity || detail.core_persona?.identity || {}),
@@ -114,7 +98,7 @@ export function profileFields(core, label = (key) => key) {
         Array.isArray(value) ||
         (path[0] === "identity" && key === "core_values")
           ? "lines"
-          : policyField && fieldOptions[key]
+          : policyField && key === "message_length"
             ? "select"
             : policyField && policyText.has(key)
               ? "text"
@@ -133,11 +117,12 @@ export function profileFields(core, label = (key) => key) {
       path,
       label: path
         .slice(1)
-        .map((p) =>
+        .map((p, index) =>
           typeof p === "number"
             ? `第 ${p + 1} 项`
             : identityFields[p] ||
-              behavioralFields[p] ||
+              (Object.hasOwn(behavioralFields, p) && behavioralFields[p]) ||
+              profileFieldLabel(profileFieldPath(p, String(path[index]))) ||
               (label(p) === "自定义字段" ? "补充说明" : label(p)),
         )
         .join(" · "),
@@ -146,10 +131,10 @@ export function profileFields(core, label = (key) => key) {
         kind === "select"
           ? [
               { value: "", label: "尚未填写" },
-              ...fieldOptions[key].map(([value, label]) => ({ value, label })),
-              ...(!fieldOptions[key].some(([option]) => option === value) &&
+              ...messageLengths.map(([value, label]) => ({ value, label })),
+              ...(!messageLengths.some(([option]) => option === value) &&
               value !== undefined && value !== null && value !== ""
-                ? [{ value, label: String(value) }]
+                ? [{ value, label: profileEnumLabel(String(value), key) }]
                 : []),
             ]
           : undefined,

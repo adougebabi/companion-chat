@@ -1,3 +1,6 @@
+import {useState} from 'react';
+import {DetailSheet} from '@/components/patterns';
+import {useIsMobile} from '../hooks/use-mobile';
 import {
   Leaf,
   Plus,
@@ -25,49 +28,11 @@ import { stateLabel } from "@/v3/domain-presentation.mjs";
 import { requestDecisionText } from "@/v3/proto/components/request-failure.js";
 import { userInstant } from "@/v3/presentation-time.mjs";
 export default function FeedPageView({ model: m }) {
+  const mobile=useIsMobile(),[filtersOpen,setFiltersOpen]=useState(false);
   const rows = m.feed.items.filter(
     (row) => m.filters.author !== "me" || row.author_type === "user",
   );
-  return (
-    <div className="replica-feed companion-page">
-      <WorkspacePageHeader
-        eyebrow="WORLD / SMALL MOMENTS"
-        title="日子里的小小回响。"
-        description="一些想分享的事，和那些愿意回应的人。"
-        actions={
-          <>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="刷新动态"
-              disabled={m.feed.busy}
-              onClick={() => {
-                void m.feed.load();
-                void m.suggestions.load();
-                void m.refreshPlugin();
-              }}
-            >
-              <RefreshCw size={15} />
-            </Button>
-            <Button
-              variant="outline"
-              disabled={!m.momentEnabled}
-              onClick={(e) => m.compose("suggest", e.currentTarget)}
-            >
-              <Sparkles size={15} />
-              邀请分享近况
-            </Button>
-            <Button disabled={!m.momentEnabled} onClick={(e) => m.compose("publish", e.currentTarget)}>
-              <Plus size={15} />
-              我来发动态
-            </Button>
-          </>
-        }
-      />
-      {m.pluginStatus === "disabled" && <WorkspaceInfo>动态能力已停用，已发布内容仍可查看；原提交可以继续核对。</WorkspaceInfo>}
-      {m.pluginStatus === "checking" && <WorkspaceInfo>正在确认动态能力状态。</WorkspaceInfo>}
-      {m.pluginStatus === "unknown" && <WorkspaceInfo>暂时无法确认动态能力状态。<Button variant="outline" onClick={() => void m.refreshPlugin()}>重新读取能力状态</Button></WorkspaceInfo>}
-      <form
+  const filterForm = (      <form
         className="companion-toolbar feed-toolbar"
         onSubmit={(e) => {
           e.preventDefault();
@@ -119,7 +84,49 @@ export default function FeedPageView({ model: m }) {
           <option value="hidden">已隐藏</option>
           <option value="all">全部动态</option>
         </ChoiceSelect>
-      </form>
+      </form>);
+  return (
+    <div className="replica-feed companion-page">
+      <WorkspacePageHeader
+        eyebrow="WORLD / SMALL MOMENTS"
+        title="日子里的小小回响。"
+        description="一些想分享的事，和那些愿意回应的人。"
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="刷新动态"
+              disabled={m.feed.busy}
+              onClick={() => {
+                void m.feed.load();
+                void m.suggestions.load();
+                void m.refreshPlugin();
+              }}
+            >
+              <RefreshCw size={15} />
+            </Button>
+            <Button
+              variant="outline"
+              disabled={!m.momentEnabled}
+              onClick={(e) => m.compose("suggest", e.currentTarget)}
+            >
+              <Sparkles size={15} />
+              邀请分享近况
+            </Button>
+            <Button disabled={!m.momentEnabled} onClick={(e) => m.compose("publish", e.currentTarget)}>
+              <Plus size={15} />
+              我来发动态
+            </Button>
+          </>
+        }
+      />
+      {m.pluginStatus === "disabled" && <WorkspaceInfo>动态能力已停用，已发布内容仍可查看；原提交可以继续核对。</WorkspaceInfo>}
+      {m.pluginStatus === "checking" && <WorkspaceInfo>正在确认动态能力状态。</WorkspaceInfo>}
+      {m.pluginStatus === "unknown" && <WorkspaceInfo>暂时无法确认动态能力状态。<Button variant="outline" onClick={() => void m.refreshPlugin()}>重新读取能力状态</Button></WorkspaceInfo>}
+      {!mobile && filterForm}
+      {mobile && <div className="mobile-feed-toolbar"><span>{m.filters.author==='me'?'我发布的':m.filters.fid?'当前角色':'所有人的动态'}</span><Button variant="outline" onClick={() => setFiltersOpen(true)}>筛选动态</Button></div>}
+      <DetailSheet mobileMode="sheet" open={mobile && filtersOpen} onOpenChange={setFiltersOpen} title="筛选动态" footer={<Button onClick={() => setFiltersOpen(false)}>完成</Button>}>{filterForm}</DetailSheet>
       {m.filterError && <p role="alert">{m.filterError}</p>}
       {!m.action &&
         m.composerRecovery.map((mode) => (

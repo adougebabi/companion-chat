@@ -142,7 +142,7 @@ test('首次打开 Sheet 时显示已完成的建议读取，失败后可以重�
   assert.match(visibleText(panel), /改到下午去花店 · 等她确认/);
 });
 
-test('未安排条目用中文摘要且不显示计划状态，完整记录可下载', async t => {
+test('未安排条目用中文摘要且不显示计划状态，真实条目保留标签，完整记录可下载', async t => {
   const nextDay = '2026-11-24';
   const fallback = {
     ...rawFields, id: 'private-item', activity: '默认未安排', status: 'planned', scene: '未安排',
@@ -169,6 +169,7 @@ test('未安排条目用中文摘要且不显示计划状态，完整记录可�
   assert.doesNotMatch(visibleText(timeline), internal);
   assertDownload(detail, '原始日程记录（诊断）', fallback);
   const duty = [...timeline.querySelectorAll('button')].find(node => node.textContent.includes('夜间值班'));
+  assert.deepEqual([...duty.querySelector('.schedule-item-heading').children].map(node => node.textContent), ['夜间值班', '计划']);
   assert.deepEqual([...duty.querySelectorAll('time')].map(node => node.textContent), ['2026/11/23 00:00', '2026/11/24 00:00']);
   assert.match(visibleText(duty), /夜间值班.*值班室/);
   await view.click(duty);

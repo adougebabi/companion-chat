@@ -308,3 +308,9 @@
  .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-settings-head :is(p,small,.replica-settings-section-icon){display:none}
  .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-management-section-header [role=tab][data-slot=tabs-trigger]{min-height:36px;padding:4px 2px}
 }
+
+.settings-switch-row {display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;}
+@media (width < 640px) {
+  .settings-switch-row {min-height:44px;width:100%;font-size:14px;}
+  .replica-management .settings-range-head > [data-slot="input"] {min-height:46px;height:auto;font-size:16px;}
+}

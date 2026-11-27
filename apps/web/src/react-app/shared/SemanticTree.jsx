@@ -8,6 +8,7 @@ import {
 } from "@/v3/proto/components/semantic-fields.js";
 import { readingFieldLabel, readingValueLabel } from "@/v3/proto/components/reading-fields.js";
 import { enumLabel } from "@/lib/fluctlight-display.ts";
+import { profileEnumLabel, profileEnumOptions, profileFieldPath } from "@/approved-ui/behavior-enum-labels.mjs";
 import {
   wardrobeCategoryLabel,
   wardrobeSlotLabel,
@@ -21,6 +22,7 @@ import {
 import { bodyFieldVisible } from "@/lib/body-field-presentation.mjs";
 import {relationMetrics, relationshipRoleLabel} from '@/approved-ui/people-presentation.mjs';
 const technicalSemanticKey = k => /^(?:id|schema_version|provenance|extensions|evidence_refs|source|source_kind|source_ref|source_verified|revision|instant|update_policy|owner_switch_targets|owner_switch_status|hash|source_hash)$/.test(k) || /_(?:id|ids|revision|version|at)$/.test(k);
+const personaModes = Object.fromEntries(profileEnumOptions("personality_system.mode"));
 export function hasVisibleSemanticValue(value,field='',identity={}) {
  if(technicalSemanticKey(field)||!bodyFieldVisible(field,value,identity))return false;
  if(Array.isArray(value))return value.some(item=>hasVisibleSemanticValue(item,'',identity));
@@ -81,7 +83,8 @@ export default function SemanticTree(input = {}) {
       typeof props.value === "string" &&
       /^\d+(?:\.\d+)?$/.test(props.value)
         ? Number(props.value)
-        : props.reading ? readingValueLabel(props.value, props.field) : props.value;
+        : props.reading ? readingValueLabel(props.value, props.field)
+          : typeof props.value === "string" ? profileEnumLabel(props.value, props.field) : props.value;
     if(props.field==='seasons'&&typeof value==='string')return ({spring:'春',summer:'夏',autumn:'秋',winter:'冬'})[value]||value;
     if(props.field==='clothing_type'&&typeof value==='string')return wardrobeSlotLabel(value);
     if (typeof value === "boolean") return value ? "是" : "否";
@@ -107,12 +110,10 @@ export default function SemanticTree(input = {}) {
       awake: "清醒",
       asleep: "休息中",
       assessment_required: "需要评估",
-      single: "单一人格",
-      multiple: "多重人格",
       stale: "等待更新",
       missing: "尚未整理",
     };
-    const translated = aliases[value] || (props.reading && props.field === "role" ? relationshipRoleLabel(value, "") : "") || enumLabel(value);
+    const translated = aliases[value] || personaModes[value] || (props.reading && props.field === "role" ? relationshipRoleLabel(value, "") : "") || enumLabel(value);
     return translated === "未分类" ? String(value ?? "") : translated;
   });
   const _component_SemanticTree = SemanticTree;
@@ -243,14 +244,15 @@ export default function SemanticTree(input = {}) {
   ) : (
     <dl key={6} className="approved-facts">
       <Fragment>
-        {listValues(entries.value).filter(([key])=>props.reading||!['strength','stability','trend'].includes(key)).map(([key, item], index) => {
+        {listValues(entries.value).filter(([key])=>props.reading||!['strength','stability','trend'].includes(key)).map(([key, item]) => {
+          const field = profileFieldPath(key, props.field);
           return (
             <div key={key}>
-              {fieldLabel(key)!=="自定义字段"&&<dt>{displayText(fieldLabel(key))}</dt>}
+              {fieldLabel(field)!=="自定义字段"&&<dt>{displayText(fieldLabel(field))}</dt>}
               <dd>
                 <_component_SemanticTree
                   value={item}
-                  field={key}
+                  field={field}
                   depth={__props.depth + 1}
                   identity={__props.identity} reading={__props.reading}
                 />

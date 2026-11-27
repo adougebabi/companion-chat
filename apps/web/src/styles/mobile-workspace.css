@@ -1,0 +1,61 @@
+/* Mobile workspace shell. Shared controls and overlays retain geometry in
+   patterns.css / overlay.css; business styles only compose their content. */
+.mobile-app-bar, .mobile-life-nav, .replica-main > .mobile-bottom-nav, .mobile-chat-actions, .mobile-moment-peek, .mobile-only {display: none;}
+.mobile-navigation-person {display:flex;align-items:center;gap:12px;padding:16px;border-radius:var(--mobile-card-radius);background:var(--secondary);}
+.mobile-navigation-person > div {flex:1;min-width:0;overflow-wrap:anywhere;}
+.mobile-navigation-person strong,.mobile-navigation-person small {display:block;}
+.mobile-navigation-person small {font-size:12px;color:var(--muted-foreground);margin-bottom:3px;}
+.mobile-navigation-groups {display:grid;gap:22px;margin-top:24px;}
+.mobile-navigation-groups h3 {font-size:13px;color:var(--muted-foreground);margin:0 4px 10px;}
+.mobile-navigation-groups section > div {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
+.mobile-navigation-groups [data-slot="button"] {justify-content:flex-start;min-height:50px;background:var(--background);padding:10px 12px;white-space:normal;text-align:left;}
+.mobile-navigation-groups [data-slot="button"] > span {min-width:0;overflow-wrap:anywhere;}
+.mobile-navigation-groups [data-slot="button"] > svg:last-child {margin-left:auto;width:14px;}
+.mobile-navigation-footer {display:flex;flex-wrap:wrap;gap:12px;margin-top:28px;}
+@media (640px <= width < 1024px) {
+  .replica-shell {--sidebar-width-icon:76px !important;}
+  .replica-shell > [data-slot="sidebar"] {width:76px;}
+  .replica-shell > [data-slot="sidebar"] > [data-slot="sidebar-container"] {width:76px;}
+  .replica-shell .replica-logo-copy,.replica-shell .replica-workspace-switch,.replica-shell .replica-nav-label,.replica-shell .replica-nav-item > span,.replica-shell .replica-nav-footer > div,.replica-shell .replica-nav-footer > button {display:none;}
+  .replica-shell .replica-logo,.replica-shell .replica-nav-item {justify-content:center;}
+  .replica-shell .replica-logo {padding:0;}
+  .replica-shell .replica-nav-item {min-height:42px;}
+  .replica-shell .replica-topbar > button:first-child {display:none;}
+}
+@media (width < 640px) {
+  html,body,#app {height:100%;min-width:320px;}
+  body {overflow:hidden;}
+  .react-workspace.replica-workspace,.replica-shell {height:var(--app-viewport-height,100dvh);min-height:0;}
+  .replica-shell > [data-slot="sidebar"] {display:none;}
+  .replica-main {height:100%;display:flex;flex-direction:column;position:relative;}
+  .replica-main > .replica-topbar {display:none;}
+  .mobile-app-bar {display:flex;align-items:center;justify-content:space-between;flex:none;min-height:var(--mobile-header-height);padding:env(safe-area-inset-top,0px) 16px 0;border-bottom:1px solid var(--border);background:var(--mobile-surface);}
+  .mobile-app-identity {display:flex;align-items:center;gap:10px;min-width:0;}
+  .mobile-app-identity > div {min-width:0;}
+  .mobile-app-identity strong {display:block;font-size:17px;font-weight:600;line-height:1.3;overflow-wrap:anywhere;}
+  .mobile-app-identity > div > span {display:block;font-size:11px;color:var(--muted-foreground);margin-top:3px;}
+  .mobile-brand-mark {width:32px;height:36px;border-radius:10px;background:var(--primary);display:grid;place-items:center;flex:none;}
+  .mobile-brand-mark svg {width:22px;height:26px;}
+  .mobile-app-actions {display:flex;flex:none;}
+  .mobile-app-actions button {position:relative;}
+  .react-workspace.replica-workspace .replica-page {--replica-page-inline:18px;--replica-page-top:22px;--replica-page-bottom:22px;flex:1;min-height:0;width:100%;overflow-y:auto;overscroll-behavior-y:contain;scroll-padding-block:20px;}
+  .replica-main > .mobile-bottom-nav {display:grid;flex:none;z-index:35;}
+  .mobile-life-nav {display:block;flex:none;min-height:50px;background:var(--mobile-surface);border-bottom:1px solid var(--border);padding:4px 14px;overflow:hidden;}
+  .mobile-life-nav [data-responsive-tabs] {width:100%;background:transparent;padding:0;min-height:40px;gap:4px;}
+  .mobile-life-nav [data-slot="tabs-trigger"] {min-height:40px;padding:8px 12px;font-size:13px;color:var(--muted-foreground);}
+  .mobile-life-nav [data-state="active"] {color:var(--primary);background:var(--secondary);}
+  .mobile-only {display:block;}
+  .desktop-only {display:none;}
+  .replica-page-heading {gap:14px;margin-bottom:20px;align-items:flex-start;}
+  .replica-page-heading .replica-eyebrow {display:none;}
+  .replica-page-heading h1 {font-size:23px;line-height:1.45;letter-spacing:0;}
+  .replica-page-heading p {font-size:14px;line-height:1.75;}
+  .replica-page :is(.replica-section-heading,.section-heading) h2 {font-size:17px;line-height:1.5;}
+  .replica-page :is(.replica-section-heading,.section-heading) p {font-size:13px;line-height:1.7;}
+  .replica-page [data-slot="card"] {border-radius:var(--mobile-card-radius);}
+  .replica-page :is(.lp-pad,.r-pad) {padding:var(--mobile-card-pad);}
+  .replica-main[data-focus-page] > .mobile-app-bar {display:none;}
+  html[data-keyboard-open] .replica-main > .mobile-bottom-nav {display:none;}
+}
+
+@media (width < 640px) {.replica-page.replica-chat-main .companion-chat-panel {border-radius:0;} .replica-chat .mobile-moment-peek {border-radius:0;}}

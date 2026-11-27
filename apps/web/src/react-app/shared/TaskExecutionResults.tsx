@@ -13,8 +13,9 @@ import {callDurationLabel} from '@/approved-ui/task-model-call-presentation.mjs'
  * Physical model calls of one task. Each call is one request, never the task
  * outcome. Raw input/output stay collapsed; the first failed call opens so its
  * error is visible at once. Read lazily: only when this section is shown.
+ * Reflection tasks show readable input/output plus separate diagnostic downloads.
  */
-export default function TaskExecutionResults({task,calls,available,downloadOnlyModelRecords=false}:{task:any;calls:any;available:boolean;downloadOnlyModelRecords?:boolean}){
+export default function TaskExecutionResults({task,calls,available,isReflection=false}:{task:any;calls:any;available:boolean;isReflection?:boolean}){
  const rounds=taskRoundRecords(calls.items),failures=rounds.filter((row:any)=>row.status==='failure'),firstFailure=failures[0]?.record.ref;
  const count=calls.ready?`${calls.cursor?'已读取 ':''}${rounds.length} 次${failures.length?` · ${failures.length} 次失败`:''}`:'';
  return <div className="replica-task-results">
@@ -30,12 +31,18 @@ export default function TaskExecutionResults({task,calls,available,downloadOnlyM
      <CollapsibleTrigger asChild><Button type="button" variant="ghost" className="replica-task-round-trigger"><span>{label}</span><DiagnosticStatus status={call.status} label={status==='success'?'成功':status==='failure'?'失败':undefined}/><span className="replica-task-round-duration">{callDurationLabel(call,{includeSource:false})}</span><ChevronDown size={14}/></Button></CollapsibleTrigger>
      <CollapsibleContent className="replica-task-round-content">
       {call.started_at&&<time dateTime={call.started_at}>开始于 {diagnosticTimeLabel(call.started_at)}</time>}
-      {(call.error||call.error_code)&&<section className="replica-task-round-error"><h3>错误</h3><p>{taskModelFailureReason(call)}</p>{!downloadOnlyModelRecords&&call.error_code&&<JsonDetails value={{error_code:call.error_code}} title="错误代码" downloadOnly/>}</section>}
-      {!downloadOnlyModelRecords&&<>
+      {(call.error||call.error_code)&&<section className="replica-task-round-error"><h3>错误</h3><p>{taskModelFailureReason(call)}</p>{!isReflection&&call.error_code&&<JsonDetails value={{error_code:call.error_code}} title="错误代码" downloadOnly/>}</section>}
+      {isReflection?<>
+       <section><h3>输入</h3><RecordView value={call.prompt} emptyText="未记录输入" hideEmpty/></section>
+       <section><h3>输出</h3><RecordView value={call.response} emptyText="未记录输出" hideEmpty/></section>
+       <JsonDetails value={record} title="原始任务记录（诊断）" filename="reflection-task.json" downloadOnly/>
+       <JsonDetails value={call.prompt??null} title="模型输入（诊断）" filename="model-input.json" downloadOnly downloadEmpty downloadNull/>
+       <JsonDetails value={call.response??null} title="模型输出（诊断）" filename="model-output.json" downloadOnly downloadEmpty downloadNull/>
+      </>:<>
        <RawContent label="输入" value={call.prompt} missing="未记录输入"><RecordView value={call.prompt} emptyText="未记录输入"/></RawContent>
        <RawContent label="输出" value={call.response} missing="未记录输出"><RecordView value={call.response} emptyText="未记录输出"/></RawContent>
+       <JsonDetails value={record} title="本轮原始记录" downloadOnly/>
       </>}
-      <JsonDetails value={record} title={downloadOnlyModelRecords?'本轮原始模型调用（诊断）':'本轮原始记录'} downloadOnly/>
      </CollapsibleContent>
     </Collapsible>
    </li>)}</ol>}

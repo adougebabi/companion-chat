@@ -1,3 +1,5 @@
+import { DetailSheet } from '@/components/patterns';
+import { useIsMobile } from '../hooks/use-mobile';
 import {MessageScrollerProvider,MessageScroller,MessageScrollerViewport,MessageScrollerContent,MessageScrollerItem,MessageScrollerButton} from '@/components/ui/message-scroller';
 import {Message,MessageContent,MessageHeader} from '@/components/ui/message';
 import {Bubble,BubbleContent} from '@/components/ui/bubble';
@@ -12,7 +14,7 @@ import WorkspaceMomentArt from '../shared/WorkspaceMomentArt';
 import WearingSummary from '../shared/WearingSummary';
 import {nowEmptyText,nowStateSummary,nowStateText,NowStateDownload} from '../shared/NowState';
 import {scheduleItemDisplay} from '../shared/schedule-presentation.mjs';
-import {nextScheduleItem} from '@/approved-ui/presentation.mjs';
+import {nextScheduleItem,type scheduleProjection} from '@/approved-ui/presentation.mjs';
 import {readErrorCause,serviceUnavailableNotice,settingsHref} from '@/approved-ui/service-unavailable.mjs';
 import {Alert,AlertTitle,AlertDescription} from '@/components/ui/alert';
 import {currentReadError} from '@/approved-ui/read-feedback.mjs';
@@ -96,6 +98,7 @@ export default function ChatPage({
   const [turnDetails,setTurnDetails]=useState<{turnId:string;trigger:HTMLElement|null}|null>(null);
   const [now, setNow] = useState(Date.now);
   const [historyOpen,setHistoryOpen]=useState(false);
+  const mobile = useIsMobile(), [mobileMenu,setMobileMenu] = useState(false), [mobileNow,setMobileNow] = useState(false);
   const [promptOffer,setPromptOffer]=useState('');
   const [readFailure,setReadFailure]=useState(''),[readLoading,setReadLoading]=useState(true);
   const [readCause,setReadCause]=useState<ReturnType<typeof readErrorCause>|null>(null);
@@ -262,8 +265,13 @@ export default function ChatPage({
     catch(cause){if(live())failConversationRead(cause);}
     finally{if(live())setReadLoading(false);}
   }
-  const schedule = nextScheduleItem(character.schedule,now);
-  const scheduleDisplay = schedule && scheduleItemDisplay(schedule);
+  const scheduleItems: ReturnType<typeof scheduleProjection>[] = character.schedule;
+  const schedule = nextScheduleItem(scheduleItems.filter(item=>!scheduleItemDisplay(item).unplanned),now);
+  const scheduleRecords = scheduleItems
+    .filter(item=>item===schedule||scheduleItemDisplay(item).unplanned)
+    .map(item=>item._source)
+    .filter(Boolean);
+  const diagnosticSchedule = scheduleRecords.length>1?scheduleRecords:scheduleRecords[0];
   const {activity,location:momentLocation,mood}=nowStateSummary(character);
   const worldId=character.detail?.context?.world_id;
   const hasWorld=typeof worldId==='string'&&!!worldId.trim();
@@ -282,18 +290,18 @@ export default function ChatPage({
     <div className="companion-mini-section">
       <div className="companion-row-between"><span>接下来的安排</span><Button variant="link" onClick={()=>onGo('日程')}>查看全部<ChevronRightIcon size={12}/></Button></div>
       {schedule ? <div className="companion-next-schedule">
-        {!scheduleDisplay?.unplanned&&<time dateTime={schedule._source?.start_at} title={userInstant(schedule._source?.start_at)}>{schedule.time}</time>}
+        <time dateTime={schedule._source?.start_at} title={userInstant(schedule._source?.start_at)}>{schedule.time}</time>
         <div>
-          <p>{nowStateText(scheduleDisplay?.title,'活动')}</p>
-          {!scheduleDisplay?.unplanned&&<small>{schedule._source?.action_status==='in_progress'?'正在进行':'日程安排'}</small>}
+          <p>{nowStateText(schedule.text,'活动')}</p>
+          <small>{schedule._source?.action_status==='in_progress'?'正在进行':'日程安排'}</small>
         </div>
       </div> : <p className="replica-caption">还没有读到接下来的安排。</p>}
     </div>
-    <NowStateDownload detail={character.detail} schedule={schedule?._source}/>
+    <NowStateDownload detail={character.detail} schedule={diagnosticSchedule}/>
     </Surface><div className="companion-soft-note"><LeafIcon size={17}/><p>生活在继续，故事也在慢慢生长。<br/>这里是 {character.name} 的小小世界。</p></div></>;
   return (
     <div className="replica-chat companion-page">
-      <WorkspacePageHeader eyebrow="DAILY / A LITTLE CONVERSATION" title="从一句话，慢慢走近。" description="分享今天的小事，也留一点安静相处的时间。" actions={<><Button ref={historyFocus} variant="outline" onClick={()=>setHistoryOpen(true)}><HistoryIcon size={15}/>会话历史</Button><Button data-testid="chat-preview-toggle" variant="outline" onClick={()=>onPreviewChange?.(!preview)}><SlidersHorizontalIcon size={15}/>{preview?'收起此刻':'展开此刻'}</Button></>}/>
+      <WorkspacePageHeader eyebrow="DAILY / A LITTLE CONVERSATION" title="从一句话，慢慢走近。" description="分享今天的小事，也留一点安静相处的时间。" actions={<><Button ref={mobile ? undefined : historyFocus} variant="outline" onClick={()=>setHistoryOpen(true)}><HistoryIcon size={15}/>会话历史</Button><Button data-testid="chat-preview-toggle" variant="outline" onClick={()=>onPreviewChange?.(!preview)}><SlidersHorizontalIcon size={15}/>{preview?'收起此刻':'展开此刻'}</Button></>}/>
       <div className={`companion-chat-layout ${preview ? "" : "without-preview"}`}>
 
       <Surface as="section" className="companion-chat-panel">
@@ -319,7 +327,9 @@ export default function ChatPage({
             <ShieldCheckIcon size={13} />
             只属于你们的对话
           </span>
+          <div className="mobile-chat-actions"><Button ref={mobile ? historyFocus : undefined} variant="ghost" size="icon" aria-label="会话历史" onClick={() => setHistoryOpen(true)}><HistoryIcon/></Button><Button variant="ghost" size="icon" aria-label="会话菜单" onClick={() => setMobileMenu(true)}><MoreActionsIcon/></Button></div>
         </header>
+        <Button variant="ghost" className="mobile-moment-peek" onClick={() => setMobileNow(true)}><span><LeafIcon/><span>{activity || mood || nowEmptyText}</span></span><small>此刻<ChevronRightIcon/></small></Button>
         {archived&&<Alert data-testid="chat-archived" className="min-w-0 gap-3 p-4">
           <AlertTitle>角色已归档</AlertTitle>
           <AlertDescription>可以查看历史对话，已归档角色不能发送新消息。</AlertDescription>
@@ -444,7 +454,7 @@ export default function ChatPage({
             onCompositionEnd={() => (composing.current = false)}
             onKeyDown={(event) => {
               if (
-                event.key === "Enter" &&
+                !mobile && event.key === "Enter" &&
                 !event.shiftKey &&
                 !event.ctrlKey &&
                 !event.altKey &&
@@ -462,17 +472,26 @@ export default function ChatPage({
             <span>{archived?"角色已归档，不能发送新消息":conversationUnavailable?"对话恢复后才可发送，草稿已保留":<>Enter 发送 <i/> Shift + Enter 换行</>}</span>
             <Button
               className="touch-target"
+              aria-label={canQueueFollowUp ? "追加消息" : "发送消息"}
               disabled={archived || !draft.trim() || sameDraftPending || sendBusy || readLoading || conversationUnavailable || preparationBlocked || !snapshot.conversation || !!snapshot.recoveryStorageError}
               onClick={() => void send()}
             >
-              {canQueueFollowUp ? "追加消息" : snapshot.sending || store.hasPendingTurn ? "回应中" : store.hasSettlingTurn ? "等待结束" : "发送"}
+              <span>{canQueueFollowUp ? "追加消息" : snapshot.sending || store.hasPendingTurn ? "回应中" : store.hasSettlingTurn ? "等待结束" : "发送"}</span>
               <SendIcon size={14} />
             </Button>
           </div>
         </div>
       </Surface>
-      {preview&&<aside className="companion-moment-preview"><SidebarProvider keyboardShortcut={false} open={preview} onOpenChange={onPreviewChange} className="contents min-h-0"><Sidebar side="right" data-side="right" collapsible="none" className="replica-chat-preview"><SidebarContent className="replica-chat-preview-content">{previewContent}</SidebarContent></Sidebar></SidebarProvider></aside>}
+      {preview&&!mobile&&<aside className="companion-moment-preview"><SidebarProvider keyboardShortcut={false} open={preview} onOpenChange={onPreviewChange} className="contents min-h-0"><Sidebar side="right" data-side="right" collapsible="none" className="replica-chat-preview"><SidebarContent className="replica-chat-preview-content">{previewContent}</SidebarContent></Sidebar></SidebarProvider></aside>}
       </div>
+      <DetailSheet open={mobileNow && mobile} onOpenChange={setMobileNow} title={character.name + '的此刻'}>{previewContent}</DetailSheet>
+      <DetailSheet mobileMode="sheet" open={mobileMenu && mobile} onOpenChange={setMobileMenu} title="会话菜单">
+        <div className="ui-stack"><Select value={character.id} onValueChange={id => {setMobileMenu(false);workspace.select(id);onGo('聊天');}}><SelectTrigger aria-label="切换聊天角色"><SelectValue/></SelectTrigger><SelectContent>{workspace.state.characters.map((c:any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
+          <Button variant="outline" onClick={() => {setMobileMenu(false);setHistoryOpen(true);}}><HistoryIcon/>会话历史</Button>
+          <Button variant="outline" onClick={() => {setMobileMenu(false);onGo('角色详情');}}>角色档案</Button>
+          <Button variant="outline" onClick={() => {setMobileMenu(false);onGo('此刻');}}>走进生活</Button>
+        </div>
+      </DetailSheet>
       {(historyOpen||historyRoute)&&<ConversationHistory key={historyRoute?historyRoute.path+'?'+historyRoute.query:'inline'} initialQuery={historyRoute?.query.get('q')||''} initialConversationId={historyRoute?.query.get('conversation')||''} initialMessageId={historyRoute?.query.get('message')||''} returnFocus={()=>historyFocus.current} busy={busy||archived} onClose={closeHistory}/>}
       {attachment&&<WorkspaceDialog open onOpenChange={open=>{if(!open)setAttachment(null);}} title="对话附件" description={character.name+' 的历史对话图片'} returnFocus={()=>attachmentFocus.current}><MediaPreview src={workspace.services.mediaClient.url(attachment)} alt={character.name+' 的附件'}/></WorkspaceDialog>}
       {turnDetails&&<TurnDetailsDrawer key={turnDetails.turnId} turnId={turnDetails.turnId} returnFocus={()=>turnDetails.trigger} onClose={()=>setTurnDetails(null)}/>}

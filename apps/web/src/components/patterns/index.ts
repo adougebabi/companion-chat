@@ -9,3 +9,5 @@ export { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 export { ResponsiveTabsList, ResponsiveTabs, type ResponsiveTabItem } from "@/components/ui/responsive-tabs";
 export { Feedback, EmptyState, type FeedbackKind } from "@/react-app/shared/Presentation";
 export { default as LoadingState } from "@/react-app/shared/LoadingState";
+
+export { MobileNavigation, type MobileNavigationItem } from "./mobile-navigation";

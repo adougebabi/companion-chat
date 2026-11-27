@@ -1,3 +1,4 @@
+import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
 import { useEffect, useRef, useState } from "react";
 import { StoryMark } from "./WorkspaceArtwork";
 import { Pencil, Wand2, ImageIcon, History } from "lucide-react";
@@ -623,12 +624,13 @@ export default function VisualWorkspace({ model: m }) {
         }
       },
       fields: (d, edit) => (
-        <div className="r-review-layout">
-          <div>
+        <Tabs defaultValue="reference" className="r-review-layout">
+          <TabsList className="mobile-only r-review-step-tabs" aria-label="视觉审阅步骤"><TabsTrigger value="reference">1 图片对照</TabsTrigger><TabsTrigger value="decision">2 填写决定</TabsTrigger></TabsList>
+          <TabsContent forceMount value="reference" className="r-review-reference">
             <MediaById id={candidate} model={m} className="r-review-art" />
             <p className="r-fineprint">第 {attempt} 次尝试 · 人工评审</p>
-          </div>
-          <div className="r-form-stack">
+          </TabsContent>
+          <TabsContent forceMount value="decision" className="r-form-stack r-review-decision">
             <div className="replica-field">
               <span>评审结果</span>
               <RadioGroup
@@ -699,8 +701,8 @@ export default function VisualWorkspace({ model: m }) {
                 原候选已经评审，后续输入只作保留；请关闭后重新读取下一阶段。
               </WorkspaceInfo>
             )}
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       ),
     });
   }
@@ -771,12 +773,13 @@ export default function VisualWorkspace({ model: m }) {
         }
       },
       fields: (d, edit) => (
-        <div className="r-review-layout">
-          <div className="r-derived-comparison">
+        <Tabs defaultValue="reference" className="r-review-layout">
+          <TabsList className="mobile-only r-review-step-tabs" aria-label="视觉审阅步骤"><TabsTrigger value="reference">1 图片对照</TabsTrigger><TabsTrigger value="decision">2 填写决定</TabsTrigger></TabsList>
+          <TabsContent forceMount value="reference" className="r-derived-comparison r-review-reference">
             <div><p>已确认的形象参考</p><MediaById id={reference} model={m} className="r-review-art" /></div>
             <div><p>待审核{title}</p><MediaById id={candidate} model={m} className="r-review-art" /></div>
-          </div>
-          <div className="r-form-stack">
+          </TabsContent>
+          <TabsContent forceMount value="decision" className="r-form-stack r-review-decision">
             <div className="replica-field">
               <span>评审结果</span>
               <RadioGroup aria-label="评审结果" value={d.decision || ""} onValueChange={(decision) => edit({ decision })} className="r-review-choices">
@@ -790,8 +793,8 @@ export default function VisualWorkspace({ model: m }) {
             </div>
             {d.decision === "regenerate" && <label className="replica-field"><span>不通过的原因 · 必填</span><Textarea aria-label="不通过的原因" aria-required="true" value={d.feedback || ""} onChange={(e) => edit({ feedback: e.target.value })} /><span>这些修改要求会用于下一次生成。</span></label>}
             {d.reviewed && <WorkspaceInfo>这张图片已经评审，请重新读取下一阶段。</WorkspaceInfo>}
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       ),
     });
   }

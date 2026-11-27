@@ -1,3 +1,4 @@
+import { profileEnumLabel, profileFieldLabel, profileFieldPath } from "../approved-ui/behavior-enum-labels.mjs";
 import { formatBeijingInstant } from "./instant.ts";
 
 type JsonRecord = Record<string, unknown>;
@@ -58,21 +59,6 @@ const labels: Record<string, string> = {
   sociability: "社交性",
   risk_tolerance: "风险偏好",
   update_policy: "更新策略",
-  response_style: "回复风格",
-  message_length: "消息长度",
-  emoji_frequency: "表情频率",
-  punctuation_style: "标点风格",
-  humor_style: "幽默风格",
-  sarcasm_tendency: "讽刺倾向",
-  directness: "直接性",
-  initiative: "主动性",
-  topic_initiation: "发起话题",
-  silence_tolerance: "沉默容忍度",
-  response_delay: "回复延迟",
-  emotional_expression: "情绪表达",
-  conflict_style: "冲突风格",
-  refusal_style: "拒绝风格",
-  intimacy_expression: "亲密表达",
   source: "来源",
   status: "状态",
   trend: "趋势",
@@ -324,9 +310,9 @@ const enumLabels: Record<string, string> = {
   declining: "下滑",
   stable: "稳定",
   new: "新建立",
-  short: "简短",
-  direct: "直接",
-  clear: "清晰",
+  short: profileEnumLabel("short", "message_length"),
+  direct: profileEnumLabel("direct", "conflict_style"),
+  clear: profileEnumLabel("clear", "refusal_style"),
   schedule: "日程",
   event: "事件",
   hypothesis: "推断",
@@ -353,7 +339,9 @@ const enumLabels: Record<string, string> = {
 export function labelFor(key: string): string {
   if (!key || /^[\u4e00-\u9fff]/u.test(key)) return key || "其他信息";
   const normalized = key.replace(/([a-z\d])([A-Z])/g, "$1_$2").replace(/[\s-]+/g, "_").toLowerCase();
-  if (labels[normalized]) return labels[normalized];
+  const profileLabel = profileFieldLabel(normalized);
+  if (profileLabel) return profileLabel;
+  if (Object.hasOwn(labels, normalized)) return labels[normalized];
   const translatedParts = normalized.split("_").map((part) => keyPartLabels[part]);
   if (translatedParts.length > 1 && translatedParts.every(Boolean)) return translatedParts.join("");
   return "自定义字段";
@@ -369,12 +357,17 @@ export function enumLabel(value: unknown): string {
 }
 
 export function formatDisplayValue(value: unknown): string {
+  return formatFieldValue(value, "");
+}
+
+function formatFieldValue(value: unknown, field: string): string {
   if (value === null || value === undefined || value === "") return "未设定";
   if (typeof value === "boolean") return value ? "是" : "否";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "bigint") return String(value);
+  if (typeof value === "string") return profileEnumLabel(value, field);
+  if (typeof value === "number" || typeof value === "bigint") return String(value);
   if (Array.isArray(value)) {
     if (!value.length) return "未设定";
-    return value.map((item) => formatDisplayValue(item)).join("、");
+    return value.map((item) => formatFieldValue(item, field)).join("、");
   }
   if (typeof value === "object") {
     const entries = Object.entries(value as JsonRecord);
@@ -384,9 +377,10 @@ export function formatDisplayValue(value: unknown): string {
       const enumText = typeof item === "string" && ["status", "trend", "type", "kind", "action_type", "source", "candidate_type"].includes(normalizedKey)
         ? enumLabels[item]
         : undefined;
-      const displayLabel = labelFor(key);
+      const path = profileFieldPath(normalizedKey, field);
+      const displayLabel = labelFor(path === normalizedKey ? key : path);
       const rawLabel = displayLabel === "自定义字段" ? `（${key}）` : "";
-      return `${displayLabel}${rawLabel}：${enumText ?? formatDisplayValue(item)}`;
+      return `${displayLabel}${rawLabel}：${enumText ?? formatFieldValue(item, path)}`;
     }).join("；");
   }
   return "未设定";

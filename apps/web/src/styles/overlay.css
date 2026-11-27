@@ -11,9 +11,10 @@
   /* Breakpoints (documented; CSS media queries cannot read custom properties):
      phone < 640px, tablet 640–1023px, desktop >= 1024px. */
   --overlay-sheet-width: 540px;
+  --overlay-mobile-translate: 0px 0px;
   --overlay-sheet-width-wide: 860px;
   --overlay-pad-x: 24px;
-  --overlay-pad-x-compact: 16px;
+  --overlay-pad-x-compact: 20px;
   --overlay-pad-y: 20px;
   --control-height: 40px;
   --control-height-primary: 44px;
@@ -231,4 +232,58 @@
 /* The list scrolls (and therefore clips); keep the focus ring inside it. */
 [data-responsive-tabs] [data-slot="tabs-trigger"]:focus-visible {
   outline-offset: -2px;
+}
+
+/* 2026-11-26 approved mobile Demo: shared presentation variants. Both native
+   sheets and existing workspace dialogs use the same header/body/footer rules. */
+@media (width < 640px) {
+  :is([data-responsive-sheet], [data-workspace-dialog]) {
+    --overlay-pad-x: var(--overlay-pad-x-compact);
+    --overlay-pad-y: 22px;
+  }
+  [data-slot="sheet-content"][data-responsive-sheet],
+  [data-slot="dialog-content"][data-workspace-dialog] {
+    position: fixed; inset: var(--app-viewport-top, 0px) 0 auto; transform: none;
+    /* Keep the individual translate reset opaque to CSS optimisation. A
+       literal `translate:none` + `transform:none` can be folded into only
+       transform, leaving the Dialog primitive's -50% translate active. */
+    translate: var(--overlay-mobile-translate); width: 100%; max-width: 100%;
+    height: var(--app-viewport-height, 100dvh); max-height: var(--app-viewport-height, 100dvh);
+    min-height: 0; display: flex; flex-direction: column; gap: 0;
+    padding: 0; border: 0; border-radius: 0; overflow: hidden; animation: none;
+  }
+  [data-responsive-sheet] > [data-responsive-sheet-part="header"],
+  [data-workspace-dialog] > [data-slot="dialog-header"] {
+    flex: none; min-width: 0; text-align: left;
+    padding: calc(20px + env(safe-area-inset-top, 0px)) 64px 17px var(--overlay-pad-x);
+    border-bottom: 1px solid var(--border); background: var(--mobile-surface); gap: 7px;
+  }
+  :is([data-responsive-sheet], [data-workspace-dialog]) :is([data-slot="sheet-title"], [data-slot="dialog-title"]) {
+    font-size: 20px; line-height: 1.4; overflow-wrap: anywhere;
+  }
+  :is([data-responsive-sheet], [data-workspace-dialog]) :is([data-slot="sheet-description"], [data-slot="dialog-description"]) {font-size: 13px; line-height: 1.65;}
+  [data-workspace-dialog] > .replica-dialog-body {
+    flex: 1 1 auto; min-height: 0; min-width: 0; max-height: none;
+    overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain;
+    padding: 22px var(--overlay-pad-x) calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  [data-responsive-sheet] > [data-responsive-sheet-part="footer"],
+  [data-workspace-dialog] > [data-slot="dialog-footer"] {
+    flex: none; margin: 0; display: flex; flex-direction: row; flex-wrap: wrap;
+    padding: 14px var(--overlay-pad-x) calc(14px + env(safe-area-inset-bottom, 0px));
+    gap: 10px; border-top: 1px solid var(--border); background: var(--popover);
+  }
+  :is([data-responsive-sheet], [data-workspace-dialog]) > :is([data-responsive-sheet-part="footer"], [data-slot="dialog-footer"]) > [data-slot="button"] {flex: 1; min-width: 0; white-space: normal;}
+  :is([data-responsive-sheet], [data-workspace-dialog]) > :is([data-slot="sheet-close"], [data-slot="dialog-close"]) {top: calc(12px + env(safe-area-inset-top, 0px)); right: 10px; width: 44px; height: 44px;}
+  [data-slot][data-mobile-mode="sheet"]:is([data-responsive-sheet], [data-workspace-dialog]) {
+    inset: auto 0 var(--app-viewport-bottom, 0px); height: auto;
+    max-height: min(88dvh, var(--app-viewport-height, 100dvh)); border-radius: var(--mobile-sheet-radius) var(--mobile-sheet-radius) 0 0;
+  }
+  [data-slot][data-mobile-mode="dialog"]:is([data-responsive-sheet], [data-workspace-dialog]) {
+    inset: calc(var(--app-viewport-top, 0px) + var(--app-viewport-height, 100dvh) / 2) auto auto 50%;
+    transform: translate(-50%, -50%); height: auto; width: calc(100% - 36px);
+    max-height: min(85dvh, var(--app-viewport-height, 100dvh)); border-radius: var(--mobile-dialog-radius);
+  }
+  [data-mobile-mode="sheet"] > :is([data-responsive-sheet-part="header"], [data-slot="dialog-header"]) {padding-top: 24px;}
+  [data-mobile-mode="dialog"] > :is([data-responsive-sheet-part="header"], [data-slot="dialog-header"]) {padding-top: 22px;}
 }

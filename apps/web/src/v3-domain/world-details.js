@@ -13,7 +13,7 @@ import {encounterDrawer} from './npc-management.js';
 import {Avatar,bindAvatars} from '../v3/proto/components/avatar.js';
 import {NPCRow,PersonCard} from '../v3/proto/components/cards.js';
 import * as store from '../v3/proto/store.js';
-import {esc,icon,badge,toast,objLink,mgmt,nameOf,confirm,requireOwner} from '../v3/proto/ui.js';
+import {esc,icon,badge,toast,objLink,nameOf,confirm,requireOwner} from '../v3/proto/ui.js';
 import {KeyValueList,Field,Tabs,SearchForm} from '../v3/proto/components/forms.js';
 import {belongsToWorld,mockWorld,mockClient} from '../v3/proto/services.js';
 const here=ctx=>store.get('characters',ctx.charId).locationId;
@@ -21,21 +21,27 @@ const inWorld=(ctx,object)=>object.worldId?object.worldId===store.get('character
 const readablePlaceText=value=>isInternalId(value)?'':typeof value==='string'?value.trim():value;
 function renderPlacePage(el, ctx, _alive, view) {
   const p = store.get('places', ctx.params.placeId), c=store.get('characters',ctx.charId);
-  if (!p || !inWorld(ctx, p)) { el.innerHTML = '<div data-domain-ui="empty" class="statebox"><h2>当前范围未找到该地点</h2></div>'; return; }
-  const world=store.get('worlds',c.worldId), category=world?.venueCategories?.find(v=>v.id===(p.venueCategoryId||p.venue_category_id));
-  const location=here(ctx)===p.id?`最近确认角色在${p.alias||p.name}。`:`角色最近确认的位置是${readablePlaceText(nameOf(here(ctx)))||'未知'}。`;
+  const worldId = p?.worldId || p?.world_id;
+  if (!p?.id || !worldId || worldId !== c?.worldId) { el.innerHTML = '<div data-domain-ui="empty" class="statebox"><h2>当前范围未找到该地点</h2></div>'; return; }
+  const world=store.get('worlds',worldId), category=world?.venueCategories?.find(v=>v.id===(p.venueCategoryId||p.venue_category_id));
+  const name = readablePlaceText(p.name);
+  const alias = readablePlaceText(p.alias);
+  const placeLabel = alias || name;
+  const title = placeLabel || '地点详情';
+  const location = here(ctx) === p.id
+    ? `最近确认角色在${placeLabel || '这里'}。`
+    : `角色最近确认的位置是${readablePlaceText(nameOf(here(ctx))) || '未知'}。`;
   const record=view?.places?.find(place=>place.id===p.id)??p;
-  const definitionId=p.resourceId||p.source_resource_id;
-  const definitionName=definitionId&&readablePlaceText(store.get('resources',definitionId)?.name);
+  const placeHref = `#/c/${encodeURIComponent(ctx.charId)}/world/place/${encodeURIComponent(p.id)}`;
   const description=readablePlaceText(p.desc);
   const facts=[['楼层',esc(readablePlaceText(p.floor))],['氛围',esc(readablePlaceText(p.atmosphere))],['陈设',SemanticValue(readablePlaceText(p.furniture))],['布局',esc(readablePlaceText(p.layout))],['连通说明',esc(readablePlaceText(p.connections))]].filter(([,content])=>content);
-  el.innerHTML = `<div class="place-reading stack"><header><p class="small muted"><a href="#/c/${ctx.charId}/world">${esc(world?.name||'当前世界')}</a>${category?' / '+esc(category.name):''} / ${esc(p.name)}</p><div class="row"><h2 class="grow">${esc(p.alias||p.name)}</h2><a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="sm" href="#/c/${ctx.charId}/worlds/${esc(c.worldId)}/place/${esc(p.id)}/edit">编辑地点</a></div>${p.alias?`<p class="small muted">正式名称：${esc(p.name)}</p>`:''}<p class="small muted">${esc(location)} 浏览地点不会改变角色的位置。</p></header>
-  ${p.scene?`<img class="place-scene" src="${esc(p.scene)}" alt="${esc(p.alias||p.name)}的场景参考" data-place-image>`:''}
+  el.innerHTML = `<div class="place-reading stack"><header><p class="small muted"><a href="#/c/${ctx.charId}/world">${esc(world?.name||'当前世界')}</a>${category?' / '+esc(category.name):''} / ${esc(name || title)}</p><div class="row"><h2 class="grow">${esc(title)}</h2><a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="sm" href="#/c/${ctx.charId}/worlds/${esc(worldId)}/place/${esc(p.id)}/edit">编辑地点</a></div>${alias&&name?`<p class="small muted">正式名称：${esc(name)}</p>`:''}<p class="small muted">${esc(location)} 浏览地点不会改变角色的位置。</p></header>
+  ${p.scene?`<img class="place-scene" src="${esc(p.scene)}" alt="${esc(title)}的场景参考" data-place-image>`:''}
   ${description||facts.length?`<section class="reading-paper"><h3>这里的样子</h3>${description?`<p class="memory-content">${esc(description)}</p>`:''}${facts.length?KeyValueList(facts):''}</section>`:''}
   <div class="grid g3"><section data-domain-ui="card" class="card"><h3>这里的人</h3>${store.list('npcs', n => belongsToWorld(ctx.charId,n)&&!n.archived&&n.enabled!==false&&n.currentPlaceId===p.id).map(n=>NPCRow(n,objLink)+badge(n.presence==='confirmed'?'已确认在场':'预计位置','plain')).join('')||'<p class="small muted">当前没有已确认或预计在场的人物。</p>'}</section>
   <section data-domain-ui="card" class="card"><h3>相关安排</h3>${store.list('schedule',v=>v.placeId===p.id&&(!v.charId||v.charId===ctx.charId)).map(v=>`<div data-domain-ui="item" class="lrow small">${esc(v.time)} ${esc(v.title)} ${badge(v.state)}</div>`).join('')||'<p class="small muted">当前读取范围没有相关安排。</p>'}<a href="#/c/${ctx.charId}/life/schedule">查看日程</a></section>
   <section data-domain-ui="card" class="card"><h3>发生过的事</h3>${store.list('events',v=>v.placeId===p.id&&inWorld(ctx,v)).map(v=>`<div data-domain-ui="item" class="lrow small">${objLink(v.id)} ${badge(v.state)}</div>`).join('')||'<p class="small muted">当前读取范围没有相关事件。</p>'}<a href="#/c/${ctx.charId}/media">查看媒体库</a></section></div>
-  ${definitionName?mgmt(`定义：${objLink(definitionId,definitionName)}`):''}
+  ${p.resourceId || p.source_resource_id ? `<p class="small"><a href="${esc(placeHref)}">${esc(name || alias || '查看这个地点')}</a></p>` : ''}
   ${RawRecordDownload(record,'原始地点记录（诊断）')}</div>`;
   const image=el.querySelector('[data-place-image]');image?.addEventListener('error',()=>image.remove(),{once:true});
 }
@@ -58,10 +64,32 @@ function renderPeopleListPage(el, ctx) {
   el.innerHTML=`<div class="stack"><header class="world-review-heading people-review-heading"><div><h2>人物关系</h2><p class="small muted">查看人物资料与已经记录的关系</p></div><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${ctx.charId}/people?view=relations">查看已记录的关系</a></header>${Tabs({value:scope,items:[['all','全部'],['known','已结识'],['world','世界人物']].map(([value,label])=>({value,label,href:link(value)}))})}${SearchForm({value:kw,placeholder:'搜索姓名、身份或地点',attrs:{'data-pf':true},inputAttrs:{'data-test':'people-q'}})}<div class="person-directory">${scope!=='world'&&(!kw||'关于你 所有者 我'.includes(kw))?PersonCard({name:store.get('user')?.name||'你',description:'所有者',status:'角色视角下与你的关系',href:sourceHref(`#/c/${ctx.charId}/people/owner`,ctx,'返回人物目录'),label:'关于你'}):''}${ns.map(n=>PersonCard({name:n.name,avatar:n.avatar,description:n.role||n.bio||'身份尚未补充',status:relation(n)?.stage||'尚无关系记录',href:sourceHref(`#/c/${ctx.charId}/people/npc/${encodeURIComponent(n.id)}`,ctx,'返回人物目录'),attrs:{'data-test':`npc-${n.id}`}})).join('')}</div>${!ns.length?`<div data-domain-ui="empty" class="statebox"><h3>${kw?'没有匹配的人物':scope==='known'?'尚未记录结识的人物':'尚未添加世界人物'}</h3><p>${kw?'可以换个关键词，或清除筛选查看人物目录。':scope==='known'?'浏览人物不会自动建立关系；实际接触后以已有记录为准。':'可以创建人物定义，再明确应用到这个世界。'}</p>${kw||scope!=='all'?`<a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="${directoryHref}">清除筛选</a>`:''}</div>`:''}<div class="row"><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${ctx.charId}/people/npcs">管理世界人物</a><a data-domain-ui="button" data-domain-variant="default" data-domain-size="default" href="#/c/${ctx.charId}/people/npc/new">创建人物定义</a></div></div>`;
   el.querySelector('[data-pf]').onsubmit=e=>{e.preventDefault();ctx.navigate(`${directoryHref}?${new URLSearchParams({q:e.target.q.value,scope})}`);};
 }
+function relationRevisionDescription(entry) {
+  const summary = typeof entry.summary === 'string' ? entry.summary.trim() : '';
+  const reason = typeof entry.reason === 'string' ? entry.reason.trim() : '';
+  return summary || reason || '这次修订没有说明';
+}
+
 async function renderNpcPage(el, ctx,alive=()=>true) {
   const n = await mockClient.npc(ctx.charId, ctx.params.npcId);if(!alive())return;const c=store.get('characters',ctx.charId), context=n.relationship_context || {}, relations=context.relationships || [], history=context.relationship_history || [];
-  const refs=n.encounters || [];
-  el.innerHTML=`<div class="grid g2 items-start"><div data-domain-ui="card" class="card"><div class="row">${Avatar({src:n.avatar,name:n.name,size:'lg'})}<div class="grow"><h2 class="m-0">${esc(n.name)}</h2><div class="small muted">${esc(n.role)} · 初始地点 ${esc(nameOf(n.placeId) || '未知')}</div></div></div><p>${esc(n.bio)}</p><div data-domain-ui="alert" class="banner info small" data-test="npc-not-full">NPC 是独立运行人物，不是完整摇光。生活规律仅用于预计；实际接触必须有事件与证据来源。</div><h3 class="[margin-top:12px]">与 ${esc(c.name)} 有关的实际接触</h3><div data-npc-runtime-records></div></div><div data-domain-ui="card" class="card"><h3>与 ${esc(c.name)} 的关系</h3>${relations.map(r=>`<div data-domain-ui="item" class="lrow"><span>${esc(r.summary || r.stage || '已有关系记录')} · v${esc(r.revision)}</span><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" href="#/c/${ctx.charId}/people/relation/${esc(r.id)}">修正关系…</a></div>`).join('') || '<p class="small muted">尚无关系记录</p>'}<h3 class="[margin-top:12px]">关系变化</h3><div class="chain" data-test="rel-revs">${history.map(r=>`<div data-domain-ui="item" class="lrow small">v${esc(r.revision)} · ${esc(r.summary || r.reason || '')}<span class="muted">${esc(userInstant(r.created_at))}</span></div>`).join('') || '<p class="small muted">尚无关系修订</p>'}</div><h3 class="[margin-top:12px]">位置与来源</h3>${PositionSummary({npc:n,placeName:value=>nameOf(value)||value||'未知'})}<p class="small muted">预计位置：${esc(nameOf(n.planned_position?.place_id)||'未知')}。预计不代表实际相遇。</p></div></div><div class="row [margin-top:12px]"><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${ctx.charId}/people/npc/${n.id}/edit">编辑资料与生活规律</a><a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" href="#/c/${ctx.charId}/people/npcs">NPC 管理</a><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-encounter-npc ${c.status==='已退休'?'disabled':''}>记录所有者确认的实际接触</button></div>`;
+  const relationRows = relations.map(r => `<div data-domain-ui="item" class="lrow">
+    <span>${esc(r.summary || r.stage || '已有关系记录')}</span>
+    <a data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" href="#/c/${ctx.charId}/people/relation/${esc(r.id)}">修正关系…</a>
+  </div>`).join('');
+  const historyRows = history.map(entry => {
+    const description = relationRevisionDescription(entry);
+    const timestamp = entry.created_at;
+    const time = typeof timestamp === 'string' && Number.isFinite(Date.parse(timestamp))
+      ? `<time class="muted" datetime="${esc(timestamp)}">${esc(userInstant(timestamp))}</time>`
+      : '';
+    return `<div data-domain-ui="item" class="lrow small"><span>${esc(description)}</span>${time}</div>`;
+  }).join('');
+  const relationDownload = relations.length || history.length
+    ? RawRecordDownload({relationships: relations, relationship_history: history}, '原始关系记录（诊断）')
+    : '';
+  el.innerHTML=`<div class="grid g2 items-start"><div data-domain-ui="card" class="card"><div class="row">${Avatar({src:n.avatar,name:n.name,size:'lg'})}<div class="grow"><h2 class="m-0">${esc(n.name)}</h2><div class="small muted">${esc(n.role)} · 初始地点 ${esc(nameOf(n.placeId) || '未知')}</div></div></div><p>${esc(n.bio)}</p><div data-domain-ui="alert" class="banner info small" data-test="npc-not-full">NPC 是独立运行人物，不是完整摇光。生活规律仅用于预计；实际接触必须有事件与证据来源。</div><h3 class="[margin-top:12px]">与 ${esc(c.name)} 有关的实际接触</h3><div data-npc-runtime-records></div></div><div data-domain-ui="card" class="card">${relations.length?`<h3>与 ${esc(c.name)} 的关系</h3>${relationRows}`:''}
+  ${historyRows?`<h3 class="[margin-top:12px]">关系变化</h3><div class="chain" data-test="rel-revs">${historyRows}</div>`:''}
+  ${relationDownload}<h3 class="[margin-top:12px]">位置与来源</h3>${PositionSummary({npc:n,placeName:value=>nameOf(value)||value||'未知'})}<p class="small muted">预计位置：${esc(nameOf(n.planned_position?.place_id)||'未知')}。预计不代表实际相遇。</p></div></div><div class="row [margin-top:12px]"><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${ctx.charId}/people/npc/${n.id}/edit">编辑资料与生活规律</a><a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" href="#/c/${ctx.charId}/people/npcs">NPC 管理</a><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-encounter-npc ${c.status==='已退休'?'disabled':''}>记录所有者确认的实际接触</button></div>`;
   el.querySelector('[data-encounter-npc]').onclick=()=>encounterDrawer(ctx.charId,n.id);
   const panel=mountNPCRuntimeRecords(el.querySelector('[data-npc-runtime-records]'),{fid:ctx.charId,npcId:n.id,zone:c.timezone,alive,readOnly:c.status==='已退休',initial:ctx.query.npcTab,onTab:tab=>{const url=new URL(location.href);url.hash=`#/c/${ctx.charId}/people/npc/${encodeURIComponent(n.id)}?${new URLSearchParams({...ctx.query,npcTab:tab})}`;window.history.replaceState(null,'',url);}});return()=>panel.dispose();
 }
@@ -72,7 +100,7 @@ async function renderRelEditPage(el,ctx) {
   const {relation:r,history}=await mockClient.readRelation(ctx.charId,actorId,projection.id);
   const historyRows=history.map(entry=>{
     const time=typeof entry.created_at==='string'&&Number.isFinite(Date.parse(entry.created_at))?userInstant(entry.created_at):'';
-    const description=[entry.summary,time].filter(Boolean).join(' · ')||'关系修订';
+    const description=[relationRevisionDescription(entry),time].filter(Boolean).join(' · ');
     return `<div data-domain-ui="item" class="lrow"><span class="grow">${esc(description)}</span><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" data-restore-relation>恢复此修订字段</button></div>`;
   }).join('');
   el.innerHTML=`<div data-domain-ui="card" class="card [max-width:640px]"><div class="row"><h3 class="grow">关系修正</h3>${badge('所有者修改')}</div><p class="small muted">在当前关系记录基础上追加修订，保留旧记录与来源。</p><form class="stack" data-rf>${Field({label:'关系描述',name:'summary',value:r.summary || '',attrs:{required:true}})}${Field({label:'修正原因',name:'reason',attrs:{required:true}})}${Field({label:'证据引用（逗号分隔）',name:'evidenceRefs',attrs:{required:true}})}<details data-domain-ui="disclosure" class="mgmt"><summary>关系语义与指标</summary><div class="stack [margin-top:8px]">${Field({label:'关系语义',name:'semantic',value:r.role?.label || r.role?.primary || ''})}${Field({label:'亲密度（推测，0—100；留空表示未知）',name:'intimacy',value:typeof r.metrics?.intimacy==='number' ? r.metrics.intimacy*100 : '',type:'number',attrs:{min:0,max:100,step:'any'}})}</div></details><div class="row"><button data-domain-ui="button" type="button" data-domain-variant="outline" data-domain-size="default" data-back>取消</button><button data-domain-ui="button" data-domain-variant="default" data-domain-size="default">保存修正</button></div><p data-domain-ui="alert" data-error role="alert"></p></form></div><details data-domain-ui="disclosure" class="mgmt small muted [max-width:640px] [margin-top:12px]"><summary>对象历史与恢复</summary><p>恢复通过受控命令追加一个新修订，保留来源与生活时间线。</p>${historyRows || '<p>暂无可恢复修订</p>'}</details>

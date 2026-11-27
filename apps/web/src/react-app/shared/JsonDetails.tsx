@@ -2,9 +2,9 @@ import {Disclosure} from '../controls';
 import {Button} from '@/components/ui/button';
 import RecordView from './RecordView';
 
-export default function JsonDetails({value,title='技术详情',downloadOnly=false,downloadEmpty=false,filename='fluctlight-record.json'}:{value:any;title?:string;downloadOnly?:boolean;downloadEmpty?:boolean;filename?:string}){
- const empty=value==null||
-  (!(downloadOnly&&downloadEmpty)&&typeof value==='object'&&!Object.keys(value).length);
+export default function JsonDetails({value,title='技术详情',downloadOnly=false,downloadEmpty=false,downloadNull=false,filename='fluctlight-record.json'}:{value:any;title?:string;downloadOnly?:boolean;downloadEmpty?:boolean;downloadNull?:boolean;filename?:string}){
+ const empty=value===undefined||(value===null?!(downloadOnly&&downloadNull):
+  !(downloadOnly&&downloadEmpty)&&typeof value==='object'&&!Object.keys(value).length);
  return <Disclosure title={title}>
   {downloadOnly?<p className="text-sm text-muted-foreground">{empty?'尚未记录相关详情':'原始记录仅供下载，任务说明请查看上方业务摘要。'}</p>:<RecordView value={value} emptyText="尚未记录相关详情" technical/>}
   {!empty&&<Button type="button" variant="outline" onClick={()=>{

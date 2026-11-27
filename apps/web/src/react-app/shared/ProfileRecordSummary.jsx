@@ -1,8 +1,9 @@
 import { behavioralFields, identityFields } from "@/approved-ui/profile-fields.mjs";
-import { portraitPresentation, workingPersonaPresentation } from "@/approved-ui/profile-presentation.mjs";
+import { profileEnumFields, profileEnumLabel } from "@/approved-ui/behavior-enum-labels.mjs";
+import { portraitPresentation, profileExpressionTextFields, workingPersonaPresentation } from "@/approved-ui/profile-presentation.mjs";
 import { stateLabel } from "@/v3/domain-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
-import { narrativeFields, readingFields, readingText, selectReadingFields } from "@/approved-ui/reading-fields.mjs";
+import { narrativeFields, readingExtensions, readingFields, readingText, selectReadingFields } from "@/approved-ui/reading-fields.mjs";
 import { readingFieldLabel } from "@/v3/proto/components/reading-fields.js";
 import { creationScaleHints } from "./CreationScaleHint";
 import JsonDetails from "./JsonDetails";
@@ -26,7 +27,14 @@ const traits = scalars([
   "curiosity", "independence", "patience", "empathy", "assertiveness", "humor",
   "sociability", "risk_tolerance",
 ]);
-const expression = scalars([...Object.keys(behavioralFields), "reply_style", "tone", "speech_style", "speech_patterns", "body_language"]);
+const expression = {
+  ...scalars([...Object.keys(behavioralFields), ...profileEnumFields, ...profileExpressionTextFields]),
+  communication: { tone: true },
+  response: { style: true },
+  initiative: { mode: true },
+  conflict: { approach: true },
+  support: { style: true },
+};
 const narrative = Object.fromEntries([
   "title", "name", "label", "text", "summary", "description", "content", "value",
   "reason", "likes", "dislikes", "stable_preferences", "habits", "boundaries",
@@ -83,20 +91,48 @@ export function profileFieldsForReading(value, fields, showClears = false) {
   });
 }
 
-/** @param {{value: any, shape?: object | true | typeof narrativeFields, identity?: object, title?: string, showClears?: boolean, present?: (value: any) => any}} props */
-export function ProfileFieldsSummary({ value, shape = profileShape, identity, title, showClears, present }) {
+/** @param {{value: any, shape?: object | true | typeof narrativeFields, identity?: object, title?: string, showClears?: boolean, present?: (value: any) => any, field?: string}} props */
+export function ProfileFieldsSummary({ value, shape = profileShape, identity, title, showClears, present, field = "" }) {
   const selected = profileFieldsForReading(value, shape, showClears);
   const summary = present ? present(selected) : selected;
   if (!hasVisibleSemanticValue(summary, "", identity)) return null;
   return <>
     {title && <h4 className="font-medium">{title}</h4>}
-    <SemanticTree value={summary} identity={identity} reading />
+    <SemanticTree value={summary} field={field} identity={identity} reading />
   </>;
 }
 
 export function ProfileDiagnostic({ value, title }) {
   if (value == null || value === "" || (typeof value === "object" && !Object.keys(value).length)) return null;
   return <JsonDetails value={value} title={title} downloadOnly />;
+}
+
+function ExtensionValue({ value }) {
+  if (Array.isArray(value)) {
+    return <ul className="semantic-list">{value.map((item, index) => (
+      <li key={index}><ExtensionValue value={item} /></li>
+    ))}</ul>;
+  }
+  if (value && typeof value === "object") {
+    return <dl className="approved-facts">{Object.entries(value).map(([field, item]) => {
+      const translated = readingFieldLabel(field);
+      const label = translated === "补充说明" ? field : translated;
+      return <div key={field}>
+        <dt>{/\p{Script=Han}/u.test(label) && !/[a-z\d]+_[a-z\d]+/i.test(label) ? label : "补充说明"}</dt>
+        <dd><ExtensionValue value={item} /></dd>
+      </div>;
+    })}</dl>;
+  }
+  return <span>{typeof value === "boolean" ? (value ? "是" : "否") : value}</span>;
+}
+
+/** @param {{value: unknown}} props */
+export function ProfileExtensionsSummary({ value }) {
+  return [...readingExtensions(value)].map((item, index) => (
+    <dl className="approved-facts" key={index}>
+      <div><dt>补充说明</dt><dd><ExtensionValue value={item} /></dd></div>
+    </dl>
+  ));
 }
 
 export function ProfileTime({ value }) {
@@ -110,16 +146,6 @@ export function ProfileNote({ value, label }) {
   const text = profileText(value);
   return text ? <p>{label && <b>{label}：</b>}{text}</p> : null;
 }
-
-const portraitPolicyValues = {
-  response_style: { warm: "温暖" },
-  message_length: { short: "简短", medium: "适中", long: "详细" },
-  punctuation_style: { natural: "自然" },
-  humor_style: { gentle: "温和" },
-  conflict_style: { direct: "直接", gentle: "温和" },
-  refusal_style: { clear: "清晰" },
-  intimacy_expression: { reserved: "含蓄" },
-};
 
 const degreeLabels = ["很低", "较低", "适中", "较高", "很高"];
 const expressionDegrees = {
@@ -160,16 +186,11 @@ export function describeProfileExpression(value, field = "") {
   return expressionValue(field, value);
 }
 
-export function describeProfileMood(mood) {
-  return scaleNumber(mood?.intensity) === 0 ? { ...mood, intensity: "平稳" } : mood;
-}
-
 export function describeProfileCurrentState(state) {
   if (!state || typeof state !== "object" || Array.isArray(state)) return state;
   return {
     ...state,
     activity: currentActivityDisplay(state.activity),
-    mood: describeProfileMood(state.mood),
     ...(state.context && typeof state.context === "object" && !Array.isArray(state.context)
       ? { context: { ...state.context, activity: currentActivityDisplay(state.context.activity) } }
       : {}),
@@ -185,7 +206,7 @@ export function WorkingPortraitSummary({ value, identity, activeProfileId, local
   const text = working?.portrait_text ?? working?.working_persona?.portrait_text;
   const rows = typeof text === "string" ? portraitPresentation(text, { includeOccurrences: true }) : [];
   const reading = rows.flatMap((row) => {
-    const source = localizePolicy && row.text?.match(/^用户原文(?:\s*[:：]\s*|\s+)([a-z][a-z\d_]*)\s*[:：]\s*(.*)$/);
+    const source = row.text?.match(/^用户原文(?:\s*[:：]\s*|\s+)([a-z][a-z\d_]*(?:\.[a-z][a-z\d_]*)*)\s*[:：]\s*(.*)$/);
     if (source) {
       const [, field, raw] = source;
       const value = profileFieldsForReading({ [field]: raw }, narrativeFields)?.[field];
@@ -195,7 +216,7 @@ export function WorkingPortraitSummary({ value, identity, activeProfileId, local
       const value = profileFieldsForReading(row.value, true);
       return value === undefined ? [] : [{ ...row, value }];
     }
-    if (/^\s*[a-z][a-z\d_]*\s*[:：]/i.test(row.text)) return [];
+    if (/^\s*[a-z][a-z\d_.]*\s*[:：]/i.test(row.text)) return [];
     const text = profileText(row.text);
     return text ? [{ text }] : [];
   });
@@ -207,13 +228,13 @@ export function WorkingPortraitSummary({ value, identity, activeProfileId, local
     {reading.map((line, index) => {
       if (!line.field) return <p key={index}>{line.text}</p>;
       const policy = localizePolicy && Object.hasOwn(behavioralFields, line.field);
-      const labels = (policy && portraitPolicyValues[line.field]) || {};
-      const value = Object.hasOwn(labels, line.value) ? labels[line.value]
-        : policy ? expressionValue(line.field, line.value) : line.value;
+      const value = policy ? expressionValue(line.field, line.value) : line.value;
       return <p key={index}>
         {line.userSource && <span>用户原文 · </span>}
         <b>{readingFieldLabel(line.field)}：</b>
-        {policy || line.userSource ? value : <SemanticTree value={line.value} field={line.field} identity={identity} reading />}
+        {policy || line.userSource || profileExpressionTextFields.includes(line.field)
+          ? typeof value === "string" ? profileEnumLabel(value, line.field) : value
+          : <SemanticTree value={value} field={line.field} identity={identity} reading />}
         {line.occurrences > 1 && <small className="r-muted">（原文出现 {line.occurrences} 次）</small>}
       </p>;
     })}
@@ -260,13 +281,14 @@ export function CapabilitySummary({ record }) {
   </>;
 }
 
-export function GovernanceHistorySummary({ entry }) {
+export function GovernanceHistorySummary({ entry, showExtensions = false }) {
   const action = { accept: "已接受", reject: "已拒绝", restore: "已恢复", propose: "已提出" }[entry.action];
   const status = entry.status || entry.action;
   return <div className="grid gap-2">
     {status && <p>{action || stateLabel(status, "已记录")}</p>}
     <ProfileTime value={entry.occurred_at || entry.created_at} />
     <ProfileNote value={entry.reason || entry.note} />
+    {showExtensions && <ProfileExtensionsSummary value={entry} />}
     <ProfileDiagnostic value={entry} title="原始治理历史记录（诊断）" />
   </div>;
 }

@@ -165,3 +165,12 @@ test.describe('interactions', { tag: ['@patterns', '@overlay'] }, () => {
     await expect(page.locator('[data-task-state="running"]')).not.toHaveAttribute('data-feedback-kind', 'success');
   });
 });
+
+test('workspace dialog: phone opens on the title and busy cannot dismiss', {tag:['@patterns','@mobile']}, async({page})=>{
+  await open(page,'workspace-dialog','page');
+  if(isPhone(page))await expect(page.getByRole('heading',{name:'业务记录'})).toBeFocused();
+  await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toBeHidden();
+  await open(page,'workspace-dialog','busy');
+  await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('dialog').getByRole('button',{name:'关闭',exact:true})).toHaveCount(0);
+});

@@ -3,8 +3,26 @@ import {FieldError} from '@/components/ui/field';
 import {useEffect,useId,useRef,useState} from 'react';
 import {Button} from '@/components/ui/button';
 import {Surface,Disclosure} from '../controls';
+import {isInternalId} from '@/v3/internal-id.mjs';
 import {autonomyActionChoices} from '@/v3/proto/components/configuration-fields.js';
 import JsonDetails from './JsonDetails';
+
+const snakeCasePluginName = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/i;
+
+function pluginDisplayName(plugin) {
+ if (plugin.id === 'image') return '图片';
+ if (plugin.id === 'moment') return '动态';
+
+ const {manifest} = plugin;
+ const candidates = [plugin.display_name, plugin.title, plugin.name,
+  manifest?.display_name, manifest?.title, manifest?.name];
+ for (const candidate of candidates) {
+  if (typeof candidate !== 'string') continue;
+  const name = candidate.trim();
+  if (name && !isInternalId(name) && !snakeCasePluginName.test(name)) return name;
+ }
+ return '插件';
+}
 
 function pluginHealthLabel(plugin){
  if(plugin.health==='unconfigured')return '图片服务未配置';
@@ -28,7 +46,7 @@ export function PluginStatus({plugin,view}){
  }
  const label=current?.busy?(moment?'正在检查动态能力':'正在检查图片服务'):current?.state==='stale'?'配置已变化，请重新检查':current?.state==='superseded'?'检查结果已失效，请重新检查':current?.state==='reachable'?(moment?'动态列表可读取，未验证发布和模型':'图片服务可连接，未验证图片生成'):current?.state==='failed'?(moment?'动态能力检查未通过':'图片服务检查未通过'):current?.state==='unknown'?'检查回执未确认，请重新检查':pluginHealthLabel(plugin);
  return <div className="grid gap-2">
-  <p className="muted">{plugin.id==='image'?'图片':moment?'动态':'插件'} · {plugin.enabled?'已启用':'已停用'} · {label}{plugin.required_dependencies?.includes('comfyui')?' · 生图需要 ComfyUI':''}{plugin.optional_dependencies?.includes('image')?' · 图片为可选依赖':''}</p>
+  <p className="muted">{pluginDisplayName(plugin)} · {plugin.enabled?'已启用':'已停用'} · {label}{plugin.required_dependencies?.includes('comfyui')?' · 生图需要 ComfyUI':''}{plugin.optional_dependencies?.includes('image')?' · 图片为可选依赖':''}</p>
   {plugin.id==='image'&&<Button className="w-fit" type="button" variant="outline" disabled={current?.busy||plugin.health==='unconfigured'||plugin.health==='configuration_invalid'} onClick={check}>检查图片服务连接</Button>}
   {moment&&<Button className="w-fit" type="button" variant="outline" disabled={current?.busy} onClick={check}>检查动态能力</Button>}
   <JsonDetails value={plugin} title="原始插件记录（诊断）" downloadOnly />

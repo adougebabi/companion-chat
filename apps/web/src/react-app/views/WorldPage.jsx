@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Surface, Badge, Disclosure, FieldInput } from "../controls";
+import { Surface, Badge, Disclosure, FieldInput, ChoiceSelect } from "../controls";
 import { ActionFeedback } from "../components";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
 import WorkspaceInfo from "../shared/WorkspaceInfo";
@@ -350,6 +350,7 @@ export function WorldPageView({ view: m }) {
               <TabsTrigger value="events">世界事件</TabsTrigger>
             </TabsList>
             <TabsContent value="places">
+              <div className="mobile-only r-phone-category"><ChoiceSelect aria-label="地点分类" value={m.category} onChange={e => m.setCategory(e.target.value)}><option value="all">全部地点</option>{groups.map(g => <option key={g.id} value={g.id}>{g.name} · {g.places.length}</option>)}</ChoiceSelect><Button variant="outline" disabled={m.readOnly} onClick={m.addCategory}>添加分类</Button></div>
               <div className="r-place-workspace">
                 <Surface className="r-place-tree">
                   <h3>场地分类</h3>

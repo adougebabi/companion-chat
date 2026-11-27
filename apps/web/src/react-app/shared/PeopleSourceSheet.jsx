@@ -22,15 +22,15 @@ export function SourceDownload({ value, label = "下载完整原始记录" }) {
 export function SourceFact({ row }) {
   const label = [...aboutFields, ...extraAboutFields].find(([key]) => key === row.attribute)?.[1] || "其他资料";
   const transitions={correct: "纠正了自填资料", change: "更新了目前的情况", assert: "首次填写资料"};
+  const recordedAt = row.effective_at || row.created_at;
   return <article className="people-source-record">
     <h3>{label}</h3>
     <PeopleFact label="记录内容"><SourceValue value={row.value} /></PeopleFact>
     <PeopleFact label="资料来源">{row.epistemic_kind === "owner_defined" ? "主动填写" : row.epistemic_kind === "user_statement" ? "交流中表达的事实" : "其他已记录来源"}</PeopleFact>
     <PeopleFact label="修改含义">{Object.hasOwn(transitions,row.transition_kind)?transitions[row.transition_kind]:"资料记录"}</PeopleFact>
-    <PeopleFact label="记录时间">{row.effective_at || row.created_at ? userInstant(row.effective_at || row.created_at) : "尚未记录时间"}</PeopleFact>
-    {row.revision != null && <PeopleFact label="修订版本">{String(row.revision)}</PeopleFact>}
+    {recordedAt ? <PeopleFact label="记录时间">{userInstant(recordedAt)}</PeopleFact> : null}
     {row.reason && <PeopleFact label="修改说明"><SourceValue value={row.reason} /></PeopleFact>}
-    <SourceDownload value={row} />
+    <SourceDownload value={row} label="原始了解记录（诊断）" />
   </article>;
 }
 export default function PeopleSourceSheet({ open, onOpenChange, returnFocus, title, description, children, source, scope }) {

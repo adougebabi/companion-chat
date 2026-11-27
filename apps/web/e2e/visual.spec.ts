@@ -25,7 +25,7 @@ function requireApprovedBaseline(name: string) {
 
 async function settle(page: Page) {
   await page.evaluate(() => document.fonts.ready);
-  await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity));
+  await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity || (a.timeline !== null && a.timeline !== document.timeline)));
 }
 
 for (const [id, entry] of Object.entries(GALLERY_CATALOG)) {
@@ -44,11 +44,22 @@ for (const [id, entry] of Object.entries(GALLERY_CATALOG)) {
           const sheet = page.getByRole('dialog');
           const vw = page.viewportSize()!.width;
           const box = (await sheet.boundingBox())!;
-          expect(box.x + box.width).toBeCloseTo(vw, 0);
-          if (isPhone(page)) expect(box.width).toBeCloseTo(vw, 0);
+          if (isPhone(page) && (id === 'compact-dialog' || id === 'workspace-dialog' && state === 'dialog')) {
+            expect(box.width).toBeCloseTo(vw - 36, 0);
+            expect(box.x).toBeCloseTo(18, 0);
+          } else if (!isPhone(page) && id === 'workspace-dialog') {
+            expect(box.x + box.width / 2).toBeCloseTo(vw / 2, 0);
+          } else {
+            expect(box.x + box.width).toBeCloseTo(vw, 0);
+            if (isPhone(page)) expect(box.width).toBeCloseTo(vw, 0);
+          }
+          if (isPhone(page) && (id === 'bottom-sheet' || id === 'workspace-dialog' && state === 'sheet')) {
+            expect(box.y + box.height).toBeCloseTo(page.viewportSize()!.height, 0);
+            expect(box.height).toBeLessThanOrEqual(page.viewportSize()!.height * .88 + 1);
+          }
           await expectNoLayoutDefects(page, sheet, { minTarget });
           // Footer actions are reachable without scrolling the body.
-          const footer = sheet.locator('[data-responsive-sheet-part="footer"]');
+          const footer = sheet.locator('[data-responsive-sheet-part="footer"], [data-slot="dialog-footer"]');
           if (await footer.count()) await expect(footer).toBeInViewport({ ratio: 1 });
         }
         const target = entry.overlay ? page : page.locator('[data-gallery-target]');

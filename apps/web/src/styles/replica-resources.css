@@ -684,3 +684,33 @@
 .replica-wardrobe .wardrobe-preparation-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
 .replica-wardrobe .wardrobe-preparation-actions>button{font-size:11px;height:30px;min-height:30px}
 .replica-wardrobe .wardrobe-preparation-inline [data-feedback-kind]{margin:8px 0}
+.mobile-library-welcome,.mobile-library-resume {display:none;}
+@media (width < 640px) {
+  .replica-library .library-hero {display:none;}
+  .mobile-library-welcome {display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:24px;}
+  .mobile-library-welcome small {font-size:10px;letter-spacing:1.5px;color:var(--muted-foreground);}
+  .mobile-library-welcome h1 {font-size:26px;line-height:1.5;font-weight:600;margin:10px 0 8px;}
+  .mobile-library-welcome p {font-size:13px;color:var(--muted-foreground);}
+  .replica-library .mobile-library-resume {display:flex;width:100%;height:auto;text-align:left;justify-content:flex-start;gap:14px;padding:18px;margin-bottom:25px;background:var(--secondary);border:1px solid var(--border);border-radius:var(--mobile-card-radius-large);white-space:normal;}
+  .mobile-library-resume > .avatar {width:50px;height:50px;border-radius:16px;flex:none;}
+  .mobile-library-resume > span {flex:1;min-width:0;}
+  .mobile-library-resume small,.mobile-library-resume strong,.mobile-library-resume > span > span {display:block;}
+  .mobile-library-resume small {font-size:11px;color:var(--muted-foreground);}
+  .mobile-library-resume strong {font-size:17px;margin:4px 0;overflow-wrap:anywhere;}
+  .mobile-library-resume > span > span {font-size:12px;color:var(--muted-foreground);}
+  .replica-library .library-header {display:block;}
+  .replica-library .library-header h2 {font-size:18px;}
+  .replica-library .library-actions {width:100%;margin-top:12px;gap:10px;}
+  .replica-library .library-search {flex:1;width:auto;min-width:0;}
+  .replica-library .library-view {display:none;}
+  .replica-library .tag-filter {flex-wrap:nowrap;overflow-x:auto;padding-block:4px;}
+  .replica-library .tag-filter > * {flex:none;}
+  .replica-library :is(.character-grid,.character-list) {display:grid;grid-template-columns:minmax(0,1fr);gap:16px;}
+  .replica-library .library-card {width:100%;max-width:none;}
+  .replica-library .library-card-art {height:120px;}
+  .replica-library .library-card-content {padding:18px;}
+  .replica-library .library-card-title h3 {font-size:18px;}
+  .replica-library .library-card-content > p {font-size:14px;line-height:1.75;}
+  .replica-library .library-card-bottom {gap:10px;align-items:flex-start;flex-direction:column;}
+  .replica-library .library-card-bottom .library-actions {justify-content:flex-end;margin:0;}
+}

@@ -1,0 +1,112 @@
+.mobile-day-strip,.mobile-compose-steps,.mobile-compose-actions,.mobile-settings-directory,.mobile-settings-back {display:none;}
+@media (640px <= width < 1024px) {
+  .replica-life .lp-three {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media (width < 640px) {
+  .replica-life :is(.lp-grid,.lp-two,.lp-three,.lp-four,.lp-form), .replica-dialog .lp-form {grid-template-columns:minmax(0,1fr);gap:18px;}
+  .replica-life .lp-stack {gap:18px;min-width:0;}
+  .replica-life :is(.lp-copy,.lp-title),.replica-dialog :is(.lp-copy,.lp-title) {font-size:16px;line-height:1.8;}
+  .replica-life .lp-small,.replica-dialog .lp-small {font-size:15px;line-height:1.8;}
+  .replica-life :is(.lp-muted,.lp-label),.replica-dialog :is(.lp-muted,.lp-label) {font-size:13px;line-height:1.7;letter-spacing:0;}
+  .replica-life .lp-chip {font-size:12px;padding:5px 9px;line-height:1.5;}
+  .replica-life .lp-toolbar {align-items:stretch;gap:12px;flex-wrap:wrap;}
+  .replica-life .replica-segment-tabs {width:100%;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;max-width:100%;min-height:48px;gap:18px;}
+  .replica-life .replica-segment-tabs > button {flex:none;font-size:14px;min-height:48px;}
+  .replica-now .lp-hero {padding:22px 20px 0;display:block;border-radius:var(--mobile-card-radius-large);}
+  .replica-now .lp-hero h2 {font-size:23px;line-height:1.55;}
+  .replica-now .lp-hero-art {display:none;}
+  .replica-now .lp-hero-next {padding:17px 20px;margin:22px -20px 0;border-top:1px solid var(--border);background:var(--card);}
+  .lp-hero-next small {font-size:12px;color:var(--muted-foreground);}
+  .lp-hero-next strong {font-size:21px;margin-left:14px;color:var(--primary);}
+  .lp-hero-next p {font-size:15px;line-height:1.7;margin-top:8px;}
+  .lp-phone-entries.mobile-only {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+  .lp-phone-entries > button {min-height:58px;background:var(--card);border:1px solid var(--border);border-radius:13px;}
+  .replica-schedule .lp-date {flex-wrap:wrap;gap:6px;width:100%;}
+  .replica-schedule .lp-date input {flex:1;min-width:100px;width:auto;}
+  .mobile-day-strip {display:grid;grid-template-columns:28px repeat(7,minmax(0,1fr)) 28px;gap:1px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);}
+  .mobile-day-strip [data-slot="button"] {padding:5px 0;min-width:0;min-height:60px;display:flex;flex-direction:column;gap:5px;border-radius:12px;}
+  .mobile-day-strip [data-slot="button"][data-size="icon"] {width:28px;padding:3px;min-height:44px;}
+  .mobile-day-strip small {font-size:11px;color:var(--muted-foreground);}
+  .mobile-day-strip strong {font-size:16px;font-weight:500;}
+  .mobile-day-strip .active {background:var(--primary);color:var(--primary-foreground);}
+  .mobile-day-strip .active :is(small,strong) {color:inherit;}
+  .replica-schedule .lp-timeline {padding:0;}
+  .replica-goals .lp-goal-card {padding:0;}
+  .replica-goals .replica-goal-open {text-align:left;padding:18px;white-space:normal;align-items:stretch;width:100%;}
+  .replica-goals .replica-goal-open h3 {font-size:17px;line-height:1.65;}
+  .replica-goals .replica-goal-open > p {font-size:14px;line-height:1.75;}
+  .replica-diary .replica-diary-controls {display:flex;flex-wrap:wrap;gap:10px;width:100%;}
+  .replica-diary .replica-diary-search {flex:1;min-width:0;}
+  .replica-diary .lp-diary-layout {display:block;}
+  .replica-diary .lp-diary-index {display:grid;border:0;padding:0;gap:12px;width:100%;max-height:none;}
+  .replica-diary .lp-diary-date {width:100%;padding:18px;min-height:112px;align-items:flex-start;background:var(--card);border:1px solid var(--border);border-radius:var(--mobile-card-radius);text-align:left;white-space:normal;}
+  .replica-diary .lp-diary-date strong {font-size:13px;}
+
+  [data-workspace-dialog] .lp-paper,[data-responsive-sheet] .lp-paper {padding:0;border:0;box-shadow:none;}
+  [data-responsive-sheet] .lp-paper-body {font-size:16px;line-height:2;}
+  .replica-memory .lp-toolbar {display:flex;flex-wrap:nowrap;}
+  .replica-memory .replica-memory-search {flex:1;min-width:0;max-width:none;}
+  .replica-memory .lp-memory-card {padding:18px;white-space:normal;}
+  .replica-memory .lp-memory-card p {font-size:15px;line-height:1.8;}
+  .mobile-feed-toolbar {display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;}
+  .replica-feed .companion-feed-layout {display:block;}
+  .replica-feed .companion-feed-layout > aside {display:none;}
+  .feed-toolbar {display:grid;gap:14px;}
+  .feed-toolbar .feed-search {width:100%;}
+  .replica-feed .companion-post {padding:18px;}
+  .replica-feed .companion-post-content {font-size:16px;line-height:1.9;}
+  .mobile-settings-directory {display:grid;gap:24px;}
+  .mobile-settings-directory > p {font-size:14px;color:var(--muted-foreground);}
+  .mobile-settings-directory section {display:grid;gap:4px;}
+  .mobile-settings-directory h2 {font-size:12px;color:var(--muted-foreground);margin-bottom:8px;}
+  .mobile-settings-directory [data-slot="button"] {width:100%;min-height:68px;justify-content:flex-start;gap:14px;text-align:left;background:var(--card);white-space:normal;}
+  .mobile-settings-directory [data-slot="button"] > span:nth-child(2) {flex:1;}
+  .mobile-settings-directory [data-slot="button"] > svg:last-child {width:16px;color:var(--muted-foreground);}
+  .replica-management .mobile-settings-back {display:flex;justify-content:flex-start;margin-bottom:16px;}
+  .replica-management .replica-management-nav {display:none;}
+  .replica-management-layout[hidden] {display:none;}
+  .replica-management .replica-management-layout {grid-template-columns:minmax(0,1fr);}
+  .replica-management .replica-management-main {padding:0;min-width:0;}
+  .replica-management .replica-settings-form {padding-bottom:150px;}
+  .replica-management .settings-group {padding:18px;border-radius:var(--mobile-card-radius-large);}
+  .replica-management :is(.settings-field-grid,.settings-grid,.model-binding-grid) {grid-template-columns:minmax(0,1fr);}
+  .replica-management .settings-save-bar {position:fixed;left:0;right:0;bottom:calc(var(--mobile-nav-height) + var(--app-viewport-bottom,0px));z-index:30;padding:12px 18px;background:var(--mobile-surface);border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;}
+  .replica-management .settings-save-bar > :first-child {width:100%;margin:0;font-size:12px;}
+  .replica-management .settings-save-bar .settings-save {flex:1;}
+  .mobile-compose-steps {display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;}
+  .replica-wardrobe .r-compose-layout {display:block;}
+  .replica-wardrobe .r-compose-layout[data-compose-step="1"] > .r-compose-summary {display:none;}
+  .replica-wardrobe .r-compose-layout[data-compose-step="2"] > :first-child {display:none;}
+  .mobile-compose-actions {display:flex;position:sticky;bottom:-22px;padding:12px 0;background:var(--background);}
+  .mobile-compose-actions > button {width:100%;}
+  .replica-wardrobe .r-compose-summary {padding:18px;}
+  .replica-wardrobe .r-compose-garments {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media (width < 640px) {
+  .replica-schedule .mobile-day-strip {grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;padding:0 0 16px;}
+  .mobile-day-strip [data-slot="button"] {min-height:76px;}
+  .mobile-day-strip strong {font-size:19px;}
+  .replica-diary .lp-diary-date {display:grid;grid-template-columns:47px minmax(0,1fr) 17px;align-items:center;gap:13px;padding:19px 15px;}
+  .replica-diary .phone-diary-date {display:grid;justify-items:center;gap:5px;border-right:1px solid var(--border);padding-right:12px;}
+  .replica-diary .phone-diary-date strong {font-size:28px;font-weight:400;line-height:1.15;}
+  .replica-diary .phone-diary-date small {font-size:12px;}
+  .replica-diary .phone-diary-copy {display:grid;gap:8px;min-width:0;}
+  .replica-diary .phone-diary-copy > small {font-size:12px;color:var(--muted-foreground);}
+  .replica-diary .phone-diary-copy > strong {font-size:16px;line-height:1.6;}
+  .replica-diary .phone-diary-copy > span {font-size:14px;line-height:1.75;}
+  [data-responsive-sheet] .lp-paper > h2 {display:none;}
+  [data-responsive-sheet] .lp-paper-body {font-size:17px;line-height:2;padding:20px 0 28px;}
+}
+
+@media (width < 640px) {
+  .replica-management .mobile-settings-directory {overflow-y:auto;min-height:0;flex:1;overscroll-behavior:contain;padding-bottom:22px;}
+}
+@media (width < 640px) {
+  .replica-diary .lp-diary-date[data-slot="button"] {grid-template-columns:47px minmax(0,1fr) 17px;justify-items:stretch;}
+  .replica-diary .phone-diary-copy,.replica-diary .phone-diary-copy > :is(span,strong,small) {white-space:normal;overflow-wrap:anywhere;}
+}
+
+@media (width < 640px) {
+  .replica-diary .lp-diary-date .phone-diary-copy {display:grid;overflow:visible;white-space:normal;}
+  .replica-diary .phone-diary-copy > span {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+}

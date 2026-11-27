@@ -1,3 +1,5 @@
+import {useIsMobile} from '../hooks/use-mobile';
+import {DetailSheet} from '@/components/patterns';
 import { useEffect,useId,useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -143,6 +145,7 @@ function Segment({ value, onChange, items, label }) {
   );
 }
 export default function CharacterWizardView({ model: m }) {
+  const mobile=useIsMobile(),[reviewOpen,setReviewOpen]=useState(false),[summaryOpen,setSummaryOpen]=useState(false),[identityGroup,setIdentityGroup]=useState("basic");
   const { c, draft: d, step, busy, pending, currentStep: index } = m,
     locked = !!d.activatedId || !!pending,
     fields = m.previewFields;
@@ -190,9 +193,9 @@ export default function CharacterWizardView({ model: m }) {
     ? preferredWorldTab : worldTabs[0][0];
   // A source disappearing only changes the view; it never selects or persists a world.
   useEffect(() => { if (worldTab !== visibleWorldTab) setWorldTab(visibleWorldTab); }, [worldTab, visibleWorldTab]);
-  const headingAnchor = useRef(null);
+  const headingAnchor = useRef(null), mobileHeadingAnchor = useRef(null);
   useEffect(() => {
-    const root = headingAnchor.current;
+    const root = mobile ? mobileHeadingAnchor.current : headingAnchor.current;
     const heading = root?.querySelector('h1');
     if (!heading) return;
     heading.tabIndex = -1;
@@ -201,7 +204,7 @@ export default function CharacterWizardView({ model: m }) {
     // The shell owns scrolling; revealing a heading alone can leave its
     // eyebrow and the step navigation above the previous reading position.
     root.closest('.workspace-page')?.scrollTo({top:0, behavior:'instant'});
-  }, [index]);
+  }, [index, mobile]);
   const errorRef=useRef(null);
   useEffect(()=>{if(!m.error)return;const key=Object.keys(m.fieldErrors)[0],id=({name:'create-name',timezone:'create-timezone',bio:'create-bio'})[key],input=id?document.getElementById(id):null;const node=input?.closest('label')||errorRef.current;node?.scrollIntoView({block:'center',behavior:'instant'});input?.focus({preventScroll:true});},[m.error]);
   const jsonFileInput=useRef(null);
@@ -392,9 +395,407 @@ export default function CharacterWizardView({ model: m }) {
     <strong>创建新的世界底稿</strong>
     <p>自己定义背景、规则与地点。保存并发布后，<br/>从「角色库」→「继续创建」返回本向导，<br/>再在「已发布的世界底稿」中选择它。</p>
   </label>;
+  const reviewContent = (              <Surface className="creation-review">
+                {!mobile && <Segment
+                  label="资料预览主题"
+                  value={reviewTab}
+                  onChange={setReviewTab}
+                  items={sections}
+                />}
+                {definitionError && (
+                  <InlineFeedback role="alert">
+                    {definitionError}
+                  </InlineFeedback>
+                )}
+                <InitializationRecoveryNotice extensions={definition?.extensions ?? d.analysis?.extensions}/>
+                {reviewTab === "identity" && (
+                  <>
+                    <div className="creation-section-intro">
+                      <h2>身份与背景</h2>
+                      <p>先认识是谁，再了解一路走来的经历。</p>
+                    </div>
+                    {mobile && <Segment label="身份分组" value={identityGroup} onChange={setIdentityGroup} items={[["basic","基本资料"],["background","生活背景"],["values","经历与价值观"]]}/>}
+                    <div className="creation-form-grid">
+                      {fields
+                        .filter((f) => f.path[0] === "identity" && (!mobile || (identityGroup === 'basic' ? ['name','nickname','gender','age','birthday','height_cm','blood_type'].includes(f.path[1]) : identityGroup === 'background' ? ['occupation','timezone','residence','birthplace'].includes(f.path[1]) : !['name','nickname','gender','age','birthday','height_cm','blood_type','occupation','timezone','residence','birthplace'].includes(f.path[1]))))
+                        .sort((a,b)=>(identityOrder.indexOf(a.path[1])<0?identityOrder.length:identityOrder.indexOf(a.path[1]))-(identityOrder.indexOf(b.path[1])<0?identityOrder.length:identityOrder.indexOf(b.path[1])))
+                        .map((f) => (
+                          <ProfileField
+                            key={JSON.stringify(f.path)}
+                            field={f}
+                            creation
+                            disabled={busy || locked || !!structured}
+                          />
+                        ))}
+                    </div>
+                  </>
+                )}
+                {reviewTab === "personality" && (
+                  <>
+                    <div className="creation-section-intro">
+                      <h2>共同性格</h2>
+                      <p>
+                        数值在 0–1 之间。留白表示尚未提供，明确设定后才会保存。
+                      </p>
+                    </div>
+                    <div className="creation-traits-grid">
+                      {Object.entries(traits).map(([key, label]) => {
+                        const value = definition?.core_persona?.personality?.[key];
+                        return (
+                          <div className="creation-trait" key={key}>
+                            <div>
+                              <strong>{label} <CreationScaleHint field={key} label={label}/></strong>
+                              {typeof value === "number" ? (
+                                <span>{value.toFixed(2)}</span>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  disabled={
+                                    busy ||
+                                    locked ||
+                                    !!structured ||
+                                    !!definitionError ||
+                                    (value !== undefined && value !== null)
+                                  }
+                                  onClick={() =>
+                                    applyDefinition(
+                                      setPath(
+                                        copy(definition),
+                                        ["core_persona", "personality", key],
+                                        0.5,
+                                      ),
+                                    )
+                                  }
+                                >
+                                  待补充 · 设定
+                                </Button>
+                              )}
+                            </div>
+                            <Slider
+                              aria-label={label}
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              value={[typeof value === "number" ? value : 0]}
+                              disabled={
+                                busy ||
+                                locked ||
+                                !!structured ||
+                                typeof value !== "number" ||
+                                !!definitionError ||
+                                d.previewJsonText !== undefined
+                              }
+                              onValueChange={([v]) => {
+                                applyDefinition(setPath(copy(definition),['core_persona','personality',key],v));
+                              }}
+                            />
+                            <CreationScaleEnds field={key}/>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="creation-divider" />
+                    <div className="creation-section-intro">
+                      <h2>表达与相处</h2>
+                      <p>保留已提供的表达方式、数值与未知扩展。</p>
+                    </div>
+                    <div className="creation-form-grid">
+                      {fields
+                        .filter(
+                          (f) =>
+                            f.path[0] === "behavioral_policy" ||
+                            (f.path[0] === "personality" &&
+                              f.path.length !== 2) ||
+                            (f.path[0] === "personality" &&
+                              !Object.hasOwn(traits, f.path.at(-1))),
+                        )
+                        .map((f) => {
+                          const key = JSON.stringify(f.path);
+                          if (f.kind === "number" && f.min === 0 && f.max === 1) {
+                            const value = f.value === "" ? null : Number(f.value);
+                            const hasValue = value !== null && Number.isFinite(value);
+                            const disabled = busy || locked || !!structured || !!definitionError ||
+                              d.previewJsonText !== undefined;
+                            const setValue = (value) => {
+                              f.value = value;
+                            };
+                            return (
+                              <div className="creation-trait" key={key}>
+                                <div>
+                                  <strong>{f.label} <CreationScaleHint field={f.path.at(-1)} label={f.label}/></strong>
+                                  {hasValue ? (
+                                    <span>{value.toFixed(2)}</span>
+                                  ) : (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      aria-label={`设定${f.label}`}
+                                      disabled={disabled}
+                                      onClick={() => setValue(0.5)}
+                                    >
+                                      待补充 · 设定
+                                    </Button>
+                                  )}
+                                </div>
+                                <Slider
+                                  aria-label={f.label}
+                                  min={0}
+                                  max={1}
+                                  step={0.01}
+                                  value={[hasValue ? value : 0]}
+                                  disabled={disabled || !hasValue}
+                                  onValueChange={([value]) => setValue(value)}
+                                />
+                                <CreationScaleEnds field={f.path.at(-1)}/>
+                              </div>
+                            );
+                          }
+                          return (
+                            <ProfileField
+                              key={key}
+                              field={f}
+                              creation
+                              disabled={busy || locked || !!structured}
+                            />
+                          );
+                        })}
+                    </div>
+                  </>
+                )}
+                {reviewTab === "life" && (
+                  <div className="creation-stack">
+                    <div className="creation-section-intro">
+                      <h2>生活有自己的纹理</h2>
+                      <p>偏好、日常约定和初始衣物，保留各自完整结构。</p>
+                    </div>
+                    {Object.entries(lifeFields).map(([key, label]) => {
+                      const life = definition?.core_persona?.life_profile;
+                      // Initialization stores wardrobe items under appearance.
+                      // Keep an existing legacy root value editable if that is
+                      // the only location present in a retained preview.
+                      const appearanceWardrobe = key === "wardrobe_items" &&
+                        (Object.hasOwn(life?.appearance || {}, key) || !Object.hasOwn(life || {}, key));
+                      const path = appearanceWardrobe
+                        ? ["core_persona", "life_profile", "appearance", key]
+                        : ["core_persona", "life_profile", key];
+                      const value = appearanceWardrobe ? life?.appearance?.[key] : life?.[key];
+                      return renderStructure(label, path, value);
+                    })}
+                    {definition?.core_persona?.life_profile &&
+                      Object.keys(definition.core_persona.life_profile)
+                        .filter((k) => !Object.hasOwn(lifeFields, k))
+                        .map((k, index) =>
+                          renderStructure(
+                            creationPreviewLabel(k, index),
+                            ["core_persona", "life_profile", k],
+                            definition.core_persona.life_profile[k],
+                          ),
+                        )}
+                  </div>
+                )}
+                {reviewTab === "relationships" && (
+                  <div className="creation-stack">
+                    <div className="creation-section-intro">
+                      <h2>人格、关系与最初的动机</h2>
+                      <p>初始目标与意图的采用选项不会删除初始关系。</p>
+                    </div>
+                    <Label>
+                      人格模式
+                      <ChoiceSelect aria-label="人格模式" contentPosition="popper" contentClassName="creation-select-content"
+                        value={['single','multiple'].includes(definition?.core_persona?.personality_system?.mode) ? definition.core_persona.personality_system.mode : '__recorded'}
+                        disabled={busy || locked || !!structured || !!definitionError || d.previewJsonText !== undefined || (definition?.core_persona?.personality_system != null && (typeof definition.core_persona.personality_system !== 'object' || Array.isArray(definition.core_persona.personality_system)))}
+                        onChange={event => applyDefinition(setPath(copy(definition), ['core_persona','personality_system','mode'], event.target.value))}>
+                        {!['single','multiple'].includes(definition?.core_persona?.personality_system?.mode) && <option value="__recorded">{definition?.core_persona?.personality_system?.mode == null ? '尚未提供' : '自定义模式'}</option>}
+                        <option value="single">单一人格</option>
+                        <option value="multiple">多重人格</option>
+                      </ChoiceSelect>
+                    </Label>
+                    {(definition?.core_persona?.personality_system?.mode === 'multiple' || hasCreationPreviewValue(personalityDetails) || structured?.path?.join('.') === 'core_persona.personality_system') && renderStructure(
+                      "人格档案与切换规则",
+                      ["core_persona", "personality_system"],
+                      definition?.core_persona?.personality_system,
+                      {compact: true, preview: personalityDetails},
+                    )}
+                    {definition?.core_persona?.personality_system?.mode !== 'multiple' && !hasCreationPreviewValue(personalityDetails) && !structured &&
+                      <Button type="button" variant="outline" disabled={busy || locked || !!definitionError}
+                        onClick={(event) => editStructure(event, "人格档案与切换规则", ["core_persona", "personality_system"], definition?.core_persona?.personality_system)}>
+                        添加人格档案与切换规则
+                      </Button>}
+                    {[
+                      ["initial_relationships", "初始关系"],
+                      ["initial_goals", "初始目标"],
+                      ["initial_intentions", "初始意图"],
+                    ].map(([key, label]) =>
+                      renderStructure(label, [key], definition?.[key], {preview: key === 'initial_relationships' ? relationPreview : definition?.[key]}),
+                    )}
+                    <label className="creation-adopt">
+                      <Checkbox
+                        aria-label="采用已预览的初始目标和意图"
+                        checked={d.includeGoals !== false}
+                        disabled={busy || locked}
+                        onCheckedChange={(v) => {
+                          d.includeGoals = v === true;
+                          c.persist();
+                        }}
+                      />
+                      <span>
+                        <strong>采用已预览的初始目标和意图</strong>
+                        <small>
+                          关闭时仅不采用目标和意图，初始关系仍然保留。
+                        </small>
+                      </span>
+                    </label>
+                    {definition?.actor_user &&
+                      renderStructure(
+                        "关于你",
+                        ["actor_user"],
+                        definition.actor_user,
+                      )}
+                  </div>
+                )}
+                {reviewTab === "json" && (
+                  <div className="creation-stack">
+                    <WorkspaceInfo>
+                      这是本次预览的完整嵌套设定。未知扩展保留，分析来源由原记录维护。明确应用后同步各主题。
+                      {structured && "当前分组有未应用的修改，请先返回该分组应用或取消。"}
+                    </WorkspaceInfo>
+                    <Label>
+                      完整设定 JSON
+                      <Textarea
+                        className="creation-json"
+                        aria-label="完整设定 JSON"
+                        rows={16}
+                        spellCheck={false}
+                        disabled={busy || locked || !!structured || !!definitionError}
+                        value={
+                          d.previewJsonText ??
+                          JSON.stringify(definition, null, 2)
+                        }
+                        onChange={(e) => {
+                          if (d.previewJsonText === undefined)
+                            d.previewJsonBase = JSON.stringify(definition);
+                          d.previewJsonText = e.target.value;
+                          c.persist();
+                        }}
+                      />
+                    </Label>
+                    <div className="creation-action-row">
+                      <Button
+                        variant="outline"
+                        disabled={
+                          busy ||
+                          !!structured ||
+                          locked ||
+                          d.previewJsonText === undefined ||
+                          !!definitionError
+                        }
+                        onClick={() => {
+                          try {
+                            if (
+                              d.previewJsonBase !== JSON.stringify(definition)
+                            )
+                              throw Error(
+                                "其他分组已有新修改，请保留本次 JSON，并还原为当前设定后重新核对。",
+                              );
+                            applyDefinition(JSON.parse(d.previewJsonText), {
+                              consumeJson: true,
+                            });
+                          } catch (cause) {
+                            m.showError(cause.message);
+                          }
+                        }}
+                      >
+                        应用 JSON 修改
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        disabled={busy || locked || !!structured}
+                        onClick={() => {
+                          delete d.previewJsonText;
+                          delete d.previewJsonBase;
+                          c.persist();
+                        }}
+                      >
+                        还原为当前设定
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        disabled={!definition || !!definitionError}
+                        onClick={() =>
+                          download(definition, "character-preview.json")
+                        }
+                      >
+                        导出本次预览
+                      </Button>
+                    </div>
+                    <JsonDetails
+                      value={
+                        d.analysis && {
+                          analysis_id: d.analysis.analysis_id,
+                          correlation_id: d.analysis.correlation_id,
+                          schema_version: d.analysis.schema_version,
+                        }
+                      }
+                      title="原分析来源"
+                    />
+                  </div>
+                )}
+              </Surface>);
+  const summaryContent = (        <div className="creation-summary-content">
+          <Surface>
+            <div className="replica-eyebrow">新的篇章</div>
+            {index >= 2 && d.mode !== "blank" ? (
+              <div className="creation-portrait">
+                <WorkspaceCharacterSketch />
+                <span>形象示意 · 非实际形象</span>
+              </div>
+            ) : hasWorldChoice ? (
+              <div className="creation-aside-world">
+                <WorldArt
+                  seed={d.worldSource?.worldId || d.worldResourceId || undefined}
+                  kind={/森林|forest/i.test(worldName) ? "forest" : "city"}
+                />
+              </div>
+            ) : (
+              <div className="creation-aside-empty">
+                <Globe2 size={38} />
+              </div>
+            )}
+            <h3>
+              {index >= 2
+                ? name
+                : worldName}
+            </h3>
+            <p>
+              {index >= 2
+                ? fields.find((f) => f.path.join(".") === "identity.occupation")
+                    ?.value || "一位等待慢慢认识的新朋友"
+                : "给日常一个可以发生的地方。"}
+            </p>
+            <div className="creation-divider" />
+            <KeyValue label="生活世界">{worldName}</KeyValue>
+            <KeyValue label="认识方式">
+              {sources.find((s) => s[0] === d.mode)?.[1]}
+            </KeyValue>
+            {index >= 1 && <KeyValue label="生活时区">{d.timezone}</KeyValue>}
+            {index >= 2 && <KeyValue label="角色分组">{groupName}</KeyValue>}
+            <div className="creation-aside-note">
+              <Sprout size={23} />
+              每一个细节，
+              <br />
+              都可以成为日后相处的回声。
+            </div>
+          </Surface>
+          <div className="creation-local-note">
+            <ShieldCheck size={13} />
+            <span>草稿与原请求按当前账号保留</span>
+          </div>
+        </div>);
   return (
     <div ref={m.rootRef} className="replica-creation creation-page">
-      <div ref={headingAnchor}>
+      {mobile && <header className="creation-mobile-header"><Button asChild variant="ghost" size="icon"><a href="#/library" aria-label="返回角色库"><ArrowLeft/></a></Button><div><strong>新的相识</strong><small>慢慢来，每一步都会保存</small></div><Button variant="ghost" onClick={() => setSummaryOpen(true)}>摘要</Button></header>}
+      <div ref={headingAnchor} className="creation-desktop-heading">
       <WorkspacePageHeader
         eyebrow="新的相识"
         title={
@@ -444,7 +845,7 @@ export default function CharacterWizardView({ model: m }) {
               {index > i ? <Check size={17} /> : <Icon size={17} />}
             </span>
             <span>
-              <strong>{label}</strong>
+              <strong>{mobile ? ["世界","导入","资料","准备"][i] : label}</strong>
               <small>{note}</small>
             </span>
             <em>{String(i + 1).padStart(2, "0")}</em>
@@ -454,6 +855,7 @@ export default function CharacterWizardView({ model: m }) {
           </Button>
         ))}
       </nav>
+      {mobile && <div ref={mobileHeadingAnchor} className="creation-mobile-intro"><h1>{['先选一个生活世界','你想怎样认识这个人？','让轮廓，变得鲜活','可以去说你好了'][index]}</h1><p>{['世界是日常的背景。','可以先留白，也可以带来已有的设定。','按主题确认，返回会保留修改。','准备会继续运行，随时可以回来查看。'][index]}</p></div>}
       {m.error&&Object.keys(m.fieldErrors).length===0&&<div ref={errorRef}><InlineFeedback role="alert">{m.error}{m.feedback?.type==='configuration'&&<Button variant="outline" asChild><a href={m.configHref('模型用途')}>去配置中心</a></Button>}</InlineFeedback>{m.feedback&&<JsonDetails value={m.feedback} title="本次分析的技术详情"/>}{m.feedback?.correlationId&&<Button variant="ghost" asChild><a href={'#/diag?view=calls&correlationId='+encodeURIComponent(m.feedback.correlationId)+'&returnTo='+encodeURIComponent(globalThis.location?.hash||'#/library/create')}>查看本次关联运行记录</a></Button>}</div>}
       {Object.entries(m.fieldErrors).filter(([key])=>!['name','timezone','bio'].includes(key)).map(([key,text])=><InlineFeedback key={key}>{text}</InlineFeedback>)}
       {pending && (
@@ -1078,352 +1480,9 @@ export default function CharacterWizardView({ model: m }) {
                 </WorkspaceInfo>
               </Surface>
             ) : (
-              <Surface className="creation-review">
-                <Segment
-                  label="资料预览主题"
-                  value={reviewTab}
-                  onChange={setReviewTab}
-                  items={sections}
-                />
-                {definitionError && (
-                  <InlineFeedback role="alert">
-                    {definitionError}
-                  </InlineFeedback>
-                )}
-                <InitializationRecoveryNotice extensions={definition?.extensions ?? d.analysis?.extensions}/>
-                {reviewTab === "identity" && (
-                  <>
-                    <div className="creation-section-intro">
-                      <h2>身份与背景</h2>
-                      <p>先认识是谁，再了解一路走来的经历。</p>
-                    </div>
-                    <div className="creation-form-grid">
-                      {fields
-                        .filter((f) => f.path[0] === "identity")
-                        .sort((a,b)=>(identityOrder.indexOf(a.path[1])<0?identityOrder.length:identityOrder.indexOf(a.path[1]))-(identityOrder.indexOf(b.path[1])<0?identityOrder.length:identityOrder.indexOf(b.path[1])))
-                        .map((f) => (
-                          <ProfileField
-                            key={JSON.stringify(f.path)}
-                            field={f}
-                            creation
-                            disabled={busy || locked || !!structured}
-                          />
-                        ))}
-                    </div>
-                  </>
-                )}
-                {reviewTab === "personality" && (
-                  <>
-                    <div className="creation-section-intro">
-                      <h2>共同性格</h2>
-                      <p>
-                        数值在 0–1 之间。留白表示尚未提供，明确设定后才会保存。
-                      </p>
-                    </div>
-                    <div className="creation-traits-grid">
-                      {Object.entries(traits).map(([key, label]) => {
-                        const value = definition?.core_persona?.personality?.[key];
-                        return (
-                          <div className="creation-trait" key={key}>
-                            <div>
-                              <strong>{label} <CreationScaleHint field={key} label={label}/></strong>
-                              {typeof value === "number" ? (
-                                <span>{value.toFixed(2)}</span>
-                              ) : (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  disabled={
-                                    busy ||
-                                    locked ||
-                                    !!structured ||
-                                    !!definitionError ||
-                                    (value !== undefined && value !== null)
-                                  }
-                                  onClick={() =>
-                                    applyDefinition(
-                                      setPath(
-                                        copy(definition),
-                                        ["core_persona", "personality", key],
-                                        0.5,
-                                      ),
-                                    )
-                                  }
-                                >
-                                  待补充 · 设定
-                                </Button>
-                              )}
-                            </div>
-                            <Slider
-                              aria-label={label}
-                              min={0}
-                              max={1}
-                              step={0.01}
-                              value={[typeof value === "number" ? value : 0]}
-                              disabled={
-                                busy ||
-                                locked ||
-                                !!structured ||
-                                typeof value !== "number" ||
-                                !!definitionError ||
-                                d.previewJsonText !== undefined
-                              }
-                              onValueChange={([v]) => {
-                                applyDefinition(setPath(copy(definition),['core_persona','personality',key],v));
-                              }}
-                            />
-                            <CreationScaleEnds field={key}/>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="creation-divider" />
-                    <div className="creation-section-intro">
-                      <h2>表达与相处</h2>
-                      <p>保留已提供的表达方式、数值与未知扩展。</p>
-                    </div>
-                    <div className="creation-form-grid">
-                      {fields
-                        .filter(
-                          (f) =>
-                            f.path[0] === "behavioral_policy" ||
-                            (f.path[0] === "personality" &&
-                              f.path.length !== 2) ||
-                            (f.path[0] === "personality" &&
-                              !Object.hasOwn(traits, f.path.at(-1))),
-                        )
-                        .map((f) => {
-                          const key = JSON.stringify(f.path);
-                          if (f.kind === "number" && f.min === 0 && f.max === 1) {
-                            const value = f.value === "" ? null : Number(f.value);
-                            const hasValue = value !== null && Number.isFinite(value);
-                            const disabled = busy || locked || !!structured || !!definitionError ||
-                              d.previewJsonText !== undefined;
-                            const setValue = (value) => {
-                              f.value = value;
-                            };
-                            return (
-                              <div className="creation-trait" key={key}>
-                                <div>
-                                  <strong>{f.label} <CreationScaleHint field={f.path.at(-1)} label={f.label}/></strong>
-                                  {hasValue ? (
-                                    <span>{value.toFixed(2)}</span>
-                                  ) : (
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      aria-label={`设定${f.label}`}
-                                      disabled={disabled}
-                                      onClick={() => setValue(0.5)}
-                                    >
-                                      待补充 · 设定
-                                    </Button>
-                                  )}
-                                </div>
-                                <Slider
-                                  aria-label={f.label}
-                                  min={0}
-                                  max={1}
-                                  step={0.01}
-                                  value={[hasValue ? value : 0]}
-                                  disabled={disabled || !hasValue}
-                                  onValueChange={([value]) => setValue(value)}
-                                />
-                                <CreationScaleEnds field={f.path.at(-1)}/>
-                              </div>
-                            );
-                          }
-                          return (
-                            <ProfileField
-                              key={key}
-                              field={f}
-                              creation
-                              disabled={busy || locked || !!structured}
-                            />
-                          );
-                        })}
-                    </div>
-                  </>
-                )}
-                {reviewTab === "life" && (
-                  <div className="creation-stack">
-                    <div className="creation-section-intro">
-                      <h2>生活有自己的纹理</h2>
-                      <p>偏好、日常约定和初始衣物，保留各自完整结构。</p>
-                    </div>
-                    {Object.entries(lifeFields).map(([key, label]) => {
-                      const life = definition?.core_persona?.life_profile;
-                      // Initialization stores wardrobe items under appearance.
-                      // Keep an existing legacy root value editable if that is
-                      // the only location present in a retained preview.
-                      const appearanceWardrobe = key === "wardrobe_items" &&
-                        (Object.hasOwn(life?.appearance || {}, key) || !Object.hasOwn(life || {}, key));
-                      const path = appearanceWardrobe
-                        ? ["core_persona", "life_profile", "appearance", key]
-                        : ["core_persona", "life_profile", key];
-                      const value = appearanceWardrobe ? life?.appearance?.[key] : life?.[key];
-                      return renderStructure(label, path, value);
-                    })}
-                    {definition?.core_persona?.life_profile &&
-                      Object.keys(definition.core_persona.life_profile)
-                        .filter((k) => !Object.hasOwn(lifeFields, k))
-                        .map((k, index) =>
-                          renderStructure(
-                            creationPreviewLabel(k, index),
-                            ["core_persona", "life_profile", k],
-                            definition.core_persona.life_profile[k],
-                          ),
-                        )}
-                  </div>
-                )}
-                {reviewTab === "relationships" && (
-                  <div className="creation-stack">
-                    <div className="creation-section-intro">
-                      <h2>人格、关系与最初的动机</h2>
-                      <p>初始目标与意图的采用选项不会删除初始关系。</p>
-                    </div>
-                    <Label>
-                      人格模式
-                      <ChoiceSelect aria-label="人格模式" contentPosition="popper" contentClassName="creation-select-content"
-                        value={['single','multiple'].includes(definition?.core_persona?.personality_system?.mode) ? definition.core_persona.personality_system.mode : '__recorded'}
-                        disabled={busy || locked || !!structured || !!definitionError || d.previewJsonText !== undefined || (definition?.core_persona?.personality_system != null && (typeof definition.core_persona.personality_system !== 'object' || Array.isArray(definition.core_persona.personality_system)))}
-                        onChange={event => applyDefinition(setPath(copy(definition), ['core_persona','personality_system','mode'], event.target.value))}>
-                        {!['single','multiple'].includes(definition?.core_persona?.personality_system?.mode) && <option value="__recorded">{definition?.core_persona?.personality_system?.mode == null ? '尚未提供' : '自定义模式'}</option>}
-                        <option value="single">单一人格</option>
-                        <option value="multiple">多重人格</option>
-                      </ChoiceSelect>
-                    </Label>
-                    {(definition?.core_persona?.personality_system?.mode === 'multiple' || hasCreationPreviewValue(personalityDetails) || structured?.path?.join('.') === 'core_persona.personality_system') && renderStructure(
-                      "人格档案与切换规则",
-                      ["core_persona", "personality_system"],
-                      definition?.core_persona?.personality_system,
-                      {compact: true, preview: personalityDetails},
-                    )}
-                    {definition?.core_persona?.personality_system?.mode !== 'multiple' && !hasCreationPreviewValue(personalityDetails) && !structured &&
-                      <Button type="button" variant="outline" disabled={busy || locked || !!definitionError}
-                        onClick={(event) => editStructure(event, "人格档案与切换规则", ["core_persona", "personality_system"], definition?.core_persona?.personality_system)}>
-                        添加人格档案与切换规则
-                      </Button>}
-                    {[
-                      ["initial_relationships", "初始关系"],
-                      ["initial_goals", "初始目标"],
-                      ["initial_intentions", "初始意图"],
-                    ].map(([key, label]) =>
-                      renderStructure(label, [key], definition?.[key], {preview: key === 'initial_relationships' ? relationPreview : definition?.[key]}),
-                    )}
-                    <label className="creation-adopt">
-                      <Checkbox
-                        aria-label="采用已预览的初始目标和意图"
-                        checked={d.includeGoals !== false}
-                        disabled={busy || locked}
-                        onCheckedChange={(v) => {
-                          d.includeGoals = v === true;
-                          c.persist();
-                        }}
-                      />
-                      <span>
-                        <strong>采用已预览的初始目标和意图</strong>
-                        <small>
-                          关闭时仅不采用目标和意图，初始关系仍然保留。
-                        </small>
-                      </span>
-                    </label>
-                    {definition?.actor_user &&
-                      renderStructure(
-                        "关于你",
-                        ["actor_user"],
-                        definition.actor_user,
-                      )}
-                  </div>
-                )}
-                {reviewTab === "json" && (
-                  <div className="creation-stack">
-                    <WorkspaceInfo>
-                      这是本次预览的完整嵌套设定。未知扩展保留，分析来源由原记录维护。明确应用后同步各主题。
-                      {structured && "当前分组有未应用的修改，请先返回该分组应用或取消。"}
-                    </WorkspaceInfo>
-                    <Label>
-                      完整设定 JSON
-                      <Textarea
-                        className="creation-json"
-                        aria-label="完整设定 JSON"
-                        rows={16}
-                        spellCheck={false}
-                        disabled={busy || locked || !!structured || !!definitionError}
-                        value={
-                          d.previewJsonText ??
-                          JSON.stringify(definition, null, 2)
-                        }
-                        onChange={(e) => {
-                          if (d.previewJsonText === undefined)
-                            d.previewJsonBase = JSON.stringify(definition);
-                          d.previewJsonText = e.target.value;
-                          c.persist();
-                        }}
-                      />
-                    </Label>
-                    <div className="creation-action-row">
-                      <Button
-                        variant="outline"
-                        disabled={
-                          busy ||
-                          !!structured ||
-                          locked ||
-                          d.previewJsonText === undefined ||
-                          !!definitionError
-                        }
-                        onClick={() => {
-                          try {
-                            if (
-                              d.previewJsonBase !== JSON.stringify(definition)
-                            )
-                              throw Error(
-                                "其他分组已有新修改，请保留本次 JSON，并还原为当前设定后重新核对。",
-                              );
-                            applyDefinition(JSON.parse(d.previewJsonText), {
-                              consumeJson: true,
-                            });
-                          } catch (cause) {
-                            m.showError(cause.message);
-                          }
-                        }}
-                      >
-                        应用 JSON 修改
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        disabled={busy || locked || !!structured}
-                        onClick={() => {
-                          delete d.previewJsonText;
-                          delete d.previewJsonBase;
-                          c.persist();
-                        }}
-                      >
-                        还原为当前设定
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        disabled={!definition || !!definitionError}
-                        onClick={() =>
-                          download(definition, "character-preview.json")
-                        }
-                      >
-                        导出本次预览
-                      </Button>
-                    </div>
-                    <JsonDetails
-                      value={
-                        d.analysis && {
-                          analysis_id: d.analysis.analysis_id,
-                          correlation_id: d.analysis.correlation_id,
-                          schema_version: d.analysis.schema_version,
-                        }
-                      }
-                      title="原分析来源"
-                    />
-                  </div>
-                )}
-              </Surface>
+              mobile ? <div className="creation-mobile-review"><Surface className="creation-mobile-person"><UserRound/><h2>{name}</h2><p>按主题确认这位新朋友的资料。</p></Surface><div className="creation-mobile-groups">{sections.map(([key,label]) => <Button key={key} variant="outline" onClick={() => {setReviewTab(key);setReviewOpen(true);}}><span>{label}</span><ChevronRight/></Button>)}</div>
+                <DetailSheet open={reviewOpen} onOpenChange={setReviewOpen} title={sections.find(([key]) => key===reviewTab)?.[1] || '资料'} busy={busy} footer={<Button onClick={() => setReviewOpen(false)} disabled={busy || !!structured}>完成，返回资料</Button>}>{reviewContent}</DetailSheet>
+              </div> : reviewContent
             ))}
           {index === 3 && (
             <>
@@ -1487,6 +1546,7 @@ export default function CharacterWizardView({ model: m }) {
                 {m.progress ? (
                   <PreparationSteps
                     stages={m.progress.stages}
+                    compact={mobile}
                     busy={busy}
                     onRecover={c.recoverStage}
                     onSkip={(stage, trigger) => {
@@ -1635,56 +1695,8 @@ export default function CharacterWizardView({ model: m }) {
             </>
           )}
         </div>
-        <aside className="creation-aside">
-          <Surface>
-            <div className="replica-eyebrow">新的篇章</div>
-            {index >= 2 && d.mode !== "blank" ? (
-              <div className="creation-portrait">
-                <WorkspaceCharacterSketch />
-                <span>形象示意 · 非实际形象</span>
-              </div>
-            ) : hasWorldChoice ? (
-              <div className="creation-aside-world">
-                <WorldArt
-                  seed={d.worldSource?.worldId || d.worldResourceId || undefined}
-                  kind={/森林|forest/i.test(worldName) ? "forest" : "city"}
-                />
-              </div>
-            ) : (
-              <div className="creation-aside-empty">
-                <Globe2 size={38} />
-              </div>
-            )}
-            <h3>
-              {index >= 2
-                ? name
-                : worldName}
-            </h3>
-            <p>
-              {index >= 2
-                ? fields.find((f) => f.path.join(".") === "identity.occupation")
-                    ?.value || "一位等待慢慢认识的新朋友"
-                : "给日常一个可以发生的地方。"}
-            </p>
-            <div className="creation-divider" />
-            <KeyValue label="生活世界">{worldName}</KeyValue>
-            <KeyValue label="认识方式">
-              {sources.find((s) => s[0] === d.mode)?.[1]}
-            </KeyValue>
-            {index >= 1 && <KeyValue label="生活时区">{d.timezone}</KeyValue>}
-            {index >= 2 && <KeyValue label="角色分组">{groupName}</KeyValue>}
-            <div className="creation-aside-note">
-              <Sprout size={23} />
-              每一个细节，
-              <br />
-              都可以成为日后相处的回声。
-            </div>
-          </Surface>
-          <div className="creation-local-note">
-            <ShieldCheck size={13} />
-            <span>草稿与原请求按当前账号保留</span>
-          </div>
-        </aside>
+        {!mobile && <aside className="creation-aside">{summaryContent}</aside>}
+        <DetailSheet open={mobile && summaryOpen} onOpenChange={setSummaryOpen} title="这次相遇的摘要">{summaryContent}</DetailSheet>
       </div>
       {index < 3 && (
         <footer className="creation-footer">

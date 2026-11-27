@@ -1,6 +1,10 @@
 // Single source for the gallery's components and their applicable states.
 // Shared by the UI Lab page and e2e/gallery.spec.ts (plain data, no imports).
 export const GALLERY_CATALOG = {
+  'mobile-navigation': { title: '手机主导航', overlay: false, states: ['normal', 'long', 'disabled'] },
+  'bottom-sheet': { title: '手机底部操作', overlay: true, states: ['normal', 'long', 'empty', 'loading', 'error'] },
+  'workspace-dialog': { title: '业务详情与编辑浮层', overlay: true, states: ['page', 'sheet', 'dialog', 'long', 'busy'] },
+  'compact-dialog': { title: '手机简短确认', overlay: true, states: ['normal', 'long', 'busy'] },
   page: { title: '页面容器与内容区', overlay: false, states: ['normal', 'long', 'empty', 'loading', 'error'] },
   'detail-sheet': { title: '详情抽屉', overlay: true, states: ['normal', 'long', 'empty', 'loading', 'error'] },
   'edit-sheet': { title: '编辑抽屉', overlay: true, states: ['normal', 'long', 'disabled', 'busy', 'error'] },

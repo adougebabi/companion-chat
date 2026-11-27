@@ -1,3 +1,7 @@
+import { MobileNavigation, DetailSheet, ResponsiveTabsList } from '@/components/patterns';
+import { Tabs, TabsTrigger } from '@/components/ui/tabs';
+import CharacterAvatar from './shared/CharacterAvatar';
+import { StoryMark } from './shared/WorkspaceArtwork';
 import {workspaceReadFeedback} from '@/approved-ui/read-feedback.mjs';
 import {InlineFeedback,Feedback} from '@/react-app/shared/Presentation';
 import {ReadState} from "@/react-app/shared/Presentation";
@@ -6,7 +10,7 @@ import {configureToast} from '@/v3/proto/components/toast.js';
 import OverlayHost from './shared/OverlayHost';
 import WorkspaceBreadcrumb from './shared/WorkspaceBreadcrumb';
 import {SidebarProvider,Sidebar,SidebarInset,SidebarTrigger,SidebarRail,useSidebar} from '@/components/ui/sidebar';
-import WorkspaceNavigation,{workspaceNavigationGroup,workspacePageLabel} from './shared/WorkspaceNavigation';
+import WorkspaceNavigation,{workspaceNavigationGroups,characterScopedPages,workspaceNavigationGroup,workspacePageLabel} from './shared/WorkspaceNavigation';
 import WorkspaceQuickJump from './shared/WorkspaceQuickJump';
 import {Toaster} from '@/components/ui/sonner';
 import {toast} from 'sonner';
@@ -22,7 +26,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import {
-  BellIcon,LogOutIcon,UserRoundIcon,
+  BellIcon,LogOutIcon,UserRoundIcon,MessageCircleIcon,LeafIcon,SproutIcon,UsersIcon,LayoutGridIcon,ChevronRightIcon,
   PanelRightCloseIcon,
   PanelRightOpenIcon,
 } from "lucide-react";
@@ -88,7 +92,7 @@ export default function App() {
   return workspace ? (
     <WorkspaceContext.Provider value={workspace}>
       <div className="react-workspace replica-workspace">
-        <SidebarProvider mobileBreakpoint={701} className="replica-shell h-dvh min-h-0 w-full overflow-hidden" style={{"--sidebar-width":"var(--workspace-sidebar-width)","--sidebar-width-icon":"51px"} as React.CSSProperties}><WorkspaceShell workspace={workspace}/><OverlayHost/><Toaster richColors closeButton/></SidebarProvider>
+        <SidebarProvider mobileBreakpoint={640} className="replica-shell h-dvh min-h-0 w-full overflow-hidden" style={{"--sidebar-width":"var(--workspace-sidebar-width)","--sidebar-width-icon":"51px"} as React.CSSProperties}><WorkspaceShell workspace={workspace}/><OverlayHost/><Toaster richColors closeButton/></SidebarProvider>
       </div>
     </WorkspaceContext.Provider>
   ) : (
@@ -105,7 +109,29 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   useEffect(() => {
     if (route.redirectHash) history.replaceState(history.state, '', route.redirectHash);
   }, [route]);
-  const {setOpenMobile:setMobileOpen,open:sidebarOpen,isMobile}=useSidebar();
+  const {setOpenMobile:setMobileOpen,open:sidebarOpen,isMobile,setOpen:setSidebarOpen}=useSidebar();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const desktopNavigationOpen = useRef(sidebarOpen);
+  useEffect(() => {if(window.innerWidth>=1024)desktopNavigationOpen.current=sidebarOpen;},[sidebarOpen]);
+  useEffect(() => {
+    const tablet = window.matchMedia('(640px <= width < 1024px)');
+    const update = () => { if (tablet.matches) setSidebarOpen(false); else if(window.innerWidth>=1024)setSidebarOpen(desktopNavigationOpen.current); };
+    update(); tablet.addEventListener('change', update);
+    return () => tablet.removeEventListener('change', update);
+  }, [setSidebarOpen]);
+  useEffect(() => {
+    const viewport = window.visualViewport, root = document.documentElement;
+    const sync = () => {
+      if (viewport && Math.abs(viewport.scale - 1) > .02) return;
+      const height = viewport?.height || window.innerHeight, top = viewport?.offsetTop || 0;
+      root.style.setProperty('--app-viewport-height', `${height}px`);
+      root.style.setProperty('--app-viewport-top', `${top}px`);
+      root.style.setProperty('--app-viewport-bottom', `${Math.max(0, window.innerHeight - height - top)}px`);
+      root.toggleAttribute('data-keyboard-open', isMobile && window.innerHeight - height > 150);
+    };
+    sync(); viewport?.addEventListener('resize', sync); viewport?.addEventListener('scroll', sync); window.addEventListener('resize', sync);
+    return () => { viewport?.removeEventListener('resize', sync); viewport?.removeEventListener('scroll', sync); window.removeEventListener('resize', sync); root.removeAttribute('data-keyboard-open'); };
+  }, [isMobile]);
   const [accountBusy,setAccountBusy]=useState(false);
   const navigationTrigger=useRef<HTMLButtonElement>(null);
   const [preview, setPreview] = useState(true);
@@ -135,7 +161,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   const navigate = useCallback(
     (page: string) => {
       location.hash = approvedHref(page, workspace.state.selectedId);
-      setMobileOpen(false);
+      setMobileOpen(false); setMoreOpen(false);
     },
     [workspace],
   );
@@ -280,15 +306,23 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   const readError=state.errors.directory||state.errors.session||'';
   const isLifeRoute=lifePages.includes(page)||route.path?.includes('/life/');
   const ancestors=route.feature&&route.path?.startsWith('/diag/')?[{label:'管理中心',href:'#/settings?section='+encodeURIComponent('服务地址')},{label:'诊断与任务',href:'#/diag'}]:isLifeRoute&&page!=='此刻'?[{label:'生活',href:approvedHref('此刻',state.selectedId)}]:page==='管理中心'&&state.managementTab==='运行诊断'&&!route.feature?[{label:'管理中心',href:'#/settings?section='+encodeURIComponent('服务地址')}]:[];
+  const mobileLifePages = ['此刻', '日程', '目标', '衣柜', '日记', '记忆'];
+  const mobileSection = page === '聊天' ? 'chat' : page === '动态' ? 'feed' : mobileLifePages.includes(page) ? 'life' : ['角色库', '角色详情', '初始化角色'].includes(page) ? 'library' : 'more';
+  const focusPage = page === '初始化角色' || page === '登录';
   return (
     <>
       <Sidebar collapsible="icon" variant="inset" className="replica-sidebar" returnFocus={()=>navigationTrigger.current}><WorkspaceNavigation page={page} character={current.id?current:character} characters={state.characters} onCharacterChange={(id)=>{workspace.select(id);navigate(page==="初始化角色"?"聊天":page);}} onNavigate={navigate} unread={state.notificationCount?.count||0} accountMenu={<DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" aria-label="账户菜单"><LogOutIcon size={14}/></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={()=>navigate('管理中心')}><UserRoundIcon/>账户与设置</DropdownMenuItem><DropdownMenuItem disabled={accountBusy} className="text-destructive focus:text-destructive" onSelect={async()=>{setAccountBusy(true);try{await workspace.logout();}catch(cause){toast.error(cause instanceof Error?cause.message:'退出未能确认，请重试');}finally{setAccountBusy(false);}}}><LogOutIcon/>{accountBusy?'正在退出…':'退出登录'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}/><SidebarRail aria-label="切换导航宽度"/></Sidebar>
-      <SidebarInset tabIndex={-1} className="replica-main min-w-0 min-h-0 overflow-hidden">
+      <SidebarInset tabIndex={-1} className="replica-main min-w-0 min-h-0 overflow-hidden" data-workspace-page={page} data-focus-page={focusPage || undefined}>
+      <header className="mobile-app-bar">
+        <div className="mobile-app-identity"><span className="mobile-brand-mark"><StoryMark/></span><div><strong>{workspacePageLabel(displayTitle)}</strong><span>{current.id ? current.name + '的小小世界' : '每一次相遇，都有新的故事'}</span></div></div>
+        <div className="mobile-app-actions"><Button variant="ghost" size="icon" aria-label="查看通知" onClick={() => navigate('通知与待处理')}><BellIcon/>{(state.notificationCount?.alert_count || 0) > 0 && <span className="replica-notification-dot"/>}</Button><Button variant="ghost" size="icon" aria-label="打开全部功能" onClick={() => setMoreOpen(true)}><LayoutGridIcon/></Button></div>
+      </header>
       <header className="replica-topbar">
         <SidebarTrigger ref={navigationTrigger} className="replica-topbar-icon" aria-label={!isMobile&&sidebarOpen?"收起导航":"打开导航"}/>
         <WorkspaceBreadcrumb parentLabel={workspaceNavigationGroup(page)} parentHref="#/library" ancestors={route.feature?ancestors:[]} currentLabel={route.path==="/data"?"管理中心":workspacePageLabel(displayTitle)}/>
         <div className="replica-topbar-actions"><WorkspaceQuickJump key={state.session?.actorId} characters={state.characters} hasCharacter={!!current.id} onNavigate={navigate} onCharacter={id=>{workspace.select(id);navigate('聊天');}}/><Button type="button" variant="ghost" size="icon" className="replica-topbar-icon" title={state.notificationCountError?"未读计数暂未更新："+state.notificationCountError:state.notificationCount?state.notificationCount.count+" 条未读通知":"未读计数尚未读取"} aria-label="查看通知" onClick={()=>navigate('通知与待处理')}><BellIcon size={16}/>{(state.notificationCount?.alert_count||0)>0&&<span className="replica-notification-dot" aria-label={state.notificationCount.count+' 条未读通知'}/>}</Button></div>
       </header>
+      {mobileLifePages.includes(page) && <Tabs className="mobile-life-nav" value={page} onValueChange={navigate}><ResponsiveTabsList value={page} aria-label="生活页面">{mobileLifePages.map(item => <TabsTrigger key={item} value={item}>{item}</TabsTrigger>)}</ResponsiveTabsList></Tabs>}
         <div
           ref={main}
           tabIndex={-1}
@@ -335,6 +369,16 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
           </Button>
         </div>
       )}
+      {!focusPage && <MobileNavigation value={mobileSection} items={[
+        {value:'chat',label:'聊天',icon:<MessageCircleIcon/>,disabled:!current.id},
+        {value:'feed',label:'动态',icon:<LeafIcon/>}, {value:'life',label:'生活',icon:<SproutIcon/>,disabled:!current.id},
+        {value:'library',label:'角色',icon:<UsersIcon/>}, {value:'more',label:'更多',icon:<LayoutGridIcon/>},
+      ]} onSelect={value => {const target = ({chat:'聊天',feed:'动态',life:'此刻',library:'角色库'} as Record<string,string>)[value]; if(target)navigate(target);else setMoreOpen(true);}}/>}
+      <DetailSheet open={moreOpen} onOpenChange={setMoreOpen} title="探索你的世界" description="日常、创作与管理，都在这里。" hideDescription={false}>
+        <div className="mobile-navigation-person"><CharacterAvatar name={current.name} initial={current.initial} color={current.color} src={current._directory?.avatar}/><div><small>正在相处</small><strong>{current.id ? current.name : '还没有选择角色'}</strong></div><Button variant="outline" onClick={() => navigate('角色库')}>切换角色</Button></div>
+        <div className="mobile-navigation-groups">{workspaceNavigationGroups.map(group => <section key={group.label}><h3>{group.label}</h3><div>{group.items.map(([target,label,Icon]) => <Button variant="ghost" key={target} disabled={characterScopedPages.includes(target) && !current.id} onClick={() => navigate(target)}><Icon/><span>{label}</span><ChevronRightIcon/></Button>)}</div></section>)}</div>
+        <div className="mobile-navigation-footer"><Button variant="outline" onClick={() => navigate('管理中心')}><UserRoundIcon/>账户与设置</Button><Button variant="ghost" disabled={accountBusy} onClick={async () => {setAccountBusy(true);try {await workspace.logout();setMoreOpen(false);}catch(cause){toast.error(cause instanceof Error ? cause.message : '退出未能确认，请重试');}finally{setAccountBusy(false);}}}><LogOutIcon/>{accountBusy ? '正在退出…' : '退出登录'}</Button></div>
+      </DetailSheet>
       </SidebarInset>
     </>
   );

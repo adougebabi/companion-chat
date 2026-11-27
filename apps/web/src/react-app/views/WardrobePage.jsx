@@ -293,6 +293,8 @@ export function WardrobePageView({ view, route, preparation = null }) {
     readError = currentReadError(w.state, "wardrobe", scope),
     readonly = ["retired", "archived", "已退休", "已归档"].includes(c.status),
     formId = useId();
+  const [composeStep,setComposeStep] = useState(1);
+  useEffect(() => {setComposeStep(1);}, [view.tab.value, view.editingId.value]);
   const [search, setSearch] = useState(""),
     [archived, setArchived] = useState(false),
     [archivedPage, setArchivedPage] = useState({
@@ -759,10 +761,11 @@ export function WardrobePageView({ view, route, preparation = null }) {
         </TabsContent>
         <TabsContent value="compose">
           {readNotice}
-          {ready && <div className="r-compose-layout">
+          {ready && <><nav className="mobile-compose-steps" aria-label="搭配步骤"><Button variant={composeStep===1?'secondary':'ghost'} onClick={() => setComposeStep(1)}>1 选择衣物</Button><Button variant={composeStep===2?'secondary':'ghost'} disabled={!selected.length} onClick={() => setComposeStep(2)}>2 命名与保存</Button></nav><div className="r-compose-layout" data-compose-step={composeStep}>
             <Surface className="r-padded">
               <h2>挑选今天的灵感</h2>
               <p className="r-muted">每个部位选一件，配饰可以多选。</p>
+              <div className="mobile-only"><ChoiceSelect aria-label="挑选衣物的场景" value={view.tag.value} onChange={e => view.tag.value=e.target.value}>{c.outfitTags.map(t => <option key={t} value={t}>{view.tagLabel(t)}</option>)}</ChoiceSelect></div>
               <div className="r-slot-list">
                 {slots.map((slot) => {
                   const group = c.garments.filter((g) => g.type === slot);
@@ -921,7 +924,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
                 </Button>
               </form>
             </Surface>
-          </div>}
+          </div><div className="mobile-compose-actions"><Button variant="outline" onClick={() => {setComposeStep(composeStep===1?2:1);document.querySelector('.workspace-page')?.scrollTo({top:0});}} disabled={composeStep===1 && !selected.length}>{composeStep===1 ? `下一步 · 已选 ${selected.length} 件` : '返回选择衣物'}</Button></div></>}
         </TabsContent>
       </Tabs>
       <WorkspaceDialog

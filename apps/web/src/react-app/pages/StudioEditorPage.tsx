@@ -16,11 +16,13 @@ export default function StudioEditorPage({
   kind = "event_template",
   jobId = "",
   sandbox = false,
+  initialSection = "edit",
 }: {
   resourceId: string;
   kind?: string;
   jobId?: string;
   sandbox?: boolean;
+  initialSection?: "edit" | "publish";
 }) {
   const formRef = useRef<HTMLFormElement | null>(null);
   const dialogTriggers = useRef<Record<string, HTMLElement>>({});
@@ -78,12 +80,13 @@ export default function StudioEditorPage({
 
   const [applyOpen, setApplyOpen] = useState(false),
     [historyOpen, setHistoryOpen] = useState(false);
-  const changeMode = () => {
+  const changeMode = (section?: "edit" | "publish") => {
     const query = new URLSearchParams({
       kind: d?.kind || kind,
       ...(state.jobId ? { job: state.jobId } : {}),
     });
     if (!sandbox) query.set("res", resourceId);
+    if (sandbox && typeof section === "string") query.set("section", section);
     w.navigatePath(
       (sandbox
         ? "/studio/edit/" + encodeURIComponent(resourceId)
@@ -96,6 +99,7 @@ export default function StudioEditorPage({
     <StudioEditorView
       model={{
         w,
+        initialSection,
         formRef,
         dialogTriggers,
         save: () => formRef.current?.requestSubmit(),

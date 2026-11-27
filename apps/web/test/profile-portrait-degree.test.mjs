@@ -65,7 +65,7 @@ async function assertDownload(view, root, title, expected) {
   }
 }
 
-test("角色档案用中文描述表达画像、表达设定和零强度，诊断下载保留原值", async () => {
+async function mountProfile(overrides) {
   const fid = "fixture-role";
   location.hash = "#/c/" + fid + "/profile";
   const { default: Page } = await vite.ssrLoadModule("/src/react-app/pages/CharacterDetailPage.jsx");
@@ -73,6 +73,25 @@ test("角色档案用中文描述表达画像、表达设定和零强度，诊�
   const store = await vite.ssrLoadModule("/src/v3/proto/store.js");
   const detail = {
     ...profileDetail({ id: fid, name: "林青" }),
+    ...overrides,
+  };
+  const workspace = createWorkspace();
+  store.replaceSnapshot({
+    ...store.get(), session: { actorId: "fixture-owner" },
+    characters: { [fid]: { id: fid, name: "林青", status: "active" } }, ui: { charId: fid },
+  });
+  workspace.client.fetcher = async () => { throw Error("Unexpected live request"); };
+  workspace.client.detail = async () => detail;
+  workspace.client.world = async () => ({ world: null });
+  workspace.client.governancePage = async () => ({ items: [], next_cursor: "" });
+  workspace.client.selfClaims = async () => ({ items: [], next_cursor: "" });
+  workspace.loadWardrobe = async () => {};
+  const view = await mountReact(vite, Page, { workspace });
+  return { view, detail, workspace };
+}
+
+test("角色档案用中文描述表达画像和表达设定，心情零强度显示数字，诊断下载保留原值", async () => {
+  const { view, detail, workspace } = await mountProfile({
     behavioral_policy: {
       ...technical,
       response_delay: 0,
@@ -88,19 +107,7 @@ test("角色档案用中文描述表达画像、表达设定和零强度，诊�
     },
     current_state: { ...technical, mood: { description: "放松", intensity: 0, ...technical } },
     inner_state: { mood: { description: "安静", intensity: "0" } },
-  };
-  const workspace = createWorkspace();
-  store.replaceSnapshot({
-    ...store.get(), session: { actorId: "fixture-owner" },
-    characters: { [fid]: { id: fid, name: "林青", status: "active" } }, ui: { charId: fid },
   });
-  workspace.client.fetcher = async () => { throw Error("Unexpected live request"); };
-  workspace.client.detail = async () => detail;
-  workspace.client.world = async () => ({ world: null });
-  workspace.client.governancePage = async () => ({ items: [], next_cursor: "" });
-  workspace.client.selfClaims = async () => ({ items: [], next_cursor: "" });
-  workspace.loadWardrobe = async () => {};
-  const view = await mountReact(vite, Page, { workspace });
   try {
     const portrait = view.host.querySelector('[data-testid="current-working-portrait"]');
     assert.deepEqual([...portrait.querySelectorAll("p")].map(row => row.textContent), [
@@ -114,9 +121,9 @@ test("角色档案用中文描述表达画像、表达设定和零强度，诊�
 
     const life = await openTab(view, "生活与此刻");
     assert.doesNotMatch(life.textContent, hidden);
-    assert.doesNotMatch(life.textContent, /强度\s*0/);
-    assert.match(life.textContent, /心情说明安静强度平稳/);
-    assert.match(life.textContent, /实际外观与状态心情说明放松强度平稳/);
+    assert.doesNotMatch(life.textContent, /强度\s*平稳/);
+    assert.match(life.textContent, /心情说明安静强度0(?![\d.%％])/);
+    assert.match(life.textContent, /实际外观与状态心情说明放松强度0(?![\d.%％])/);
     await assertDownload(view, life, "原始当前状态记录（诊断）", detail.current_state);
 
     const history = await openTab(view, "修订与来源");
@@ -124,6 +131,23 @@ test("角色档案用中文描述表达画像、表达设定和零强度，诊�
     const fullProfile = document.querySelector('[role="dialog"]');
     assert.doesNotMatch(fullProfile.textContent, hidden);
     await assertDownload(view, fullProfile, "原始角色档案（诊断）", detail);
+  } finally {
+    await view.dispose();
+    workspace.dispose();
+  }
+});
+
+test("角色档案按原精度显示非零心情强度", async () => {
+  const { view, detail, workspace } = await mountProfile({
+    inner_state: { mood: { description: "安静", intensity: 0.6, ...technical } },
+    current_state: { mood: { description: "放松", intensity: "0.600", ...technical } },
+  });
+  try {
+    const life = await openTab(view, "生活与此刻");
+    assert.doesNotMatch(life.textContent, hidden);
+    const intensityRows = [...life.querySelectorAll("dt")].filter(label => label.textContent === "强度");
+    assert.deepEqual(intensityRows.map(label => label.nextElementSibling?.textContent), ["0.6", "0.600"]);
+    await assertDownload(view, life, "原始当前状态记录（诊断）", detail.current_state);
   } finally {
     await view.dispose();
     workspace.dispose();

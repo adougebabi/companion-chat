@@ -36,3 +36,10 @@ test('re-introducing the old schedule-sheet CSS is reported as a defect', { tag:
   expect(defects.length, JSON.stringify(defects, null, 1)).toBeGreaterThan(0);
   expect(defects.map(d => d.kind)).toContain('content-overflow');
 });
+
+test('clipped preview text is not mistaken for painted overflow', {tag:'@gate'}, async({page})=>{
+  await page.setContent(`<section id="box"><button style="width:160px;height:70px"><span style="display:block;width:120px;height:24px;overflow:hidden;white-space:normal;line-height:24px">很长很长的列表摘要，完整正文在详情中阅读，裁切部分没有绘制到按钮外面。</span></button></section>`);
+  expect((await findLayoutDefects(page,page.locator('#box'))).filter(d=>d.kind==='content-overflow')).toEqual([]);
+  await page.locator('span').evaluate(el=>(el as HTMLElement).style.overflow='visible');
+  expect((await findLayoutDefects(page,page.locator('#box'))).map(d=>d.kind)).toContain('content-overflow');
+});
