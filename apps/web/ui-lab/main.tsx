@@ -21,7 +21,7 @@ const variant = (params.get('variant') || 'default') as 'default' | 'long' | 'em
 (window as any).__uiLabEvents = events;
 
 function ScheduleSettingsFixture() {
-  const [path, setPath] = useState(() => '/c/A/life/schedule?' + new URLSearchParams({ ...(params.get('section') ? { section: params.get('section')! } : {}), ...(params.get('date') ? { date: params.get('date')! } : {}) }));
+  const [path, setPath] = useState(() => '/c/A/life/schedule/planning?' + new URLSearchParams({ ...(params.get('section') ? { section: params.get('section')! } : {}), ...(params.get('date') ? { date: params.get('date')! } : {}) }));
   const workspace = useMemo(() => {
     const state = proxy<any>({ session: { actorId: 'ui-lab-owner' }, selectedId: 'A', pageHeading: null });
     store.replaceSnapshot({ ...store.get(), session: { actorId: 'ui-lab-owner' } });

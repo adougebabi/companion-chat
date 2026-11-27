@@ -24,7 +24,7 @@ const {configureDomainService} = await vite.ssrLoadModule('/src/v3/proto/service
 const fid = 'schedule-test-role';
 const date = '2026-11-23';
 const path = '/c/' + fid + '/life/schedule/planning';
-const query = new URLSearchParams();
+const query = new URLSearchParams({section:'upcoming'});
 const feature = featureRoute(path, query);
 await feature.load();
 const button = (root, label) => [...root.querySelectorAll('button')].find(node => node.textContent.trim() === label);
@@ -65,12 +65,11 @@ async function mount(t, {requests, items = []} = {}) {
   const view = await mountReact(vite, DomainPage, {workspace, props: {route}});
   t.after(() => view.dispose());
 
-  const trigger = () => button(view.host, '约定与日程设置');
-  const dialog = () => view.host.querySelector('[data-slot="sheet-content"]');
+  const dialog = () => view.host;
   const open = async () => {
-    await view.click(trigger());
-    assert.equal(dialog().querySelector('[role=tab][aria-selected=true]').textContent, '当天安排');
-    return dialog();
+    const tab=[...view.host.querySelectorAll('[role=tab]')].find(n=>n.textContent==='接下来几天');
+    await act(async()=>tab.dispatchEvent(new window.MouseEvent('mousedown',{bubbles:true,button:0})));
+    return view.host;
   };
   return {view, dialog, open};
 }
@@ -82,7 +81,7 @@ for (const {name, settle, expected, failure, hasRecord} of [
   {name: '服务返回 404', settle: (_resolve, reject) => reject(Object.assign(new Error('private-endpoint'), {status: 404})), expected: '当前服务未提供日程调整建议。', failure: true},
   {name: '返回格式错误', settle: resolve => resolve({message: 'private-invalid-response'}), expected: '日程调整建议返回格式不正确。', failure: true},
 ]) {
-  test('调整建议在 Sheet 关闭时完成读取后可见：' + name, async t => {
+  test('调整建议在其他分区完成读取后可见：' + name, async t => {
     let resolve, reject;
     const response = new Promise((yes, no) => { resolve = yes; reject = no; });
     let calls = 0;
@@ -91,8 +90,7 @@ for (const {name, settle, expected, failure, hasRecord} of [
     const panel = () => dialog().querySelector('[data-schedule-suggestions]');
     assert.equal(panel().querySelector('[data-domain-ui="skeleton"]').textContent, '正在读取…');
 
-    await view.click(button(sheet, '关闭'));
-    assert.equal(dialog(), null);
+    await act(async()=>[...view.host.querySelectorAll('[role=tab]')].find(n=>n.textContent==='约定').dispatchEvent(new window.MouseEvent('mousedown',{bubbles:true,button:0})));
     assert.equal(calls, 1);
     await act(async () => settle(resolve, reject));
     await open();
@@ -120,7 +118,7 @@ test('调整建议接口未注册时显示中文错误并清除骨架', async t 
   assert.doesNotMatch(visibleText(panel), /正在读取…|life\.requests/);
 });
 
-test('首次打开 Sheet 时显示已完成的建议读取，失败后可以重试', async t => {
+test('切回未来安排时显示已完成的建议读取，失败后可以重试', async t => {
   let resolve;
   let calls = 0;
   const firstRead = new Promise(yes => { resolve = yes; });
@@ -129,7 +127,7 @@ test('首次打开 Sheet 时显示已完成的建议读取，失败后可以重�
     if (calls === 1) return firstRead;
     return {items: [suggestion], next_cursor: null};
   }});
-  assert.equal(dialog(), null);
+  assert.equal(document.querySelector('[role=dialog]'), null);
   assert.equal(calls, 1);
   await act(async () => resolve({message: 'private-response'}));
 

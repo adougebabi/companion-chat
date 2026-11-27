@@ -18,7 +18,7 @@ const readOnly=fid=>get('characters',fid)?.status==='已退休';
 function canChange(p){return !p.legacy_unlinked&&!['fulfilled','cancelled'].includes(p.lifecycle);}
 
 export function mountPromiseCatalogue(box,{fid,alive,onSaved}){
- box.innerHTML='<h3>约定</h3><div data-promises></div><p class="small muted">提出、接受、实际执行和履约分别记录。履行以约定窗口内的事实及评估为依据。</p>';
+ box.innerHTML='<div data-promises></div><p class="small muted">提出、接受、实际执行和履约分别记录。履行以约定窗口内的事实及评估为依据。</p>';
  return mountCursorRecords(box.querySelector('[data-promises]'),{alive,label:'约定',read:cursor=>lifeClient.promises(fid,cursor),empty:'还没有约定提议。可通过“和她约定”提出内容及履行期限。',render:p=>`<div data-domain-ui="item" class="lrow"><div class="grow"><b>${esc(p.title)}</b><div class="small muted">${esc(labels[p.lifecycle]||p.lifecycle)}${p.window_end?' · '+esc(instant(p.window_end,p.timezone)):''}</div></div><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" data-promise-id="${esc(p.request_id)}">查看约定</button></div>`,bind:list=>list.querySelectorAll('[data-promise-id]').forEach(button=>button.onclick=()=>openPromise(fid,button.dataset.promiseId,onSaved,alive))});
 }
 export function openPromise(fid,id,onSaved=()=>{},observe=()=>true){

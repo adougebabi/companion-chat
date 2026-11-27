@@ -43,7 +43,7 @@ export function ScheduleTimelineItem(item,zone,{expanded=false,editable=true,sch
  return `<details data-domain-ui="disclosure" class="schedule-timeline-item ${window==='current'?'is-current':''}" data-schedule-expand="${esc(item.id)}" ${expanded?'open':''}>
   <summary>
    ${showTime||timeNote?`<span class="schedule-time">${showTime?ScheduleSummaryRange(item.start_at,item.end_at,zone):esc(timeNote)}</span>`:''}
-   <span class="grow"><span class="schedule-item-heading"><b>${esc(title)}</b>${planStatus?`<span class="small muted">${esc(planStatus)}</span>`:''}</span>${location?`<span class="small muted">${esc(location)}</span>`:''}</span>
+   <span class="grow inline-flex min-w-0 flex-col gap-1"><span class="schedule-item-heading inline-flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1"><b>${esc(title)}</b>${planStatus?`<span class="small muted">${esc(planStatus)}</span>`:''}</span>${location?`<span class="small muted">${esc(location)}</span>`:''}</span>
    <span aria-hidden="true">⌄</span>
   </summary>
   <div class="schedule-timeline-body" ${showTime?`data-schedule-slot="${esc(item.id)}"`:''}>
