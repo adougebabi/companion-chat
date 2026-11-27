@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "version": "0.1.35",
+  "version": "0.1.37",
   "api_protocol": 1,
   "skill_protocol": 1,
   "assets": {
     ".agents/skills/ael-work/SKILL.md": "13977c2e991f415dded520fc8a3bc3e6ce0267d2707e99cbe40a0d1d8f37eca6",
-    ".agents/skills/ael-work/references/commands.md": "332b356b37f76cd7c00f5c74fcf7ac2e73e0fba4f23cfbf573f60dd4a3b36ee9",
-    ".agents/skills/ael-work/references/remote-agent.md": "742edae87f60ee893a7e4414250e104d411dff7c23f11e95cfb8db5706e209d4",
+    ".agents/skills/ael-work/references/commands.md": "db1b90ef3e17d191c55f2c8c069d2b1ab253bd1775be9a33043a01d2d359664d",
+    ".agents/skills/ael-work/references/remote-agent.md": "2c3538b51cc424789aecffe200e91b942f630065a91543bb85557aa83e40c85f",
     ".agents/skills/ael-work/references/workflow.md": "b9559ab17c2085e16475e63faa33b29fd4995ea553e7465de49799185ac9fd68",
     ".claude/skills/ael-work/SKILL.md": "9465af87a5eeb3d1cc2c8a13eff87c14894b272677fa0560b7e2c47bf7eaa0a6",
     "AGENTS:block": "596b56388e96eac4b3f89e07feca907a22890a94a19b0c073fe159dc09235d40",
