@@ -29,8 +29,14 @@ goal_event_candidates、claims、thought、personality_decision，必填仅 resp
 `intention.schedule` 携带具体生活动作
 （action_plan.kind 为 virtual_shopping/haircut/hair_dye）时，模型调用也直接建立临时目标与意向并排入
 日程，到点由意向触发器执行，购物结果入库衣柜；没有具体动作的愿望仍只提交 Goal Planner。
+`start_now=true` 表示现在就去：规划边界与该项开始时间取本分钟，提交后 `ExecuteTool` 立即执行与到点
+触发相同的开始步骤（`processScheduledIntentionTrigger` → `life.activity.start`），写入确认生活事件
+（世界地点随之改变）并登记到期结算；该步骤以 `scheduled-start:<日程项>` 为操作键，之后 Temporal
+触发只回放同一回执。聊天里「去」只走 intention.schedule，`life.activity.start` 不再出现在聊天面。
 答应调整自己的日程时，聊天规则要求当轮 schedule.inspect 找到那一项，再 schedule.edit 落实（整段重排
-从清单加载 schedule.replan）。
+从清单加载 schedule.replan）。没有生效事件时世界地点本就跟随当前日程项；编辑当前项而有生效事件
+遮盖时，schedule.edit 在同一事务内按编辑后的当前项写入场景切换。地点只以工具结果为准，Core 不从
+回复文字推断。`capability.discover` 已移除（与 capability_catalog 的 names 加载重复，且从未下发）。
 `actor.fact.record` 记录对方自述的长期情况，location/country/city/residence/work/school/routine/
 family/likes/dislikes/plans 等属性进入「关于对方」常驻段。聊天中 assertion_type 为必填：
 对方亲口说的用 explicit_statement（记为 active）；inference 只用于模型自己的推断，记为 uncertain，

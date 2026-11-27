@@ -110,7 +110,7 @@ func directMainInvalidReplyAttempts(trace *ADKCapabilityTrace) int {
 // action or forcing acceptance. Any actual query/action restores discovery.
 func repeatedDiscoveryExclusions(trace *ADKCapabilityTrace) []string {
 	if repeatedDiscoveryLoadCount(trace) >= 2 {
-		return []string{capabilityCatalogName, capabilityDiscoverName}
+		return []string{capabilityCatalogName}
 	}
 	return nil
 }
@@ -121,7 +121,7 @@ func repeatedDiscoveryLoadCount(trace *ADKCapabilityTrace) int {
 	count := 0
 	for index := len(results) - 1; index >= 0; index-- {
 		result := results[index]
-		if result.Status != "completed" || (result.CapabilityName != capabilityCatalogName && result.CapabilityName != capabilityDiscoverName) {
+		if result.Status != "completed" || result.CapabilityName != capabilityCatalogName {
 			break
 		}
 		out := mapValue(result.Output)
@@ -146,7 +146,7 @@ func repeatedDiscoveryResultCount(trace *ADKCapabilityTrace) int {
 	count := 0
 	for index := len(results) - 1; index >= 0; index-- {
 		result := results[index]
-		if result.CapabilityName != capabilityCatalogName && result.CapabilityName != capabilityDiscoverName {
+		if result.CapabilityName != capabilityCatalogName {
 			break
 		}
 		fingerprint := jsonString(map[string]any{"name": result.CapabilityName, "status": result.Status, "output": result.Output, "error_code": result.ErrorCode})

@@ -38,8 +38,9 @@ func lifeActivityOutputSchema() map[string]any {
 func lifeActivityStartDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: lifeActivityStartCapabilityName, Version: "v1", Type: CapabilityTypeAction,
-		Description:   "Start timed shopping/haircut/dye. Shopping: read wardrobe.inspect catalogue; use single fields OR items array, copy exact definition and place_id, omit unknown IDs. Wearables need slot. Set wear_after_acquisition=true only if you decide to wear the acquired clothes after completion. Accepted means started, not acquired; Core schedules the result at not_before. Haircut needs desired_hair_length; dye needs desired_hair_color and due intention.",
-		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
+		Description: "Start timed shopping/haircut/dye. Shopping: read wardrobe.inspect catalogue; use single fields OR items array, copy exact definition and place_id, omit unknown IDs. Wearables need slot. Set wear_after_acquisition=true only if you decide to wear the acquired clothes after completion. Accepted means started, not acquired; Core schedules the result at not_before. Haircut needs desired_hair_length; dye needs desired_hair_color and due intention.",
+		Surfaces:    []CapabilitySurface{CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
+		// Not on chat: going shopping now or later is intention.schedule (start_now), which runs this Tool through the scheduled trigger.
 		FailurePolicy: FailurePolicyOptionalInternal,
 		InputSchema: map[string]any{
 			"type": "object", "additionalProperties": false, "required": []any{"kind", "reason"},

@@ -188,7 +188,7 @@ func TestR8RepeatedDiscoveryCoolsDownOnlyIdenticalSuccessfulLoads(t *testing.T) 
 		t.Fatal("first load was suppressed")
 	}
 	trace.AppendResult(load)
-	if len(repeatedDiscoveryExclusions(trace)) != 2 {
+	if len(repeatedDiscoveryExclusions(trace)) != 1 {
 		t.Fatal("duplicate disclosure was not suppressed")
 	}
 	trace.AppendResult(load)

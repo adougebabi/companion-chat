@@ -9,6 +9,7 @@ import (
 
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 	"github.com/jackc/pgx/v5"
+	"time"
 )
 
 // ToolExecutionRequest is the application-facing Tool boundary shared by
@@ -363,7 +364,42 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 			a.recordDiagnosticEvent(ctx, "conversation.publication.followup.degraded", "warning", request.FluctlightID, stringValue(output["target_ref"]), result.CorrelationID, map[string]any{"error_code": "followup_schedule_failed"})
 		}
 	}
+	if err == nil && result.Status == "completed" && request.CapabilityName == scheduleActivityCapabilityName && stringValue(output["status"]) == "scheduled" && toolRequestStartsNow(request) {
+		receipt.Result.Output = a.startScheduledActivityNow(ctx, request, output)
+	}
 	return receipt, err
+}
+
+func toolRequestStartsNow(request ToolExecutionRequest) bool {
+	var args map[string]any
+	if json.Unmarshal(request.Arguments, &args) != nil {
+		return false
+	}
+	startNow, _ := args["start_now"].(bool)
+	return startNow
+}
+
+// startScheduledActivityNow runs the scheduled trigger's own start step right
+// after a start_now booking commits, so the location event, the activity run
+// and its result settlement exist within the same turn. The step is keyed by
+// the schedule item ("scheduled-start:<item>"); when the Temporal trigger fires
+// later it replays this receipt instead of starting twice. It runs detached from
+// the caller's model/tool trace, like the trigger workflow does.
+func (a *App) startScheduledActivityNow(ctx context.Context, request ToolExecutionRequest, output map[string]any) map[string]any {
+	result := cloneMap(output)
+	startCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	started, handled, err := a.processScheduledIntentionTrigger(startCtx, stringValue(output["intention_id"]), request.FluctlightID, request.AuthorizationActorID)
+	switch {
+	case err != nil:
+		a.recordDiagnosticEvent(ctx, "life.activity.start_now.failed", "warning", request.FluctlightID, stringValue(output["schedule_item_id"]), "", map[string]any{"error": err.Error()})
+		result["activity"] = map[string]any{"status": "start_failed", "detail": "the trip is on the schedule but did not start; it will start from the schedule trigger"}
+	case !handled:
+		result["activity"] = map[string]any{"status": "start_pending"}
+	default:
+		result["activity"] = started
+	}
+	return result
 }
 
 func classifyToolPrepareError(err error) (code string, retryable bool, detail string) {

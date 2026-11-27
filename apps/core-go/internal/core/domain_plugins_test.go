@@ -111,7 +111,7 @@ func TestDomainPluginDiscoveryAndExecutionAgree(t *testing.T) {
 		t.Fatal("directory did not disclose the installed but disabled image capability")
 	}
 	inv.Arguments = json.RawMessage(`{"names":["media.image.generate","missing.plugin.tool"]}`)
-	for _, execute := range []func(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityResult, error){catalog.Execute, (capabilityDiscoverCapability{catalog: registry.Catalog, lookup: registry.Definition}).Execute} {
+	for _, execute := range []func(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityResult, error){catalog.Execute} {
 		result, err = execute(ctx, inv, CapabilityContext{})
 		if err != nil {
 			t.Fatal(err)

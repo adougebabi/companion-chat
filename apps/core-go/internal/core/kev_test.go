@@ -311,7 +311,7 @@ func TestKevPhysicalRequestFallbackKeepsRecoveryUtilities(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(definitions) != 3 || !selection.permits(context.Background(), "memory.recall") || selection.permits(context.Background(), capabilityDiscoverName) {
+			if len(definitions) != 3 || !selection.permits(context.Background(), "memory.recall") || selection.permits(context.Background(), "capability.discover") {
 				t.Fatalf("fallback leaked installation: %v", toolNamesForTest(definitions))
 			}
 			for _, name := range []string{conversationReplyCapabilityName, "moment.publish", capabilityCatalogName} {
@@ -433,18 +433,20 @@ func TestKevSpoolRepairsOnlyIncompleteTerminalAppend(t *testing.T) {
 	}
 }
 
+// Named loading through capability.catalog (the retired capability.discover did
+// the same) never widens the installed set or loads only part of a request.
 func TestKevDiscoveryNeverWidensInstalledSetOrPartiallyLoads(t *testing.T) {
 	state := &kevRunSelection{service: controlledKevToolService(t, "yes"), original: []CapabilityDefinition{{Name: "allowed", Description: "authorized"}}, loaded: map[string]bool{}}
 	ctx := context.WithValue(context.Background(), kevRunSelectionKey{}, state)
-	capability := capabilityDiscoverCapability{catalog: func(CapabilitySurface) []CapabilityDefinition {
+	capability := capabilityCatalogCapability{catalog: func(CapabilitySurface) []CapabilityDefinition {
 		t.Fatal("run-scoped discovery read ambient surface catalog")
 		return nil
 	}}
-	result, err := capability.Execute(ctx, CapabilityInvocation{CallID: "call", CapabilityName: capabilityDiscoverName, Arguments: json.RawMessage(`{"names":[]}`)}, CapabilityContext{})
-	if err != nil || len(arrayValue(mapValue(result.Output)["available"])) != 1 {
+	result, err := capability.Execute(ctx, CapabilityInvocation{CallID: "call", CapabilityName: capabilityCatalogName, Arguments: json.RawMessage(`{"names":[]}`)}, CapabilityContext{})
+	if err != nil || len(arrayValue(mapValue(result.Output)["items"])) != 1 {
 		t.Fatal(result, err)
 	}
-	result, err = capability.Execute(ctx, CapabilityInvocation{CallID: "call", CapabilityName: capabilityDiscoverName, Arguments: json.RawMessage(`{"names":["allowed","foreign"]}`)}, CapabilityContext{})
+	result, err = capability.Execute(ctx, CapabilityInvocation{CallID: "call", CapabilityName: capabilityCatalogName, Arguments: json.RawMessage(`{"names":["allowed","foreign"]}`)}, CapabilityContext{})
 	if err != nil || result.Status != "completed" || len(state.loaded) != 1 || len(arrayValue(decodeObject(jsonBytes(result.Output))["unavailable"])) != 1 {
 		t.Fatal("discovery widened/partially loaded", result, err)
 	}
@@ -625,7 +627,7 @@ func TestKevNativeLoopDiscoversAndExecutesHiddenTool(t *testing.T) {
 }
 
 func TestKevDiscoveryUsesIndependentPureQueryBoundary(t *testing.T) {
-	for _, implementation := range []Capability{capabilityCatalogCapability{}, capabilityDiscoverCapability{}} {
+	for _, implementation := range []Capability{capabilityCatalogCapability{}} {
 		class, err := classifyCapabilityExecution(implementation, implementation.Definition())
 		if err != nil || class != CapabilityExecutionPureQuery {
 			t.Fatal("catalog utility cannot execute through actual Tool boundary", implementation.Definition().Name, class, err)

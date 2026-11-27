@@ -30,7 +30,6 @@ var formalToolAdapterInventory = []string{
 	"affect_event",
 	"appearance.style",
 	"capability.catalog",
-	"capability.discover",
 	"capability.request",
 	"conversation.reply",
 	"habit.decide",
@@ -133,7 +132,7 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 				failedRequest := request
 				failedRequest.OperationID += "-dependency"
 				receipt, err := missing.ExecuteTool(fixture.ctx, failedRequest)
-				if testCase.name == capabilityCatalogName || testCase.name == capabilityDiscoverName {
+				if testCase.name == capabilityCatalogName {
 					if err != nil || receipt.Result.Status != "completed" {
 						t.Fatal("registry utility unexpectedly requires a business service", receipt, err)
 					}
@@ -174,15 +173,6 @@ func TestFormalToolEinoAdapterE2E(t *testing.T) {
 				t.Fatal("independent product verifier is missing")
 			}
 			testCase.verify(t, fixture, direct)
-			if testCase.name == capabilityDiscoverName {
-				definition, _ := fixture.app.capabilityRegistry().Definition(testCase.name)
-				for _, installed := range appendCapabilityUtilities(fixture.app.capabilityRegistry(), request.Surface, []CapabilityDefinition{definition}) {
-					if installed.Name == capabilityDiscoverName {
-						t.Fatal("retired discover utility reinstalled in native window")
-					}
-				}
-				return
-			}
 			if testCase.name == "goal.decide" {
 				denied := request
 				denied.NativeToolCallID, denied.ProviderRequestID = "owner-native-denied", "controlled-owner-provider"
@@ -372,17 +362,6 @@ func formalToolAdapterCases() []formalToolAdapterCase {
 				items := arrayValue(mapValue(r.Result.Output)["items"])
 				if len(items) == 0 || mapValue(items[0])["parameters"] != nil || mapValue(items[0])["purpose"] == nil {
 					t.Fatal("authorized directory purpose missing", r.Result.Output)
-				}
-			},
-		},
-		{
-			name: capabilityDiscoverName, surface: CapabilitySurfaceNativeCognition, wantStatus: "completed",
-			request: func(_ *testing.T, f *formalToolAdapterFixture, _ string) ToolExecutionRequest {
-				return f.request(capabilityDiscoverName, "adapter-discover", map[string]any{"names": []string{"wardrobe.inspect"}})
-			},
-			verify: func(t *testing.T, _ *formalToolAdapterFixture, r ToolExecutionReceipt) {
-				if len(arrayValue(mapValue(r.Result.Output)["available"])) == 0 {
-					t.Fatal("no authorized catalog returned")
 				}
 			},
 		},

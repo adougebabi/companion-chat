@@ -21,6 +21,7 @@ type scheduleEditCapability struct {
 type scheduleEditService interface {
 	currentAcceptedScheduleTx(context.Context, pgx.Tx, string) (map[string]any, error)
 	applyScheduleReplanCapabilityWithTx(context.Context, pgx.Tx, CapabilityInvocation, CapabilityContext) (CapabilityResult, error)
+	alignCurrentSceneWithScheduleTx(context.Context, pgx.Tx, CapabilityInvocation) error
 }
 
 func scheduleEditDefinition() CapabilityDefinition {
@@ -273,5 +274,77 @@ func (c scheduleEditCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invoca
 			return failedCapabilityResultDetail(invocation, "schedule_edit_intention_cancel_failed", false, err.Error()), err
 		}
 	}
-	return c.service.applyScheduleReplanCapabilityWithTx(ctx, tx, invocation, resolved)
+	result, err := c.service.applyScheduleReplanCapabilityWithTx(ctx, tx, invocation, resolved)
+	if err != nil || result.Status != "completed" {
+		return result, err
+	}
+	// Editing what you are doing right now also moves you there.
+	if start, startErr := parseScheduleTime(stringValue(target["start_at"])); startErr == nil && !start.After(c.intents.now()) {
+		if err := c.service.alignCurrentSceneWithScheduleTx(ctx, tx, invocation); err != nil {
+			return failedCapabilityResultDetail(invocation, "schedule_edit_scene_align_failed", true, err.Error()), err
+		}
+	}
+	return result, nil
+}
+
+// alignCurrentSceneWithScheduleTx makes the character's current scene follow an
+// edit of the current schedule item. Without an active event the world already
+// follows the accepted schedule; an earlier scene/activity event would mask the
+// edit, so the scene is switched to the item, exactly as scene_event would do.
+func (a *App) alignCurrentSceneWithScheduleTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation) error {
+	fluctlightID := invocation.Metadata.FluctlightID
+	at := a.now().UTC()
+	_, life, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, at)
+	if err != nil || stringValue(life["source"]) != "event" {
+		return err
+	}
+	schedule, err := a.currentAcceptedScheduleTx(ctx, tx, fluctlightID)
+	if err != nil {
+		return err
+	}
+	var item map[string]any
+	for _, raw := range arrayValue(schedule["items"]) {
+		candidate := mapValue(raw)
+		start, startErr := parseScheduleTime(stringValue(candidate["start_at"]))
+		end, endErr := parseScheduleTime(stringValue(candidate["end_at"]))
+		if startErr == nil && endErr == nil && !start.After(at) && end.After(at) {
+			item = candidate
+			break
+		}
+	}
+	if item == nil {
+		return nil
+	}
+	activity := strings.TrimSpace(stringValue(item["activity"]))
+	scene := firstString(strings.TrimSpace(stringValue(item["scene"])), activity)
+	location := strings.TrimSpace(stringValue(item["location"]))
+	if activity == "" || (scene == stringValue(life["scene"]) && activity == stringValue(life["activity"]) && location == stringValue(life["location"])) {
+		return nil
+	}
+	args := map[string]any{"operation": "switch", "scene": scene, "activity": activity, "confidence": 1}
+	if location != "" {
+		args["location"] = location
+	}
+	if place := strings.TrimSpace(stringValue(item["place_id"])); place != "" {
+		args["place_id"] = place
+	}
+	align := invocation
+	align.CallID = invocation.CallID + ":align-scene"
+	align.CapabilityName = "scene_event"
+	align.Arguments = jsonBytes(args)
+	align.PreparedPayload = nil
+	align.Metadata.OperationID = capabilityOperationID(invocation) + ":align-scene"
+	resolved := CapabilityContext{Life: &CurrentLifeContext{Data: life}}
+	prepared, err := a.prepareSceneCapability(ctx, align, resolved)
+	if err != nil {
+		return err
+	}
+	result, err := a.applySceneCapabilityWithTx(ctx, tx, prepared, resolved)
+	if err != nil {
+		return err
+	}
+	if result.Status != "completed" {
+		return fmt.Errorf("scene alignment %s", result.ErrorCode)
+	}
+	return nil
 }

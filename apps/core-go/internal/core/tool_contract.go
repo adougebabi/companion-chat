@@ -307,7 +307,13 @@ func chatToolDefinition(full CapabilityDefinition) CapabilityDefinition {
 	case capabilityCatalogName:
 		full.Description = "Load tools listed under 其他能力 by names, e.g. {\"names\":[\"schedule.replan\"]}; they can be called in the next step. Empty names lists every tool's purpose."
 	case scheduleActivityCapabilityName:
-		full.Description = "Schedule a real life activity. Buy clothes: action_plan {kind:\"virtual_shopping\", items:[{category, slot, description}]}; you go at that time and bought items enter your wardrobe. Also haircut, hair_dye."
+		// stage_id/commitment_id carry Goal Planner stage execution, not chat.
+		full.InputSchema = cloneMap(full.InputSchema)
+		properties := cloneMap(mapValue(full.InputSchema["properties"]))
+		delete(properties, "stage_id")
+		delete(properties, "commitment_id")
+		full.InputSchema["properties"] = properties
+		full.Description = "Go shopping/haircut/dye now (start_now=true) or later (preferred_start_at); it goes on your schedule. Clothes: action_plan {kind:\"virtual_shopping\", items:[{category, slot, description}]}; bought items enter your wardrobe."
 	case "memory_event":
 		full.Description = "Remember what happened or matters (or correct a memory) before replying. Revising needs a ref from context or memory.recall; never invent one."
 	case wardrobeInspectCapabilityName:

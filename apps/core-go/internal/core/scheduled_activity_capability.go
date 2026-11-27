@@ -39,6 +39,7 @@ func scheduledActivityDefinition() CapabilityDefinition {
 			"expected_outcome":   map[string]any{"type": "string", "minLength": 1, "maxLength": 2000},
 			"action_plan":        map[string]any{"type": "object", "additionalProperties": true},
 			"preferred_start_at": map[string]any{"type": "string"},
+			"start_now":          map[string]any{"type": "boolean", "description": "true = go now (starts at once, you move there)."},
 			"reason":             map[string]any{"type": "string", "minLength": 1, "maxLength": 500},
 		}, []string{"action", "expected_outcome", "action_plan", "reason"}, false),
 		OutputSchema: map[string]any{"anyOf": []any{objectSchema(map[string]any{
@@ -116,6 +117,14 @@ func (c scheduleActivityCapability) Prepare(ctx context.Context, invocation Capa
 	// The read model is a schedule version; the immutable-history boundary is
 	// the time of this planning attempt, not a persisted schedule field.
 	current["completed_before"] = c.intents.now().Format(instantLayout)
+	preferredStart := args["preferred_start_at"]
+	startNow, _ := args["start_now"].(bool)
+	if startNow {
+		// Going now: the planning boundary and the slot both start this minute,
+		// and ExecuteTool starts the activity right after the commit.
+		boundary := c.intents.now().UTC().Truncate(time.Minute).Format(instantLayout)
+		current["completed_before"], preferredStart = boundary, boundary
+	}
 	resolved.Schedule = &ScheduleContext{Data: current}
 	if raw, found, err := capabilityPreparedData(invocation, "scheduled_activity_plan"); err != nil {
 		return invocation, err
@@ -127,8 +136,8 @@ func (c scheduleActivityCapability) Prepare(ctx context.Context, invocation Capa
 	}
 	planInput := SchedulePlanInput{FluctlightID: invocation.Metadata.FluctlightID, Intent: stringValue(args["action"]), PlannedAction: map[string]any{
 		"goal": args["goal"], "action": args["action"], "expected_outcome": args["expected_outcome"],
-		"kind": actionPlan["kind"], "duration_minutes": actionPlan["duration_minutes"], "preferred_start_at": args["preferred_start_at"],
-		"action_plan": actionPlan,
+		"kind": actionPlan["kind"], "duration_minutes": actionPlan["duration_minutes"], "preferred_start_at": preferredStart,
+		"start_now": startNow, "action_plan": actionPlan,
 	}, Schedule: current, CurrentLife: resolved.Life.Data, Agency: resolved.Agency.Data,
 		SourceFactID: invocation.SourceFactID, Timezone: stringValue(current["timezone"])}
 	planned, err := c.planner.Plan(ctx, planInput)
@@ -184,14 +193,20 @@ func scheduledAppointmentItem(plan, actionPlan, args map[string]any, at time.Tim
 		return nil, errors.New("schedule_action_slot_missing")
 	}
 	start, err := parseScheduleTime(stringValue(selected["start_at"]))
-	if err != nil || !start.After(at.Add(30*time.Second)) {
+	if startNow, _ := args["start_now"].(bool); startNow {
+		// Starts at the planning minute; the immediate start needs start <= now,
+		// and the planner call in between may take a while.
+		if err != nil || start.Before(at.Add(-5*time.Minute)) || start.After(at) {
+			return nil, errors.New("schedule_action_start_not_now")
+		}
+	} else if err != nil || !start.After(at.Add(30*time.Second)) {
 		return nil, errors.New("schedule_action_start_not_future")
 	}
 	end, err := parseScheduleTime(stringValue(selected["end_at"]))
 	if err != nil || end.Sub(start) < time.Duration(intValue(actionPlan["duration_minutes"]))*time.Minute {
 		return nil, errors.New("schedule_action_slot_too_short")
 	}
-	if preferred := strings.TrimSpace(stringValue(args["preferred_start_at"])); preferred != "" {
+	if preferred := strings.TrimSpace(stringValue(args["preferred_start_at"])); preferred != "" && args["start_now"] != true {
 		parsed, err := parseScheduleTime(preferred)
 		if err != nil || !parsed.Equal(start) {
 			return nil, errors.New("schedule_action_preferred_time_mismatch")
