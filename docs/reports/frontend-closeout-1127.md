@@ -11,7 +11,7 @@ AEL：frontend-closeout-1127。只记录实际观察；静态核验不等于浏�
 | 调用运行回放 | shared/DiagnosticReplayPanel.tsx、scenarios/install.ts | 独立 pre；mock 缺九来源与关联范围 | RawContent、DetailFields；补来源分页与 correlation fixture | 已完成首批7cadbadd；Loop补充及最终验证见下文 |
 | /diag/task/:id、任务抽屉、业务恢复 | pages/TaskDetailPage.tsx、shared/TaskExecutionResults.tsx | 空调用推断停止阶段、阶段原因不完整及残留分隔符 | 沿用 AsyncTaskStatus、WorkflowRecovery、MediaTaskRecovery；移除无依据推断与死分支 | 已完成首批7cadbadd；Loop补充及最终验证见下文 |
 | 日程 /life/schedule → /planning?section=promises | pages/SchedulePage.jsx、v3-domain/life-schedule.js | 可见约定入口进入另一完整日程工作区；旧页日期操作误跳普通日程路由，section未被主页面消费 | 收敛入口与专注分区，保留命令/快照 | 待当前批次完成 |
-| 目标主列表详情/编辑、/life/goal/:id | pages/GoalsPage.jsx、v3-domain/goal-editor.js | 同字段双实现；旧对象页与主页面在终态动作、只读约束、范围编辑和回执恢复上不等价，不能直接删入口 | 进一步比对字段与入口，局部共享 | 待当前批次完成 |
+| 目标主列表详情/编辑、/life/goal/:id | pages/GoalsPage.jsx、v3-domain/goal-editor.js | 同字段双实现；旧对象页与主页面在终态动作、只读约束、范围编辑和回执恢复上不等价，不能直接删入口 | 进一步比对字段与入口，局部共享 | 已完成：双入口复用，旧实现与样式已清理；正常门禁14通过/1配置跳过 |
 | 日程/目标/记忆/日记/衣柜/人物/世界 Tabs | pages 与 views 同名文件；replica-life/profile/world.css | 重复滚动与触发器几何；缺共享激活项自动入视野 | ResponsiveTabsList，保留业务状态值 | 待当前批次完成 |
 | /growth/memory/:id、反思对象页 | v3-domain/memory.js、reflection.js | 已确认路由，字段重复未确认 | 保留兼容，继续核实具体入口 | 不删除 |
 | /life/diary/:id、/life/shared，收藏/注记/回顾依据 | v3-domain/diary.js | 正文、来源、尝试已分层，独立命令仍必要 | 现有共享桥接与渐进披露 | 静态无需调整，未声称浏览器通过 |
@@ -91,3 +91,24 @@ AEL：frontend-closeout-1127。只记录实际观察；静态核验不等于浏�
 | 修订查询 /data/revisions | v3-domain/data-tools.js | 已有中文摘要与原始下载；精确对象ID可归入高级条件，保留查询语义 |
 | 本地备份、回档说明、维护备份详情 | react-app/shared/LocalBackupsPanel.tsx、v3-domain/backups.js、v3-domain/data-tools.js | 明确备份边界、Owner隔离及隔离恢复，技术维护字段有实际消费方，静态无需整体调整 |
 | 身份修订与能力治理 | react-app/pages/GovernancePage.tsx | 状态约束与来源摘要已共享；身份提议目前只填JSON，需核实能否复用既有身份字段编辑器；能力交付版本是必要信息，保留 |
+
+## 目标批次：对象入口复用
+
+- 目标对象URL继续保留，改为打开正式GoalsPage的同一详情、编辑与命令；对象不在首批列表时仍按目标ID独立读取。
+- 未读、读取失败和终态不提供编辑；原始读取错误可下载，重读后旧错误清除。目标状态显示在页眉，成功空证据/修订直接说明，有内容、加载、失败与分页继续保留。
+- 核实后端goal_owner.go明确拒绝已存在目标变更scope，复用主页面的范围只读符合实际契约；版本核对、幂等身份、原提交GET恢复、评估跟进与全部原始记录保留。
+- 删除无生产引用的v3-domain/goal-editor.js及其旧样式。现有goal-editor命令身份/存储键保留，避免破坏原草稿和回执。
+- 正式路由三视口验证直达/列表/取消/返回，包含360手机与503重读后的长内容。初次共享范围检查381通过、1项resize同步失败；改为严格等待实际740px高度后，最终正常适用门禁pass（14通过、0失败、1配置跳过）。相关33项单测通过，最终错误原文与记录补充19项通过（有交集）；typecheck和build通过，首次业务基准三视口已审核。
+- 目标之后仍需继续日程、记忆/反思对象复用及管理入口，不把本批通过称作全站收口完成。
+
+## 深层对象补核
+
+| 入口 | 结论与处理边界 |
+| --- | --- |
+| 世界/地点完整编辑 | 与主页面快速编辑部分字段重叠，但完整工具另有默认字段恢复、完整世界框架与草稿；保留真实兼容能力，不整页删除 |
+| 地点详情、世界事件 | 有人物/日程/实际影响等独有阅读内容，已渐进披露和原始下载；静态无需重做 |
+| 世界物品 | 主页面与独立详情均有取得范围，独立页另有来源、衣柜与聊天取得请求；两者已有版本/快照保护，保留语义边界 |
+| 人物关系修订 | 已有CAS与原始下载；确认保存/恢复await后缺少存活检查与忙锁，需修正旧请求离页后导航/刷新的问题 |
+| 记忆对象详情 | 当前React详情已覆盖正文、按修订来源、补偿恢复、纠错/遗忘和回执核对；可承接对象URL，须保留独立读取与来源返回 |
+| 反思对象详情 | React详情已覆盖来源、提议/实际处置、反馈原请求跟进；可承接refId，不能把认同改成直接采纳 |
+| 反思时间线 | 仍独有latest_task/window进度观察、隐藏页暂停与输入窗口诊断；未承接前保留该兼容入口 |

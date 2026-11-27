@@ -78,14 +78,6 @@
 .goal-list button { display: grid; gap: 6px; min-height: 64px; text-align: left; width: 100%; padding: 14px; border: 1px solid var(--surface-border); border-radius: 12px; background: var(--surface-glass); overflow-wrap: anywhere; cursor: pointer; }
 .goal-list button:hover { border-color: var(--accent); background: var(--accent-soft); }
 .goal-list span { font-size: .8rem; color: var(--muted-ink); }
-.goal-detail, .goal-editor { min-width: 0; border-top: 1px solid var(--surface-border); padding-top: 20px; overflow-wrap: anywhere; }
-.goal-detail { display: grid; gap: 12px; }
-.goal-detail h4 { margin: 0; font-weight: 650; }
-.goal-detail p { margin: 0; line-height: 1.65; }
-.goal-detail dl { display: grid; grid-template-columns: minmax(5rem, auto) minmax(0, 1fr); gap: 10px 16px; margin: 0; }
-.goal-detail dt { color: var(--muted-ink); font-size: .85rem; }
-.goal-detail dd { margin: 0; }
-.goal-detail summary { min-height: 40px; padding-block: 8px; cursor: pointer; color: var(--accent-strong); }
 .goal-actions { display: grid; gap: 12px; padding-top: 12px; }
 .actor-context-editor { display: grid; gap: 18px; }
 .actor-background-form fieldset { min-width: 0; border: 0; padding: 0; margin: 0; }

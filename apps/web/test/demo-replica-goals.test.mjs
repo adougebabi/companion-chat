@@ -508,3 +508,37 @@ test('a state receipt with an older goal readback remains read-only recovery unt
   stale=false;await v.click(button(dialog(),'只读恢复页面结果'));assert.ok(button(dialog(),'继续'));assert.equal(w.rows.get('one').status,'paused');assert.equal(w.calls.filter(call=>call[0]==='pause').length,1);
  }finally{await v.dispose();}
 });
+
+test('object route reads an unlisted target and never offers editing before its actual record is read',async()=>{
+ const w=workspace();let resolve;
+ w.client.goals=async()=>({items:[],next_cursor:''});
+ w.client.goalDetail=()=>new Promise(done=>resolve=done);
+ w.client.goalHistory=async()=>({items:[],next_cursor:''});
+ const route={fid:'A',feature:{native:'goal',params:{goalId:'outside'}},query:new URLSearchParams()};
+ const v=await mountReact(vite,Goals,{workspace:w,props:{route}});
+ try{
+  assert.match(dialog().textContent,/正在读取目标详情/);
+  assert.equal(button(dialog(),'编辑'),undefined);
+  await act(async()=>resolve(goal('outside','completed')));await v.flush();
+  assert.match(dialog().textContent,/完成outside的画作/);
+  assert.match(dialog().textContent,/尚无目标修订历史/);
+  assert.equal(button(dialog(),'目标修订历史'),undefined);
+  assert.equal(button(dialog(),'编辑'),undefined);
+  assert.equal(button(dialog(),'暂停'),undefined);
+  assert.equal(button(dialog(),'取消这个目标'),undefined);
+ }finally{await v.dispose();}
+});
+test('object route keeps a failed unread target readonly and can return to the goal list',async()=>{
+ const w=workspace(),moves=[];
+ w.client.goals=async()=>({items:[],next_cursor:''});
+ w.client.goalDetail=async()=>{throw Error('目标读取失败');};
+ w.navigatePath=path=>moves.push(path);
+ const route={fid:'A',feature:{native:'goal',params:{goalId:'missing'}},query:new URLSearchParams()};
+ const v=await mountReact(vite,Goals,{workspace:w,props:{route}});
+ try{
+  assert.ok(button(dialog(),'重新读取目标详情'));
+  assert.equal(button(dialog(),'编辑'),undefined);
+  await act(async()=>dialog().dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));await v.flush();
+  assert.equal(moves.at(-1),'/c/A/life/goals');
+ }finally{await v.dispose();}
+});

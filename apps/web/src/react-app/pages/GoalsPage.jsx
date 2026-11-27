@@ -41,7 +41,7 @@ import {
 } from "@/approved-ui/goal-presentation.mjs";
 import { zonedInput, zonedInputInstant } from "@/v3/zoned-input.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
-import { errorMessage } from "@/v3/domain-presentation.mjs";
+import { errorMessage, errorRecord } from "@/v3/domain-presentation.mjs";
 import { goalExecutionFacts, goalRecordStatus, goalRecordSummary, goalRecordText } from "@/approved-ui/goal-record-presentation.mjs";
 const terminalStatuses = ["completed", "cancelled", "abandoned"];
 const evaluationPending = ["pending", "processing", "retry", "queued"];
@@ -158,7 +158,9 @@ const metric = (value) =>
   typeof value === "number" && Number.isFinite(value)
     ? new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 2 }).format(value)
     : "";
+/** @param {{route:any,onGo?:(page:string)=>void}} props */
 export default function GoalsPage({ route, onGo }) {
+  const routeGoalId=route?.feature?.native==='goal'?route.feature.params.goalId:'';
   const w = useWorkspace(),
     c = w.current.value,
     fid = c.id,
@@ -176,6 +178,7 @@ export default function GoalsPage({ route, onGo }) {
     [detail, setDetail] = useState(null),
     [detailLoading, setDetailLoading] = useState(false),
     [detailError, setDetailError] = useState(""),
+    [detailFailure, setDetailFailure] = useState(null),
     [action, setAction] = useState(null),
     [notice, setNotice] = useState(null);
   const [records, setRecords] = useState({
@@ -197,7 +200,7 @@ export default function GoalsPage({ route, onGo }) {
     trigger = useRef(null),
     retryReads = useRef({}),
     detailId = useRef("");
-  const live = () => mounted.current && !!fid && w.isCurrent(owner, fid),
+  const live = () => mounted.current && !!fid && (!routeGoalId||!route.fid||route.fid===fid) && w.isCurrent(owner, fid),
     readonly = ["retired", "archived", "已退休", "已归档"].includes(c.status);
   const all = [
     ...new Map(
@@ -291,6 +294,7 @@ export default function GoalsPage({ route, onGo }) {
       token = ++detailEpoch.current;
     setDetailLoading(true);
     setDetailError("");
+    setDetailFailure(null);
     try {
       const goal = await w.client.goalDetail(fid, id);
       if (goal.id !== id) throw Error("目标身份不匹配，保留已读取的内容。");
@@ -299,8 +303,10 @@ export default function GoalsPage({ route, onGo }) {
       if (detailId.current === id) setDetail(value);
       return value;
     } catch (cause) {
-      if (live() && token === detailEpoch.current)
+      if (live() && token === detailEpoch.current){
         setDetailError(errorMessage(cause, "目标详情尚未读到。"));
+        setDetailFailure(errorRecord(cause));
+      }
       throw cause;
     } finally {
       if (live() && token === detailEpoch.current) setDetailLoading(false);
@@ -378,11 +384,15 @@ export default function GoalsPage({ route, onGo }) {
       detailEpoch.current++;
     };
   }, [scope]);
-  function openGoal(goal, event) {
+  useEffect(()=>{
+    if(!routeGoalId||!live())return;
+    openGoal({id:routeGoalId},{currentTarget:document.querySelector('.replica-goals .replica-page-heading h1')},true);
+  },[scope,routeGoalId]);
+  function openGoal(goal, event, unread=false) {
     trigger.current = event?.currentTarget || document.activeElement;
     detailId.current = goal.id;
     setSelectedId(goal.id);
-    setDetail(cache.current.get(goal.id) || goal);
+    setDetail(cache.current.get(goal.id) || (unread?null:goal));
     setRecords({
       evidence: { items: [], cursor: "", ready: false },
       history: { items: [], cursor: "", ready: false },
@@ -400,6 +410,7 @@ export default function GoalsPage({ route, onGo }) {
     detailEpoch.current++;
     setRecordErrors({});
     setRecordLoading({});
+    if(routeGoalId)w.navigatePath('/c/'+encodeURIComponent(fid)+'/life/goals');
   }
   function saveEvaluationPointer(result) {
     const value = {
@@ -1025,7 +1036,7 @@ export default function GoalsPage({ route, onGo }) {
                   独立目标规划与治理
                 </a>
               </Button>
-              <Button variant="outline" onClick={() => onGo?.("聊天")}>
+              <Button variant="outline" onClick={() => onGo?onGo("聊天"):w.navigatePath?.("/c/"+encodeURIComponent(fid)+"/chat")}>
                 和{c.name}聊聊最近的想法
                 <ArrowUpRightIcon size={14} />
               </Button>
@@ -1040,7 +1051,7 @@ export default function GoalsPage({ route, onGo }) {
           if (!open) closeDetail();
         }}
         title={selected?.desired_outcome || "目标详情"}
-        description={"属于" + c.name + "的一个期待"}
+        description={<span className="inline-flex flex-wrap items-center gap-2"><span>{"属于"+c.name+"的一个期待"}</span>{selected&&<Badge variant="outline">{goalLabels[selected.status]||"状态待确认"}</Badge>}</span>}
         footer={
           selected && !selectedTerminal ? (
             <>
@@ -1089,6 +1100,7 @@ export default function GoalsPage({ route, onGo }) {
           ) : undefined
         }
       >
+        {routeGoalId&&<nav className="ui-actions" aria-label="目标上下文"><Button asChild variant="link"><a href={'#/c/'+encodeURIComponent(fid)+'/life/goals'}>目标列表</a></Button><Button asChild variant="link"><a href={'#/c/'+encodeURIComponent(fid)+'/life/planning'}>独立规划</a></Button></nav>}
         {detailLoading && <LoadingState label="正在读取目标详情…" />}
         {detailError && (
           <InlineFeedback role="alert">
@@ -1100,6 +1112,7 @@ export default function GoalsPage({ route, onGo }) {
             >
               重新读取目标详情
             </Button>
+            <GoalRecordDownload value={detailFailure} title="原始目标读取错误记录（诊断）"/>
           </InlineFeedback>
         )}
         {selected && (
@@ -1142,10 +1155,7 @@ export default function GoalsPage({ route, onGo }) {
                 ))}
               </div>
             </section>}
-            <WorkspaceInfo>
-              {assessment.progress !== null && `当前证据评估进度：${Math.round(assessment.progress * 100)}%。 `}
-              目标完成状态以实际领域记录为准。
-            </WorkspaceInfo>
+            {assessment.progress!==null?<WorkspaceInfo>当前证据评估进度：{Math.round(assessment.progress*100)}%。目标完成状态以实际领域记录为准。</WorkspaceInfo>:<p className="lp-muted">尚无当前版本的完成条件评估。</p>}
             <GoalPlanRecords goal={selected}/>
             {(evaluationPointer?.goalId === selected.id ||
               evalRequest?.request_id) && (
@@ -1172,7 +1182,9 @@ export default function GoalsPage({ route, onGo }) {
               </Disclosure>
             )}
             {["evidence", "history"].map((kind) => (
-              <Disclosure
+              records[kind].ready&&!recordLoading[kind]&&!recordErrors[kind]&&!records[kind].items.length&&!records[kind].cursor
+                ? <p key={kind} className="lp-muted">{kind==="evidence"?"尚无证据来源。":"尚无目标修订历史。"}</p>
+                : <Disclosure
                 key={kind}
                 title={kind === "evidence" ? "证据来源" : "目标修订历史"}
               >

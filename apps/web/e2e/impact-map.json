@@ -136,6 +136,12 @@
       "e2e/chat-mobile-overlays.spec.ts",
       "e2e/mobile-workspace.spec.ts",
       "src/react-app/pages/ManagementPage.jsx"
+    ],
+    "@goals": [
+      "src/react-app/pages/GoalsPage.jsx",
+      "src/approved-ui/feature-routes.mjs",
+      "src/react-app/pages/DomainPage.tsx",
+      "e2e/goal-details.spec.ts"
     ]
   },
   "nonUi": [
