@@ -50,12 +50,15 @@ function CustomChoice({ id, label, value, options, disabled, onChange, creation 
   </>;
 }
 
-export default function ProfileField({ field, disabled = false, creation = false }: any) {
+export default function ProfileField({ field, disabled = false, creation = false, onValueChange }: any) {
   const id = useId(),
     long = field.kind === "lines" || /background|biography|notes|description/.test(field.path.at(-1)),
     key = field.path.at(-1);
-  const set = (e: any) => (field.value =
-    field.kind === "number" && e.target.value !== "" ? Number(e.target.value) : e.target.value);
+  const set = (e: any) => {
+    const value = field.kind === "number" && e.target.value !== "" ? Number(e.target.value) : e.target.value;
+    if (onValueChange) onValueChange(value);
+    else field.value = value;
+  };
   return (
     <Label htmlFor={id} className={long ? "full-field" : ""}>
       {field.label}

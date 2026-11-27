@@ -254,9 +254,10 @@ export function profileChanges(base, fields) {
 export function applyProfileChanges(base, patch) {
   const next = clone(base);
   for (const [key, value] of Object.entries(patch)) {
-    if (value && typeof value === "object" && !Array.isArray(value))
-      next[key] = applyProfileChanges(next[key] || {}, value);
-    else next[key] = clone(value);
+    const previous = Object.hasOwn(next,key) ? next[key] : undefined;
+    const merged = value && typeof value === "object" && !Array.isArray(value)
+      ? applyProfileChanges(previous || {},value) : clone(value);
+    Object.defineProperty(next,key,{value:merged,enumerable:true,writable:true,configurable:true});
   }
   return next;
 }
@@ -319,4 +320,39 @@ export function profileSaveCommand({ client, fid, live }) {
       throw error;
     }
   };
+}
+
+// Foundation proposals reuse the profile fields but remain unapplied changes.
+// The JSON channel retains fields outside the normal identity/policy/life form.
+function proposalPatch(value) {
+  let patch;
+  try { patch = JSON.parse(value || '{}'); }
+  catch { throw Error('字段变更的 JSON 无法解析，请修正当前输入。'); }
+  if (!patch || Array.isArray(patch) || typeof patch !== 'object')
+    throw Error('字段变更需要一个 JSON 对象，原输入仍保留。');
+  return patch;
+}
+export function foundationProposalDraft(current) {
+  const base = coreFromDetail(current);
+  return {base, fields:profileFields(base), mode:'fields', changes:'{}', reason:'', revision:current.revision};
+}
+export function foundationProposalChanges(draft) {
+  const patch = proposalPatch(draft.changes);
+  if (draft.mode !== 'fields' || !Array.isArray(draft.fields)) return patch;
+  const base = applyProfileChanges(draft.base || {}, patch);
+  return applyProfileChanges(patch, profileChanges(base, draft.fields));
+}
+export function foundationProposalMode(draft, mode, current) {
+  const patch = foundationProposalChanges(draft), base = draft.base || coreFromDetail(current);
+  if (mode === 'json') return {mode,changes:JSON.stringify(patch,null,2),inputError:''};
+  const value = applyProfileChanges(base, patch);
+  for (const key of ['identity','behavioral_policy','life_profile']) {
+    if (value[key] && (typeof value[key] !== 'object' || Array.isArray(value[key])))
+      throw Error('常用字段需要身份、表达与生活设定为对象，请先核对高级 JSON。');
+  }
+  return {mode:'fields',base,changes:JSON.stringify(patch,null,2),fields:profileFields(value),inputError:''};
+}
+export function rebaseFoundationProposal(draft, current) {
+  const patch = foundationProposalChanges(draft), base = coreFromDetail(current);
+  return {...draft,base,revision:current.revision,changes:JSON.stringify(patch,null,2),fields:profileFields(applyProfileChanges(base,patch))};
 }

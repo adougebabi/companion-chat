@@ -4,7 +4,7 @@ import {Button} from '@/components/ui/button';
 import {Card,CardHeader,CardTitle,CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {Feedback} from '../shared/Presentation';
-import {Label,FieldInput,ChoiceSelect,Disclosure} from '../controls';
+import {Label,FieldInput,ChoiceSelect,Disclosure,Textarea} from '../controls';
 import {useWorkspace} from '../page';
 import {useDomainRead} from '../hooks/use-domain-read';
 import {useCursorPage} from '../hooks/use-cursor-page';
@@ -16,6 +16,8 @@ import {
   ProfileNote, ProfileTime, profileText,
 } from '../shared/ProfileRecordSummary';
 import SelfPage from './SelfPage';
+import ProfileForm from '../shared/ProfileForm';
+import {foundationProposalDraft,foundationProposalChanges,foundationProposalMode,rebaseFoundationProposal} from '@/approved-ui/profile-fields.mjs';
 import {stateLabel} from '@/v3/domain-presentation.mjs';
 const transitions:Record<string,string[]>={proposed:['reviewing','accepted','rejected','cancelled'],reviewing:['accepted','rejected','cancelled'],accepted:['fulfilled','cancelled']};
 const labels:Record<string,string>={accept:'接受并应用',reject:'拒绝提议',restore:'恢复此版身份内容',reviewing:'开始评估',accepted:'接受需求',rejected:'拒绝需求',cancelled:'取消需求',fulfilled:'记录已交付实现'};
@@ -30,7 +32,28 @@ function GovernanceBody({route}:any){
  const history=useCursorPage(cursor=>id?service.history(fid,kind,id,cursor):Promise.resolve({items:[]}),JSON.stringify([owner,fid,kind,id,'history']));
  const current=read.data?.current,record=read.data?.record,stale=kind==='foundation'&&record?.status==='proposed'&&record.base_revision!==current?.revision;
  const reload=async()=>{await read.reload();await Promise.all([page.reload(),history.reload()]);};
- function propose(){if(retired||!current)return;setAction({identity:JSON.stringify([owner,fid,'foundation-proposal']),scope:[fid,'foundation-proposal'],storageKey:'fluctlight-studio:'+owner+':governance:'+JSON.stringify([owner,fid,'foundation-proposal']),title:'创建身份核心修订提议',description:'保存提议后再审核和接受。未提供的字段保留，空字符串表示明确清空。',initial:{changes:'{}',reason:'',revision:current.revision},validate:()=>requireWritableCharacter(w,fid),editable:['changes','reason'],labels:{changes:'字段变更（JSON）',reason:'提议理由'},build:(draft:any)=>{let changes;try{changes=JSON.parse(draft.changes);}catch{throw Error('字段变更的 JSON 无法解析，请修正当前输入。');}if(!changes||Array.isArray(changes)||typeof changes!=='object'||!Object.keys(changes).length)throw Error('请填写有效的非空 JSON 对象，原输入仍保留。');if(!draft.reason.trim())throw Error('请填写提议理由');return {changes,reason:draft.reason,expectedRevision:draft.revision};},execute:(body:any,key:string)=>service.propose(fid,body,key),readLatest:()=>service.current(fid),adoptLatest:(draft:any,fresh:any)=>({...draft,revision:fresh.revision}),onSaved:reload,successMessage:'身份核心提议已保存，尚未生效。',submitLabel:'保存提议（不立即应用）',snapshot:current});}
+ function propose(){
+  if(retired||!current)return;
+  setAction({
+   identity:JSON.stringify([owner,fid,'foundation-proposal']),scope:[fid,'foundation-proposal'],
+   storageKey:'fluctlight-studio:'+owner+':governance:'+JSON.stringify([owner,fid,'foundation-proposal']),
+   title:'创建身份核心修订提议',description:'填写想调整的资料。保存提议后再审核和接受，生活状态与历史分别保留。',
+   initial:foundationProposalDraft(current),validate:()=>requireWritableCharacter(w,fid),
+   fields:(draft:any,edit:any)=>{
+    const mode=draft.mode||'json';
+    const switchMode=()=>{try{edit(foundationProposalMode(draft,mode==='fields'?'json':'fields',current));}catch(cause){edit({inputError:cause instanceof Error?cause.message:'当前输入需要核对。'});}};
+    return <>
+     <div className="flex flex-wrap items-center gap-3"><p className="grow text-sm text-muted-foreground">{mode==='fields'?'修改过的字段会加入提议，其余资料保留。':'高级 JSON 可填写常用表单以外的身份变更。未提供字段保留，空字符串表示明确清空。'}</p><Button type="button" variant="outline" onClick={switchMode}>{mode==='fields'?'使用高级 JSON':'使用常用字段'}</Button></div>
+     {draft.inputError&&<Feedback kind="error">{draft.inputError}</Feedback>}
+     {mode==='fields'?<ProfileForm fields={draft.fields||[]} onFieldChange={(field:any,value:any)=>edit({fields:draft.fields.map((item:any)=>JSON.stringify(item.path)===JSON.stringify(field.path)?{...item,value}:item),inputError:''})}/>:<Label>字段变更（JSON）<Textarea aria-label="字段变更（JSON）" value={draft.changes} rows={8} onChange={(event:any)=>edit({changes:event.target.value,inputError:''})}/></Label>}
+     <Label>提议理由<Textarea aria-label="提议理由" value={draft.reason} onChange={(event:any)=>edit({reason:event.target.value})}/></Label>
+    </>;
+   },
+   build:(draft:any)=>{const changes=foundationProposalChanges(draft);if(!Object.keys(changes).length)throw Error('请先修改需要提议的字段。');if(!draft.reason.trim())throw Error('请填写提议理由');return {changes,reason:draft.reason,expectedRevision:draft.revision};},
+   execute:(body:any,key:string)=>service.propose(fid,body,key),readLatest:()=>service.current(fid),
+   adoptLatest:rebaseFoundationProposal,onSaved:reload,successMessage:'身份核心提议已保存，尚未生效。',submitLabel:'保存提议（不立即应用）',snapshot:current,
+  });
+ }
  function operate(operation:string){if(retired||!record||!current||operation==='accept'&&stale)return;const capabilityVersion=(version||record.registered_capability?.version||'').trim();setAction({identity:JSON.stringify([owner,fid,kind,id,operation,capabilityVersion]),scope:[fid,kind,id,operation,capabilityVersion],storageKey:'fluctlight-studio:'+owner+':governance:'+JSON.stringify([owner,fid,kind,id,operation,capabilityVersion]),title:labels[operation],casOnly:kind==='foundation',description:kind==='foundation'?'生效前会校验提议基线，生活状态和历史各自保留。':'审核记录不会安装插件，也不会自动授予工具权限。已交付版本须匹配真实注册实现。',initial:{reason:'',base:kind==='foundation'?current.revision:record.revision},validate:()=>requireWritableCharacter(w,fid),build:(draft:any)=>{if(!draft.reason.trim())throw Error('请填写操作理由');if(operation==='fulfilled'&&!capabilityVersion)throw Error('请填写实际注册的能力版本');return {expectedRevision:draft.base,reason:draft.reason};},execute:(body:any,key:string)=>kind==='foundation'?operation==='restore'?service.restore(fid,record.revision,body):service.decide(fid,id,operation,body):service.review(fid,id,{expectedRevision:body.expectedRevision,note:body.reason,status:operation,...(operation==='fulfilled'?{capabilityVersion}:{})},key),readLatest:()=>kind==='foundation'?service.current(fid):service.capability(fid,id),adoptLatest:(draft:any,fresh:any)=>({...draft,base:fresh.revision}),onSaved:reload,snapshot:record});}
  const actions=record?(kind==='foundation'?(record.status==='proposed'?['accept','reject']:record.status==='accepted'&&record.revision<current?.revision?['restore']:[]):transitions[record.status]||[]):[];
  const statuses=kind==='foundation'?['all','proposed','accepted','rejected']:['all','proposed','reviewing','accepted','fulfilled','rejected','cancelled'];

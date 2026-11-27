@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveTabsList } from '@/components/patterns';
 import { selector } from "@/state/view-model";
 import { Disclosure } from "@/react-app/controls";
 import { displayText, listValues, Fragment } from "@/react-app/render-helpers";
 import ProfileField from "@/react-app/shared/ProfileField";
+/** @param {any} input */
 export default function ProfileForm(input = {}) {
   const __props = {
     disabled: false,
@@ -103,12 +105,13 @@ export default function ProfileForm(input = {}) {
       disabled={__props.disabled}
     >
       <Tabs value={selected} onValueChange={select}>
-        <TabsList
+        <ResponsiveTabsList
+          value={selected}
           variant={props.replica ? "line" : "default"}
           className={
             props.replica
               ? "replica-segment-tabs"
-              : "h-auto group-data-horizontal/tabs:h-auto max-w-full flex-wrap"
+              : undefined
           }
         >
           {sections.value.map((group) => (
@@ -123,7 +126,7 @@ export default function ProfileForm(input = {}) {
                 : group.title}
             </TabsTrigger>
           ))}
-        </TabsList>
+        </ResponsiveTabsList>
       </Tabs>
       <Fragment>
         {listValues(sections.value).map((group) => {
@@ -144,6 +147,7 @@ export default function ProfileForm(input = {}) {
                   <ProfileField
                     key={JSON.stringify(field.path)}
                     field={field}
+                    onValueChange={props.onFieldChange ? value => props.onFieldChange(field,value) : undefined}
                     disabled={props.disabled}
                   />
                 ))}
