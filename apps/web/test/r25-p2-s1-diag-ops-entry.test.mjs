@@ -32,10 +32,10 @@ test('运行记录入口在桌面、窄屏和滚动紧凑态可见，点击进�
     v.host.append(shell);
     shell.querySelector('.replica-management-main').append(content);
     const heading=shell.querySelector('.replica-page-heading');
-    const entry=content.querySelector('.replica-settings-head .replica-diagnostic-environment');
+    const entry=content.querySelector('.replica-management-section-header .replica-diagnostic-environment');
     assert.equal(entry.tagName,'A');
     assert.equal(entry.getAttribute('data-slot'),'button','复用 shadcn Button asChild');
-    assert.equal(entry.textContent,'查看运行记录');
+    assert.equal(entry.textContent,'系统事件');
     assert.equal(entry.getAttribute('href'),'#/diag/events');
     assert.equal(entry.closest('button'),null);
     style.textContent=styles.join('\n');

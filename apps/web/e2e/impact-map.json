@@ -70,7 +70,10 @@
       "src/react-app/shared/DiagnosticReplayPanel.tsx",
       "src/v3-domain/diagnostics.js",
       "src/v3/proto/components/diagnostic-card.js",
-      "e2e/diagnostic-content.spec.ts"
+      "e2e/diagnostic-content.spec.ts",
+      "src/react-app/pages/ManagementPage.jsx",
+      "src/react-app/views/ManagementPage.jsx",
+      "src/react-app/shared/DiagnosticsWorkspace.jsx"
     ],
     "@visual-identity": [
       "src/v3/scenarios/**",
@@ -131,7 +134,8 @@
       "src/react-app/pages/StudioEditorPage.tsx",
       "src/react-app/shared/ConversationHistory.tsx",
       "e2e/chat-mobile-overlays.spec.ts",
-      "e2e/mobile-workspace.spec.ts"
+      "e2e/mobile-workspace.spec.ts",
+      "src/react-app/pages/ManagementPage.jsx"
     ]
   },
   "nonUi": [

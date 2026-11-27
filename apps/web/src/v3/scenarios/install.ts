@@ -65,6 +65,8 @@ export function installApiScenarios(){
  function route(method:string,url:URL,body?:any):Response|null{
   const path=url.pathname,q=url.searchParams;let match:RegExpMatchArray|null;
   if(method==='GET'&&path==='/auth/session')return json(200,{authenticated:true,actorId:scenarioOwner});
+  if(method==='GET'&&path==='/api/configuration-catalog')return json(200,{endpoints:[],bindings:[],agent_model_routes:[],domain_plugins:[],values:{},effective_values:{},value_sources:{},versions:{},configured_secrets:[]});
+  if(method==='GET'&&path==='/api/settings/agents')return json(200,{agents:[],capabilities:[]});
   if(method==='GET'&&path==='/api/fluctlights')return json(200,[scenarioCharacter]);
   if(method==='GET'&&path==='/api/notifications/unread-count'){const unread=data.notifications.filter(entry=>!entry.read_at);return json(200,{count:unread.length,alert_count:unread.filter(entry=>!entry.quiet).length});}
   if(method==='GET'&&path==='/api/notifications'){
@@ -96,8 +98,8 @@ export function installApiScenarios(){
   if(method==='GET'&&(match=path.match(/^\/api\/workflow-controls\/([^/]+)$/))){const value=data.workflows[decodeURIComponent(match[1])];return value?json(200,value):json(404,{code:'not_found',message:'没有找到原任务。'});}
   if(method==='POST'&&(match=path.match(/^\/api\/workflow-controls\/([^/]+)\/(pause|resume|cancel|restart|reset)$/)))return control(decodeURIComponent(match[1]),match[2],body);
   if(method==='GET'&&(match=path.match(/^\/api\/diagnostic-records\/([^/]+)$/))){
-   const kind=decodeURIComponent(match[1]),page=(items:unknown[])=>json(200,{items,next_cursor:'',snapshot:'scenario-snapshot-1',as_of:new Date().toISOString(),filters:Object.fromEntries(q),snapshot_semantics:'creation_membership; mutable states reflect each read',coverage:'actual owning records'});
-   if(kind==='model-runs'){const id=q.get('correlationId')||'';return page((data.calls[id]||[]).map((seed,index)=>callRecord(id,seed,index)));}
+   const kind=decodeURIComponent(match[1]),page=(items:unknown[],cursor='')=>json(200,{items,next_cursor:cursor,snapshot:'scenario-snapshot-1',as_of:new Date().toISOString(),filters:Object.fromEntries(q),snapshot_semantics:'creation_membership; mutable states reflect each read',coverage:'actual owning records'});
+   if(kind==='model-runs'){const id=q.get('correlationId')||'',rows=(data.calls[id]||[]).map((seed,index)=>callRecord(id,seed,index));if(scenario.id==='calls-loop-paged'&&id==='corr-loop')return q.get('cursor')?page(rows.slice(1)):page(rows.slice(0,1),'opaque-loop-page-2');return page(rows);}
    if(kind==='agent-runs')return page(data.agentRuns[q.get('correlationId')||'']||[]);
    if(kind==='workflow-intents'){const type=q.get('intentType'),correlation=q.get('correlationId');return page(Object.values(data.tasks).filter(entry=>(!type||entry.kind===type)&&(!correlation||entry.correlation_id===correlation)).map(entry=>({id:entry.task_id,ref:'intent:'+entry.task_id,kind:'workflow-intents',occurred_at:entry.created_at,data:{...entry,intent_id:entry.task_id,intent_type:entry.kind}})));}
    if(kind==='media-prompts')return page(data.media[q.get('correlationId')||'']||[]);

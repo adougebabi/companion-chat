@@ -20,12 +20,10 @@
 .replica-model-call-error .replica-model-call-wire{color:#a55d57;background:#faf0ed}
 .replica-model-call-recovery{justify-self:start;max-width:100%;white-space:normal}
 @media(max-width:639px){.replica-model-call-row{grid-template-columns:30px minmax(0,1fr) auto;gap:10px}.replica-model-call-content>span{line-height:1.8}.replica-model-call-row .replica-diagnostic-status{font-size:10px}}
-.replica-model-calls-surface{display:block;padding:24px}
+.replica-model-calls-surface{display:grid;gap:var(--form-gap);min-width:0}
 .replica-model-calls-heading{margin-bottom:19px}
 .replica-model-calls-heading h2{font-size:14px;font-weight:600;letter-spacing:.15px;color:inherit}
 .replica-model-calls-heading p{font-size:11px;color:#87907d;line-height:1.8;margin-top:5px}
-.replica-model-call-technical-target{position:absolute;right:44px;top:7px;display:flex;align-items:center}
-@media(max-width:639px){.replica-model-calls-surface{padding:18px}}
 .replica-model-call-field h3{margin:0;line-height:1.5;color:inherit}
 .replica-model-call-actions{display:flex;flex-wrap:wrap;gap:8px}
 .replica-model-call-stored h4{font-size:12px;font-weight:600;margin:0 0 6px}

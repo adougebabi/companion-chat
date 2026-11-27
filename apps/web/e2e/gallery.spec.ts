@@ -174,3 +174,18 @@ test('workspace dialog: phone opens on the title and busy cannot dismiss', {tag:
   await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByRole('dialog').getByRole('button',{name:'关闭',exact:true})).toHaveCount(0);
 });
+
+
+test('workspace dialog: utility and Close have separate hit areas beside a long title', {tag:['@patterns','@overlay']},async({page})=>{
+ await page.goto('/ui-lab/?fixture=gallery&component=workspace-dialog&state=header-action');
+ const dialog=page.getByRole('dialog');
+ const action=dialog.getByRole('button',{name:'记录信息'}),close=dialog.locator('[data-slot=dialog-close]');
+ await expect(action).toBeVisible();
+ await expect.poll(()=>dialog.evaluate(el=>el.getAnimations({subtree:true}).filter(animation=>animation.playState==='running'&&animation.effect?.getTiming().iterations!==Infinity).length)).toBe(0);
+ const first=(await action.boundingBox())!,second=(await close.boundingBox())!;
+ expect(first.width).toBeGreaterThanOrEqual(44);expect(second.width).toBeGreaterThanOrEqual(44);
+ expect(first.x+first.width).toBeLessThanOrEqual(second.x);
+ expect((await dialog.getByRole('heading').boundingBox())!.x+(await dialog.getByRole('heading').boundingBox())!.width).toBeLessThanOrEqual(first.x);
+ await action.click();await expect(dialog).toBeVisible();
+ await close.click();await expect(dialog).toHaveCount(0);
+});

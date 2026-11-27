@@ -1,7 +1,7 @@
 // UI Lab gallery: every shared pattern in each applicable state, with fixed
 // fixture data. Dev/test only. Playwright iterates GALLERY × states × viewports.
 import { useState, type ReactNode } from 'react';
-import { MessageCircleIcon, LeafIcon, SproutIcon, UsersIcon, LayoutGridIcon } from 'lucide-react';
+import { MessageCircleIcon, InfoIcon, LeafIcon, SproutIcon, UsersIcon, LayoutGridIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +13,9 @@ import {
   PageContainer, PageSection, RecordList, RecordListItem, ResponsiveTabs, type AsyncTaskState, type FeedbackKind,
 } from '@/components/patterns';
 import TurnDetailsDrawer, { type TurnRecord, type TurnRecordReader } from '@/react-app/shared/TurnTimeline';
+import DiagnosticRecords from '@/react-app/shared/DiagnosticRecords';
+import {userInstant} from '@/v3/presentation-time.mjs';
+import {diagnosticProjection} from '@/approved-ui/presentation.mjs';
 import WorkspaceDialog from '@/react-app/shared/WorkspaceDialog';
 import { events } from './events';
 import { GALLERY_CATALOG, type GalleryId } from './gallery-catalog';
@@ -253,6 +256,19 @@ function TurnDetailsDemo({ state }: { state: string }) {
   return <TurnDetailsDrawer turnId={state === 'long' ? `${TURN}-${LONG_WORD}` : TURN} read={turnReader(state)} onClose={() => setOpen(false)} />;
 }
 
+function DiagnosticLoopsDemo({state}:{state:string}){
+ const raws=state==='empty'?[]:[
+  modelRun(3,{logical_run_id:'loop-a',role:'conversation_cognition',sequence:3,status:state==='running'?'running':'completed',stage:state==='running'?'pending':'final_response',model_id:state==='long'?LONG_WORD:'qwen3-32b'}),
+  modelRun(2,{logical_run_id:'loop-a',role:'conversation_cognition',sequence:2,status:'failed',stage:'failed',error_code:'provider_unavailable'}),
+  modelRun(1,{logical_run_id:'loop-a',role:'conversation_cognition',sequence:1,stage:'tool_request'}),
+  modelRun(4,{logical_run_id:'reply-child',parent_run_id:'loop-a',role:'fact_only_reply'}),
+ ];
+ const selected=state==='partial'?raws.slice(0,2):raws;
+ const rows=selected.map((row,index)=>diagnosticProjection(row,index,[{id:'fl-linxia',name:'林夏'}]));
+ const view={rows:{value:rows},statusLabel:(status:string)=>({success:'成功',error:'失败',pending:'处理中'}[status]||'状态待确认'),recordTime:(row:any)=>userInstant(row._record.occurred_at),selectRecord:(row:any)=>record('open-physical-call',row.id)};
+ return <DataState label="模型调用" loading={state==='loading'} error={state==='error'?'调用记录读取失败（fixture）。':undefined} hasData={!['loading','error'].includes(state)} onRetry={()=>record('retry','model-calls')}><DiagnosticRecords view={view}/></DataState>;
+}
+
 function NavigationDemo({state}: {state: string}) {
   const [value, setValue] = useState('chat');
   return <MobileNavigation value={value} onSelect={next => {setValue(next); record('navigate', next);}} items={[
@@ -269,12 +285,13 @@ function CompactDemo({state}: {state: string}) {
 }
 function WorkspaceDialogDemo({state}: {state: string}) {
   const [open,setOpen]=useState(true),busy=state==='busy';
-  return <><Button onClick={() => setOpen(true)}>查看业务详情</Button><WorkspaceDialog open={open} onOpenChange={setOpen} title={state==='long'?LONG:'业务记录'} mobileMode={state==='sheet'?'sheet':state==='dialog'?'dialog':'page'} busy={busy}
+  return <><Button onClick={() => setOpen(true)}>查看业务详情</Button><WorkspaceDialog open={open} onOpenChange={setOpen} title={['long','header-action'].includes(state)?LONG:'业务记录'} headerAction={state==='header-action'?<Button type="button" variant="ghost" size="icon" aria-label="记录信息" onClick={()=>record('header-action')}><InfoIcon/></Button>:undefined} mobileMode={state==='sheet'?'sheet':state==='dialog'?'dialog':'page'} busy={busy}
     footer={<Button disabled={busy} onClick={() => setOpen(false)}>返回列表</Button>}>
     <div className="ui-stack"><p>{state==='long'?LONG.repeat(10):'这里是同一业务记录的详情。'}</p><Input aria-label="补充说明" disabled={busy}/></div>
   </WorkspaceDialog></>;
 }
 const RENDER: Record<GalleryId, (state: string) => ReactNode> = {
+  'diagnostic-loops': s => <DiagnosticLoopsDemo state={s}/>,
   'turn-details': s => <TurnDetailsDemo state={s} />,
   'workspace-dialog': s => <WorkspaceDialogDemo state={s}/>,
   'mobile-navigation': s => <NavigationDemo state={s}/>,

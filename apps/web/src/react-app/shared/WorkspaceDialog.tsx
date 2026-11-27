@@ -14,6 +14,7 @@ export default function WorkspaceDialog({
   description,
   children,
   footer,
+  headerAction,
   wide = false,
   returnFocus,
   busy = false,
@@ -27,6 +28,8 @@ export default function WorkspaceDialog({
   description?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
+  /** One optional icon action beside Close; overlay.css owns both hit areas. */
+  headerAction?: ReactNode;
   wide?: boolean;
   returnFocus?: () => HTMLElement | null;
   busy?: boolean;
@@ -41,6 +44,7 @@ export default function WorkspaceDialog({
         data-testid={testId}
         data-workspace-dialog=""
         data-mobile-mode={mobileMode}
+        data-has-header-action={headerAction ? "" : undefined}
         onOpenAutoFocus={(event) => {
           if (window.matchMedia('(width < 640px)').matches) {
             event.preventDefault();
@@ -88,6 +92,7 @@ export default function WorkspaceDialog({
             {description || "查看详细信息与相关操作。"}
           </DialogDescription>
         </DialogHeader>
+        {headerAction && <div data-workspace-dialog-part="header-action">{headerAction}</div>}
         <div className="replica-dialog-body">{children}</div>
         {footer && <DialogFooter>{footer}</DialogFooter>}
       </DialogContent>

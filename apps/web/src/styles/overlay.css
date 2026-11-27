@@ -205,6 +205,42 @@
 }
 
 /* --------------------------------------------------- Responsive tabs -- */
+/* One utility action next to Close. Callers provide content, never absolute
+   positioning in a business footer. Reserve the title width and keep the
+   two 44px hit areas separate at every viewport. */
+[data-workspace-dialog][data-has-header-action] > [data-slot="dialog-header"] {
+  padding-right: calc(2 * var(--touch-target));
+}
+[data-workspace-dialog][data-has-header-action] > [data-slot="dialog-close"],
+[data-workspace-dialog-part="header-action"] {
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  width: var(--touch-target);
+  height: var(--touch-target);
+  min-height: var(--touch-target);
+}
+[data-workspace-dialog][data-has-header-action] > [data-slot="dialog-close"] {
+  right: calc(var(--overlay-pad-x) / 2);
+  padding: 0;
+}
+[data-workspace-dialog-part="header-action"] {
+  position: absolute;
+  right: calc(var(--overlay-pad-x) / 2 + var(--touch-target) + 8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+[data-workspace-dialog-part="header-action"] :is(button, a) {
+  width: var(--touch-target);
+  height: var(--touch-target);
+  min-height: var(--touch-target);
+  padding: 0;
+}
+@media (width < 640px) {
+  [data-workspace-dialog][data-has-header-action] > [data-slot="dialog-header"] {
+    padding-right: calc(2 * var(--touch-target) + var(--overlay-pad-x) + 10px);
+  }
+}
+
 /* Single scrollable row. The active tab is scrolled into view by the
    component; edges fade only while more tabs are hidden in that direction. */
 [data-responsive-tabs] {

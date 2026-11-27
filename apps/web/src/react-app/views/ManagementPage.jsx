@@ -1,5 +1,6 @@
 import {useIsMobile} from '../hooks/use-mobile';
 import {ChevronLeft,ChevronRight} from 'lucide-react';
+import {modelCallGroups} from '@/approved-ui/task-model-call-presentation.mjs';
 import {modelRouteGroups,modelRouteLabel} from '@/approved-ui/model-route-presentation.mjs';
 import {Select,SelectTrigger,SelectValue,SelectContent,SelectGroup,SelectLabel,SelectItem} from '@/components/ui/select';
 import SettingsSections from '../shared/SettingsSections';
@@ -48,13 +49,17 @@ export function ManagementPageView({ view: view }) {
   const mobile=useIsMobile(), [directory,setDirectory]=useState(() => !new URLSearchParams(location.hash.split('?')[1] || '').has('section'));
   useEffect(() => {const sync=()=>setDirectory(!new URLSearchParams(location.hash.split('?')[1] || '').has('section'));window.addEventListener('hashchange',sync);return()=>window.removeEventListener('hashchange',sync);},[]);
   const recordTrigger=useRef(null),managementNav=useRef(null),[callTechnicalTarget,setCallTechnicalTarget]=useState(null);
+  const callGroup=view.selected.value?modelCallGroups(view.rows.value.map(record=>record._record)).find(group=>group.records.some(record=>record.ref===view.selected.value._record?.ref&&record.kind===view.selected.value._record?.kind)):null;
+  const callPeers=(callGroup?.records||[]).map(record=>view.rows.value.find(row=>row._record?.ref===record.ref&&row._record?.kind===record.kind)).filter(Boolean);
+  const callIndex=callPeers.findIndex(record=>record.id===view.selected.value?.id);
+  const selectPeer=offset=>{const record=callPeers[callIndex+offset];if(record)view.selectRecord(record);};
   const category=readValue(view.tab)==='运行诊断'?'diagnostics':categories.find(c=>c.sections.includes(view.currentSection.value))?.id||'models';
   useEffect(()=>{const align=()=>{const nav=managementNav.current,active=nav?.querySelector('[aria-current=page]');if(!nav||!active||nav.scrollWidth<=nav.clientWidth)return;const box=nav.getBoundingClientRect(),item=active.getBoundingClientRect();if(item.left<box.left)nav.scrollLeft+=item.left-box.left;else if(item.right>box.right)nav.scrollLeft+=item.right-box.right;};align();window.addEventListener('resize',align);return()=>window.removeEventListener('resize',align);},[category]);
   const show=title=>categories.find(c=>c.id===category)?.sections.includes(title)&&(category!=='models'||view.currentSection.value===title);
   const choose=id=>{setDirectory(false);const item=categories.find(c=>c.id===id);if(id==='data'){view.openData();return;}if(id==='diagnostics'){view.openDiagnostics();return;}view.tab.value='配置中心';view.openSettings(item.sections[0]);if(item.sections.length)void view.scrollTo(item.sections[0],false).then(()=>{document.querySelector('.replica-management-main')?.scrollTo({top:0,left:0,behavior:'instant'});});};
   return (
     <Tabs className="replica-management" value={view.tab.value} onValueChange={value=>view.tab.value=value}>
-      <WorkspacePageHeader eyebrow="PREFERENCES / MAKE IT YOURS" title="管理中心" description="让每一次相处，按你喜欢的方式发生。" actions={view.accountActions()}/>
+      <WorkspacePageHeader eyebrow="PREFERENCES / MAKE IT YOURS" title={readValue(view.tab)==='运行诊断'?'诊断与任务':'管理中心'} description={readValue(view.tab)==='运行诊断'?undefined:'让每一次相处，按你喜欢的方式发生。'} actions={readValue(view.tab)==='运行诊断'?undefined:view.accountActions()}/>
       {mobile && directory && readValue(view.tab)!=='运行诊断' && <div className="mobile-settings-directory">{[['偏好与连接',categories.filter(item => !['diagnostics','data','advanced'].includes(item.id))],['管理与维护',categories.filter(item => ['diagnostics','data','advanced'].includes(item.id))]].map(([label,items]) => <section key={label}><h2>{label}</h2>{items.map(item => <Button key={item.id} variant="ghost" onClick={() => choose(item.id)}><span className="lp-icon-box"><item.icon/></span><span>{item.label}</span><ChevronRight/></Button>)}</section>)}</div>}
       {mobile && !directory && <Button className="mobile-settings-back" variant="ghost" onClick={() => {setDirectory(true);location.hash='#/settings';}}><ChevronLeft/>全部设置</Button>}
       <div className="replica-management-layout" hidden={mobile && directory && readValue(view.tab)!=='运行诊断'}>
@@ -427,11 +432,11 @@ export function ManagementPageView({ view: view }) {
           </div>
         ) : (
           <DiagnosticsWorkspace view={view}>
-            <Surface as="section" className="replica-model-calls-surface">
-              <header className="replica-model-calls-heading"><h2>{view.kind.value==='媒体调用'?'最近的媒体调用':'最近的模型调用'}</h2><p>记录包含用途、耗时与可展开的请求结果。</p></header>
+            <section className="replica-model-calls-surface">
+              <header className="replica-model-calls-heading"><h2>{view.kind.value==='媒体调用'?'最近的媒体调用':'最近的模型调用'}</h2><p>逐次查看请求、返回与错误。</p></header>
               {view.diagnosticPages.value[view.kind.value].ready&&<DiagnosticRecords view={{...view,selectRecord:(record,trigger)=>{recordTrigger.current=trigger;view.selectRecord(record);}}}/>}
               <CursorControls label="调用" append={{hasContent:view.rows.value.length>0,loading:view.diagnosticPages.value[view.kind.value].loading,hasMore:!!view.diagnosticPages.value[view.kind.value].cursor,loadMore:view.loadMoreDiagnostics,error:view.diagnosticPages.value[view.kind.value].error,failure:view.diagnosticPages.value[view.kind.value].failure,retry:view.loadMoreDiagnostics}}/>
-            </Surface>
+            </section>
             <Collapsible className="replica-model-calls-secondary">
               <CollapsibleTrigger asChild><ActionButton type="button" variant="ghost">筛选与更多运行记录</ActionButton></CollapsibleTrigger>
               <CollapsibleContent className="replica-model-calls-options">
@@ -454,12 +459,14 @@ export function ManagementPageView({ view: view }) {
                 title={view.selected.value.label}
                 className="replica-model-call-dialog"
                 description={view.selected.value.kind+" · "+view.recordTime(view.selected.value)}
-                footer={<><div ref={setCallTechnicalTarget} className="replica-model-call-technical-target"/><Button variant="outline" type="button" onClick={()=>view.selectedId.value=null}>关闭</Button></>}
+                headerAction={<div ref={setCallTechnicalTarget}/>}
+                footer={<div className="flex w-full min-w-0 items-center justify-end gap-2">{callPeers.length>1&&<nav aria-label="同组调用" className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2"><Button variant="outline" disabled={callIndex===0} onClick={()=>selectPeer(-1)}>上一条调用</Button><span role="status" className="text-xs text-center text-muted-foreground" aria-label={'同组已读取 '+callPeers.length+' 次，当前查看第 '+(callIndex+1)+' 条'}>{callIndex+1} / {callPeers.length}</span><Button variant="outline" disabled={callIndex===callPeers.length-1} onClick={()=>selectPeer(1)}>下一条调用</Button></nav>}<Button className={callPeers.length>1?'':'flex-1 sm:flex-none'} variant="outline" type="button" onClick={()=>view.selectedId.value=null}>关闭</Button></div>}
                 testId="diagnostic-drawer"
                 returnFocus={()=>recordTrigger.current}
                 onOpenChange={open=>{if(!open)view.selectedId.value=null;}}
               >
-                <ModelCallDetails technicalTarget={callTechnicalTarget} record={view.selected.value} onRecover={view.selected.value.status==='error'?()=>view.retry(view.selected.value):undefined} onOpenMedia={view.openMediaAsset}/>
+
+                <ModelCallDetails key={view.selected.value.kind+':'+view.selected.value.id} technicalTarget={callTechnicalTarget} record={view.selected.value} onRecover={view.selected.value.status==='error'?()=>view.retry(view.selected.value):undefined} onOpenMedia={view.openMediaAsset}/>
               </WorkspaceDialog>
             ) : null}
 

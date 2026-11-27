@@ -29,7 +29,7 @@ async function settle(page: Page) {
 }
 
 for (const [id, entry] of Object.entries(GALLERY_CATALOG)) {
-  test.describe(`visual: ${entry.title}`, { tag: ['@visual', '@patterns', ...(id.startsWith('migrated-') ? ['@overlay'] : [])] }, () => {
+  test.describe(`visual: ${entry.title}`, { tag: ['@visual', '@patterns', ...(id.startsWith('migrated-') ? ['@overlay'] : []), ...(id==='diagnostic-loops'?['@task-diagnostics']:[]), ...(id==='turn-details'?['@chat-turn']:[])] }, () => {
     for (const state of entry.states) {
       test(`${id} ${state}`, async ({ page }) => {
         await page.clock.setFixedTime(FIXED_NOW);

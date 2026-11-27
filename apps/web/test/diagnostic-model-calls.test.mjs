@@ -14,7 +14,7 @@ async function mount(w){const previous=window.location.hash;window.location.hash
 async function changeCorrelation(value){await act(async()=>{window.location.hash='#/diag?view=calls&correlationId='+value;window.dispatchEvent(new window.HashChangeEvent('hashchange'));});}
 test('primary list stays compact and call dialog owns raw values, Close and source focus',async()=>{
  const moves=[],w=workspace(async(kind)=>({items:kind==='model-runs'?[row('physical',{status:'error',error_code:'exact_provider_code',error:{message:'实际调用失败'}})]:[],next_cursor:''}));w.navigatePath=value=>moves.push(value);
- const v=await mount(w);try{const surface=v.host.querySelector('.replica-model-calls-surface');assert.match(surface.textContent,/最近的模型调用/);assert.equal(v.host.querySelector('[data-testid=diag-filters]'),null);assert.equal(v.host.querySelector('[aria-label=更多运行记录]'),null);const source=surface.querySelector('[data-testid=diag-open-physical]');assert.match(source.textContent,/实际用途 physical/);assert.match(source.textContent,/耗时未记录/);assert.match(source.textContent,/失败/);assert.equal(source.querySelectorAll('button').length,0);await v.click(source);let dialog=document.querySelector('[role=dialog]');assert.ok(dialog.classList.contains('replica-model-call-dialog'));assert.ok(!dialog.classList.contains('replica-dialog-wide'));assert.match(dialog.textContent,/exact_provider_code/);for(const node of [...dialog.querySelectorAll('.replica-raw-content-trigger[aria-expanded=false]')])await v.click(node);assert.deepEqual([...dialog.querySelectorAll('pre')].slice(-2).map(n=>n.textContent),[JSON.stringify(row('physical').data.prompt,null,2),'false']);assert.match(dialog.textContent,/exact_provider_code/);await v.click(button(dialog,'查看原任务与恢复'));assert.equal(moves.at(-1),'/diag/record/model-runs/physical');await v.click(button(dialog,'关闭'));assert.equal(document.querySelector('[role=dialog]'),null);assert.equal(document.activeElement,source);await v.click(button(v.host,'筛选与更多运行记录'));assert.ok(v.host.querySelector('[data-testid=diag-filters]'));assert.ok(v.host.querySelector('[aria-label=更多运行记录]'));assert.ok(v.host.querySelector('[aria-label=调用类型]'));}finally{await v.dispose();}
+ const v=await mount(w);try{const surface=v.host.querySelector('.replica-model-calls-surface');assert.match(surface.textContent,/最近的模型调用/);assert.equal(v.host.querySelector('[data-testid=diag-filters]'),null);assert.equal(v.host.querySelector('[aria-label=更多运行记录]'),null);const source=surface.querySelector('[data-testid=diag-open-physical]');assert.match(source.textContent,/实际用途 physical/);assert.match(source.textContent,/耗时未记录/);assert.match(source.textContent,/失败/);assert.equal(source.querySelectorAll('button').length,0);await v.click(source);let dialog=document.querySelector('[role=dialog]');assert.ok(dialog.classList.contains('replica-model-call-dialog'));assert.ok(!dialog.classList.contains('replica-dialog-wide'));assert.match(dialog.textContent,/exact_provider_code/);for(const node of [...dialog.querySelectorAll('.replica-raw-content-trigger[aria-expanded=false]')])await v.click(node);assert.deepEqual([...dialog.querySelectorAll('pre')].slice(-2).map(n=>n.textContent),[JSON.stringify(row('physical').data.prompt,null,2),'false']);assert.match(dialog.textContent,/exact_provider_code/);await v.click(button(dialog,'查看调用来源与关联记录'));assert.equal(moves.at(-1),'/diag/record/model-runs/physical');await v.click(button(dialog,'关闭'));assert.equal(document.querySelector('[role=dialog]'),null);assert.equal(document.activeElement,source);await v.click(button(v.host,'筛选与更多运行记录'));assert.ok(v.host.querySelector('[data-testid=diag-filters]'));assert.ok(v.host.querySelector('[aria-label=更多运行记录]'));assert.ok(v.host.querySelector('[aria-label=调用类型]'));}finally{await v.dispose();}
 });
 test('main pagination retries the exact opaque cursor and correlation while retaining confirmed data',async()=>{
  const reads=[];let fail=true;
@@ -61,5 +61,39 @@ test('formal call detail opens and closes readonly replay through diagnostic GET
   assert.ok(reads.filter(read=>read.limit===30).every(read=>read.correlationId==='formal-parent'));
   await act(async()=>button(dialog,'请求与返回').dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true})));await v.flush();
   assert.equal(dialog.querySelector('[data-testid=diagnostic-replay]'),null);
+ }finally{await v.dispose();}
+});
+
+test('multi-round calls merge across read pages and keep single-call detail, peer navigation and original focus',async()=>{
+ const reads=[];
+ const common={logical_run_id:'run-main',correlation_id:'original',fluctlight_id:'A',role:'conversation_cognition',binding_role:'generic_llm'};
+ const w=workspace(async(kind,options)=>{
+  reads.push({kind,...options});
+  if(kind!=='model-runs')return {items:[],next_cursor:''};
+  return options.cursor?{items:[row('first',{...common,sequence:1,stage:'tool_request'}),row('writer',{...common,logical_run_id:'reply:child',parent_run_id:'run-main',role:'fact_only_reply'})],next_cursor:''}:{items:[row('second',{...common,sequence:2,stage:'failed',status:'failed',error_code:'provider_unavailable',round_count:99})],next_cursor:'opaque-loop-next'};
+ });
+ const v=await mount(w);
+ try{
+  const retained=v.host.querySelector('[data-testid=diag-open-second]');
+  await v.click(button(v.host,'加载更多调用'));
+  assert.ok(v.host.querySelector('[data-testid=diag-open-second]')===retained,'追加同组调用不替换原入口节点');
+  const group=v.host.querySelector('[data-model-call-group]');
+  assert.ok(group);assert.equal(group.querySelectorAll('[data-testid^=diag-open-]').length,2);
+  assert.match(v.host.textContent,/已读取 2 次调用 · 1 次失败/);
+  assert.doesNotMatch(group.textContent,/99|任务已完成/);
+  assert.equal(group.querySelector('[data-testid^=diag-open-]').dataset.testid,'diag-open-first');
+  const source=group.querySelector('[data-testid=diag-open-first]');
+  await v.click(source);
+  let dialog=document.querySelector('[role=dialog]');
+  assert.match(dialog.querySelector('nav[aria-label=同组调用] [role=status]').getAttribute('aria-label'),/当前查看第 1 条/);
+  await v.click(button(dialog,'下一条调用'));
+  dialog=document.querySelector('[role=dialog]');
+  assert.equal(document.querySelectorAll('[role=dialog]').length,1);
+  assert.match(dialog.textContent,/provider_unavailable/);
+  assert.match(dialog.querySelector('nav[aria-label=同组调用] [role=status]').getAttribute('aria-label'),/当前查看第 2 条/);
+  assert.equal(button(dialog,'下一条调用').disabled,true);
+  await v.click(button(dialog,'关闭'));
+  assert.equal(document.activeElement,source);
+  assert.equal(reads.find(read=>read.cursor)?.cursor,'opaque-loop-next');
  }finally{await v.dispose();}
 });
