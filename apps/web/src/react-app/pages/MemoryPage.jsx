@@ -1,4 +1,4 @@
-import { DetailSheet } from '@/components/patterns';
+import { DetailSheet, ResponsiveTabsList } from '@/components/patterns';
 import { useIsMobile } from '../hooks/use-mobile';
 import {ResultFeedback} from '../shared/Presentation';
 import { useEffect, useRef, useState } from "react";
@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Surface,
   ChoiceSelect,
@@ -119,7 +119,10 @@ export default function MemoryPage({ route }) {
     fid = c.id,
     owner = w.state.session.actorId,
     scope = JSON.stringify([owner, fid]);
+  const objectKind = ['memory','reflection'].includes(route?.feature?.native) ? route.feature.native : null;
+  const objectId = objectKind === 'memory' ? route.feature.params.memId : objectKind === 'reflection' ? route.feature.params.refId : null;
   const initial = routeState(route?.query);
+  if (objectKind) initial.tab = objectKind;
   const [tab, setTab] = useState(initial.tab),
     [query, setQuery] = useState(initial.q),
     [filters, setFilters] = useState(initial.filters),
@@ -134,13 +137,15 @@ export default function MemoryPage({ route }) {
   const routeKey = route?.query?.toString() || "";
   useEffect(() => {
     const next = routeState(route?.query);
-    setTab(next.tab);
+    setTab(objectKind || next.tab);
     setQuery(next.q);
     setFilters(next.filters);
     setClaimStatus(next.claimStatus);
-    setSelection(null);
+    setSelection(objectKind && objectId && (!route.fid || route.fid === fid) ? {kind:objectKind,id:objectId} : null);
+    setDetailTab("content");
+    setSourceRevision(null);
     setAction(null);
-  }, [routeKey, scope]);
+  }, [routeKey, scope, objectKind, objectId]);
   const trigger = useRef(null),
     commandTrigger = useRef(null),
     mounted = useRef(false);
@@ -150,7 +155,7 @@ export default function MemoryPage({ route }) {
       mounted.current = false;
     };
   }, [scope]);
-  const live = () => mounted.current && !!fid && w.isCurrent(owner, fid),
+  const live = () => mounted.current && !!fid && (!route?.fid || route.fid === fid) && w.isCurrent(owner, fid),
     readonly = () =>
       ["retired", "archived", "已退休", "已归档"].includes(
         w.current.value.status,
@@ -266,6 +271,9 @@ export default function MemoryPage({ route }) {
     },
   });
   const selected = detail.items[0] || selection?.seed;
+  useEffect(() => {
+    if (selection?.kind === 'memory' && sourceRevision === null && Number.isSafeInteger(detail.items[0]?.revision)) setSourceRevision(detail.items[0].revision);
+  }, [selection?.kind, sourceRevision, detail.items[0]?.revision]);
   function open(kind, row, event) {
     trigger.current = event.currentTarget;
     setDetailTab("content");
@@ -275,6 +283,10 @@ export default function MemoryPage({ route }) {
   function close() {
     setSelection(null);
     setFeedbackPointer(null);
+    if (objectKind) {
+      const back = route.query.get('returnTo');
+      w.navigatePath(back?.startsWith('#/') ? back.slice(1) : '/c/'+encodeURIComponent(fid)+'/growth?tab='+objectKind);
+    }
   }
   function apply(patch = {}) {
     if (query.trim().length > 500) {
@@ -673,7 +685,7 @@ export default function MemoryPage({ route }) {
         }
       />
       <Tabs value={tab} onValueChange={setTab} className="lp-stack">
-        <TabsList variant="line" className="replica-segment-tabs">
+        <ResponsiveTabsList value={tab} variant="line">
           <TabsTrigger value="memory">
             记忆{" "}
             <span>
@@ -684,7 +696,7 @@ export default function MemoryPage({ route }) {
           </TabsTrigger>
           <TabsTrigger value="reflection">反思记录</TabsTrigger>
           <TabsTrigger value="self">自我认知</TabsTrigger>
-        </TabsList>
+        </ResponsiveTabsList>
         <ResultFeedback notice={notice} onDismiss={value=>setNotice(current=>current===value?null:current)}/>
         <TabsContent value="memory">
           <form
@@ -1019,7 +1031,7 @@ export default function MemoryPage({ route }) {
           selected ? (
             <>
               <Button variant="outline" onClick={close}>
-                返回列表
+                {objectKind ? route.query.get('returnLabel') || '返回记忆库' : '返回列表'}
               </Button>
               {selection?.kind === "memory" && selected.status === "active" && (
                 <>
@@ -1079,6 +1091,9 @@ export default function MemoryPage({ route }) {
         }
       >
         <ReadStatus source={detail} label="详情" />
+        {objectKind && <nav className="lp-action-row" aria-label="详情来源导航">
+          {objectKind === 'reflection' ? <Button variant="link" asChild><a href={'#/c/'+encodeURIComponent(fid)+'/growth/reflection'}>反思时间线与处理进度</a></Button> : <Button variant="link" asChild><a href={'#/c/'+encodeURIComponent(fid)+'/people/owner'}>关于你</a></Button>}
+        </nav>}
         {selected && (
           <div className="lp-stack">
             <Button
@@ -1094,18 +1109,17 @@ export default function MemoryPage({ route }) {
                 onValueChange={setDetailTab}
                 className="replica-memory-detail-tabs"
               >
-                <TabsList variant="line" className="replica-segment-tabs">
+                <ResponsiveTabsList value={detailTab} variant="line">
                   <TabsTrigger value="content">这段记忆</TabsTrigger>
                   <TabsTrigger value="source">原始来源</TabsTrigger>
                   <TabsTrigger value="history">修订记录</TabsTrigger>
-                </TabsList>
+                </ResponsiveTabsList>
                 <TabsContent value="content">
                   <blockquote className="lp-memory-quote">
                     {selected.content}
                   </blockquote>
                   <SummaryFacts facts={[
                     ...memoryFacts(selected),
-                    ["重要度", number(selected.importance) === null ? null : <Rating value={selected.importance} />],
                   ]} />
                   {["invalid", "pending"].includes(
                     selected.provenance_status,

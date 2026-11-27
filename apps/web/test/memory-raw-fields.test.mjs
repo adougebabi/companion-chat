@@ -104,7 +104,7 @@ async function reactDownload(t, view, root, title, expected) {
   }
 }
 
-async function mountPage(t) {
+async function mountPage(t, route = {query:new URLSearchParams()}, overrides = {}) {
   const state = proxy({ session: { actorId: "actor_hidden" }, selectedId: fid, characters: [{ id: fid, name: "林青", status: "正常" }] });
   const navigations = [];
   const workspace = {
@@ -119,10 +119,11 @@ async function mountPage(t) {
       listReflections: async () => ({ ...page(reflection), latest_task: latestTask }), reflection: async () => reflection,
       reflectionFeedback: async () => page(feedback), selfClaims: async () => page(claim), selfClaim: async () => claim,
       selfClaimHistory: async (_fid, _id, kind) => kind === "revisions" ? page(claimRevision) : page(review),
+      ...overrides,
     },
     services: { lifeClient: { request: async () => feedback } },
   };
-  const view = await mountReact(vite, MemoryPage, { workspace, props:{ route: { query: new URLSearchParams() } } });
+  const view = await mountReact(vite, MemoryPage, { workspace, props:{route} });
   t.after(() => view.dispose());
   return { ...view, navigations };
 }
@@ -186,48 +187,42 @@ test("记忆主页面反思和认识展示业务结果、快照与复核，下�
   await reactDownload(t, view, reviewCard, claimTitle, review);
 });
 
-test("独立记忆详情保留业务入口并按所选修订读取来源，下载深度等于原记录", async t => {
-  const query = new URLSearchParams();
-  const route = featureRoute("/c/" + fid + "/growth/memory/" + memory.id, query);
-  assert.equal(route.render, "renderRealMemory");
+test("独立记忆详情复用主页面并按所选修订读取来源，下载深度等于原记录", async t => {
+  const query = new URLSearchParams({returnTo:'#/c/'+fid+'/people/owner',returnLabel:'返回关于你'});
+  const feature = featureRoute('/c/'+fid+'/growth/memory/'+memory.id, query);
+  assert.equal(feature.native, 'memory');
   const sources = [];
-  configureDomainService("memory", {
-    read: async (character, id) => {
-      assert.deepEqual([character, id], [fid, memory.id]);
-      return memory;
-    },
-    sources: async (character, id, value, cursor) => {
-      sources.push([character, id, value, cursor]);
-      return page({ ...source, memory_revision: value });
-    },
-    revisions: async () => page(revision),
+  const view = await mountPage(t, {fid,query,feature}, {
+    managedMemories:async()=>page(),
+    memorySources:async(id,{revision:rev,cursor})=>{sources.push([id,rev,cursor]);return page({...source,memory_revision:rev});},
   });
-  const host = document.createElement("main");
-  document.body.append(host);
-  const render = await route.load();
-  const dispose = render(host, { ...route, charId:route.fid, query });
-  t.after(() => { dispose(); host.remove(); });
-  await new Promise(resolve => setImmediate(resolve));
-  assertSummary(host, memory.content, "来源有效", "纠正正文", "补充当时的情景。", "2026-11-23 09:44 (北京时间)");
-  assert.doesNotMatch(host.textContent, /重要度|最近确认/);
-  const downloads = () => [...host.querySelectorAll("a[download]")].map(link => {
-    assert.equal(link.textContent, memoryTitle);
-    assert.equal(link.download, "fluctlight-record.json");
-    const prefix = "data:application/json;charset=utf-8,";
-    const href = link.getAttribute("href");
-    assert.ok(href.startsWith(prefix));
-    return JSON.parse(decodeURIComponent(href.slice(prefix.length)));
-  });
-  assert.deepEqual(downloads(), [memory, source, revision]);
-  assert.deepEqual(sources, [[fid, memory.id, 9713, ""]]);
-  assert.ok(host.querySelector("[data-edit]"));
-  assert.ok(host.querySelector("[data-forget]"));
-  assert.ok(host.querySelector("[data-rollback]"));
-  assert.equal([...host.querySelectorAll("a")].find(link => link.textContent === "查看原消息").getAttribute("href"),
-    "#/c/" + fid + "/chat?conversation=" + source.conversation_id + "&message=" + source.source_id);
-  host.querySelector("[data-source-revision]").click();
-  await new Promise(resolve => setImmediate(resolve));
-  assert.deepEqual(sources.at(-1), [fid, memory.id, 9712, ""]);
-  assertSummary(host, "这次历史修订的来源");
-  assert.deepEqual(downloads(), [memory, { ...source, memory_revision: 9712 }, revision]);
+  assertSummary(dialog(), memory.content, '记忆详情');
+  assert.ok(button(dialog(), '记错了，纠正一下'));
+  await reactDownload(t, view, dialog(), memoryTitle, memory);
+  await tab(view, dialog(), '原始来源');
+  assertSummary(dialog(), '来源有效');
+  assert.deepEqual(sources, [[memory.id,9713,'']]);
+  await reactDownload(t, view, dialog(), memoryTitle, {...source,memory_revision:9713});
+  await tab(view, dialog(), '修订记录');
+  await view.click(button(dialog(),'查看此版来源'));
+  assert.deepEqual(sources.at(-1),[memory.id,9712,'']);
+  assertSummary(dialog(),'这次历史修订的来源');
+  await reactDownload(t,view,dialog(),memoryTitle,{...source,memory_revision:9712});
+  await view.click(button(dialog(),'返回关于你'));
+  assert.equal(view.navigations.at(-1),'/c/'+fid+'/people/owner');
+});
+
+test('unread object does not expose correction or feedback actions before a matching detail is read',async t=>{
+  const feature=featureRoute('/c/'+fid+'/growth/memory/'+memory.id,new URLSearchParams());
+  const view=await mountPage(t,{fid,feature,query:new URLSearchParams()},{managedMemory:async()=>{throw Error('读取失败');}});
+  assert.ok(dialog());
+  assert.equal(button(dialog(),'记错了，纠正一下'),undefined);
+  assert.equal(button(dialog(),'遗忘这段记忆'),undefined);
+  assert.match(dialog().textContent,/读取失败/);
+});
+
+test('formal memory query retains explicit aboutOwner=false in the actual client read',async t=>{
+ const queries=[];
+ await mountPage(t,{query:new URLSearchParams({aboutOwner:'false'})},{managedMemories:async(_fid,query)=>{queries.push(query);return page(memory);}});
+ assert.equal(queries[0].aboutOwner,false);
 });

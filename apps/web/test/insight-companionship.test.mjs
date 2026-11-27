@@ -31,12 +31,6 @@ test('default list shows sparse older records and excludes empty diary days with
  await new Promise(resolve=>setImmediate(resolve));assert.match(el.querySelector('[data-papers]').innerHTML,/她的旧日记/);assert.doesNotMatch(el.querySelector('[data-papers]').innerHTML,/empty/);assert.equal(view.month,'');assert.equal(el.querySelector('[data-reading-more]').hidden,false);dispose();
 });
 
-test('all-memory reading retains explicit false through persisted view URLs',()=>{
- const source=readFileSync(new URL('../src/v3-domain/memory.js',import.meta.url),'utf8').replace(/^import .*;\s*$/gm,'').replaceAll('export ','');let options,url='';const el=node();
- const render=Function('get','mountCalendarReading','Tabs','SearchForm','esc','history',source+';return renderRealMemoryList')(()=>({actorId:'owner'}),(_el,v)=>{options=v;return()=>{};},()=>'',()=>'',String,{replaceState:(_a,_b,value)=>url=value});
- render(el,{charId:'role',path:'/c/role/growth',query:{aboutOwner:'false'}});options.onView({mode:'list',date:'',month:''});assert.match(url,/aboutOwner=false/);assert.match(el.innerHTML,/她的全部记忆/);assert.doesNotMatch(options.emptyText,/关于你的事/);
-});
-
 test('reading empty states distinguish onboarding, active filters and uncovered dates',async()=>{
  const source=readFileSync(new URL('../src/v3/proto/components/calendar-reading.js',import.meta.url),'utf8').replace(/^import .*;\s*$/gm,'').replaceAll('export function ','function ');
  const {mountCalendarReading}=Function('esc','Field','displayTimezone','store','errorMessage',source+';return {mountCalendarReading}')(String,()=>'',()=> 'Asia/Shanghai',{get:()=>({actorId:'owner'}),subscribe(){}},String);

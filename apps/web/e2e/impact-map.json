@@ -142,6 +142,15 @@
       "src/approved-ui/feature-routes.mjs",
       "src/react-app/pages/DomainPage.tsx",
       "e2e/goal-details.spec.ts"
+    ],
+    "@memory": [
+      "src/react-app/pages/MemoryPage.jsx",
+      "src/react-app/pages/MemoryRecordSummary.jsx",
+      "src/react-app/pages/DomainPage.tsx",
+      "src/approved-ui/feature-routes.mjs",
+      "src/v3-domain/reflection.js",
+      "e2e/growth-details.spec.ts",
+      "src/v3-domain/memory.js"
     ]
   },
   "nonUi": [

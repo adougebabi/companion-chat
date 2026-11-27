@@ -20,8 +20,8 @@ add('/c/:charId/governance/:governanceKind/:governanceId', '角色详情', '治�
 add('/c/:charId/governance', '角色详情', '身份与能力治理', () => import('../react-app/pages/GovernancePage.tsx').then(module => module.default), 'GovernancePage', {native:'governance'});
 add('/c/:charId/growth/self/claim/:claimId', '记忆', '认识的来源与修订', () => import('../react-app/pages/SelfPage.tsx').then(module => module.default), 'SelfPage', {native:'self'});
 add('/c/:charId/growth/self', '记忆', '自我认知', () => import('../react-app/pages/SelfPage.tsx').then(module => module.default), 'SelfPage', {native:'self'});
-add('/c/:charId/growth/memory/:memId', '记忆', '记忆详情', () => import('../v3-domain/memory.js').then(module => module.renderRealMemory), 'renderRealMemory');
-add('/c/:charId/growth/reflection/:refId', '记忆', '反思详情', () => import('../v3-domain/reflection.js').then(module => module.renderRealReflection), 'renderRealReflection');
+add('/c/:charId/growth/memory/:memId', '记忆', '记忆详情', () => import('../react-app/pages/MemoryPage.jsx').then(module => module.default), 'MemoryPage', {native:'memory'});
+add('/c/:charId/growth/reflection/:refId', '记忆', '反思详情', () => import('../react-app/pages/MemoryPage.jsx').then(module => module.default), 'MemoryPage', {native:'reflection'});
 add('/c/:charId/growth/reflection', '记忆', '反思记录', () => import('../v3-domain/reflection.js').then(module => module.renderRealReflections), 'renderRealReflections');
 add('/c/:charId/life/goal/:goalId', '目标', '目标详情', () => import('../react-app/pages/GoalsPage.jsx').then(module => module.default), 'GoalsPage', {native:'goal'});
 add('/c/:charId/life/planning', '目标', '目标规划', () => import('../v3-domain/goal-planning.js').then(module => module.renderRealGoalPlanning), 'renderRealGoalPlanning');

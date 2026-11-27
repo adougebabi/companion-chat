@@ -170,7 +170,7 @@ test("目标修订、目标规划和记忆来源显示补回的内容", async ()
     assertFacts(view.host, /动机想修复祖父留下的书/, /修复旧书 · 动机保留家人的笔迹/, /完成条件保护书脊/,
       /下一步核对纸质/, /等待条件等胶水干透/, /重要程度0%/, /来源说明当时写在书签背面/, /认识内容补充边界读书时请勿打扰/);
     assert.match(source("v3-domain/goal-planning.js"), /kind:'planning'/);
-    assert.match(source("v3-domain/memory.js"), /memorySourceFacts\(/);
+    assert.match(source("react-app/pages/MemoryPage.jsx"), /memorySourceFacts\(/);
   } finally { await view.dispose(); }
 });
 
@@ -241,10 +241,6 @@ test("页面正文使用补回的业务字段，诊断入口继续使用原对�
   assert.match(request, /readingFields\("description notes expected_outcome location scene desired_hair_color desired_hair_length"\)/);
   assert.match(request, /ReadingFields\(payload,requestContentShape\)/);
   assert.match(request, /'期望时间',\[requestDetailTime\(payload\?\.start_at\),requestDetailTime\(payload\?\.end_at\)\]/);
-  const reflection = source("v3-domain/reflection.js");
-  assert.match(reflection, /capability_constraints:'能力约束'/);
-  assert.match(reflection, /'重要程度',scoreText\(candidate\?\.importance\)/);
-  assert.match(reflection, /'情感意义',scoreText\(candidate\?\.emotional_significance\)/);
   const memoryReflection = source("react-app/pages/MemoryRecordSummary.jsx");
   assert.match(memoryReflection, /"能力约束", textList\(candidate\.capability_constraints\)/);
   assert.match(memoryReflection, /"重要程度", scoreText\(candidate\.importance\)/);

@@ -6,6 +6,7 @@ import LocalBackupsPanel from '../shared/LocalBackupsPanel';
 import {dataToolsClient} from '@/v3/proto/services.js';
 import DomainPrimitives from '../shared/DomainPrimitives';
 const AvatarPage=lazy(()=>import('./AvatarPage'));
+const MemoryPage=lazy(()=>import('./MemoryPage'));
 const GoalsPage=lazy(()=>import('./GoalsPage'));
 const TaskDetailPage=lazy(()=>import('./TaskDetailPage'));
 const WorkflowRecovery=lazy(()=>import('../shared/WorkflowRecovery'));
@@ -64,6 +65,7 @@ export default function DomainPage({route}:{route:any}) {
  if(route.feature.native==='studio-preview')return <StudioPreviewPage route={route}/>;
  if(route.feature.native==='studio-material')return <StudioMaterialPage id={route.feature.params.materialId}/>;
  if(route.feature.native==='avatar')return <AvatarPage fid={route.fid}/>;
+ if(['memory','reflection'].includes(route.feature.native))return <MemoryPage key={route.fid+':'+(route.feature.params.memId||route.feature.params.refId)} route={route}/>;
  if(route.feature.native==='goal')return <GoalsPage key={route.fid+':'+route.feature.params.goalId} route={route}/>;
  if(route.feature.native==='task')return <TaskDetailPage route={route}/>;
  if(route.feature.native==='workflow')return <WorkflowRecovery workflowId={route.feature.params.workflowId}/>;

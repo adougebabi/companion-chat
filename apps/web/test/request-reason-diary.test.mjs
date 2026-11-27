@@ -60,21 +60,7 @@ test('actual dynamic suggestion renderer localizes the exact failure and convert
  assert.match(html,/#\/diag\/request\/original-request/);assert.doesNotMatch(html,/data-retry/);dispose();
 });
 
-test('reflection feedback and promise details localize decisions and preserve their original records',async()=>{
- let feedback;const reflectionEl=element();
- const reflection={title:'反思',status:'applied',summary:'一次回顾',at:failed.created_at,dispositions:[],references:[]};
- const {renderRealReflection}=load('../../v3-domain/reflection.js',['renderRealReflection'],{RawRecordDownload,isInternalId,reflectionClient:{read:async()=>reflection},asyncPage:async(_el,read,paint)=>paint(await read(),()=>{},()=>true),mountCursorRecords:(_el,options)=>{feedback=options;return {dispose(){}};}});
- await renderRealReflection(reflectionEl,{charId:'role',params:{refId:'reflection'}});
- const html=feedback.render(failed);
- const link=/<a [^>]*download="fluctlight-record\.json" href="data:application\/json;charset=utf-8,([^"]+)">原始反馈记录（诊断）<\/a>/;
- const raw=html.match(link);
- assert.ok(raw);
- assert.deepEqual(JSON.parse(decodeURIComponent(raw[1])),failed);
- const visible=html.replace(link,'');
- assert.doesNotMatch(visible,/<details\b|failed|The request|2026-10-20T15:01:58/);
- assert.match(visible,/没有可确认的已提交结果/);
- assert.match(visible,/认同 · 2026-10-20 23:01 \(北京时间\)/);
- assert.match(visible,/执行失败/);
+test('promise details localize decisions and preserve their original records',async()=>{
  const d={el:element(),close(){}};
  const {openPromise}=load('components/promise-catalogue.js',['openPromise'],{subscribe(){},get:()=>null,drawer:()=>d,lifeClient:{},asyncPage:(_el,_read,paint)=>paint({title:'约定',lifecycle:'failed',legacy_unlinked:true,request:failed},()=>{},()=>true),mountCursorRecords:()=>({dispose(){}})});
  openPromise('role','original-request');checkDecision(d.el.querySelector('[data-promise-detail]').innerHTML);

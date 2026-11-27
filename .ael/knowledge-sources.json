@@ -298,7 +298,7 @@
     },
     {
       "path": "docs/reports/frontend-closeout-1127.md",
-      "hash": "c9da8bee015992ef3b349f9a6268cd697c193a09ce01ef702b8b61da372ce854",
+      "hash": "377a897bf0e01151fcb760fb748a5fecfb676e1f9f40e6a3cb609577b933f20e",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -312,7 +312,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/reports/frontend-closeout-1127.md",
-        "hash": "c9da8bee015992ef3b349f9a6268cd697c193a09ce01ef702b8b61da372ce854",
+        "hash": "377a897bf0e01151fcb760fb748a5fecfb676e1f9f40e6a3cb609577b933f20e",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }

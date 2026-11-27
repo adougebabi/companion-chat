@@ -20,9 +20,8 @@ test.after(() => vite.close());
 
 const load = path => vite.ssrLoadModule("/src/" + path);
 const { WorkingPortraitSummary, ProfileFieldsSummary, ProfileDiagnostic } = await load("react-app/shared/ProfileRecordSummary.jsx");
-const { ReflectionChanges, RecordDownload, reflectionDownload } = await load("react-app/pages/MemoryRecordSummary.jsx");
+const { ReflectionChanges, ReflectionFeedbackSummary, RecordDownload, reflectionDownload } = await load("react-app/pages/MemoryRecordSummary.jsx");
 const { configureDomainService } = await load("v3/proto/services.js");
-const { renderRealReflection } = await load("v3-domain/reflection.js");
 const h = React.createElement;
 const hidden = /\b(?:id|revision|source_ref|idempotency_key|metrics)\b|res_enum_hidden|907234|origin-hidden|replay-hidden|metric-hidden|尚未记录|版本/;
 const technical = {
@@ -153,32 +152,24 @@ test("记忆中的反思和独立反思使用相同译名，诊断下载保留�
     h(ReflectionChanges, { record, fid: "fixture" }),
     h(RecordDownload, { value: record, title: reflectionDownload }),
   ));
-  const dom = new JSDOM("<main></main>");
-  const host = dom.window.document.querySelector("main");
-  configureDomainService("reflection", {
-    read: async () => record,
-    feedback: async () => ({ items: [], next_cursor: "" }),
-  });
-  const dispose = renderRealReflection(host, { charId: "fixture", params: { refId: record.id } });
   try {
     await new Promise(resolve => setImmediate(resolve));
     await assertReactDownload(view, reflectionDownload, record);
-    for (const node of [view.host, host]) {
+    for (const node of [view.host]) {
       for (const text of ["回应方式", "温暖简洁", "主动沟通方式", "其他方式", "交流语气", "Speak a little softer"]) {
         assert.ok(node.textContent.includes(text), text);
       }
       assert.doesNotMatch(node.textContent, /response\.style|initiative\.mode|communication\.tone|unlisted_mode|warm_concise/);
       assert.doesNotMatch(node.textContent, hidden);
     }
-    const link = host.querySelector("a[download]");
-    assert.equal(link.textContent, reflectionDownload);
-    assert.equal(link.download, "fluctlight-record.json");
-    const prefix = "data:application/json;charset=utf-8,";
-    assert.ok(link.href.startsWith(prefix));
-    assert.deepEqual(JSON.parse(decodeURIComponent(link.href.slice(prefix.length))), record);
   } finally {
-    dispose();
-    dom.window.close();
     await view.dispose();
   }
+});
+
+test('反思反馈按真实失败状态译名并下载原始请求',async()=>{
+ const record={id:'request-feedback',status:'failed',decision_reason:'The request did not produce a committed result',created_at:'2026-10-20T15:01:58.000+00:00',payload:{text:'我的建议',stance:'agree'},result:{error_code:'owner_life_request_not_applied',disposition:'not_applied'}};
+ const view=await mountReact(vite,()=>h(React.Fragment,null,h(ReflectionFeedbackSummary,{record}),h(RecordDownload,{value:record,title:reflectionDownload})));
+ try{assert.match(view.host.textContent,/没有可确认的已提交结果/);assert.match(view.host.textContent,/处理失败/);assert.match(view.host.textContent,/赞同/);assert.match(view.host.textContent,/2026-10-20 23:01/);assert.doesNotMatch(view.host.textContent,/The request|owner_life_request_not_applied/);await assertReactDownload(view,reflectionDownload,record);}
+ finally{await view.dispose();}
 });
