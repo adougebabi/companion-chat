@@ -173,7 +173,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		expectedPersonaRevision = &revision
 		expectedOverlayRevision = &overlayRevision
 	}
-	invocations, priorResults := i.trace.Snapshot()
+	invocations, _ := i.trace.Snapshot()
 	invocation := normalizeCapabilityInvocationMetadata(CapabilityInvocation{
 		CallID: callID, CapabilityName: capabilityName, Arguments: arguments,
 		SourceFactID: firstString(i.request.SourceFactID, projection.SourceFactID), ActionID: i.request.ActionID,
@@ -184,17 +184,6 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	publicationPolicy := conversationPublicationPolicyEnabled(ctx)
 	needsReply := publicationPolicy && (modelIdentity.PublicationCorrection ||
 		conversationLoopNeedsReplyBeforeModelSequence(ctx, modelIdentity.ModelCallSequence))
-	if publicationPolicy && !needsReply && capabilityName != capabilityCatalogName && directImageCatalogPending(ctx, priorResults) {
-		if previous, found := i.trace.FindResult(callID); found {
-			return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), i.trace.ResultFailure(callID)
-		}
-		result := handledCapabilityResult(invocation, "catalog_discovery_pending", "needs_query", map[string]any{
-			"recovery": "Call capability_catalog with names=[media.image.generate] for the discovery you selected. This query has no publication or image effect.",
-		})
-		i.trace.Append(invocation, result)
-		i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, "catalog_discovery_pending", argumentsJSON)
-		return jsonString(map[string]any{"status": result.Status, "output": result.Output}), nil
-	}
 	if publicationPolicy && !needsReply {
 		if queries := conversationLoadedQueryPhase(ctx); len(queries) > 0 && !containsString(queries, capabilityName) {
 			if previous, found := i.trace.FindResult(callID); found {

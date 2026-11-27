@@ -153,11 +153,10 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 		projection = privateTextChatProjection(projection)
 	} else if replyRun != nil && replyRun.Settings.Mode == "direct" {
 		operationRules = []string{providerContextAuthorityRule, directMainConversationProtocol, factOnlyExecutionBoundary}
-		main, _ := ctx.Value(directMainConversationKey{}).(bool)
 		if replyRetry.intentID != "" {
 			operationRules = []string{providerContextAuthorityRule, directReplyRetryProtocol}
-		} else if main && a.directImageDiscoveryNeeded(ctx, projection, currentInput, definitions) {
-			publicationPolicy.directImageDiscoveryPrompt = directImageDiscoveryPrompt(projection, currentInput)
+		} else if index := directCapabilityIndex(ctx, definitions); index != "" {
+			operationRules = append(operationRules, index)
 		}
 		suggestions, suggestionErr := a.freezeDirectExpressionSuggestions(ctx, replyRun)
 		if suggestionErr != nil {

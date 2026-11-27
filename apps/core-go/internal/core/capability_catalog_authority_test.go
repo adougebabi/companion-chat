@@ -27,7 +27,6 @@ func TestCapabilityDiscoveryDistinguishesInstalledButUnauthorized(t *testing.T) 
 		execute func(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityResult, error)
 	}{
 		{"catalog", (capabilityCatalogCapability{catalog: registry.Catalog, lookup: registry.Definition}).Execute},
-		{"discover", (capabilityDiscoverCapability{catalog: registry.Catalog, lookup: registry.Definition}).Execute},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			config := decision.DefaultConfig()
@@ -78,14 +77,14 @@ func TestStandaloneCapabilityCatalogUsesInstalledRegistry(t *testing.T) {
 	app := &App{}
 	registry := app.capabilityRegistry()
 	app.Capabilities = registry
-	for _, name := range []string{capabilityCatalogName, capabilityDiscoverName} {
+	for _, name := range []string{capabilityCatalogName} {
 		t.Run(name, func(t *testing.T) {
 			implementation, ok := registry.LookupCapability(name)
 			if !ok {
 				t.Fatalf("missing builtin %s", name)
 			}
 			inv := CapabilityInvocation{CallID: "standalone-catalog", CapabilityName: name,
-				Arguments: jsonBytes(map[string]any{"names": []string{capabilityCatalogName, capabilityDiscoverName, "goal_planner.query", "not.installed"}}), Metadata: InvocationMetadata{Surface: CapabilitySurfaceConversation}}
+				Arguments: jsonBytes(map[string]any{"names": []string{capabilityCatalogName, "capability.discover", "goal_planner.query", "not.installed"}}), Metadata: InvocationMetadata{Surface: CapabilitySurfaceConversation}}
 			result, err := implementation.Execute(pluginTestContext(true, true), inv, CapabilityContext{})
 			if err != nil {
 				t.Fatal(err)
@@ -95,7 +94,7 @@ func TestStandaloneCapabilityCatalogUsesInstalledRegistry(t *testing.T) {
 			for _, item := range unavailable {
 				codes[item.Name] = item.ErrorCode
 			}
-			if codes["goal_planner.query"] != "capability_not_authorized" || codes["not.installed"] != "capability_not_installed" || codes[capabilityCatalogName] != "tool_run_context_required" || codes[capabilityDiscoverName] != "tool_run_context_required" {
+			if codes["goal_planner.query"] != "capability_not_authorized" || codes["not.installed"] != "capability_not_installed" || codes[capabilityCatalogName] != "tool_run_context_required" || codes["capability.discover"] != "capability_not_installed" {
 				t.Fatalf("standalone registry classification = %#v", codes)
 			}
 		})

@@ -201,7 +201,9 @@ func scheduleReplanPlannerInstruction(input SchedulePlanInput) string {
 	if intValue(input.Schedule["revision"]) == 0 {
 		instruction = "Return a complete current-local-day Schedule covering midnight to next midnight, with explicit free time. No accepted schedule exists yet."
 	}
-	if len(input.PlannedAction) > 0 {
+	if len(input.PlannedAction) > 0 && input.PlannedAction["start_now"] == true {
+		instruction += " The character is going now: put the planned_action into exactly one item that starts exactly at planned_action.preferred_start_at (the start of this minute) and lasts at least planned_action.duration_minutes; end the current item at that instant. Mark that item planned_action_slot=true; all other items must omit it. Keep completed intervals unchanged."
+	} else if len(input.PlannedAction) > 0 {
 		instruction += " Place the planned_action into exactly one future item of the current local day. Mark that item planned_action_slot=true; all other items must omit it. The chosen item must last at least planned_action.duration_minutes. This is an appointment plan, not an activity already started or completed. Keep completed intervals unchanged."
 	}
 	if len(input.TargetEdit) > 0 {

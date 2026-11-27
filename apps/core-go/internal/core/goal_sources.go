@@ -101,7 +101,7 @@ func goalOutcomeCarriesEvidence(outcome ActionOutcome) bool {
 	switch strings.TrimSpace(outcome.CapabilityName) {
 	case goalEvaluationSubmit, goalObjectSubmit, goalPlanSubmit, "goal.inspect", "goal.decide", "goal.evaluate", "goal.review",
 		"actor.inspect", "habit.inspect", "intention.inspect", "schedule.inspect",
-		"persona.detail", "relationship.lookup", "memory.recall", "capability.discover":
+		"persona.detail", "relationship.lookup", "memory.recall":
 		return false
 	}
 	if strings.TrimSpace(outcome.CapabilityName) != "" {

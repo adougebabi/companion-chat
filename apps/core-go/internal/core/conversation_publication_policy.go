@@ -16,9 +16,7 @@ import (
 // committed, normal physical requests retain the selected Tool catalog and
 // cannot terminate through final JSON grammar. Media may accompany a reply but cannot
 // replace the private conversation message.
-type conversationPublicationPhysicalRequestPolicy struct {
-	directImageDiscoveryPrompt []*schema.Message
-}
+type conversationPublicationPhysicalRequestPolicy struct{}
 
 func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(ctx context.Context) (physicalModelRequestDecision, error) {
 	if err := ctx.Err(); err != nil {
@@ -81,14 +79,10 @@ func (p conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest
 	if imageReplyPending || directReplyRetryFromContext(ctx).intentID != "" {
 		return replyRequest, nil
 	}
-	if len(results) > 0 && directImageCatalogPending(ctx, results) {
-		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true,
-			AllowedToolNames: []string{capabilityCatalogName}}, nil
-	}
 	if _, committed := committedMomentResult(adkContext.Trace); committed {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: append([]string{"moment.publish"}, repeatedDiscoveryExclusions(adkContext.Trace)...)}, nil
 	}
-	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: repeatedDiscoveryExclusions(adkContext.Trace), DisableThinking: len(p.directImageDiscoveryPrompt) != 0 && len(results) == 0}, nil
+	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: repeatedDiscoveryExclusions(adkContext.Trace)}, nil
 }
 
 // Consecutive invalid direct replies did not execute any effect. Bound this
@@ -116,7 +110,7 @@ func directMainInvalidReplyAttempts(trace *ADKCapabilityTrace) int {
 // action or forcing acceptance. Any actual query/action restores discovery.
 func repeatedDiscoveryExclusions(trace *ADKCapabilityTrace) []string {
 	if repeatedDiscoveryLoadCount(trace) >= 2 {
-		return []string{capabilityCatalogName, capabilityDiscoverName}
+		return []string{capabilityCatalogName}
 	}
 	return nil
 }
@@ -127,7 +121,7 @@ func repeatedDiscoveryLoadCount(trace *ADKCapabilityTrace) int {
 	count := 0
 	for index := len(results) - 1; index >= 0; index-- {
 		result := results[index]
-		if result.Status != "completed" || (result.CapabilityName != capabilityCatalogName && result.CapabilityName != capabilityDiscoverName) {
+		if result.Status != "completed" || result.CapabilityName != capabilityCatalogName {
 			break
 		}
 		out := mapValue(result.Output)
@@ -152,7 +146,7 @@ func repeatedDiscoveryResultCount(trace *ADKCapabilityTrace) int {
 	count := 0
 	for index := len(results) - 1; index >= 0; index-- {
 		result := results[index]
-		if result.CapabilityName != capabilityCatalogName && result.CapabilityName != capabilityDiscoverName {
+		if result.CapabilityName != capabilityCatalogName {
 			break
 		}
 		fingerprint := jsonString(map[string]any{"name": result.CapabilityName, "status": result.Status, "output": result.Output, "error_code": result.ErrorCode})
@@ -222,9 +216,6 @@ func conversationPublicationOmission(ctx context.Context, message *schema.Messag
 			return true
 		}
 		_, results := bridge.Trace.Snapshot()
-		if directImageCatalogPending(ctx, results) && conversationLoopNeedsReply(ctx) {
-			return true
-		}
 		for _, result := range results {
 			if result.CapabilityName == "media.image.generate" && result.Status == "accepted" {
 				return true

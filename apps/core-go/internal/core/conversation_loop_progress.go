@@ -57,7 +57,7 @@ func conversationNoProgressAttempts(ctx context.Context, currentSequence uint64,
 		definition, installed := invoker.scopeRegistry.Definition(result.CapabilityName)
 		out := mapValue(result.Output)
 		noEffect := result.Status == "handled" && out["effect_applied"] == false
-		query := installed && definition.Type == CapabilityTypeQuery && result.Status == "completed" && result.CapabilityName != capabilityCatalogName && result.CapabilityName != capabilityDiscoverName
+		query := installed && definition.Type == CapabilityTypeQuery && result.Status == "completed" && result.CapabilityName != capabilityCatalogName
 		if !query && !noEffect {
 			continue
 		}
@@ -129,7 +129,7 @@ func conversationLoadedQueryPhase(ctx context.Context) []string {
 	seen := map[string]int{}
 	for index := len(results) - 1; index >= 0; index-- {
 		result := results[index]
-		if result.CapabilityName != capabilityCatalogName && result.CapabilityName != capabilityDiscoverName {
+		if result.CapabilityName != capabilityCatalogName {
 			if result.Status == "completed" || result.Status == "accepted" {
 				return nil
 			}
@@ -148,7 +148,7 @@ func conversationLoadedQueryPhase(ctx context.Context) []string {
 		for _, raw := range arrayValue(out["loaded"]) {
 			name := stringValue(raw)
 			definition, found := invoker.scopeRegistry.Definition(name)
-			if found && definition.Type == CapabilityTypeQuery && definition.SideEffectClass == "read_only" && name != capabilityCatalogName && name != capabilityDiscoverName {
+			if found && definition.Type == CapabilityTypeQuery && definition.SideEffectClass == "read_only" && name != capabilityCatalogName {
 				names = append(names, name)
 			}
 		}
@@ -162,7 +162,7 @@ func conversationClosedActionAttempts(trace *ADKCapabilityTrace, refresh *runtim
 	lastProgressIndex := -1
 	var lastProgressSequence uint64
 	for index, result := range results {
-		if (result.Status == "completed" || result.Status == "accepted") && result.CapabilityName != capabilityCatalogName && result.CapabilityName != capabilityDiscoverName {
+		if (result.Status == "completed" || result.Status == "accepted") && result.CapabilityName != capabilityCatalogName {
 			lastProgressIndex = index
 			if identity, found := trace.ModelIdentity(result.CallID); found && identity.ModelCallSequence > lastProgressSequence {
 				lastProgressSequence = identity.ModelCallSequence

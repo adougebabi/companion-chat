@@ -7,7 +7,6 @@ var capabilityDirectoryPurposes = map[string]string{
 	"promise.propose":                    "Record a new Owner appointment proposal; accepted real promises enter their date schedule.",
 	"moment.inspect":                     "Read your previously published Moments and exact text; creates no new post.",
 	"capability.catalog":                 "List available tools; request named tool details.",
-	"capability.discover":                "Load selected tool schemas for the next request.",
 	"capability.request":                 "Request a missing capability for Owner review.",
 	"conversation.reply":                 "Send a private message and finish the turn.",
 	"moment.publish":                     "Create a NEW Moment in the shared feed; use moment.inspect to read prior posts.",

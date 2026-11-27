@@ -25,7 +25,6 @@ var independentToolProductInventory = []string{
 	"affect_event",
 	"appearance.style",
 	"capability.catalog",
-	"capability.discover",
 	"capability.request",
 	"conversation.reply",
 	"goal_planner.query",
@@ -632,23 +631,5 @@ func expectIndependentToolFailure(code string) func(*testing.T, ToolExecutionRec
 		if err == nil || receipt.Result.Status != "failed" || receipt.Result.ErrorCode != code {
 			t.Fatalf("Tool failure code=%q receipt=%#v err=%v", code, receipt, err)
 		}
-	}
-}
-
-func TestIndependentToolE2ECapabilityDiscover(t *testing.T) {
-	fixture := newIndependentToolE2EFixture(t, "discover")
-	request := fixture.request(capabilityDiscoverName, "discover-permitted", map[string]any{"names": []string{"wardrobe.inspect"}})
-	receipt, err := fixture.app.ExecuteTool(fixture.ctx, request)
-	if err != nil || receipt.Result.Status != "completed" {
-		t.Fatal(receipt, err)
-	}
-	output := mapValue(receipt.Result.Output)
-	if output["run_scoped"] != false || len(arrayValue(output["loaded"])) != 0 || len(arrayValue(output["available"])) == 0 {
-		t.Fatal("direct discovery claimed Agent state", output)
-	}
-	invalid := fixture.request(capabilityDiscoverName, "discover-foreign", map[string]any{"names": []string{"visual_identity.commit_review"}})
-	rejected, err := fixture.app.ExecuteTool(fixture.ctx, invalid)
-	if err != nil || rejected.Result.Status != "completed" || len(arrayValue(cloneMap(mapValue(rejected.Result.Output))["unavailable"])) != 1 {
-		t.Fatal(rejected, err)
 	}
 }

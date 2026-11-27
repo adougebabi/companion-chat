@@ -13,10 +13,7 @@ import (
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/decision"
 )
 
-const (
-	capabilityCatalogName  = "capability.catalog"
-	capabilityDiscoverName = "capability.discover"
-)
+const capabilityCatalogName = "capability.catalog"
 
 type kevRunSelectionKey struct{}
 type kevRunSelection struct {
@@ -48,13 +45,6 @@ func (s *kevRunSelection) baselineTool(name string) bool {
 func kevSelection(ctx context.Context) *kevRunSelection {
 	value, _ := ctx.Value(kevRunSelectionKey{}).(*kevRunSelection)
 	return value
-}
-
-// The independent discovery capability receives only a registry reader. It
-// reports available tools when used directly; loading is scoped to an Agent.
-type capabilityDiscoverCapability struct {
-	catalog func(CapabilitySurface) []CapabilityDefinition
-	lookup  func(string) (CapabilityDefinition, bool)
 }
 
 // capabilityCatalogCapability exposes the complete authorized installation on
@@ -94,7 +84,7 @@ func includeNamedStandaloneUtilities(ctx context.Context, definitions []Capabili
 	if registry, ok := scopedCapabilityRegistry(ctx); ok {
 		lookup = registry.Definition
 	}
-	for _, name := range []string{capabilityCatalogName, capabilityDiscoverName} {
+	for _, name := range []string{capabilityCatalogName} {
 		if !requestedToolName(names, name) {
 			continue
 		}
@@ -237,70 +227,6 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 		}
 	}
 	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", Output: output}, nil
-}
-
-func (c capabilityDiscoverCapability) Definition() CapabilityDefinition {
-	return CapabilityDefinition{Name: capabilityDiscoverName, Version: "v1", Type: CapabilityTypeQuery, Description: "Load selected authorized capability schemas for the next model request; use capability.catalog first when names or parameters are unknown.", InputSchema: objectSchema(map[string]any{"names": map[string]any{"type": "array", "minItems": 1, "items": stringSchema()}}, []string{"names"}, false), OutputSchema: openObjectSchema(), Surfaces: capabilityUtilitySurfaces(), SupportsCancel: true, FailurePolicy: FailurePolicyOptionalInternal, SideEffectClass: "read_only", ConcurrencyClass: "parallel", SuccessBoundary: "catalog_read"}
-}
-func (c capabilityDiscoverCapability) RequiredContext() []ContextSlot { return nil }
-func (c capabilityDiscoverCapability) Execute(ctx context.Context, inv CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
-	if err := ctx.Err(); err != nil {
-		return CapabilityResult{}, err
-	}
-	if c.catalog == nil {
-		return CapabilityResult{}, errors.New("capability_catalog_unavailable")
-	}
-	var args struct {
-		Names []string `json:"names"`
-	}
-	if err := json.Unmarshal(inv.Arguments, &args); err != nil {
-		return CapabilityResult{}, err
-	}
-	catalog := c.catalog
-	if registry, ok := scopedCapabilityRegistry(ctx); ok {
-		catalog = registry.Catalog
-	}
-	definitions := nativeDefinitionsForContext(ctx, authorizedDiscoveryDefinitions(ctx, inv.Metadata.Surface, catalog))
-	selection := kevSelection(ctx)
-	definitions = includeNamedStandaloneUtilities(ctx, definitions, c.Definition(), args.Names, inv.Metadata.Surface, c.lookup)
-	available := map[string]CapabilityDefinition{}
-	items := []map[string]any{}
-	for _, d := range definitions {
-		available[d.Name] = d
-		item := map[string]any{"name": d.Name, "description": d.Description}
-		if !domainCapabilityEnabled(ctx, d.Name) {
-			item["status"] = "disabled"
-		}
-		items = append(items, item)
-	}
-	loaded := []string{}
-	validNames := []string{}
-	unavailable := []toolDisclosureAvailability{}
-	for _, name := range sortedUniqueStrings(args.Names) {
-		if _, ok := available[name]; ok && !domainCapabilityEnabled(ctx, name) {
-			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "disabled", ErrorCode: "domain_plugin_disabled"})
-		} else if ok {
-			validNames = append(validNames, name)
-		} else {
-			unavailable = append(unavailable, unavailableCapability(ctx, name, c.lookup))
-		}
-	}
-	args.Names = validNames
-	if selection != nil {
-		var err error
-		var missing []toolDisclosureAvailability
-		loaded, missing, err = selection.load(ctx, args.Names)
-		unavailable = append(unavailable, missing...)
-		if err != nil {
-			return CapabilityResult{}, err
-		}
-	} else {
-		for _, name := range args.Names {
-			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "tool_run_context_required"})
-		}
-	}
-
-	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", Output: map[string]any{"available": items, "loaded": loaded, "unavailable": unavailable, "run_scoped": selection != nil}}, nil
 }
 
 func authorizedDiscoveryDefinitions(ctx context.Context, surface CapabilitySurface, catalog func(CapabilitySurface) []CapabilityDefinition) []CapabilityDefinition {
@@ -616,11 +542,7 @@ func capabilityUtilitiesInstalled(registry *CapabilityRegistry, surface Capabili
 
 func appendCapabilityUtilities(registry *CapabilityRegistry, surface CapabilitySurface, definitions []CapabilityDefinition) []CapabilityDefinition {
 	result := []CapabilityDefinition{}
-	for _, d := range definitions {
-		if d.Name != capabilityDiscoverName {
-			result = append(result, d)
-		}
-	}
+	result = append(result, definitions...)
 	seen := make(map[string]bool, len(result))
 	for _, definition := range result {
 		seen[definition.Name] = true
@@ -672,9 +594,6 @@ func (s *kevRunSelection) definitions(ctx context.Context) ([]CapabilityDefiniti
 	out := []CapabilityDefinition{}
 	for _, d := range s.original {
 		if !domainCapabilityEnabled(ctx, d.Name) {
-			continue
-		}
-		if d.Name == capabilityDiscoverName {
 			continue
 		}
 		item := s.availability[d.Name]
@@ -732,7 +651,7 @@ func withoutKevDiscovery(definitions []CapabilityDefinition) []CapabilityDefinit
 	out := make([]CapabilityDefinition, 0, len(definitions))
 	for _, d := range definitions {
 		name := strings.TrimSpace(d.Name)
-		if name != capabilityDiscoverName && name != capabilityCatalogName {
+		if name != capabilityCatalogName {
 			out = append(out, d)
 		}
 	}

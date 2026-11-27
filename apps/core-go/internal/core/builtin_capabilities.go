@@ -130,9 +130,6 @@ func builtinCapabilities(app *App) []Capability {
 	}
 	capabilities := []Capability{
 		newNPCEncounterCapability(app, ""),
-		capabilityDiscoverCapability{catalog: func(surface CapabilitySurface) []CapabilityDefinition {
-			return capabilityCatalog(app.capabilityRegistry(), surface)
-		}, lookup: func(name string) (CapabilityDefinition, bool) { return app.capabilityRegistry().Definition(name) }},
 		capabilityCatalogCapability{catalog: func(surface CapabilitySurface) []CapabilityDefinition {
 			return capabilityCatalog(app.capabilityRegistry(), surface)
 		}, lookup: func(name string) (CapabilityDefinition, bool) { return app.capabilityRegistry().Definition(name) }},

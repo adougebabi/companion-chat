@@ -1,6 +1,8 @@
 package core
 
 import (
+	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -134,7 +136,7 @@ func TestChatSelfReportedFactsAndScheduleChangesAreActionable(t *testing.T) {
 		}
 	}
 	mandatory := formalAgentMandatoryTools(FormalAgentConversationCognition)
-	for _, name := range []string{scheduleInspectCapabilityName, scheduleEditCapabilityName, "schedule.replan", actorFactCapabilityName} {
+	for _, name := range []string{scheduleInspectCapabilityName, scheduleEditCapabilityName, actorFactCapabilityName} {
 		if !mandatory[name] {
 			t.Fatalf("%s is not visible from the first round", name)
 		}
@@ -143,5 +145,63 @@ func TestChatSelfReportedFactsAndScheduleChangesAreActionable(t *testing.T) {
 		if !strings.Contains(directChatProtocol, want) {
 			t.Fatalf("direct chat rules lack %q", want)
 		}
+	}
+}
+
+// Chat tools come in tiers: a small first-round set, a one-line index for the
+// rest (loaded by name), and no pre-turn "does this need the image tool" call.
+// The first-round set may not grow past what it cost before this layout.
+func TestChatToolTiersStayWithinTheFirstRoundBudget(t *testing.T) {
+	registry, err := NewCapabilityRegistry(builtinCapabilities(&App{})...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mandatory := formalAgentMandatoryTools(FormalAgentConversationCognition)
+	for _, name := range []string{"memory_event", "media.image.generate", conversationReplyCapabilityName, capabilityCatalogName} {
+		if !mandatory[name] {
+			t.Fatalf("%s must be offered from the first chat round", name)
+		}
+	}
+	if mandatory["schedule.replan"] {
+		t.Fatal("schedule.replan belongs to the loadable index, not the first round")
+	}
+	invoker := &appADKCapabilityInvoker{request: ADKCapabilityRequest{Surface: CapabilitySurfaceConversation}, scopeRegistry: registry}
+	catalog := registry.Catalog(CapabilitySurfaceConversation)
+	shown := []CapabilityDefinition{}
+	for _, definition := range catalog {
+		if mandatory[definition.Name] {
+			shown = append(shown, definition)
+		}
+	}
+	bytes := 0
+	for _, definition := range invoker.NativeDefinitions(shown) {
+		raw, _ := json.Marshal(map[string]any{"name": definition.Name, "description": definition.Description, "parameters": definition.InputSchema})
+		bytes += len(raw)
+		if definition.Name == "media.image.generate" {
+			if len(raw) > 1500 || !strings.Contains(jsonString(definition.InputSchema), `"intent"`) || strings.Contains(jsonString(definition.InputSchema), "media_plan") {
+				t.Fatalf("chat image tool is not the slim chat definition (%d bytes)", len(raw))
+			}
+		}
+	}
+	t.Logf("first-round chat tools: %d, %d bytes", len(shown), bytes)
+	if len(shown) != len(mandatory) || bytes > 6782 {
+		t.Fatalf("first-round chat tools: %d of %d installed, %d bytes (budget 6782, the first round before tiers)", len(shown), len(mandatory), bytes)
+	}
+	index := directCapabilityIndex(context.Background(), catalog)
+	t.Logf("index: %d bytes\n%s", len(index), index)
+	if !strings.Contains(index, "- schedule.replan：") || !strings.Contains(index, "capability_catalog") {
+		t.Fatalf("index lacks the loadable tools: %s", index)
+	}
+	for name := range mandatory {
+		if strings.Contains(index, "- "+name+"：") {
+			t.Fatalf("index repeats first-round tool %s", name)
+		}
+	}
+	if strings.Contains(index, "- capability.discover：") || len(index) > 4000 {
+		t.Fatalf("index is not a compact directory (%d bytes)", len(index))
+	}
+	full, _ := registry.Definition("media.image.generate")
+	if other := (&appADKCapabilityInvoker{request: ADKCapabilityRequest{Surface: CapabilitySurfaceWakeUp}, scopeRegistry: registry}).NativeDefinitions([]CapabilityDefinition{full}); !strings.Contains(jsonString(other[0].InputSchema), "media_plan") {
+		t.Fatal("non-chat surfaces must keep the full image definition")
 	}
 }

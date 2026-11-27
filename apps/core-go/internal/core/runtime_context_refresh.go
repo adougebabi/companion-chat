@@ -124,7 +124,7 @@ func replyBlockedBySameBatchSideEffect(refresh *runtimeContextRefresh, sequence 
 		if id == callID {
 			continue
 		}
-		if name == scheduleActivityCapabilityName || name == "schedule.replan" {
+		if name == scheduleActivityCapabilityName || name == "schedule.replan" || name == scheduleEditCapabilityName {
 			schedule = true
 			continue
 		}

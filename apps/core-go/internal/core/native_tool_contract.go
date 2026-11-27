@@ -33,6 +33,9 @@ func (i *appADKCapabilityInvoker) NativeDefinitions(definitions []CapabilityDefi
 		if contract, yes := capability.(nativeToolContract); ok && yes {
 			result[position] = contract.NativeDefinition()
 		}
+		if i.request.Surface == CapabilitySurfaceConversation {
+			result[position] = chatToolDefinition(result[position])
+		}
 	}
 	return result
 }

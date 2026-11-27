@@ -454,7 +454,7 @@ func (c actorFactCapability) NativeDefinition() CapabilityDefinition {
 	// The chat model sees this definition, so it carries the full guidance: the
 	// base description used to be replaced by a one-liner, and the schema hinted
 	// "inference", which keeps a self-report uncertain and out of 关于对方.
-	d.Description = "Remember a long-term fact the person states about themselves in the current message (or a correction) so it stays in 关于对方. Attributes: location (where they are or live now, e.g. \"国外·伦敦\"), location_scope, timezone, occupation, school, routine, family, likes, dislikes, preferences, habits, important_people, plans. value: the fact in plain words. assertion_type: explicit_statement when they said it (usual); inference only for your own guess (stays uncertain, not shown in 关于对方). Core binds the source."
+	d.Description = "Remember a long-term fact the person states about themselves (or a correction) so it stays in 关于对方: location (e.g. \"国外·伦敦\"), timezone, occupation, routine, family, likes, dislikes, plans. assertion_type: explicit_statement when they said it; inference only for your own guess (not shown)."
 	return d
 }
 func (c actorFactCapability) BindNativeArguments(raw json.RawMessage, _ ContextProjection) (json.RawMessage, error) {

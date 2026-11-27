@@ -271,6 +271,57 @@ func imageCapabilityDefinition() CapabilityDefinition {
 	}
 }
 
+// chatToolDefinition is what the chat model sees for a few first-round tools.
+// First-round tools are resent with every model call of every turn, so their
+// chat versions drop guidance meant for WakeUp/autonomy and, for the image
+// tool, the ~3KB of planning fields: chat keeps the request, capture style and
+// moment attachment (aspect ratio uses its default), and the media pipeline completes the rest of the plan
+// (explicitMediaPlan accepts a partial plan). Arguments are still validated
+// against the full schema, of which these are subsets. Other surfaces keep the
+// full definitions.
+func chatToolDefinition(full CapabilityDefinition) CapabilityDefinition {
+	switch full.Name {
+	case "media.image.generate":
+		full.Description = "Take and send a photo yourself (selfie, where you are, what you do or wear). It is generated after this call and sent separately; do not say it was already sent."
+		full.InputSchema = map[string]any{
+			"type": "object", "additionalProperties": false, "required": []any{"intent"},
+			"properties": map[string]any{
+				"intent":          map[string]any{"type": "string", "minLength": 1, "maxLength": 4000, "description": "The photo in plain words: who/what, where, outfit, action."},
+				"delivery_target": map[string]any{"type": "string", "enum": []any{"current_moment"}, "description": "Only for a Moment published in this turn."},
+				"capture": map[string]any{
+					"type": "object", "additionalProperties": false,
+					"properties": map[string]any{
+						"mode":    map[string]any{"type": "string", "enum": []any{"selfie", "mirror_selfie", "external_capture", "operator_pov", "first_person", "self_timer"}},
+						"framing": map[string]any{"type": "string", "maxLength": 256, "description": "closeup, upper_body, full_body or scene."},
+					},
+				},
+			},
+		}
+	case conversationReplyCapabilityName:
+		// purpose/topic_key describe WakeUp and autonomous contact, not chat.
+		full.Description = "Send your private chat message; this ends the turn. Run memory_event, actor.fact.record, schedule.edit or photos first, never promise them for later."
+		full.InputSchema = map[string]any{
+			"type": "object", "additionalProperties": false, "required": []any{"text"},
+			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000, "description": "The message itself."}},
+		}
+	case capabilityCatalogName:
+		full.Description = "Load tools listed under 其他能力 by names, e.g. {\"names\":[\"schedule.replan\"]}; they can be called in the next step. Empty names lists every tool's purpose."
+	case scheduleActivityCapabilityName:
+		// stage_id/commitment_id carry Goal Planner stage execution, not chat.
+		full.InputSchema = cloneMap(full.InputSchema)
+		properties := cloneMap(mapValue(full.InputSchema["properties"]))
+		delete(properties, "stage_id")
+		delete(properties, "commitment_id")
+		full.InputSchema["properties"] = properties
+		full.Description = "Go shopping/haircut/dye now (start_now=true) or later (preferred_start_at); it goes on your schedule. Clothes: action_plan {kind:\"virtual_shopping\", items:[{category, slot, description}]}; bought items enter your wardrobe."
+	case "memory_event":
+		full.Description = "Remember what happened or matters (or correct a memory) before replying. Revising needs a ref from context or memory.recall; never invent one."
+	case wardrobeInspectCapabilityName:
+		full.Description = "See your wardrobe: inventory, outfits or what you wear (detail needs item_id, outfit_detail outfit_id). catalogue/catalogue_detail: items you can buy (IDs for shopping)."
+	}
+	return full
+}
+
 func imageCapabilityInputSchema() map[string]any {
 	return map[string]any{
 		"type": "object", "additionalProperties": false, "required": []any{"intent"},
