@@ -119,6 +119,8 @@
       "src/react-app/views/WorldPage.jsx",
       "src/react-app/views/MediaWorkspace.jsx",
       "src/react-app/views/ManagementPage.jsx",
+      "src/v3-domain/operations.js",
+      "src/lib/wardrobe-form.ts",
       "src/react-app/views/StudioEditor.jsx",
       "src/react-app/views/CharacterWizard.jsx",
       "src/approved-ui/creation-progress.mjs",

@@ -75,6 +75,82 @@ test('phone reading and filters preserve navigation context', {tag:'@mobile'}, a
   await page.getByRole('button',{name:'筛选',exact:true}).click();
   await expect(page.getByRole('dialog').getByRole('combobox',{name:'记忆类型'})).toContainText('经历');
 });
+test('item categories: Chinese presentation preserves raw diagnostic records', {tag:'@mobile'}, async({page})=>{
+  if(page.viewportSize()!.width>=1024)await page.setViewportSize({width:1280,height:800});
+  let category='personal';
+  await page.route('**/api/fluctlights/'+fid+'/world/items/*',async route=>{
+    const response=await route.fetch();
+    const item=await response.json();
+    item.definition.category=category;
+    await route.fulfill({response,json:item});
+  });
+  const cases=[['personal','日常用品'],['personal_item','日常用品'],['outdoor_clothing','户外服装'],['unmapped_category','其他物品'],['书籍与文具','书籍与文具']];
+  for(const [raw,label] of cases){
+    category=raw;
+    await page.goto(origin+'/?category-case='+encodeURIComponent(raw)+'#/c/'+fid+'/world/items/'+fid+'-world-item');
+    const main=page.getByRole('main');
+    await expect(main.getByText('物品分类：'+label,{exact:true})).toBeVisible();
+    const href=await main.getByRole('link',{name:'原始世界物品记录（诊断）',exact:true}).getAttribute('href');
+    const record=JSON.parse(decodeURIComponent(href!.slice('data:application/json;charset=utf-8,'.length)));
+    expect(record.definition.category).toBe(raw);
+    await expectNoLayoutDefects(page,page.getByRole('region',{name:'世界物品详情',exact:true}),{minTarget:page.viewportSize()!.width<640?40:0});
+    await page.screenshot({path:test.info().outputPath('item-category-'+raw+'.png')});
+  }
+});
+test('pending page: separated sections and compact reachable filters', {tag:'@mobile'}, async({page})=>{
+  if(page.viewportSize()!.width>=1024)await page.setViewportSize({width:1280,height:800});
+  await page.goto(origin+'/#/diag/pending');
+  const pending=page.locator('[data-pending-page]');
+  await expect(pending.locator('[data-pending] .pending-groups')).toBeVisible();
+  const back=pending.getByRole('link',{name:'返回收件箱',exact:true});
+  const description=pending.locator(':scope > p');
+  const filters=pending.getByRole('navigation',{name:'待处理角色筛选'});
+  const results=pending.locator('[data-pending]');
+  const boxes=await Promise.all([back,description,filters,results].map(element=>element.boundingBox()));
+  for(let index=1;index<boxes.length;index++)expect(boxes[index]!.y-(boxes[index-1]!.y+boxes[index-1]!.height)).toBeGreaterThanOrEqual(11);
+  const all=filters.getByRole('link',{name:'所有角色',exact:true});
+  expect((await all.boundingBox())!.width).toBeLessThan((await filters.boundingBox())!.width/2);
+  await expectNoLayoutDefects(page,pending,{minTarget:page.viewportSize()!.width<640?40:0});
+  await filters.getByRole('link').nth(1).click();
+  await expect(page).toHaveURL(/charId=/);
+  await expect(page.locator('[data-pending-page] nav [aria-current="page"]:visible')).toHaveCount(1);
+  await page.locator('[data-pending-page]').getByRole('button',{name:'重新读取',exact:true}).click();
+  await expect(page.locator('[data-pending] .pending-groups')).toBeVisible();
+});
+test('media filters: desktop row and phone sheet keep their layout and values', {tag:'@mobile'}, async({page})=>{
+  await page.goto(origin+'/#/c/'+fid+'/media');
+  const toolbar=page.locator('form.media-toolbar');
+  await expect(toolbar.getByRole('searchbox',{name:'搜索喜欢的画面'})).toBeVisible();
+  if(page.viewportSize()!.width<640){
+    await toolbar.getByRole('button',{name:'筛选',exact:true}).click();
+    const sheet=page.getByRole('dialog',{name:'筛选媒体'});
+    await expect(sheet).toBeVisible();
+    await sheet.getByRole('combobox',{name:'媒体类型'}).click();
+    await page.getByRole('option',{name:'视频',exact:true}).click();
+    await sheet.getByRole('button',{name:'完成',exact:true}).click();
+    await expect(sheet).toBeHidden();
+    await toolbar.getByRole('button',{name:'筛选',exact:true}).click();
+    await expect(sheet.getByRole('combobox',{name:'媒体类型'})).toContainText('视频');
+    await expectNoLayoutDefects(page,sheet,{minTarget:40});
+  }else if(page.viewportSize()!.width>=1024){
+    for(const width of [1280,1440]){
+      await page.setViewportSize({width,height:width===1280?800:900});
+      const controls=[toolbar.locator('.r-search'),toolbar.getByRole('combobox',{name:'媒体类型'}),toolbar.getByText('保存的素材 · 画面不改变生活状态',{exact:true}),toolbar.locator('.media-options')];
+      const boxes=await Promise.all(controls.map(control=>control.boundingBox()));
+      expect(boxes.every(Boolean)).toBeTruthy();
+      const centers=boxes.map(box=>box!.y+box!.height/2);
+      expect(Math.max(...centers)-Math.min(...centers)).toBeLessThanOrEqual(3);
+      await expectNoLayoutDefects(page,toolbar,{minTarget:0});
+    }
+  }
+});
+test('settings introduction appears once at every viewport', {tag:'@mobile'}, async({page})=>{
+  await page.goto(origin+'/#/settings');
+  const management=page.locator('.replica-management');
+  await expect(management.getByText('让每一次相处，按你喜欢的方式发生。',{exact:true})).toBeVisible();
+  await expect(management.getByText('让相处，按你喜欢的方式发生。',{exact:true})).toHaveCount(0);
+  await expect(management.getByRole('heading',{name:'管理中心',exact:true})).toBeVisible();
+});
 test('phone settings: category directory, save and return', {tag:'@mobile'}, async({page})=>{
   test.skip(page.viewportSize()!.width>=640,'Phone presentation only');
   await page.goto(origin+'/#/settings');
