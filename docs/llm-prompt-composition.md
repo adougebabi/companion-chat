@@ -26,6 +26,11 @@ goal_event_candidates、claims、thought、personality_decision，必填仅 resp
    按名加载，下一步即可调用。
 3. 不再有回合前的「是否需要图片工具」预判调用（原 direct_image_discovery）和强制首步查目录；
    是否拍照由角色在主回合自行决定。图片受理后的回复规则（directImageAcceptedReplyRule）保留。
+4. 聊天版 media.image.generate 必填 `capture.in_frame`（me / me_with_others / others / nobody），
+   Core 据此直接确定拍摄方案的主体部分（explicitMediaPlan → applyDeclaredInFrame），不再调用
+   `media_subject_parse`；聊天生图只剩一次 `media_prompt_normalized` 提示词补充。规范化指令要求
+   保留并具体写出 intent 中的表情、情绪、神态和动作，人物入镜而未写表情时按情绪补自然表情，
+   身份外貌资料只用于保持长相一致（2026-11-27）。
 `intention.schedule` 携带具体生活动作
 （action_plan.kind 为 virtual_shopping/haircut/hair_dye）时，模型调用也直接建立临时目标与意向并排入
 日程，到点由意向触发器执行，购物结果入库衣柜；没有具体动作的愿望仍只提交 Goal Planner。

@@ -173,7 +173,56 @@ func explicitMediaPlan(args map[string]any) map[string]any {
 	if capture["mirror"] == true || result["capture_method"] == "mirror_selfie" {
 		result["viewpoint"] = "reflection"
 	}
+	applyDeclaredInFrame(result, capture)
 	return result
+}
+
+// applyDeclaredInFrame turns the caller's structural "who is in the photo"
+// declaration into the subject half of the plan. The chat model already knows
+// what it means to send; declaring it here lets the media pipeline skip the
+// separate subject-parse model call and go straight to the one prompt pass.
+// Values the caller set in media_plan stay authoritative.
+func applyDeclaredInFrame(plan map[string]any, capture map[string]any) {
+	inFrame := stringValue(capture["in_frame"])
+	if inFrame == "" {
+		switch plan["capture_method"] {
+		case "handheld_selfie", "mirror_selfie", "self_timer":
+			inFrame = "me"
+		default:
+			return
+		}
+	}
+	set := func(key, value string) {
+		if _, exists := plan[key]; !exists {
+			plan[key] = value
+		}
+	}
+	switch inFrame {
+	case "me", "me_with_others":
+		set("primary_subject", "person")
+		set("human_presence", "present")
+		set("self_in_frame", "yes")
+		switch plan["framing"] {
+		case "full_body", "wide":
+			set("visible_scope", "full")
+		case "close_up", "half_body", "unspecified", nil:
+			set("visible_scope", "face")
+		}
+	case "others":
+		set("primary_subject", "person")
+		set("human_presence", "present")
+		set("self_in_frame", "no")
+		set("visible_scope", "unknown")
+	case "nobody":
+		subject := "other"
+		if plan["framing"] == "wide" {
+			subject = "landscape"
+		}
+		set("primary_subject", subject)
+		set("human_presence", "none")
+		set("self_in_frame", "no")
+		set("visible_scope", "unknown")
+	}
 }
 
 func mediaQuestion(key string) decision.Question {

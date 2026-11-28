@@ -282,16 +282,17 @@ func imageCapabilityDefinition() CapabilityDefinition {
 func chatToolDefinition(full CapabilityDefinition) CapabilityDefinition {
 	switch full.Name {
 	case "media.image.generate":
-		full.Description = "Take and send a photo yourself (selfie, where you are, what you do or wear). It is generated after this call and sent separately; do not say it was already sent."
+		full.Description = "Send a photo (selfie, your place, what you do or wear). It arrives after this call; don't claim it was sent."
 		full.InputSchema = map[string]any{
-			"type": "object", "additionalProperties": false, "required": []any{"intent"},
+			"type": "object", "additionalProperties": false, "required": []any{"intent", "capture"},
 			"properties": map[string]any{
-				"intent":          map[string]any{"type": "string", "minLength": 1, "maxLength": 4000, "description": "The photo in plain words: who/what, where, outfit, action."},
-				"delivery_target": map[string]any{"type": "string", "enum": []any{"current_moment"}, "description": "Only for a Moment published in this turn."},
+				"intent":          map[string]any{"type": "string", "minLength": 1, "maxLength": 4000, "description": "Plain words: who, where, outfit, action, facial expression, mood."},
+				"delivery_target": map[string]any{"type": "string", "enum": []any{"current_moment"}, "description": "Only for a Moment posted this turn."},
 				"capture": map[string]any{
-					"type": "object", "additionalProperties": false,
+					"type": "object", "additionalProperties": false, "required": []any{"in_frame"},
 					"properties": map[string]any{
-						"mode":    map[string]any{"type": "string", "enum": []any{"selfie", "mirror_selfie", "external_capture", "operator_pov", "first_person", "self_timer"}},
+						"in_frame": map[string]any{"type": "string", "enum": []any{"me", "me_with_others", "others", "nobody"}},
+						"mode":    map[string]any{"type": "string", "enum": []any{"selfie", "mirror_selfie", "external_capture", "first_person", "self_timer"}},
 						"framing": map[string]any{"type": "string", "maxLength": 256, "description": "closeup, upper_body, full_body or scene."},
 					},
 				},
@@ -299,13 +300,13 @@ func chatToolDefinition(full CapabilityDefinition) CapabilityDefinition {
 		}
 	case conversationReplyCapabilityName:
 		// purpose/topic_key describe WakeUp and autonomous contact, not chat.
-		full.Description = "Send your private chat message; this ends the turn. Run memory_event, actor.fact.record, schedule.edit or photos first, never promise them for later."
+		full.Description = "Send your chat message; this ends the turn. Run memory_event, actor.fact.record, schedule.edit or photos first, never promise them for later."
 		full.InputSchema = map[string]any{
 			"type": "object", "additionalProperties": false, "required": []any{"text"},
 			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000, "description": "The message itself."}},
 		}
 	case capabilityCatalogName:
-		full.Description = "Load tools listed under 其他能力 by names, e.g. {\"names\":[\"schedule.replan\"]}; they can be called in the next step. Empty names lists every tool's purpose."
+		full.Description = "Load tools under 其他能力 by name, e.g. {\"names\":[\"schedule.replan\"]}; callable in the next step. Empty names lists all purposes."
 	case scheduleActivityCapabilityName:
 		// stage_id/commitment_id carry Goal Planner stage execution, not chat.
 		full.InputSchema = cloneMap(full.InputSchema)
@@ -315,7 +316,7 @@ func chatToolDefinition(full CapabilityDefinition) CapabilityDefinition {
 		full.InputSchema["properties"] = properties
 		full.Description = "Go shopping/haircut/dye now (start_now=true) or later (preferred_start_at); it goes on your schedule. Clothes: action_plan {kind:\"virtual_shopping\", items:[{category, slot, description}]}; bought items enter your wardrobe."
 	case "memory_event":
-		full.Description = "Remember what happened or matters (or correct a memory) before replying. Revising needs a ref from context or memory.recall; never invent one."
+		full.Description = "Remember what matters (or correct a memory) before replying. Revising needs a ref from context or memory.recall; never invent one."
 	case wardrobeInspectCapabilityName:
 		full.Description = "See your wardrobe: inventory, outfits or what you wear (detail needs item_id, outfit_detail outfit_id). catalogue/catalogue_detail: items you can buy (IDs for shopping)."
 	}
@@ -338,6 +339,7 @@ func imageCapabilityInputSchema() map[string]any {
 			"capture": map[string]any{
 				"type": "object", "additionalProperties": false,
 				"properties": map[string]any{
+					"in_frame":          map[string]any{"type": "string", "enum": []any{"me", "me_with_others", "others", "nobody"}, "description": "Who is visible: me (the task actor), me_with_others, others only, or nobody (scene/object/animal). Declaring it skips subject parsing."},
 					"mode":              map[string]any{"type": "string", "enum": []any{"selfie", "mirror_selfie", "external_capture", "operator_pov", "first_person", "self_timer"}},
 					"framing":           map[string]any{"type": "string", "maxLength": 256, "description": "Explicit requested framing. Prefer closeup, upper_body, full_body, body_detail or scene; preserve its meaning during normalization."},
 					"angle":             map[string]any{"type": "string", "maxLength": 256},
