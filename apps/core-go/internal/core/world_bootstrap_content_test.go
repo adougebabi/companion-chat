@@ -29,7 +29,7 @@ func TestDefaultWorldResidentsHavePersonalNamesAndMatchingPublication(t *testing
 		if !expectedNames[name] || name != publishedName || names[name] {
 			t.Fatalf("resident lacks an individual name matching its immutable publication: name=%q published=%q", name, publishedName)
 		}
-		if positionMode != "unknown" || role != "居民" || background != publishedBackground {
+		if positionMode != "routine" || role != "居民" || background != publishedBackground {
 			t.Fatalf("name seed changed resident authority: mode=%q role=%q background=%q published=%q", positionMode, role, background, publishedBackground)
 		}
 		names[name] = true

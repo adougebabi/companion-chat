@@ -366,6 +366,9 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	}
 	if err == nil && result.Status == "completed" && request.CapabilityName == scheduleActivityCapabilityName && stringValue(output["status"]) == "scheduled" && toolRequestStartsNow(request) {
 		receipt.Result.Output = a.startScheduledActivityNow(ctx, request, output)
+		if stringValue(mapValue(mapValue(receipt.Result.Output)["activity"])["status"]) == "activity_started" {
+			a.advanceStartedNowReceipt(ctx, request, &receipt)
+		}
 	}
 	return receipt, err
 }
@@ -385,6 +388,34 @@ func toolRequestStartsNow(request ToolExecutionRequest) bool {
 // the schedule item ("scheduled-start:<item>"); when the Temporal trigger fires
 // later it replays this receipt instead of starting twice. It runs detached from
 // the caller's model/tool trace, like the trigger workflow does.
+// advanceStartedNowReceipt folds the immediate start into this tool's
+// receipt. The start changed the current life after the schedule commit;
+// settlement chains each receipt's before/after revisions, so the receipt must
+// end where the started activity left life, or the reply looks stale.
+func (a *App) advanceStartedNowReceipt(ctx context.Context, request ToolExecutionRequest, receipt *ToolExecutionReceipt) {
+	foundation, currentState, life, err := readCognitionAuthorityRevisionsWith(ctx, a.DB.Pool(), request.FluctlightID, a.now().UTC())
+	if err != nil {
+		a.recordDiagnosticEvent(ctx, "life.activity.start_now.receipt_failed", "warning", request.FluctlightID, request.OperationID, "", map[string]any{"error": err.Error()})
+		return
+	}
+	facts, err := readCurrentFactsRevisionWith(ctx, a.DB.Pool(), request.FluctlightID)
+	if err != nil {
+		a.recordDiagnosticEvent(ctx, "life.activity.start_now.receipt_failed", "warning", request.FluctlightID, request.OperationID, "", map[string]any{"error": err.Error()})
+		return
+	}
+	authority := receipt.AuthorityRevisions
+	authority.Foundation, authority.CurrentState, authority.LifeContext = foundation, currentState, life
+	if authority.CurrentFacts != "" {
+		authority.CurrentFacts = facts
+	}
+	if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.tool_executions SET invocation=jsonb_set(invocation,'{authority_revisions}',$4::jsonb),result=$5 WHERE fluctlight_id=$1 AND capability_name=$2 AND operation_id=$3`,
+		request.FluctlightID, request.CapabilityName, request.OperationID, jsonBytes(authority), jsonBytes(receipt.Result)); err != nil {
+		a.recordDiagnosticEvent(ctx, "life.activity.start_now.receipt_failed", "warning", request.FluctlightID, request.OperationID, "", map[string]any{"error": err.Error()})
+		return
+	}
+	receipt.AuthorityRevisions = authority
+}
+
 func (a *App) startScheduledActivityNow(ctx context.Context, request ToolExecutionRequest, output map[string]any) map[string]any {
 	result := cloneMap(output)
 	startCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -393,10 +424,15 @@ func (a *App) startScheduledActivityNow(ctx context.Context, request ToolExecuti
 	switch {
 	case err != nil:
 		a.recordDiagnosticEvent(ctx, "life.activity.start_now.failed", "warning", request.FluctlightID, stringValue(output["schedule_item_id"]), "", map[string]any{"error": err.Error()})
-		result["activity"] = map[string]any{"status": "start_failed", "detail": "the trip is on the schedule but did not start; it will start from the schedule trigger"}
+		code, _ := capabilityErrorInfo(err, "activity_start_failed", true)
+		result["activity"] = map[string]any{"status": "start_failed", "cause": code, "detail": "the trip is on the schedule but did not start; it will start from the schedule trigger"}
 	case !handled:
 		result["activity"] = map[string]any{"status": "start_pending"}
 	default:
+		started = cloneMap(started)
+		if started["status"] == "activity_started" {
+			started["detail"] = "You are there now and the trip has begun. What you buy is settled when it ends (not_before); do not claim purchases or failures yet."
+		}
 		result["activity"] = started
 	}
 	return result

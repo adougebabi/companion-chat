@@ -29,6 +29,12 @@ func (a *App) runFormalStructuredTask(ctx context.Context, id FormalAgentID, mes
 
 func (a *App) runFormalStructuredAssemblyTask(ctx context.Context, id FormalAgentID, assembly PromptAssemblyResult, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool, capability *ADKCapabilityRequest) (ADKStructuredTaskResult, error) {
 	assembly.ResponseFormat = schema
+	if len(definitions) == 0 {
+		// A tool-less task nested in a tool call (e.g. the schedule planner run
+		// by intention.schedule during chat) must not inherit the chat turn's
+		// "call the reply tool" request policy: it has no tools to call.
+		ctx = withoutPhysicalModelRequestPolicy(ctx)
+	}
 	return a.RunFormalAgent(ctx, id, FormalAgentRunInput{
 		Prompt: assembly, Definitions: definitions,
 		SchemaName: schemaName, EnableThinking: enableThinking, Capability: capability,

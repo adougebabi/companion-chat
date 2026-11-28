@@ -65,6 +65,15 @@ func recoverToolBusinessResult(inv CapabilityInvocation, result CapabilityResult
 	if staleReply {
 		output["recovery_anchor"] = "stale_reply"
 	}
+	if disposition == "needs_input" && err != nil && output["detail"] == nil {
+		// Say what was wrong with the arguments, so the model can fix them
+		// instead of guessing (validation codes only; no stored data).
+		detail := []rune(err.Error())
+		if len(detail) > 300 {
+			detail = detail[:300]
+		}
+		output["detail"] = string(detail)
+	}
 	if code == "reply_control_value_invalid" {
 		output["detail"] = "Control text was ignored; no message published. Use response_intent for the final silent decision."
 	}

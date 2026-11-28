@@ -41,7 +41,7 @@ func TestCharacterAdmissionNeverCreatesWorldAndExplicitDailyCreatesBaseObjects(t
 	}
 	for _, raw := range arrayValue(snapshot["npcs"]) {
 		npc := mapValue(raw)
-		if npc["confirmed_place_id"] != nil || npc["current_presence"] != nil || npc["position_mode"] != "unknown" {
+		if npc["confirmed_place_id"] != nil || npc["current_presence"] != nil || npc["position_mode"] != "routine" || len(arrayValue(npc["routine"])) == 0 {
 			t.Fatal("configuration invented presence", npc)
 		}
 	}

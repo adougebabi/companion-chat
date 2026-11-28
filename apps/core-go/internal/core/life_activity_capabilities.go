@@ -213,6 +213,12 @@ func (c lifeActivityStartCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i
 		if itemEnd.Before(activeUntil) {
 			activeUntil = itemEnd
 		}
+		// The item is the trip's window. One that started at the top of the
+		// minute (go now) ends up to a minute before now+duration; finish a
+		// minute before the item ends instead of refusing to start.
+		if !notBefore.Before(activeUntil) && activeUntil.Sub(now) >= 15*time.Minute {
+			notBefore = activeUntil.Add(-time.Minute)
+		}
 		if placeID != "" && placeID != scheduledPlace {
 			return failedCapabilityResult(invocation, "scheduled_activity_place_mismatch", false), ErrConflict
 		}

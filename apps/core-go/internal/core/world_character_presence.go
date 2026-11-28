@@ -18,6 +18,13 @@ func npcCharacterPresenceWith(ctx context.Context, q lifeContextQuerier, fid str
 	if life["authority_status"] == "confirmed" && life["event_kind"] != "life_activity" {
 		return map[string]any{"kind": "confirmed_event"}, nil
 	}
+	// A schedule arrival is the character being where its accepted schedule
+	// puts it right now. It is recorded as a place event so presence has an
+	// event to bind to; the stored presence source stays within the existing
+	// confirmed_event/active_activity contract, with the basis kept here.
+	if life["authority_status"] == "inferred" && life["event_kind"] == scheduleArrivalEventKind {
+		return map[string]any{"kind": "confirmed_event", "basis": scheduleArrivalEventKind}, nil
+	}
 	if life["authority_status"] != "inferred" && !(life["authority_status"] == "confirmed" && life["event_kind"] == "life_activity") {
 		return nil, nil
 	}

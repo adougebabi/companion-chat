@@ -79,6 +79,11 @@ func scheduledActionPlanFromArguments(args map[string]any) (map[string]any, erro
 	}
 	plan["capability"] = lifeActivityStartCapabilityName
 	plan["reason"] = args["reason"]
+	if _, given := plan["duration_minutes"]; !given {
+		// A typical length, so "go shopping now" does not fail on a field the
+		// model had no reason to know about.
+		plan["duration_minutes"] = map[string]int{"virtual_shopping": 90, "haircut": 60, "hair_dye": 120}[stringValue(plan["kind"])]
+	}
 	if err := validateScheduledLifeActionPlan(plan); err != nil {
 		return plan, newCapabilityError("schedule_action_invalid", false, err)
 	}

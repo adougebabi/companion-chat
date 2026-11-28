@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 	"log/slog"
+	"strings"
 )
 
 // handledCapabilityResult reports a processed call without asserting an effect.
@@ -36,6 +37,22 @@ func preparedHandledCapabilityResult(inv CapabilityInvocation) (CapabilityResult
 }
 
 func normalizeNativeModelArguments(arguments json.RawMessage, definition CapabilityDefinition) (json.RawMessage, error) {
+	if _, hasDecision := mapValue(definition.InputSchema["properties"])["decision"]; definition.Name == conversationReplyCapabilityName && hasDecision {
+		// The chat model sees a text-only reply tool. A plain-text decision is
+		// its response intent, not a reason to reject the message.
+		// A missing one gets the neutral default the reply settlement already
+		// tolerates (Prepare sanitizes decisions and never rejects the text).
+		if args := decodeObject(arguments); args != nil && args["text"] != nil {
+			switch decision := args["decision"].(type) {
+			case string:
+				args["decision"] = map[string]any{"response_intent": firstString(strings.TrimSpace(decision), "reply")}
+				arguments = jsonBytes(args)
+			case nil:
+				args["decision"] = map[string]any{"response_intent": "reply"}
+				arguments = jsonBytes(args)
+			}
+		}
+	}
 	normalized, err := capability.NormalizeModelArguments(arguments, definition.InputSchema)
 	if err == nil && jsonString(decodeObject(arguments)) != string(normalized) {
 		slog.Warn("tool.arguments.normalized", "capability", definition.Name, "original_bytes", len(arguments), "normalized_bytes", len(normalized))

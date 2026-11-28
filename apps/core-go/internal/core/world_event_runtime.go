@@ -235,6 +235,15 @@ func (a *App) executeWorldEvent(ctx context.Context, run map[string]any, at time
 				}
 			}
 		}
+		placeName := ""
+		if place := stringValue(life["place_id"]); place != "" {
+			_ = tx.QueryRow(ctx, `SELECT name FROM public.world_places WHERE id=$1`, place).Scan(&placeName)
+		}
+		if life["behavior_state"] != "sleep" {
+			if err := a.recordWorldEventMemoryTx(ctx, tx, fid, stringValue(r["id"]), stringValue(d["description"]), placeName, at); err != nil {
+				return err
+			}
+		}
 		_, err = tx.Exec(ctx, `UPDATE public.world_event_templates SET last_triggered_at=$2,error_code=NULL,updated_at=now() WHERE id=$1`, t["id"], at)
 		return err
 	})

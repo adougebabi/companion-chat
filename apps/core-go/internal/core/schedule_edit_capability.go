@@ -294,9 +294,24 @@ func (c scheduleEditCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invoca
 func (a *App) alignCurrentSceneWithScheduleTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation) error {
 	fluctlightID := invocation.Metadata.FluctlightID
 	at := a.now().UTC()
-	_, life, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, at)
-	if err != nil || stringValue(life["source"]) != "event" {
+	if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
 		return err
+	}
+	_, life, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, at)
+	if err != nil {
+		return err
+	}
+	if life["source"] == "schedule" || life["event_kind"] == scheduleArrivalEventKind {
+		// The character was where the schedule put them: follow the edited
+		// item by re-arriving, which keeps place presence for the world.
+		if _, err := cancelScheduleArrivalTx(ctx, tx, fluctlightID, life, at); err != nil {
+			return err
+		}
+		_, err := a.arriveAtScheduledPlaceTx(ctx, tx, fluctlightID)
+		return err
+	}
+	if stringValue(life["source"]) != "event" {
+		return nil
 	}
 	schedule, err := a.currentAcceptedScheduleTx(ctx, tx, fluctlightID)
 	if err != nil {

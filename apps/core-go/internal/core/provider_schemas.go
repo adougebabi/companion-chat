@@ -60,7 +60,9 @@ func enumStringSchema(values ...string) map[string]any {
 }
 
 func unitNumberSchema() map[string]any {
-	return map[string]any{"type": "number", "minimum": 0, "maximum": 1}
+	// The description carries the range to providers whose strict wire
+	// schema drops minimum/maximum.
+	return map[string]any{"type": "number", "minimum": 0, "maximum": 1, "description": "0 to 1"}
 }
 
 func arraySchema(items map[string]any) map[string]any {

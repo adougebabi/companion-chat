@@ -627,22 +627,18 @@ func (a *App) notifyWorldEventMembersTx(ctx context.Context, tx pgx.Tx, run, def
 		if err != nil {
 			return err
 		}
-		source, err := npcCharacterPresenceWith(ctx, tx, fid, life, at)
-		if err != nil {
+		// World-wide effects reach every member wherever they are; place
+		// effects reach members at that place (schedule arrivals count).
+		effects := worldEventMemberEffects(definition, life)
+		if len(effects) == 0 || life["behavior_state"] == "sleep" {
+			continue
+		}
+		placeName := ""
+		if place := stringValue(life["place_id"]); place != "" {
+			_ = tx.QueryRow(ctx, `SELECT name FROM public.world_places WHERE id=$1`, place).Scan(&placeName)
+		}
+		if err := a.recordWorldEventMemoryTx(ctx, tx, fid, stringValue(run["id"]), stringValue(definition["description"]), placeName, at); err != nil {
 			return err
-		}
-		if source == nil {
-			continue
-		}
-		effects := []any{}
-		for _, raw := range arrayValue(definition["effects"]) {
-			effect := mapValue(raw)
-			if effect["scope"] == "world" || effect["scope"] == "place" && effect["place_id"] == life["place_id"] {
-				effects = append(effects, copyPromptData(effect))
-			}
-		}
-		if len(effects) == 0 {
-			continue
 		}
 		if _, err := a.enqueueNativeFactTx(ctx, tx, fid, "", stringValue(run["id"]), "life.world.event", "world-observation:"+stringValue(run["id"])+":"+fid, map[string]any{"world_id": run["world_id"], "world_name": name, "description": definition["description"], "effects": effects, "occurred_at": at.Format(time.RFC3339Nano), "source": "executed_world_event"}); err != nil {
 			return err

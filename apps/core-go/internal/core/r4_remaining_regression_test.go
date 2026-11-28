@@ -181,12 +181,13 @@ func TestR4WorldStarterTemplatesSupportManualTriggerAndSafeUpgrade(t *testing.T)
 	}
 	for _, raw := range items {
 		item := mapValue(raw)
-		if item["enabled"] != false || item["source_resource_id"] == nil || item["generation_id"] != nil || validateWorldEventDefinition(mapValue(item["definition"])) != nil {
+		// Starters run automatically (low chance) unless the Owner changed them.
+		if item["enabled"] != true || mapValue(mapValue(item["definition"])["trigger"])["mode"] != "automatic" || item["source_resource_id"] == nil || item["generation_id"] != nil || validateWorldEventDefinition(mapValue(item["definition"])) != nil {
 			t.Fatal("invalid starter", item)
 		}
 	}
 	id := stringValue(mapValue(items[0])["id"])
-	enabled := eventRuntimeCall(t, f, "PUT", "/"+id, map[string]any{"enabled": true, "expected_revision": 1})
+	enabled := eventRuntimeCall(t, f, "PUT", "/"+id, map[string]any{"enabled": true, "expected_revision": mapValue(items[0])["revision"]})
 	queued := eventRuntimeCall(t, f, "POST", "/"+id+"/runs", map[string]any{"expected_revision": enabled["revision"]})
 	if queued["status"] != "queued" {
 		t.Fatal(queued)

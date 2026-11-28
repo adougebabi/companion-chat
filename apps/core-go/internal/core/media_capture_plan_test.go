@@ -868,6 +868,12 @@ func TestMediaNormalizedPromptSchemaLimitsReferenceIDs(t *testing.T) {
 			format := providerResponseFormatForSchema("media_prompt", "media_prompt_normalized", schema)
 			wire := mapValue(mapValue(format["json_schema"])["schema"])
 			refs := mapValue(mapValue(wire["properties"])["used_reference_ids"])
+			if test.assetID == "" {
+				// "Must be empty" is maxItems 0, which strict wire schemas drop
+				// (enum:[[]] is rejected by some providers); the server-side
+				// schema and validateMediaNormalization enforce it.
+				refs = mapValue(mapValue(schema["properties"])["used_reference_ids"])
+			}
 			if err := validateCapabilitySchemaValue(test.allowed, refs); err != nil {
 				t.Fatalf("allowed references rejected: %v", err)
 			}

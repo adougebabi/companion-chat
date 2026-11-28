@@ -30,7 +30,23 @@ func (wire *r7LiveWire) RoundTrip(request *http.Request) (*http.Response, error)
 	if err != nil {
 		return nil, err
 	}
+	if request.URL != nil && request.URL.Host == "api.openai.com" {
+		// OpenAI rejects the Qwen-style enable_thinking extension; drop it for
+		// the official endpoint only. The product request is otherwise unchanged.
+		if body := decodeObject(raw); len(body) > 0 {
+			delete(body, "enable_thinking")
+			// OpenAI strict mode rejects some valid JSON Schemas (e.g. an enum
+			// of arrays); non-strict still returns schema-shaped JSON, which
+			// the product validates itself.
+			if schema := mapValue(mapValue(body["response_format"])["json_schema"]); len(schema) > 0 {
+				schema["strict"] = false
+			}
+			raw = jsonBytes(body)
+			request.ContentLength = int64(len(raw))
+		}
+	}
 	request.Body = io.NopCloser(bytes.NewReader(raw))
+	setLiveProviderAuth(request) // protected endpoints only; key never logged
 	started := time.Now()
 	response, err := http.DefaultTransport.RoundTrip(request)
 	row := map[string]any{"request": decodeObject(raw)}

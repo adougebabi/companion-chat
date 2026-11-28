@@ -282,6 +282,12 @@ func main() {
 		if _, err := application.EnsureLegacyScheduleWorldReconciliation(ctx, 50); err != nil {
 			logger.Error("World schedule place reconciliation failed", "error", err)
 		}
+		if _, err := application.EnsureWorldDefaults(ctx, 20); err != nil {
+			logger.Error("World default NPC routine/starter backfill failed", "error", err)
+		}
+		if _, err := application.EnsureScheduledArrivals(ctx, 200); err != nil {
+			logger.Error("Scheduled place arrival repair failed", "error", err)
+		}
 		if _, err := application.RepairWorldNPCPresence(ctx, 20); err != nil {
 			logger.Error("NPC presence recovery failed", "error", err)
 		}

@@ -1045,7 +1045,8 @@ func validateCapabilitySchemaValue(value any, schema map[string]any) error {
 		if minItems := intValue(schema["minItems"]); minItems > 0 && len(items) < minItems {
 			return fmt.Errorf("array is shorter than minItems %d", minItems)
 		}
-		if maxItems := intValue(schema["maxItems"]); maxItems > 0 && len(items) > maxItems {
+		if raw, declared := schema["maxItems"]; declared && len(items) > intValue(raw) {
+			maxItems := intValue(raw)
 			return fmt.Errorf("array exceeds maxItems %d", maxItems)
 		}
 		itemSchema := mapValue(schema["items"])

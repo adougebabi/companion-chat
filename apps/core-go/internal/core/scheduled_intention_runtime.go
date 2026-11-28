@@ -98,7 +98,7 @@ func (a *App) processScheduledIntentionTrigger(ctx context.Context, intentionID,
 	arguments["schedule_item_id"] = itemID
 	receipt, err := a.ExecuteTool(ctx, ToolExecutionRequest{
 		AuthorizationPolicy: "autonomy", CapabilityName: lifeActivityStartCapabilityName, OperationID: "scheduled-start:" + itemID,
-		AuthorizationActorID: ownerID, FluctlightID: fluctlightID,
+		AuthorizationActorID: ownerID, FluctlightID: fluctlightID, WorkingProfileID: profileID,
 		EvidenceID: "schedule-item:" + itemID, Surface: CapabilitySurfaceNativeCognition,
 		CorrelationID: "scheduled-intention:" + intentionID, Arguments: jsonBytes(arguments),
 	})
@@ -107,7 +107,7 @@ func (a *App) processScheduledIntentionTrigger(ctx context.Context, intentionID,
 	}
 	activityID := stringValue(mapValue(receipt.Result.Output)["activity_id"])
 	if receipt.Result.Status != "accepted" || activityID == "" {
-		return nil, true, fmt.Errorf("scheduled activity start was not accepted: %s", receipt.Result.Status)
+		return nil, true, fmt.Errorf("scheduled activity start was not accepted: %s %s %s", receipt.Result.Status, receipt.Result.ErrorCode, stringValue(mapValue(receipt.Result.Output)["warning_code"]))
 	}
 	return map[string]any{"intention_id": intentionID, "status": "activity_started", "activity_id": activityID,
 		"not_before": mapValue(receipt.Result.Output)["not_before"], "schedule_item_id": itemID}, true, nil

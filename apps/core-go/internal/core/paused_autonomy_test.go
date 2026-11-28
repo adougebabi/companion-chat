@@ -187,7 +187,9 @@ func TestPausedCharacterDoesNotStopIndependentNPCWorld(t *testing.T) {
 	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT (SELECT count(*) FROM public.world_npc_presence_runs r JOIN public.life_worlds w ON w.id=r.world_id WHERE w.fluctlight_id=$1), (SELECT count(*) FROM public.world_event_runs WHERE fluctlight_id=$1)`, fixture.fluctlightID).Scan(&presence, &runs); err != nil {
 		t.Fatal(err)
 	}
-	if presence != 1 || runs != 0 {
+	// The test NPC plus the two default residents, whose routines put them in
+	// public places at this hour.
+	if presence != 3 || runs != 0 {
 		t.Fatalf("independent world presence=%d, paused character events=%d", presence, runs)
 	}
 }

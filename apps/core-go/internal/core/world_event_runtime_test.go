@@ -78,6 +78,11 @@ func TestWorldEventDefinitionClosedEffectsAndOvernightConditions(t *testing.T) {
 }
 func TestWorldEventQueueExecutionReplayCooldownAndQueryPurity(t *testing.T) {
 	f, _, _, now := seedNPCEncounterRuntime(t, true)
+	// Automatic starter events would add their own world effects; this test
+	// counts only the template it triggers.
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.world_event_templates SET enabled=false WHERE id LIKE 'world_template_starter_%'`); err != nil {
+		t.Fatal(err)
+	}
 	d := worldEventTestDefinition(map[string]any{"kind": "weather", "scope": "world", "value": "virtual rain"})
 	template := applyTestWorldEvent(t, f, d)
 	id := stringValue(template["id"])

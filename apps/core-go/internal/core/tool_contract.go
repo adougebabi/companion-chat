@@ -314,11 +314,11 @@ func chatToolDefinition(full CapabilityDefinition) CapabilityDefinition {
 		delete(properties, "stage_id")
 		delete(properties, "commitment_id")
 		full.InputSchema["properties"] = properties
-		full.Description = "Go shopping/haircut/dye now (start_now=true) or later (preferred_start_at); it goes on your schedule. Clothes: action_plan {kind:\"virtual_shopping\", items:[{category, slot, description}]}; bought items enter your wardrobe."
+		full.Description = "Go shopping/haircut/dye now (start_now=true) or later (preferred_start_at); it goes on your schedule. Clothes: action_plan {kind:\"virtual_shopping\", items:[{category, slot, description}]} free text, no catalogue needed; bought items enter your wardrobe."
 	case "memory_event":
 		full.Description = "Remember what matters (or correct a memory) before replying. Revising needs a ref from context or memory.recall; never invent one."
 	case wardrobeInspectCapabilityName:
-		full.Description = "See your wardrobe: inventory, outfits or what you wear (detail needs item_id, outfit_detail outfit_id). catalogue/catalogue_detail: items you can buy (IDs for shopping)."
+		full.Description = "See your wardrobe: inventory, outfits or what you wear (detail needs item_id, outfit_detail outfit_id). catalogue: optional shop listings."
 	}
 	return full
 }

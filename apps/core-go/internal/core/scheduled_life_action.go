@@ -112,6 +112,10 @@ func scheduledActionMatchesArguments(plan, args map[string]any) bool {
 	return jsonString(plan["items"]) == jsonString(args["items"])
 }
 
+// scheduledStartNowWindow is how far in the past a "go now" item may start
+// (start_now truncates to the minute) and still be bound to its intention.
+const scheduledStartNowWindow = 5 * time.Minute
+
 func syncScheduledIntentionTx(ctx context.Context, tx pgx.Tx, intentionID, itemID string, startAt, at time.Time) error {
 	current, err := loadIntentionAuthorityByIDTx(ctx, tx, intentionID)
 	if err != nil {
@@ -120,7 +124,7 @@ func syncScheduledIntentionTx(ctx context.Context, tx pgx.Tx, intentionID, itemI
 	if current.Status != IntentionCandidate && current.Status != IntentionQualified {
 		return errors.New("scheduled_intention_not_plannable")
 	}
-	if !startAt.After(at) || !startAt.Before(current.Expiration) {
+	if startAt.Before(at.Add(-scheduledStartNowWindow)) || !startAt.Before(current.Expiration) {
 		return errors.New("scheduled_intention_time_invalid")
 	}
 	trigger := TypedIntentionTrigger{Type: IntentionTriggerTime, DueAt: &startAt}

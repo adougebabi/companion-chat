@@ -298,7 +298,9 @@ func TestNativeRetryableToolFailureRemainsFailureOnTraceReplay(t *testing.T) {
 	app.Capabilities = registry
 	trace := &ADKCapabilityTrace{}
 	trace.RecordModelToolCalls("physical-request", 1, []schema.ToolCall{{ID: "retryable-call"}})
-	request := ADKCapabilityRequest{OperationID: "test-run", AuthorizationActorID: "fixture-owner", FluctlightID: "fixture-character", SourceFactID: "fixture-source", Projection: nativeGoalTestProjection()}
+	// Outside chat a dependency failure still ends the run (chat side
+	// actions report it to the model instead; see the test below).
+	request := ADKCapabilityRequest{OperationID: "test-run", AuthorizationActorID: "fixture-owner", FluctlightID: "fixture-character", SourceFactID: "fixture-source", Projection: nativeGoalTestProjection(), Surface: CapabilitySurfaceNativeCognition}
 	invoker := newAppADKCapabilityInvoker(app, request, trace).(ADKCapabilityInvokerWithID)
 	first, firstErr := invoker.ExecuteWithID(context.Background(), "retryable-call", "goal.inspect", `{"operation":"list"}`)
 	var firstFailure *agentRunFailure
@@ -343,5 +345,42 @@ func TestNativeGoalInspectPreservesScopedPagination(t *testing.T) {
 	output := mapValue(c.NativeOutput(map[string]any{"goals": []any{}, "has_more": true, "next_cursor": 20}, nativeGoalTestProjection()))
 	if output["has_more"] != true || intValue(output["next_cursor"]) != 20 {
 		t.Fatal(output)
+	}
+}
+
+func TestChatSideActionFailureIsReportedNotFatal(t *testing.T) {
+	app := &App{}
+	registry, err := NewCapabilityRegistry(builtinCapabilities(app)...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.Capabilities = registry
+	trace := &ADKCapabilityTrace{}
+	trace.RecordModelToolCalls("physical-request", 1, []schema.ToolCall{{ID: "chat-side-call"}})
+	request := ADKCapabilityRequest{OperationID: "test-run", AuthorizationActorID: "fixture-owner", FluctlightID: "fixture-character", SourceFactID: "fixture-source", Projection: nativeGoalTestProjection(), Surface: CapabilitySurfaceConversation}
+	invoker := newAppADKCapabilityInvoker(app, request, trace).(ADKCapabilityInvokerWithID)
+	result, err := invoker.ExecuteWithID(context.Background(), "chat-side-call", "goal.inspect", `{"operation":"list"}`)
+	if err != nil || !strings.Contains(result, "changed nothing") {
+		t.Fatalf("chat side action failure should come back as a result: result=%s err=%v", result, err)
+	}
+}
+
+func TestTextOnlyChatReplyGetsADefaultDecision(t *testing.T) {
+	definition := (directMainReplyCapability{}).Definition()
+	for _, raw := range []string{`{"text":"好的"}`, `{"text":"好的","decision":"答应对方"}`} {
+		normalized, err := normalizeNativeModelArguments(json.RawMessage(raw), definition)
+		if err != nil {
+			t.Fatalf("%s: %v", raw, err)
+		}
+		if err := validateCapabilitySchemaValue(decodeObject(normalized), definition.InputSchema); err != nil {
+			t.Fatalf("%s normalized to an invalid reply: %s %v", raw, normalized, err)
+		}
+	}
+	plain := conversationReplyCapabilityDefinition()
+	if _, has := mapValue(plain.InputSchema["properties"])["decision"]; !has {
+		normalized, err := normalizeNativeModelArguments(json.RawMessage(`{"text":"好的"}`), plain)
+		if err != nil || strings.Contains(string(normalized), "decision") {
+			t.Fatalf("decision added to a reply tool without one: %s %v", normalized, err)
+		}
 	}
 }

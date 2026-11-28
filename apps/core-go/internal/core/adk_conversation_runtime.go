@@ -418,6 +418,26 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	var runFailure error
 	if execErr != nil && result.Retryable {
 		runFailure = &agentRunFailure{stage: "tool", code: result.ErrorCode, cause: fmt.Errorf("tool execution %s: %w", result.ErrorCode, execErr)}
+		if i.request.Surface == CapabilitySurfaceConversation && capabilityName != conversationReplyCapabilityName {
+			// In a chat turn a failed side action (planner, catalogue, image
+			// setup) is reported to the model, which can still answer honestly;
+			// aborting would lose the whole reply. Its transaction already
+			// rolled back, and only the reply itself can end the turn.
+			runFailure = nil
+			output := cloneMap(mapValue(result.Output))
+			if output == nil {
+				output = map[string]any{}
+			}
+			if cause := stringValue(output["detail"]); cause != "" {
+				output["cause"] = cause
+			} else if execErr != nil {
+				output["cause"] = execErr.Error()
+			}
+			output["retry_same_arguments"] = false
+			output["detail"] = "This action failed and changed nothing. Do not claim it happened; you may tell the user it did not work this time."
+			result.Output = output
+			receipt.Result = result
+		}
 	}
 	i.trace.AppendResultWithFailure(result, runFailure)
 	if gate := kevPersona(ctx); gate != nil && capabilityName == personaSwitchCapabilityName {
@@ -429,7 +449,10 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		gate.mu.Unlock()
 	}
 	recoveredStale := result.Status == "handled" && mapValue(result.Output)["refresh_context"] == true
-	if errors.Is(execErr, ErrLifeContextStale) || recoveredStale || (execErr == nil && receipt.AuthorityRevisions.Before != nil && (result.Status == "completed" || result.Status == "accepted")) {
+	// Going somewhere now starts the activity after the schedule commit, which
+	// changes the current life; the reply must see the new context.
+	startedNow := capabilityName == scheduleActivityCapabilityName && stringValue(mapValue(mapValue(result.Output)["activity"])["status"]) == "activity_started"
+	if errors.Is(execErr, ErrLifeContextStale) || recoveredStale || startedNow || (execErr == nil && receipt.AuthorityRevisions.Before != nil && (result.Status == "completed" || result.Status == "accepted")) {
 		if adkContext, ok := adkCapabilityContext(ctx); ok {
 			if capabilityName == conversationReplyCapabilityName && (errors.Is(execErr, ErrLifeContextStale) || mapValue(result.Output)["refresh_reply"] == true) {
 				adkContext.Refresh.markStaleReply(callID)

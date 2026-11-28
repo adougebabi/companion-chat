@@ -28,7 +28,8 @@ func mediaNormalizationSchemaForReference(assetID string) map[string]any {
 	schema := mediaNormalizationSchema()
 	references := mapValue(mapValue(schema["properties"])["used_reference_ids"])
 	if assetID == "" {
-		references["enum"] = []any{[]any{}}
+		// maxItems 0 says "empty" portably; some providers reject enum:[[]].
+		references["maxItems"] = 0
 		references["description"] = "No reference image is authorized for this request. Return an empty array. Subject IDs never belong here."
 	} else {
 		references["items"] = enumStringSchema(assetID)

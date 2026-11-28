@@ -65,6 +65,17 @@ func normalizeModelValue(value any, schema map[string]any) any {
 			}
 		}
 	}
+	// Strict wire schemas send an open object as {"json": "<object text>"}
+	// (strictFreeformObjectSchema). A model that follows that wire shape must
+	// reach Core as the object it encoded, not as a one-key wrapper.
+	if wrapper, ok := value.(map[string]any); ok && len(wrapper) == 1 && schemaIsFreeformObject(schema) {
+		if text, isText := wrapper["json"].(string); isText {
+			var decoded map[string]any
+			if json.Unmarshal([]byte(text), &decoded) == nil && decoded != nil {
+				value = decoded
+			}
+		}
+	}
 	if object, ok := value.(map[string]any); ok && (schema["type"] == "object" || len(mapValue(schema["properties"])) > 0) {
 		properties := mapValue(schema["properties"])
 		required := map[string]bool{}
