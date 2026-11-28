@@ -3,7 +3,7 @@
 export const GALLERY_CATALOG = {
   'mobile-navigation': { title: '手机主导航', overlay: false, states: ['normal', 'long', 'disabled'] },
   'bottom-sheet': { title: '手机底部操作', overlay: true, states: ['normal', 'long', 'empty', 'loading', 'error'] },
-  'workspace-dialog': { title: '业务详情与编辑浮层', overlay: true, states: ['page', 'sheet', 'dialog', 'long', 'busy'] },
+  'workspace-dialog': { title: '业务详情与编辑浮层', overlay: true, states: ['page', 'sheet', 'dialog', 'long', 'busy', 'header-action'] },
   'compact-dialog': { title: '手机简短确认', overlay: true, states: ['normal', 'long', 'busy'] },
   page: { title: '页面容器与内容区', overlay: false, states: ['normal', 'long', 'empty', 'loading', 'error'] },
   'detail-sheet': { title: '详情抽屉', overlay: true, states: ['normal', 'long', 'empty', 'loading', 'error'] },
@@ -19,6 +19,7 @@ export const GALLERY_CATALOG = {
   'migrated-detail-drawer': { title: '已迁移：DetailDrawer', overlay: true, states: ['normal', 'long'] },
   'migrated-drawer-frame': { title: '已迁移：DrawerFrame', overlay: true, states: ['normal', 'long'] },
   // Product component with fixture reads (no service): chat 本轮详情 drawer.
+  'diagnostic-loops': { title: '多轮模型调用组', overlay: false, states: ['normal','long','partial','running','empty','loading','error'] },
   'turn-details': { title: '本轮详情（聊天回合时间线）', overlay: true, states: ['normal', 'loading', 'empty', 'read-error', 'long'] },
 } as const;
 export type GalleryId = keyof typeof GALLERY_CATALOG;

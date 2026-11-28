@@ -20,7 +20,7 @@ function task(id:string,patch:Partial<TaskSeed>):TaskSeed{
 }
 const step=(id:string,event_type:string,status:string,minute:number,reason_code='')=>({id,event_type,name:event_type,status,reason_code,at:at(minute)});
 
-export type CallSeed={sequence:number;status:string;minute:number;seconds:number;prompt?:unknown;response?:unknown;error_code?:string;error?:string;stage?:string;role?:string};
+export type CallSeed={sequence:number;status:string;minute:number;seconds:number;prompt?:unknown;response?:unknown;error_code?:string;error?:string;stage?:string;role?:string;logical_run_id?:string;round_count?:number;model_id?:string};
 export type ScenarioDataset={tasks:Record<string,TaskSeed>;calls:Record<string,CallSeed[]>;agentRuns:Record<string,BrowserDiagnosticRecord[]>;workflows:Record<string,BrowserWorkflowInspection>;media:Record<string,BrowserDiagnosticRecord[]>;visual:BrowserVisualManagement;visualResumes:BrowserVisualSubmissionBody[];notifications:BrowserNotification[];pending:BrowserPendingGroup[];readAll:unknown[]};
 
 /** A fresh, mutable copy per page load: refresh/actions mutate it, a reload restores it. */
@@ -56,6 +56,13 @@ export function createDataset():ScenarioDataset{
   'corr-succeeded':[call(1,'completed',2,2.4),call(2,'completed',4,1.8)],
   'corr-failed':[call(1,'completed',2,2.1),call(2,'failed',5,30,{error_code:'provider_unavailable'}),call(3,'failed',9,30,{error_code:'provider_unavailable'})],
   'corr-long':[call(1,'failed',3,41.5,{prompt:longText('完整提示词',40),response:longText('模型原始输出',30),error_code:'schema_mismatch'})],
+  'corr-loop':[
+   call(3,'completed',5,1.8,{role:'conversation_cognition',logical_run_id:'loop-main',round_count:3,stage:'final_response',model_id:'second-recorded-model',prompt:'Loop 第 3 次请求',response:'已核对工具结果，给出最终回答。'}),
+   call(2,'failed',4,30,{role:'conversation_cognition',logical_run_id:'loop-main',round_count:3,error_code:'provider_unavailable',error:'provider HTTP 503',prompt:'Loop 第 2 次请求'}),
+   call(1,'completed',3,2.1,{role:'conversation_cognition',logical_run_id:'loop-main',round_count:3,stage:'tool_request',prompt:'Loop 第 1 次请求',response:{tool_calls:[{id:'recorded-tool',function:{name:'wardrobe.inspect',arguments:'{}'}}]}}),
+   call(1,'completed',6,1.4,{role:'fact_only_reply',logical_run_id:'writer-child',prompt:'Writer 请求',response:'这周末一起去。'}),
+   call(1,'completed',2,.8,{role:'kev_decision',logical_run_id:'loop-main',prompt:'Kev 请求',response:{accepted:true}}),
+  ],
   // Chat turns (correlation id turn:<turnId>), read by the chat 本轮详情 drawer.
   'turn:turn-ok':[call(1,'completed',10,2.2,{role:'conversation_cognition',prompt:{messages:[{role:'user',content:'今天去看展了吗？'}]},response:{content:'想先回忆一下今天的安排。'}}),call(2,'completed',10,1.6,{role:'fact_only_reply',prompt:{messages:[{role:'user',content:'今天去看展了吗？'}]},response:{content:'去了，人不多，下次一起去。'}})],
   'turn:turn-failed':[call(1,'completed',12,2.0,{role:'conversation_cognition',prompt:{messages:[{role:'user',content:'那周末一起去海边？'}]},response:{content:'她想答应，但要先看看周末的排班。'}}),call(2,'failed',12,30,{role:'fact_only_reply',prompt:{messages:[{role:'user',content:'那周末一起去海边？'}]},error_code:'provider_unavailable',error:'provider HTTP 503: upstream overloaded'})],
@@ -104,7 +111,7 @@ function workflowInspection(value:TaskSeed):BrowserWorkflowInspection{
 
 export function callRecord(correlationId:string,seed:CallSeed,index:number):BrowserDiagnosticRecord{
  const started=at(seed.minute),completed=new Date(Date.parse(started)+seed.seconds*1000).toISOString();
- return {id:`${correlationId}-call-${index+1}`,ref:`${correlationId}-call-${index+1}`,kind:'model-runs',occurred_at:started,data:{id:`${correlationId}-call-${index+1}`,correlation_id:correlationId,logical_run_id:correlationId+'-run',model_call_id:`${correlationId}-mc-${index+1}`,physical_sequence:seed.sequence,sequence:seed.sequence,round_count:1,status:seed.status,stage:seed.stage,model_id:'qwen3-32b',role:seed.role||'goal_planner',binding_role:seed.role||'goal_planner',fluctlight_id:scenarioCharacter.id,queued_at:started,created_at:started,started_at:started,completed_at:completed,latency_ms:Math.round(seed.seconds*1000),prompt:seed.prompt,response:seed.response,...(seed.error_code?{error_code:seed.error_code}:{}),...(seed.error?{error:seed.error}:{})}};
+ return {id:`${correlationId}-call-${index+1}`,ref:`${correlationId}-call-${index+1}`,kind:'model-runs',occurred_at:started,data:{id:`${correlationId}-call-${index+1}`,correlation_id:correlationId,logical_run_id:seed.logical_run_id||correlationId+'-run',model_call_id:`${correlationId}-mc-${index+1}`,physical_sequence:seed.sequence,sequence:seed.sequence,round_count:seed.round_count??1,status:seed.status,stage:seed.stage,model_id:seed.model_id||'qwen3-32b',role:seed.role||'goal_planner',binding_role:seed.role||'goal_planner',fluctlight_id:scenarioCharacter.id,queued_at:started,created_at:started,started_at:started,completed_at:completed,latency_ms:Math.round(seed.seconds*1000),prompt:seed.prompt,response:seed.response,...(seed.error_code?{error_code:seed.error_code}:{}),...(seed.error?{error:seed.error}:{})}};
 }
 
 export type Scenario={id:string;label:string;hash:string;/** fail the first N reads of matching paths */failFirst?:{pattern:RegExp;times:number};delayMs?:number;/** reads of `running` until it completes */runningCompletesAfter?:number};
@@ -121,6 +128,8 @@ export const scenarios:Scenario[]=[
  {id:'task-read-error',label:'9b 任务读取失败（第一次），重试后恢复',hash:'#/diag?view=tasks&taskId=failed',failFirst:{pattern:/^\/api\/diagnostics\/tasks\//,times:1}},
  {id:'calls-read-error',label:'9c 模型调用读取失败（第一次），重试后恢复',hash:'#/diag?view=tasks&taskId=failed',failFirst:{pattern:/^\/api\/diagnostic-records\/model-runs\?.*correlationId=corr-failed/,times:1}},
  {id:'calls-failed',label:'诊断 · 多次调用部分失败（调用列表）',hash:'#/diag?view=calls&correlationId=corr-failed'},
+ {id:'calls-loop-paged',label:'诊断 · Loop 跨页补齐（保留已打开详情与焦点）',hash:'#/diag?view=calls&correlationId=corr-loop',delayMs:300},
+ {id:'calls-loop',label:'诊断 · 同一 Loop 多轮调用与 Writer / Kev 边界',hash:'#/diag?view=calls&correlationId=corr-loop'},
  {id:'calls-long',label:'诊断 · 超长调用内容（调用列表）',hash:'#/diag?view=calls&correlationId=corr-long'},
  {id:'task-list',label:'任务中心列表',hash:'#/diag?view=tasks'},
  {id:'visual-submission-review',label:'视觉身份 · 候选图接单待人工核对',hash:'#/media?tab=identity&fid='+scenarioCharacter.id},

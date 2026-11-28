@@ -131,15 +131,6 @@ body {
   box-shadow: none;
 }
 /* Sheet geometry: ResponsiveSheet only (styles/overlay.css). */
-.schedule-settings-sheet [data-section="today"] > [data-schedule-suggestions] {
-  margin-bottom: 20px;
-}
-.schedule-settings-sheet .schedule-item-heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 10px;
-}
 [data-slot="select-content"],
 [data-slot="dropdown-menu-content"] {
   max-width: min(480px, calc(100vw - 24px));

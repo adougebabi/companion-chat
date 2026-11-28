@@ -13,7 +13,7 @@ import TaskExecutionResults,{TaskLifecycle} from '../shared/TaskExecutionResults
 import useWorkspaceRead from '../shared/useWorkspaceRead';
 import {useWorkspace} from '../page';
 import {domainName,errorMessage,stateLabel} from '@/v3/domain-presentation.mjs';
-import {diagnosticInstant,taskDisplayTitle,taskStatusPresentation,taskEventTitle,taskStageRecords,mediaTaskStageRecords,taskFailureReason,taskNeedsModelConfiguration,taskSourceHref,taskTypeLabel,taskEventReason,taskSourceLabel} from '@/approved-ui/task-presentation.mjs';
+import {diagnosticInstant,taskDisplayTitle,taskStatusPresentation,taskStageRecords,mediaTaskStageRecords,taskFailureReason,taskNeedsModelConfiguration,taskSourceHref,taskTypeLabel,taskEventReason,taskSourceLabel} from '@/approved-ui/task-presentation.mjs';
 
 const asyncStates:Record<string,AsyncTaskState>={waiting:'queued',running:'running',completed:'succeeded',attention:'failed',ended:'cancelled'};
 /** What the task itself has produced or where it stopped. Model calls never decide this. */
@@ -49,7 +49,7 @@ export default function TaskDetailPage({route,embedded=false,onTaskLoaded,onTask
  const character=w.state.characters?.find((entry:any)=>entry.id===task?.fluctlight_id)?.name;
  const completed=stages.filter((entry:any)=>['completed','succeeded'].includes(entry.status)).length;
  const domainControl=source&&<div className="replica-task-recovery-controls"><Button asChild><a href={source}>{taskSourceLabel(task)}</a></Button></div>;
- const row=(entry:any,index:number,stage=false)=><li key={entry.id||index} className="replica-task-stage"><span className={"replica-stage-number"+(entry.status==='running'?' active':'')}>{entry.status==='running'?<Loader2 size={13} className="animate-spin"/>:['completed','succeeded'].includes(entry.status)?<Check size={13}/>:index+1}</span><div><h3>{stage?domainName(entry.name,'已记录环节'):taskEventTitle(entry)}</h3><p>{stateLabel(entry.status,'已记录')}{entry.reason_code?' · '+taskEventReason(entry):''}</p>{entry.detail&&<p>{entry.detail}</p>}{entry.at&&<time dateTime={entry.at} title={diagnosticInstant(entry.at)}>{diagnosticInstant(entry.at)}</time>}</div></li>;
+ const row=(entry:any,index:number)=><li key={entry.id||index} className="replica-task-stage"><span className={"replica-stage-number"+(entry.status==='running'?' active':'')}>{entry.status==='running'?<Loader2 size={13} className="animate-spin"/>:['completed','succeeded'].includes(entry.status)?<Check size={13}/>:index+1}</span><div><h3>{domainName(entry.name,'已记录环节')}</h3><p>{stateLabel(entry.status,'已记录')}{taskEventReason(entry)?' · '+taskEventReason(entry):''}</p>{entry.detail&&<p>{entry.detail}</p>}{entry.at&&<time dateTime={entry.at} title={diagnosticInstant(entry.at)}>{diagnosticInstant(entry.at)}</time>}</div></li>;
  const recovered=(nextId:string)=>{if(onTaskRecovered)onTaskRecovered(nextId);else w.navigatePath('/diag/task/'+encodeURIComponent(nextId)+(returnTo?'?returnTo='+encodeURIComponent(returnTo):''));};
  const refresh=async()=>{await read();if(calls.ready)void calls.load();};
  const outcome=task?taskOutcome(task,statusView,failure):'';
@@ -65,7 +65,7 @@ export default function TaskDetailPage({route,embedded=false,onTaskLoaded,onTask
   {failed&&taskNeedsModelConfiguration(task,preparation)&&<Button asChild variant="outline" className="self-start"><a href={'#/settings?section='+encodeURIComponent('模型用途')+'&returnTo='+encodeURIComponent(initialization?returnTo||back:'#/diag?view=tasks&taskId='+encodeURIComponent(id))}>{source?'去配置通用模型':'去配置模型用途'}</a></Button>}
  </div>
  <Tabs value={detailTab} onValueChange={value=>{setDetailTab(value);if(value!=='input')setTechnicalOpen(false);}}><TabsList variant="line"><TabsTrigger value="progress">执行阶段</TabsTrigger><TabsTrigger value="logs">模型调用</TabsTrigger><TabsTrigger value="input">任务信息</TabsTrigger></TabsList>
- <TabsContent value="progress" className="replica-task-progress-panel">{stages.length>0&&<><div className="replica-task-progress" role="progressbar" aria-label="已记录阶段" aria-valuenow={completed} aria-valuemin={0} aria-valuemax={stages.length}><i style={{width:`${completed/stages.length*100}%`}}/></div><ol className="replica-task-stages">{stages.map((entry:any,index:number)=>row(entry,index,true))}</ol></>}<TaskLifecycle task={task} steps={steps}/>{task.has_more_steps&&<Button type="button" variant="link" onClick={()=>w.navigatePath('/diag/lifecycle?intentId='+encodeURIComponent(task.task_id||id))}>查看完整生命周期</Button>}</TabsContent>
+ <TabsContent value="progress" className="replica-task-progress-panel">{stages.length>0&&<><div className="replica-task-progress" role="progressbar" aria-label="已记录阶段" aria-valuenow={completed} aria-valuemin={0} aria-valuemax={stages.length}><i style={{width:`${completed/stages.length*100}%`}}/></div><ol className="replica-task-stages">{stages.map((entry:any,index:number)=>row(entry,index))}</ol></>}<TaskLifecycle task={task} steps={steps}/>{task.has_more_steps&&<Button type="button" variant="link" onClick={()=>w.navigatePath('/diag/lifecycle?intentId='+encodeURIComponent(task.task_id||id))}>查看完整生命周期</Button>}</TabsContent>
  <TabsContent value="logs"><TaskExecutionResults task={task} calls={calls} available={callsAvailable} isReflection={isReflection}/></TabsContent>
  <TabsContent value="input"><DetailFields items={[
   {label:'任务类型',value:taskTypeLabel(task)},

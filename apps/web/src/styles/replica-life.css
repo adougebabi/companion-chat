@@ -337,11 +337,6 @@
 @media(max-width:950px){.replica-life .lp-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.replica-life .lp-two,.replica-life .lp-three,.replica-life .lp-form{grid-template-columns:1fr}.replica-life .lp-pad{padding:18px}.replica-life .lp-hero{padding:24px;min-height:210px}.replica-life .lp-hero h2{font-size:23px}.replica-life .lp-hero .lp-hero-art{display:none}.replica-life .lp-timeline-item{grid-template-columns:48px 14px minmax(0,1fr);gap:9px}.replica-life .lp-timeline-card{padding:13px}.replica-life .lp-memory-card{padding:18px}}
 .replica-life .lp-toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
-.replica-life .replica-segment-tabs{display:flex;gap:21px;overflow-x:auto;border-bottom:1px solid var(--border);margin-bottom:22px;scrollbar-width:none;background:transparent;border-radius:0;padding:0;height:auto;max-width:100%}
-.replica-life .replica-segment-tabs [data-slot="tabs-trigger"]{font-size:12px;display:flex;align-items:center;gap:7px;padding:0 2px 12px;color:#7d8872;border:0;border-bottom:2px solid transparent;border-radius:0;white-space:nowrap;box-shadow:none;background:transparent;height:auto;flex:none}
-.replica-life .replica-segment-tabs [data-slot="tabs-trigger"][data-state="active"],.replica-life .replica-segment-tabs [data-slot="tabs-trigger"][data-active]{color:#33563d;border-bottom-color:#547b4b;font-weight:600;box-shadow:none}
-.replica-life .replica-segment-tabs [data-slot="tabs-trigger"]::after{display:none}
-.replica-life .replica-segment-tabs [data-slot="tabs-trigger"]>span{font-size:9px;background:#edf1e7;padding:1px 5px;border-radius:4px;color:#8c967e}
 .replica-life .lp-date{gap:10px;flex-wrap:wrap}
 .replica-life .lp-date>span{width:150px;flex:none}
 .replica-life .lp-date [data-slot="button"],.replica-life .lp-date [data-slot="popover-trigger"]{height:36px;min-height:36px;font-size:12px}
@@ -366,8 +361,7 @@
 .replica-request-status p{margin:0}.replica-request-status [data-slot="button"]{justify-self:start}
 .replica-dialog .lp-form{gap:18px}.replica-dialog .lp-stack{gap:20px}
 .replica-dialog .replica-info{padding:14px 16px;border:1px solid #dfe8d5;border-radius:8px;background:#f1f5e9;color:#7d8f6d;font-size:11px;line-height:1.85}
-@media(max-width:700px){.replica-life .replica-segment-tabs{gap:19px}.replica-life .replica-segment-tabs [data-slot="tabs-trigger"]{font-size:11px}.replica-life .lp-date{width:100%;gap:6px}.replica-life .lp-date>span{flex:1;width:140px}.replica-life .lp-date [data-slot="button"]:not([data-size="icon"]),.replica-life .lp-date [data-slot="popover-trigger"]{min-height:44px}.replica-key-values{grid-template-columns:80px minmax(0,1fr)}.lp-change{grid-template-columns:1fr}.lp-change>svg{transform:rotate(90deg);margin:auto}}
-.replica-life .replica-segment-tabs [data-slot="tabs-trigger"]{line-height:1.5}
+@media(max-width:700px){.replica-life .lp-date{width:100%;gap:6px}.replica-life .lp-date>span{flex:1;width:140px}.replica-life .lp-date [data-slot="button"]:not([data-size="icon"]),.replica-life .lp-date [data-slot="popover-trigger"]{min-height:44px}.replica-key-values{grid-template-columns:80px minmax(0,1fr)}.lp-change{grid-template-columns:1fr}.lp-change>svg{transform:rotate(90deg);margin:auto}}
 .replica-info{display:flex;gap:10px;align-items:flex-start}.replica-info>svg{flex:none;margin-top:2px}
 .replica-life .lp-timeline-card{line-height:1.5;font-size:14px;font-weight:400}
 .replica-life .lp-timeline-card:hover{border-color:#adbfa2;background:#fcfdf9}
@@ -557,7 +551,6 @@
 .replica-diary-refresh{position:absolute;right:2px;top:50%;transform:translateY(-50%)}.replica-diary .replica-diary-search input{padding-right:40px}
 @media(max-width:600px){
   .replica-diary .lp-toolbar{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
-  .replica-diary .lp-toolbar>.replica-segment-tabs{width:100%;min-width:0;margin-bottom:0}
   .replica-diary .replica-diary-controls{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px}
   .replica-diary .replica-diary-search{grid-column:1 / -1;grid-row:1;width:100%;min-width:0;max-width:none}
   .replica-diary .replica-diary-search input{padding-right:12px}
@@ -672,7 +665,7 @@
 .replica-goals .replica-goal-search[data-has-query="true"]>input{padding-right:72px}
 .replica-goals .replica-goal-search>[aria-label="清除目标搜索"]{right:35px}
 .replica-memory .replica-memory-number{font-size:31px;font-weight:400;color:#587445}.replica-memory .replica-memory-number.secondary{color:#8d9f7b}.replica-memory .lp-line{margin:22px 0}.replica-memory .lp-soft-box{padding:28px 25px;border:1px solid #e5eadc;background:#f0f4e8;border-radius:12px}.replica-memory .lp-quote-symbol{font-family:Georgia,serif;font-size:50px;line-height:1;color:#aebf9b;margin-bottom:12px}
-.replica-dialog .replica-memory-detail-tabs{gap:20px}.replica-memory-detail-tabs .replica-segment-tabs{display:flex;gap:21px;border-bottom:1px solid #e2e7de;background:transparent;padding:0;height:auto;border-radius:0;max-width:100%;overflow:auto}.replica-memory-detail-tabs [data-slot="tabs-trigger"]{padding:0 2px 12px;color:#7d8872;background:transparent;border-radius:0;border:0;border-bottom:2px solid transparent;box-shadow:none;flex:none;height:auto;font-size:12px}.replica-memory-detail-tabs [data-slot="tabs-trigger"][data-state="active"]{color:#33563d;border-bottom-color:#547b4b;box-shadow:none}.replica-memory-detail-tabs [data-slot="tabs-trigger"]::after{display:none}
+.replica-dialog .replica-memory-detail-tabs{gap:20px}
 .replica-memory .lp-progress{height:5px;background:#edf0e7;margin-top:18px}.replica-memory .lp-progress [data-slot="progress-indicator"]{background:#8da17a}.replica-memory .lp-reflection{padding:25px}.replica-memory .lp-claim blockquote{overflow-wrap:anywhere}
 @media(max-width:700px){.replica-memory-search{width:100%;max-width:none;flex-basis:100%}.replica-memory .lp-toolbar>.lp-row{width:100%;gap:8px}.replica-memory .lp-toolbar>.lp-row>.relative{width:130px;flex:none;min-width:0}.replica-memory .lp-memory-card .lp-row{flex-wrap:wrap;gap:10px}.replica-memory .lp-memory-card .lp-muted{font-size:10px}}
 

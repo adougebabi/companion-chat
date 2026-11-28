@@ -252,7 +252,6 @@ button.lrow:disabled{opacity:.6;cursor:wait}
 .goal-reading h3{margin-top:20px}
 .goal-reading li+li{margin-top:6px}
 .goal-reading>details>summary,.goal-record-reason>summary{cursor:pointer;min-height:40px;padding-block:8px;color:var(--ink-2)}
-.goal-detail-layout{align-items:start}
 .goal-edit-panel{border:1px solid var(--line);border-radius:var(--r3);background:var(--surface)}
 .goal-edit-panel>summary{cursor:pointer;padding:16px 20px;min-height:52px;font-weight:600;color:var(--primary-strong)}
 .goal-edit-panel>form{border:0;box-shadow:none}

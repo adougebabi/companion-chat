@@ -93,11 +93,14 @@ async function renderNpcPage(el, ctx,alive=()=>true) {
   el.querySelector('[data-encounter-npc]').onclick=()=>encounterDrawer(ctx.charId,n.id);
   const panel=mountNPCRuntimeRecords(el.querySelector('[data-npc-runtime-records]'),{fid:ctx.charId,npcId:n.id,zone:c.timezone,alive,readOnly:c.status==='已退休',initial:ctx.query.npcTab,onTab:tab=>{const url=new URL(location.href);url.hash=`#/c/${ctx.charId}/people/npc/${encodeURIComponent(n.id)}?${new URLSearchParams({...ctx.query,npcTab:tab})}`;window.history.replaceState(null,'',url);}});return()=>panel.dispose();
 }
-async function renderRelEditPage(el,ctx) {
+async function renderRelEditPage(el,ctx,alive=()=>true) {
+  const owner=store.get('session')?.actorId;
+  const current=()=>alive()&&store.get('session')?.actorId===owner;
   const projection=store.get('relations',ctx.params.relId);
   if(!projection || projection.charId!==ctx.charId) {el.innerHTML='<div data-domain-ui="empty" class="statebox"><h2>当前范围未找到该关系</h2></div>';return;}
   const actorId=projection.targetActorId;if(!actorId)throw new Error('关系缺少稳定 Actor 身份，不能提交修正');
   const {relation:r,history}=await mockClient.readRelation(ctx.charId,actorId,projection.id);
+  if(!current())return;
   const historyRows=history.map(entry=>{
     const time=typeof entry.created_at==='string'&&Number.isFinite(Date.parse(entry.created_at))?userInstant(entry.created_at):'';
     const description=[relationRevisionDescription(entry),time].filter(Boolean).join(' · ');
@@ -107,8 +110,33 @@ async function renderRelEditPage(el,ctx) {
   <div class="row [margin-top:12px]">${RawRecordDownload({relation:r,history},'原始关系记录（诊断）')}</div>`;
   el.querySelector('[data-back]').onclick=()=>ctx.navigate(`#/c/${ctx.charId}/people`);
   const evidence=()=>el.querySelector('[name=evidenceRefs]').value.split(',').map(v=>v.trim()).filter(Boolean);
-  el.querySelector('[data-rf]').onsubmit=async e=>{e.preventDefault();if(!(await requireOwner()))return;const f=e.target;try{const metrics={...r.metrics};if(f.intimacy.value!=='')metrics.intimacy=Number(f.intimacy.value)/100;else delete metrics.intimacy;await mockClient.saveRelation(ctx.charId,actorId,{profileId:r.profile_id || undefined,expectedRevision:r.revision,summary:f.summary.value,role:{...r.role,label:f.semantic.value},metrics,evidenceRefs:evidence(),reason:f.reason.value});toast('关系修订已保存并读回','ok');ctx.navigate(`#/c/${ctx.charId}/people`);}catch(error){f.querySelector('[data-error]').textContent=error.message;}};
-  el.querySelectorAll('[data-restore-relation]').forEach((button,index)=>button.onclick=async()=>{try{if(!(await requireOwner()))return;if(!evidence().length)throw new Error('请先填写本次恢复的证据引用');if(!(await confirm({title:'恢复关系修订字段',text:'以历史字段追加新修订，保留历史与来源。'})))return;await mockClient.restoreRelation(ctx.charId,actorId,{targetRevision:Number(history[index].revision),expectedRevision:r.revision,profileId:r.profile_id || undefined,evidenceRefs:evidence()});ctx.refresh();}catch(error){el.querySelector('[data-error]').textContent=error.message;}});
+  let busy=false;
+  async function submitChange(operation){
+    if(busy||!current())return;
+    const form=el.querySelector('[data-rf]');
+    if(operation===null&&!form.reportValidity())return;
+    busy=true;
+    const controls=[...el.querySelectorAll('button,input,textarea,select')].map(node=>[node,node.disabled]);
+    controls.forEach(([node])=>node.disabled=true);
+    try{
+      if(!(await requireOwner())||!current())return;
+      if(operation===null){
+        const metrics={...r.metrics};
+        if(form.elements.intimacy.value!=='')metrics.intimacy=Number(form.elements.intimacy.value)/100;
+        else delete metrics.intimacy;
+        await mockClient.saveRelation(ctx.charId,actorId,{profileId:r.profile_id||undefined,expectedRevision:r.revision,summary:form.elements.summary.value,role:{...r.role,label:form.elements.semantic.value},metrics,evidenceRefs:evidence(),reason:form.elements.reason.value});
+        if(current()){toast('关系修订已保存并读回','ok');ctx.navigate(`#/c/${ctx.charId}/people`);}
+      }else{
+        if(!evidence().length)throw new Error('请先填写本次恢复的证据引用');
+        if(!(await confirm({title:'恢复关系修订字段',text:'以历史字段追加新修订，保留历史与来源。'}))||!current())return;
+        await mockClient.restoreRelation(ctx.charId,actorId,{targetRevision:Number(history[operation].revision),expectedRevision:r.revision,profileId:r.profile_id||undefined,evidenceRefs:evidence()});
+        if(current())ctx.refresh();
+      }
+    }catch(error){if(current())form.querySelector('[data-error]').textContent=error.message;}
+    finally{busy=false;if(current())controls.forEach(([node,disabled])=>node.disabled=disabled);}
+  }
+  el.querySelector('[data-rf]').onsubmit=event=>{event.preventDefault();return submitChange(null);};
+  el.querySelectorAll('[data-restore-relation]').forEach((button,index)=>button.onclick=()=>submitChange(index));
 }
 function worldPage(render) {return (el,ctx)=>{let alive=true,epoch=0,dispose;el.innerHTML='<div class="statebox" role="status" data-domain-ui="skeleton">正在读取世界…</div>';const load=async()=>{if(!alive)return;const version=++epoch;dispose?.();dispose=null;try{const view=await mockWorld.refresh(ctx.charId);if(!alive||version!==epoch)return;const host=document.createElement('div');el.replaceChildren(host);const cleanup=await render(host,ctx,()=>alive&&version===epoch&&host.isConnected,view);bindAvatars(host);host.querySelectorAll('img.scene').forEach(image=>{const failed=()=>{image.closest('.hero')?.classList.add('no-image');image.remove();};image.addEventListener('error',failed,{once:true});if(image.complete&&!image.naturalWidth)failed();});if(alive&&version===epoch)dispose=typeof cleanup==='function'?cleanup:null;else if(typeof cleanup==='function')cleanup();}catch(error){if(alive&&version===epoch){el.innerHTML=`<div data-domain-ui="empty" class="statebox"><h2>${esc(errorMessage(error))}</h2><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-retry>重试</button><a data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" href="#/c/${ctx.charId}/worlds">世界与地点管理</a></div>`;el.querySelector('[data-retry]').onclick=load;}}};void load();return()=>{alive=false;epoch++;dispose?.();};};}
 

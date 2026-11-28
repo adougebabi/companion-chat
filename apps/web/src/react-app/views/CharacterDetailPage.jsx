@@ -1,3 +1,4 @@
+import { ResponsiveTabsList } from '@/components/patterns';
 import { useEffect, useId, useRef, useState } from "react";
 import {
   ArrowRightIcon,
@@ -10,7 +11,7 @@ import {
   ShieldCheckIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import {
   AlertDialogAction,
@@ -439,7 +440,7 @@ export default function CharacterDetailPageView({ model: m }) {
         )}
       <div hidden={!m.detail.value}>
         <Tabs value={tab} onValueChange={setTab} className="profile-main-tabs">
-          <TabsList variant="line" className="replica-segment-tabs">
+          <ResponsiveTabsList value={tab} variant="line">
             <TabsTrigger value="overview">身份与背景</TabsTrigger>
             <TabsTrigger value="persona">性格与人格</TabsTrigger>
             <TabsTrigger value="life">生活与此刻</TabsTrigger>
@@ -447,7 +448,7 @@ export default function CharacterDetailPageView({ model: m }) {
               修订与来源{" "}
               <span>{m.detail.value ? snapshot.revisions.length : "…"}</span>
             </TabsTrigger>
-          </TabsList>
+          </ResponsiveTabsList>
           <TabsContent value="overview">
             <div className="companion-two-columns">
               <div className="companion-stack">

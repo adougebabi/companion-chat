@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {createServer} from './support/module-server.mjs';
+import {approvedRoute} from '../src/approved-ui/routing.mjs';
 import {proxy, snapshot, subscribe} from 'valtio/vanilla';
 import {installDOM, mountReact} from './helpers/react-dom.mjs';
 
@@ -134,25 +135,7 @@ test('规划命令和初次读取失败只在诊断下载中保留原始报错',
   assert.deepEqual(download(failedRead, caption), [record]);
 });
 
-test('独立目标编辑页展示目标、阶段、承诺和证据摘要，原始记录完整下载', async t => {
-  const {renderRealGoalEditor} = await load('v3-domain/goal-editor.js');
-  configureDomainService('life', {
-    goal: async () => goal,
-    goalEvidence: async () => ({items: [evidence], next_cursor: ''}),
-    goalHistory: async () => ({items: [revision], next_cursor: ''}),
-  });
-  const host = await mountLegacy(t, renderRealGoalEditor, {params: {goalId: goal.id}});
-  assertClean(host);
-  for (const expected of ['整理街景画册', '选出三张画作', '期望完成时间：2026-11-23 09:44 (北京时间)',
-    '下一步：整理现有草图', '阶段：选取草图', '期望结果：完成图册初稿', '实际证据：已选出三张画作', '变更原因：新增画册整理条件']) {
-    assert.ok(host.textContent.includes(expected), expected);
-  }
-  assert.deepEqual(download(host, '原始目标与推进记录（诊断）'), [goal]);
-  assert.deepEqual(download(host, '原始目标证据记录（诊断）'), [evidence]);
-  assert.deepEqual(download(host, '原始目标修订记录（诊断）'), [revision]);
-});
-
-test('React 目标主页面展开全部记录仍只显示摘要，下载保留阶段、承诺和记录原文', async () => {
+for(const entry of ['list','object'])test(entry+'入口复用目标详情，摘要与完整记录保持一致', async () => {
   const {default: Goals} = await load('react-app/pages/GoalsPage.jsx');
   const state = proxy({session: {actorId: 'fixture-owner'}, characters: [{id: goal.fluctlight_id, status: 'active', name: '林青'}]});
   const workspace = {
@@ -166,7 +149,9 @@ test('React 目标主页面展开全部记录仍只显示摘要，下载保留�
       goalHistory: async () => ({items: [revision], next_cursor: ''}),
     },
   };
-  const view = await mountReact(vite, Goals, {workspace, props: {route: {query: new URLSearchParams()}}});
+  const route=entry==='object'?approvedRoute('#/c/'+goal.fluctlight_id+'/life/goal/'+goal.id):{query:new URLSearchParams()};
+  if(entry==='object')assert.equal(route.feature.native,'goal');
+  const view = await mountReact(vite, Goals, {workspace, props: {route}});
   const blobs = [];
   const create = URL.createObjectURL;
   const revoke = URL.revokeObjectURL;
@@ -176,7 +161,7 @@ test('React 目标主页面展开全部记录仍只显示摘要，下载保留�
   URL.revokeObjectURL = () => {};
   anchor.click = function () { assert.equal(this.download, 'fluctlight-record.json'); };
   try {
-    await view.click(view.host.querySelector('[aria-label="查看目标 整理街景画册"]'));
+    if(entry==='list')await view.click(view.host.querySelector('[aria-label="查看目标 整理街景画册"]'));
     const dialog = document.querySelector('[role="dialog"]');
     for (const heading of ['推进条件与核对状态', '证据来源', '目标修订历史']) await view.click(button(dialog, heading));
     const records = [

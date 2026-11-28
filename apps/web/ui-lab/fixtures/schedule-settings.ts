@@ -1,4 +1,4 @@
-// Deterministic fixture for the 「约定与日程设置」 sheet. All instants are fixed
+// Deterministic fixture for the 「约定与意向」 planning workspace. All instants are fixed
 // and the browser clock is frozen by the test runner, so plan windows and
 // labels render identically on every run. No network is involved.
 import * as services from '@/v3/proto/services.js';

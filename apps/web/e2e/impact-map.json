@@ -32,7 +32,10 @@
     "index.html",
     "vite.config.ts",
     "package.json",
-    "tsconfig*.json"
+    "tsconfig*.json",
+    "src/react-app/shared/CommandDialog.tsx",
+    "src/react-app/App.tsx",
+    "src/react-app/shared/WorkspaceNavigation.tsx"
   ],
   "areas": {
     "@schedule": [
@@ -66,7 +69,14 @@
       "src/react-app/shared/DiagnosticRecords.tsx",
       "src/approved-ui/task-presentation.mjs",
       "src/approved-ui/task-model-call-presentation.mjs",
-      "e2e/task-diagnostics.spec.ts"
+      "e2e/task-diagnostics.spec.ts",
+      "src/react-app/shared/DiagnosticReplayPanel.tsx",
+      "src/v3-domain/diagnostics.js",
+      "src/v3/proto/components/diagnostic-card.js",
+      "e2e/diagnostic-content.spec.ts",
+      "src/react-app/pages/ManagementPage.jsx",
+      "src/react-app/views/ManagementPage.jsx",
+      "src/react-app/shared/DiagnosticsWorkspace.jsx"
     ],
     "@visual-identity": [
       "src/v3/scenarios/**",
@@ -127,7 +137,50 @@
       "src/react-app/pages/StudioEditorPage.tsx",
       "src/react-app/shared/ConversationHistory.tsx",
       "e2e/chat-mobile-overlays.spec.ts",
-      "e2e/mobile-workspace.spec.ts"
+      "e2e/mobile-workspace.spec.ts",
+      "src/react-app/pages/ManagementPage.jsx"
+    ],
+    "@goals": [
+      "src/react-app/pages/GoalsPage.jsx",
+      "src/approved-ui/feature-routes.mjs",
+      "src/react-app/pages/DomainPage.tsx",
+      "e2e/goal-details.spec.ts"
+    ],
+    "@memory": [
+      "src/react-app/pages/MemoryPage.jsx",
+      "src/react-app/pages/MemoryRecordSummary.jsx",
+      "src/react-app/pages/DomainPage.tsx",
+      "src/approved-ui/feature-routes.mjs",
+      "src/v3-domain/reflection.js",
+      "e2e/growth-details.spec.ts",
+      "src/v3-domain/memory.js"
+    ],
+    "@relation": [
+      "src/v3-domain/world-details.js",
+      "e2e/relation-revisions.spec.ts"
+    ],
+    "@foundation": [
+      "src/react-app/pages/GovernancePage.tsx",
+      "src/react-app/shared/ProfileForm.jsx",
+      "src/react-app/shared/ProfileField.tsx",
+      "src/approved-ui/profile-fields.mjs",
+      "e2e/foundation-proposal.spec.ts"
+    ],
+    "@shared-tabs": [
+      "src/react-app/pages/SchedulePage.jsx",
+      "src/react-app/pages/GoalsPage.jsx",
+      "src/react-app/pages/DiaryPage.jsx",
+      "src/react-app/views/PeoplePage.jsx",
+      "src/react-app/views/WorldPage.jsx",
+      "src/react-app/views/CharacterDetailPage.jsx",
+      "src/react-app/views/WardrobePage.jsx",
+      "src/react-app/shared/ProfileGovernance.jsx",
+      "src/react-app/shared/PersonRecords.jsx",
+      "e2e/shared-tab-routes.spec.ts"
+    ],
+    "@data-closeout": [
+      "src/v3-domain/data-tools.js",
+      "e2e/data-closeout.spec.ts"
     ]
   },
   "nonUi": [

@@ -101,16 +101,19 @@ async function sourceFiles(folder) {
   return files;
 }
 test('production source has no custom btn classes and every domain button declares variant and size', async () => {
-  let declarations = 0;
+  const declaredFiles = new Set();
   for (const file of await sourceFiles(new URL('../src/', import.meta.url))) {
     const source = await readFile(file, 'utf8');
     assert.doesNotMatch(source, /\bclass(?:Name)?\s*=\s*["'][^"'\n]*\bbtn\b/, file.pathname);
     for (const [tag] of source.matchAll(/<(?:a|button)\b[^>]*data-domain-ui="button"[^>]*/g)) {
-      declarations++;
+      declaredFiles.add(file.pathname);
       assert.match(tag, /data-domain-variant=/, file.pathname);
       assert.match(tag, /data-domain-size=/, file.pathname);
     }
   }
-  assert.ok(declarations > 600, 'scan must include the actual JS domain controllers and their shared factories');
+  // Retirement reduces the number of legacy buttons. Guard recursive coverage
+  // with real production owners instead of requiring obsolete markup to stay.
+  for(const path of ['v3-domain/world-details.js','v3/proto/components/forms.js'])
+    assert.ok(declaredFiles.has(new URL('../src/'+path,import.meta.url).pathname),path+' must be scanned');
   assert.doesNotMatch(await readFile(new URL('../src/styles/domain-tools.css', import.meta.url), 'utf8'), /\.btn\b/);
 });

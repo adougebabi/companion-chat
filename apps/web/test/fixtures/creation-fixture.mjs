@@ -6,6 +6,7 @@ export function creationHttpFixture({
   instances = [],
   groups = [],
   baseDetail = () => ({}),
+  worldById = () => null,
 } = {}) {
   const records = new Map(),
     receipts = new Map(),
@@ -462,7 +463,8 @@ export function creationHttpFixture({
         state.selectedWorld = body.worldId;
         // Joining the existing world preserves its identity. Legacy copy
         // requests still use their separately created runtime world above.
-        if (body.worldId === sourceWorld.id) worlds.set(fid, { ...clone(sourceWorld), fluctlight_id: fid });
+        const joined=body.worldId===sourceWorld.id?sourceWorld:worldById(body.worldId);
+        if(joined)worlds.set(fid,{...clone(joined),fluctlight_id:fid});
         return ack({
           id: body.worldId,
           world_id: body.worldId,

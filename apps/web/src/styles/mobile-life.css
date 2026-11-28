@@ -10,8 +10,6 @@
   .replica-life :is(.lp-muted,.lp-label),.replica-dialog :is(.lp-muted,.lp-label) {font-size:13px;line-height:1.7;letter-spacing:0;}
   .replica-life .lp-chip {font-size:12px;padding:5px 9px;line-height:1.5;}
   .replica-life .lp-toolbar {align-items:stretch;gap:12px;flex-wrap:wrap;}
-  .replica-life .replica-segment-tabs {width:100%;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;max-width:100%;min-height:48px;gap:18px;}
-  .replica-life .replica-segment-tabs > button {flex:none;font-size:14px;min-height:48px;}
   .replica-now .lp-hero {padding:22px 20px 0;display:block;border-radius:var(--mobile-card-radius-large);}
   .replica-now .lp-hero h2 {font-size:23px;line-height:1.55;}
   .replica-now .lp-hero-art {display:none;}

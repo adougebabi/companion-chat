@@ -43,7 +43,7 @@
 .replica-inbox-note p{font-size:11px;line-height:1.9;color:#a1ad92}
 .replica-inbox-body{font-size:13px;line-height:1.95;white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:1050px){.replica-inbox-layout{grid-template-columns:1fr}.replica-inbox-aside{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:700px){.replica-inbox{gap:18px}.replica-inbox-toolbar{display:grid;grid-template-columns:auto minmax(0,1fr) 36px;align-items:center;gap:8px}.replica-inbox-toolbar>button[role=combobox]{margin-left:0;min-width:0;width:100%}.replica-inbox-aside{grid-template-columns:1fr}.replica-notice{padding:18px 16px}.replica-notice-main{gap:11px}.replica-notice-title h3{font-size:11px}.replica-notice-main p{font-size:10px}.replica-notice-icon{width:34px;height:34px;border-radius:10px}.replica-inbox-toolbar [role=tablist]{gap:19px}.replica-inbox-toolbar [role=tab]{font-size:11px;min-height:0}.replica-notice-main small{font-size:9px}}
+@media(max-width:700px){.replica-inbox{gap:18px}.replica-inbox-toolbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px}.replica-inbox-toolbar>button[role=combobox]{margin-left:0;min-width:0;width:100%}.replica-inbox-aside{grid-template-columns:1fr}.replica-notice{padding:18px 16px}.replica-notice-main{gap:11px}.replica-notice-title h3{font-size:11px}.replica-notice-main p{font-size:10px}.replica-notice-icon{width:34px;height:34px;border-radius:10px}.replica-inbox-toolbar [role=tablist]{gap:19px}.replica-inbox-toolbar [role=tab]{font-size:11px;min-height:0}.replica-notice-main small{font-size:9px}}
 .replica-management{display:grid;gap:0;min-width:0}
 .replica-management-layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:28px;align-items:start}
 .replica-management-nav{display:grid;gap:5px;position:sticky;top:24px}
@@ -306,7 +306,6 @@
  .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-settings-head{flex-direction:row;align-items:center;gap:8px}
  .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-settings-head h2{line-height:24px}
  .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-settings-head :is(p,small,.replica-settings-section-icon){display:none}
- .replica-page--managed:has(.replica-page-heading.is-scrolled) .replica-management-section-header [role=tab][data-slot=tabs-trigger]{min-height:36px;padding:4px 2px}
 }
 
 .settings-switch-row {display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;}

@@ -29,7 +29,7 @@ async function settle(page: Page) {
 }
 
 for (const [id, entry] of Object.entries(GALLERY_CATALOG)) {
-  test.describe(`visual: ${entry.title}`, { tag: ['@visual', '@patterns', ...(id.startsWith('migrated-') ? ['@overlay'] : [])] }, () => {
+  test.describe(`visual: ${entry.title}`, { tag: ['@visual', '@patterns', ...(id.startsWith('migrated-') ? ['@overlay'] : []), ...(id==='diagnostic-loops'?['@task-diagnostics']:[]), ...(id==='turn-details'?['@chat-turn']:[])] }, () => {
     for (const state of entry.states) {
       test(`${id} ${state}`, async ({ page }) => {
         await page.clock.setFixedTime(FIXED_NOW);
@@ -72,19 +72,19 @@ for (const [id, entry] of Object.entries(GALLERY_CATALOG)) {
 
 // [name, query, text that proves the async fixture content has rendered]
 const SCHEDULE_STATES = [
-  ['today', 'section=today', '和朋友视频通话'],
+  ['upcoming', 'section=upcoming', '和朋友视频通话'],
   ['promises', 'section=promises', '每天睡前道晚安'],
-  ['habits', 'section=habits', '早上喜欢先喝温水再看书'],
-  ['long', 'section=today&variant=long', '和朋友视频通话'],
-  ['empty', 'section=today&variant=empty', '这一天尚无已接受日程'],
+  ['intentions', 'section=intentions', '周末去海边看日落'],
+  ['long', 'section=upcoming&variant=long', '和朋友视频通话'],
+  ['empty', 'section=promises&variant=empty', '还没有约定提议'],
 ] as const;
 
-test.describe('visual: 约定与日程设置', { tag: ['@visual', '@schedule', '@overlay'] }, () => {
+test.describe('visual: 约定与意向', { tag: ['@visual', '@schedule', '@overlay'] }, () => {
   for (const [name, query, ready] of SCHEDULE_STATES) {
     test(`schedule-settings ${name}`, async ({ page }) => {
       await page.clock.setFixedTime(FIXED_NOW);
       await page.goto(`/ui-lab/?fixture=schedule-settings&${query}`);
-      await expect(page.getByRole('dialog', { name: '约定与日程设置' }).getByText(ready).filter({ visible: true }).first()).toBeVisible();
+      await expect(page.getByTestId('domain-workspace').getByText(ready).filter({ visible: true }).first()).toBeVisible();
       await settle(page);
       requireApprovedBaseline(`schedule-settings--${name}.png`);
       await expect(page).toHaveScreenshot(`schedule-settings--${name}.png`);

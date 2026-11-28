@@ -1,3 +1,4 @@
+import { ResponsiveTabsList } from '@/components/patterns';
 import { useEffect, useId, useRef, useState } from "react";
 import {
   CameraIcon,
@@ -13,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertDialogCancel,
   AlertDialogAction,
@@ -494,7 +495,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
           );
         }}
       >
-        <TabsList variant="line" className="replica-segment-tabs">
+        <ResponsiveTabsList value={tabKeys[view.tab.value] || "garments"} variant="line">
           <TabsTrigger value="garments">
             全部衣服 <span>{ready ? c.garments.length : "…"}</span>
           </TabsTrigger>
@@ -502,7 +503,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
             穿搭方案 <span>{ready ? c.outfits.length : "…"}</span>
           </TabsTrigger>
           <TabsTrigger value="compose">搭配工作台</TabsTrigger>
-        </TabsList>
+        </ResponsiveTabsList>
         <TabsContent value="garments">
           <div className="r-toolbar r-wrap wardrobe-filters">
             <div className="r-search">

@@ -43,7 +43,7 @@ function fixture(width,variant='diagnostics'){
   return {dom,rules,document:dom.window.document,computed:selector=>dom.window.getComputedStyle(dom.window.document.querySelector(selector))};
 }
 
-test('compact height overrides use the existing 700px breakpoint and leave desktop sticky geometry/divider intact',()=>{
+test('compact headers delegate tab sizing and leave desktop sticky geometry/divider intact',()=>{
   const f=fixture(1280);
   try{
     const narrow=f.rules.find(rule=>rule.conditionText==='(max-width:700px)'&&[...rule.cssRules].some(child=>child.selectorText===compact+' .replica-management-section-header'));
@@ -53,8 +53,8 @@ test('compact height overrides use the existing 700px breakpoint and leave deskt
     assert.equal(value(compact+' .replica-management-layout','gap'),'4px');
     assert.equal(value(compact+' .replica-management-nav','padding-block'),'0px');
     assert.equal(value(compact+' .replica-management-section-header','gap'),'4px');
-    assert.equal(value(compact+' .replica-management-section-header [role=tab][data-slot=tabs-trigger]','min-height'),'36px');
-    assert.equal(value(compact+' .replica-management-section-header [role=tab][data-slot=tabs-trigger]','padding'),'4px 2px');
+    assert.equal(value(compact+' .replica-management-section-header [role=tab][data-slot=tabs-trigger]','min-height'),undefined,'紧凑态不再覆盖共享标签的触控高度');
+    assert.equal(value(compact+' .replica-management-section-header [role=tab][data-slot=tabs-trigger]','padding'),undefined,'标签内边距由共享组件管理');
     const header=f.computed('.replica-management-section-header');
     assert.equal(header.position,'sticky');
     assert.equal(header.top,'0px');
@@ -86,7 +86,7 @@ test('narrow compact state hides only header explanations and decorations; title
       assert.equal(f.document.querySelectorAll('.replica-management-nav button').length,2);
       if(variant!=='data'){
         assert.equal(f.computed('.replica-management-section-header').gap,'4px');
-        assert.equal(f.computed('[role=tab]').minHeight,'36px');
+        assert.ok(Number.parseFloat(f.computed('[role=tab]').minHeight)>=40,'紧凑态标签触控高度至少40px');
         assert.notEqual(f.computed('[role=tablist]').display,'none');
         assert.equal(f.document.querySelectorAll('[role=tab]').length,variant==='models'?2:3);
       }

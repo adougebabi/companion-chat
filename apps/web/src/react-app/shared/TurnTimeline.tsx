@@ -104,8 +104,7 @@ function CallRow({record,index}:{record:TurnRecord;index:number}){
     <ChevronDown size={14} aria-hidden="true"/>
    </Button></CollapsibleTrigger>
    <CollapsibleContent className="replica-task-round-content">
-    {failed&&<section className="replica-task-round-error" aria-label="失败原因"><h3>失败原因</h3><p>{taskModelFailureReason(call)}</p></section>}
-    <ModelCallDetails record={{_record:record,model:call.model_id,label:purpose,status:call.status}}/>
+    <section aria-label={failed?'失败原因':undefined}><ModelCallDetails embedded record={{_record:record,model:call.model_id,label:purpose,status:call.status}}/></section>
    </CollapsibleContent>
   </Collapsible>
  </li>;

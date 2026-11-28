@@ -16,7 +16,7 @@
   .replica-shell {--sidebar-width-icon:76px !important;}
   .replica-shell > [data-slot="sidebar"] {width:76px;}
   .replica-shell > [data-slot="sidebar"] > [data-slot="sidebar-container"] {width:76px;}
-  .replica-shell .replica-logo-copy,.replica-shell .replica-workspace-switch,.replica-shell .replica-nav-label,.replica-shell .replica-nav-item > span,.replica-shell .replica-nav-footer > div,.replica-shell .replica-nav-footer > button {display:none;}
+  .replica-shell .replica-logo-copy,.replica-shell .replica-workspace-switch,.replica-shell .replica-nav-label,.replica-shell .replica-nav-item > span,.replica-shell .replica-nav-footer > div {display:none;}
   .replica-shell .replica-logo,.replica-shell .replica-nav-item {justify-content:center;}
   .replica-shell .replica-logo {padding:0;}
   .replica-shell .replica-nav-item {min-height:42px;}

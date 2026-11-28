@@ -91,7 +91,7 @@ function detail(id){const value={id,status:instances.find(value=>value.id===id)?
 const profileReplay=process.env.FLUCTLIGHT_UI_FIXTURE_PROFILE?profileFixture({owner,scenario:process.env.FLUCTLIGHT_UI_FIXTURE_PROFILE,baseDetail:detail,onIdentity:(id,identity)=>{const row=instances.find(value=>value.id===id);if(row)row.identity=clone(identity);}}):null;
 const peopleReplay=process.env.FLUCTLIGHT_UI_FIXTURE_PEOPLE?peopleFixture({owner,scenario:process.env.FLUCTLIGHT_UI_FIXTURE_PEOPLE,baseDetail:id=>profileReplay?profileReplay.state(id).detail:detail(id),worldState:worldReplay?fid=>worldReplay.state(fid):undefined,externalMemories:!!growthReplay}):null;
 const mediaReplay=process.env.FLUCTLIGHT_UI_FIXTURE_MEDIA?mediaFixture({owner,defaultFid:instance,scenario:process.env.FLUCTLIGHT_UI_FIXTURE_MEDIA,externalWorld:!!worldReplay,externalInventory:!!wardrobeWorld,onAvatar:(fid,value)=>{const row=instances.find(c=>c.id===fid);if(row)row.avatar=value.avatar;if(profileReplay)profileReplay.state(fid).detail.avatar=value.avatar;}}):null;
-const creationReplay=process.env.FLUCTLIGHT_UI_FIXTURE_CREATION?creationHttpFixture({owner,scenario:process.env.FLUCTLIGHT_UI_FIXTURE_CREATION,instances,groups,baseDetail:detail}):null;
+const creationReplay=process.env.FLUCTLIGHT_UI_FIXTURE_CREATION?creationHttpFixture({owner,scenario:process.env.FLUCTLIGHT_UI_FIXTURE_CREATION,instances,groups,baseDetail:detail,worldById:id=>{if(worldReplay)for(const instance of instances){const world=worldReplay.state(instance.id).worlds.find(row=>row.id===id);if(world)return world;}return null;}}):null;
 const feedReplay=process.env.FLUCTLIGHT_UI_FIXTURE_FEED?feedFixture({owner,fid:instance,scenario:process.env.FLUCTLIGHT_UI_FIXTURE_FEED}):null;
 const studioReplay=process.env.FLUCTLIGHT_UI_FIXTURE_STUDIO?studioFixture({owner,fid:instance,scenario:process.env.FLUCTLIGHT_UI_FIXTURE_STUDIO,autoJobs:true,externalWorld:!!worldReplay,worldRuntime:process.env.FLUCTLIGHT_UI_FIXTURE_STUDIO_RUNTIME==='1'?worldReplay?.studioWorld:undefined}):null;
 if(mediaReplay&&feedReplay&&mediaReplay.assets.has('replica-landscape'))mediaReplay.assets.set('feed-image',{...mediaReplay.assets.get('replica-landscape'),id:'feed-image',title:'动态中的窗边阅读',source_filename:'feed-image.png',url:'/api/media/feed-image',version:'version-feed-image'});
@@ -107,7 +107,11 @@ const server=http.createServer(async(req,res)=>{
   if(diagnosticReplay?.handler({path,method,body,url,json,res}))return;
   if(parityReplay&&await parityReplay.handler({path,method,body,url,json,res}))return;
   if(managementReplay&&await managementReplay.handler({path,method,body,url,json,res}))return;
-  if(creationReplay&&await creationReplay.handler({path,method,body,url,json,res})){
+  // In the composed workspace, the World fixture owns existing characters.
+  // Initialization keeps its own newly-created character scenes and receipts.
+  const existingWorld=path.match(/^\/api\/fluctlights\/([^/]+)\/world(?:\/|$)/);
+  const delegateWorld=worldReplay&&existingWorld&&!creationReplay?.records.has(decodeURIComponent(existingWorld[1]));
+  if(creationReplay&&!delegateWorld&&await creationReplay.handler({path,method,body,url,json,res})){
     if(process.env.FLUCTLIGHT_UI_FIXTURE_CREATION_AUDIT)await writeFile(process.env.FLUCTLIGHT_UI_FIXTURE_CREATION_AUDIT,JSON.stringify({calls:creationReplay.calls,records:[...creationReplay.records.values()]},null,2));
     return;
   }

@@ -1,0 +1,143 @@
+import {test,expect} from '@playwright/test';
+import {expectNoLayoutDefects} from './support/layout';
+import {readManifest,verifyBaselines} from './support/baselines.mjs';
+const origin='http://127.0.0.1:'+Number(process.env.UI_SCENARIO_PORT||5198);
+async function settle(page:any){
+ await page.evaluate(()=>document.fonts.ready);
+ await expect.poll(()=>page.evaluate(()=>document.getAnimations().filter(a=>a.playState==='running'&&a.effect?.getTiming().iterations!==Infinity).length)).toBe(0);
+}
+function approved(name:string){
+ if(process.env.UI_BASELINE_APPROVAL_REASON)return;
+ const store=verifyBaselines(),file=test.info().project.name+'/'+name;
+ if(store.status!=='ok'||!readManifest()?.files?.[file])throw Error('UI_BASELINE_UNVERIFIED: '+file);
+}
+test.describe('diagnostic business content',{tag:['@task-diagnostics','@visual']},()=>{
+ test('call content, immediate technical navigation, read-only replay and original record',async({page})=>{
+  await page.clock.setFixedTime(new Date('2026-11-16T10:30:00+08:00'));
+  await page.goto(origin+'/?scenario=calls-long');
+  await page.locator('[data-testid^=diag-open-]').first().click();
+  const dialog=page.getByRole('dialog').last();
+  await expect(dialog.getByRole('tab',{name:'请求与返回'})).toHaveAttribute('data-state','active');
+  await settle(page);
+  await expectNoLayoutDefects(page,dialog,{minTarget:page.viewportSize()!.width<640?40:0});
+  approved('diagnostic-call-content.png');
+  await expect(dialog).toHaveScreenshot('diagnostic-call-content.png');
+  await dialog.getByRole('button',{name:'技术详情与关联标识',exact:true}).click();
+  await expect(dialog.getByRole('tab',{name:'调用信息'})).toHaveAttribute('data-state','active');
+  await expect(dialog.locator('[data-ui-detail-fields]')).toBeVisible();
+  await dialog.getByRole('tab',{name:'只读回放此运行'}).click();
+  await expect(dialog.getByTestId('diagnostic-replay')).toContainText('已读取');
+  await expect(dialog.getByTestId('diagnostic-replay')).not.toContainText('读取失败');
+  await expect(dialog.getByRole('list',{name:'已读取的运行过程'})).toBeVisible();
+  await expect(dialog.getByRole('link',{name:'查看此条完整记录与来源'})).toBeVisible();
+  await dialog.getByRole('button',{name:/^完整回放记录/}).click();
+  await expect(dialog.getByTestId('replay-record').locator('pre')).toContainText('corr-long');
+  await expectNoLayoutDefects(page,dialog,{minTarget:page.viewportSize()!.width<640?40:0});
+ });
+ test('event list: applied filters stay independent, paging and source remain reachable',async({page})=>{
+  await page.clock.setFixedTime(new Date('2026-11-16T10:30:00+08:00'));
+  await page.goto(origin+'/?scenario=calls-long#/diag/events');
+  const records=page.locator('[data-records]');
+  await expect(records.locator('.diagnostic-card')).toHaveCount(3);
+  await expect(page.locator('[data-applied]')).toHaveText('已应用：全部记录');
+  await expect(records).not.toContainText('本次执行未完成');
+  const firstHref=await records.getByRole('link',{name:'完整记录与来源'}).first().getAttribute('href');
+  await records.getByRole('button',{name:'下一页系统诊断事件'}).click();
+  await expect(records.getByRole('link',{name:'完整记录与来源'}).first()).not.toHaveAttribute('href',firstHref!);
+  await records.getByRole('button',{name:'上一页',exact:true}).click();
+  await expect(records.getByRole('link',{name:'完整记录与来源'}).first()).toHaveAttribute('href',firstHref!);
+  await settle(page);
+  await expectNoLayoutDefects(page,page.locator('.diagnostic-page'),{minTarget:page.viewportSize()!.width<640?40:0});
+  approved('diagnostic-events.png');
+  await expect(page).toHaveScreenshot('diagnostic-events.png');
+  await page.getByRole('textbox',{name:'记录内容搜索'}).fill('workflow.failed');
+  await page.getByRole('button',{name:'刷新',exact:true}).click();
+  await expect(records.locator('.diagnostic-card')).toHaveCount(3);
+  await expect(page.locator('[data-applied]')).toHaveText('已应用：全部记录');
+  await page.getByRole('button',{name:'查询',exact:true}).click();
+  await expect(page.locator('[data-applied]')).toContainText('workflow.failed');
+  await expect(records).toContainText('未完成');
+  await records.getByRole('link',{name:'完整记录与来源'}).first().click();
+  await expect(page).toHaveURL(/diag\/record\/events/);
+  await expect(page.getByRole('button',{name:'重新读取实际状态'})).toBeVisible();
+ });
+ test('Loop groups keep each physical call and allow reading all rounds in one dialog',async({page})=>{
+  await page.clock.setFixedTime(new Date('2026-11-16T10:30:00+08:00'));
+  await page.goto(origin+'/?scenario=calls-loop');
+  const groups=page.locator('[data-model-call-group]');
+  await expect(groups).toHaveCount(2);
+  const group=groups.first();
+  await expect(group.locator('[data-testid^=diag-open-]')).toHaveCount(3);
+  const rows=group.locator('[data-testid^=diag-open-]');
+  await expect(rows.nth(0)).toContainText('调用 1 · 工具请求');
+  await expect(rows.nth(1)).toContainText('调用 2 · 失败');
+  await expect(rows.nth(2)).toContainText('调用 3 · 最终响应');
+  await expect(page.getByTestId('diagnostic-feed')).toContainText('已读取 3 次调用 · 1 次失败');
+  await settle(page);
+  await expectNoLayoutDefects(page,page.getByTestId('diagnostic-feed'),{minTarget:page.viewportSize()!.width<640?40:0});
+  approved('diagnostic-loop-groups.png');
+  await expect(page).toHaveScreenshot('diagnostic-loop-groups.png');
+  await rows.nth(0).click();
+  const dialog=page.getByRole('dialog').last();
+  await expect(dialog.getByRole('status',{name:'同组已读取 3 次，当前查看第 1 条'})).toBeVisible();
+  await dialog.getByRole('button',{name:'下一条调用'}).click();
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  await expect(dialog.getByRole('region',{name:'调用错误'})).toContainText('provider_unavailable');
+  await dialog.getByRole('button',{name:'下一条调用'}).click();
+  await expect(dialog).toContainText('second-recorded-model');
+  await expect(dialog.getByRole('button',{name:'下一条调用'})).toBeDisabled();
+  await dialog.getByRole('button',{name:/^返回内容/}).click();
+  await expect(dialog).toContainText('已核对工具结果，给出最终回答。');
+  await page.keyboard.press('Escape');
+  await expect(rows.nth(0)).toBeFocused();
+ });
+ test('paged Loop keeps the opened call and its original focus when more rounds arrive',async({page})=>{
+  await page.goto(origin+'/?scenario=calls-loop-paged');
+  const source=page.getByTestId('diag-open-corr-loop-call-1');
+  await expect(source).toBeVisible();
+  const original=await source.elementHandle();
+  await page.getByRole('button',{name:'加载更多调用'}).click();
+  await source.click();
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  await expect(page.locator('[data-model-call-group]').first().locator('[data-testid^=diag-open-]')).toHaveCount(3);
+  expect(await original!.evaluate(node=>node.isConnected)).toBe(true);
+  await expect(page.getByRole('status',{name:'同组已读取 3 次，当前查看第 3 条'})).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(source).toBeFocused();
+ });
+ test('small phones keep Loop navigation and compact diagnostic tabs reachable',async({page})=>{
+  test.skip(test.info().project.name!=='phone-390','Small-phone widths are exercised once; main Loop cases cover every project.');
+  for(const viewport of [{width:360,height:740},{width:430,height:932}]){
+   await page.setViewportSize(viewport);
+   await page.goto(origin+'/?scenario=calls-loop');
+   await expect(page.locator('[data-model-call-group]').first()).toBeVisible();
+   await page.locator('.replica-management-main').evaluate(el=>el.scrollTop=el.scrollHeight);
+   await expect(page.locator('.replica-management > .replica-page-heading')).toHaveClass(/is-scrolled/);
+   const heights=await page.locator('.replica-management-section-header [role=tab]').evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().height));
+   expect(heights.every(height=>height>=40)).toBe(true);
+   await page.locator('[data-model-call-group]').first().locator('[data-testid^=diag-open-]').first().click();
+   const dialog=page.getByRole('dialog').last();
+   await dialog.getByRole('button',{name:'下一条调用'}).click();
+   await expectNoLayoutDefects(page,dialog,{minTarget:40});
+   const action=dialog.getByRole('button',{name:'技术详情与关联标识',exact:true}),close=dialog.locator('[data-slot=dialog-close]');
+   const first=(await action.boundingBox())!,second=(await close.boundingBox())!;
+   expect(first.x+first.width).toBeLessThanOrEqual(second.x);
+   await action.click();
+   await expect(dialog.getByRole('tab',{name:'调用信息'})).toHaveAttribute('data-state','active');
+   await expect(dialog.locator('.ui-detail-fields__row').first()).toBeInViewport({ratio:1});
+   await expect(dialog.getByRole('button',{name:'下一条调用'})).toBeInViewport({ratio:1});
+   await page.keyboard.press('Escape');
+  }
+ });
+ test('advanced filter uses shared sheet on phone and retains draft after closing',async({page})=>{
+  await page.goto(origin+'/?scenario=calls-long#/diag/events');
+  await page.getByRole('button',{name:/更多筛选条件/}).click();
+  const mobile=page.viewportSize()!.width<640;
+  const scope=mobile?page.getByRole('dialog',{name:'高级筛选'}):page;
+  await scope.getByRole('textbox',{name:'关联 ID',exact:true}).fill('corr-failed');
+  if(mobile)await scope.getByRole('button',{name:'关闭',exact:true}).click();
+  await page.getByRole('button',{name:'查询',exact:true}).click();
+  await expect(page.locator('[data-applied]')).toContainText('corr-failed');
+  await expect(page.locator('[data-records]')).toContainText('任务详情');
+ });
+});

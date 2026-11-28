@@ -44,9 +44,16 @@ test('直接打开旧能力链接后呈现能力插件卡片和开关', async ()
     assert.ok(panel, '插件分区必须可见');
     assert.match(panel.textContent, /启用图片能力/);
     assert.match(panel.textContent, /启用动态能力/);
-    assert.ok(panel.querySelector('[role=switch]'));
+    const controls=[...panel.querySelectorAll('[role=checkbox]')];
+    assert.equal(controls.length,2);
+    assert.ok(controls.every(node=>node.getAttribute('aria-checked')==='false'));
+    assert.ok(controls.every(node=>node.id&&panel.querySelector('label[for="'+node.id+'"]')));
     assert.equal(view.host.querySelector('[data-testid=config-save]').disabled, true);
     assert.equal(writes(), 0);
+    await view.click(controls[0]);
+    assert.equal(controls[0].getAttribute('aria-checked'),'true');
+    assert.equal(view.host.querySelector('[data-testid=config-save]').disabled,false);
+    assert.equal(writes(),0,'editing a shared checkbox does not save automatically');
   } finally { await view.dispose(); }
 });
 

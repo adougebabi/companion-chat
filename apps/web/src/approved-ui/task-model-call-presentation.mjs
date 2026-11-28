@@ -63,3 +63,35 @@ export function callStageLabel(call) {
   const labels = {tool_request:'工具请求',tool_response:'工具响应',final_response:'最终响应',pending:'等待中',failed:'失败',cancelled:'已取消',timeout:'超时',unknown:'阶段未知'};
   return (typeof stage === 'string' && Object.hasOwn(labels, stage) ? labels[stage] : callValueLabel(stage, '阶段未记录'));
 }
+
+/** Display groups only: a run association does not prove a task or Loop finished. */
+export function modelCallGroups(records) {
+  const groups=new Map(),text=value=>typeof value==='string'&&value.trim()?value:'';
+  records.forEach((record,index)=>{
+    const call=record.data||{},metrics=call.metrics||{};
+    const run=text(metrics.run_id)||text(call.logical_run_id),role=text(call.role)||text(call.binding_role);
+    const kev=metrics.source==='kev'||call.role==='kev_decision'||call.binding_role==='kev';
+    // Parent correlation may include cognition, Writer, Kev and multiple attempts.
+    // Keep their explicit role/source/subject boundaries, and keep missing IDs separate.
+    const associated=record.kind==='model-runs'&&!!run&&!!role&&!kev;
+    const key=associated
+      ?JSON.stringify(['run',run,call.fluctlight_id||metrics.fluctlight_id||'',call.world_id||metrics.world_id||'',call.role||'',call.binding_role||'',call.agent_id||metrics.agent_id||'',call.scenario||metrics.scenario||'',metrics.source||call.source||''])
+      :JSON.stringify(['record',record.kind,record.ref||record.id||index]);
+    if(!groups.has(key))groups.set(key,{key,associated,records:[]});
+    groups.get(key).records.push(record);
+  });
+  return [...groups.values()].map(group=>{
+    const instant=record=>Date.parse(record.data?.started_at||record.occurred_at||record.data?.created_at||'');
+    const ordered=group.records.map((record,index)=>({record,index})).sort((a,b)=>{
+      const left=instant(a.record),right=instant(b.record);
+      if(Number.isFinite(left)!==Number.isFinite(right))return Number.isFinite(left)?-1:1;
+      if(Number.isFinite(left)&&left!==right)return left-right;
+      const first=recordedCallValue(a.record.data||{},'sequence'),second=recordedCallValue(b.record.data||{},'sequence');
+      return Number.isFinite(left)&&Number.isFinite(right)&&Number.isInteger(first)&&Number.isInteger(second)&&first!==second?first-second:a.index-b.index;
+    }).map(({record})=>record);
+    const failed=ordered.filter(record=>['failed','error','dead_letter','timeout'].includes(record.data?.status)).length;
+    const pending=ordered.filter(record=>['pending','queued','started','running'].includes(record.data?.status)).length;
+    const sequences=ordered.map(record=>recordedCallValue(record.data||{},'sequence')).filter(Number.isInteger);
+    return {...group,records:ordered,failed,pending,repeatedSequence:new Set(sequences).size<sequences.length,summary:[`已读取 ${ordered.length} 次调用`,failed?`${failed} 次失败`:'',pending?`${pending} 次处理中`:''].filter(Boolean).join(' · '),missingTime:ordered.some(record=>!Number.isFinite(instant(record)))};
+  });
+}

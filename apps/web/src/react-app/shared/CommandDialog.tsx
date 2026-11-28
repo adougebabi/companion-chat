@@ -1,7 +1,7 @@
 import {InlineFeedback as OperationStatus, Feedback} from './Presentation';
-import {useEffect, useMemo, useSyncExternalStore, useRef} from 'react';
+import {useEffect, useMemo, useSyncExternalStore, useRef, useId} from 'react';
 import {Button} from '@/components/ui/button';
-import {Dialog, DialogContent, DialogTitle, DialogDescription} from '@/components/ui/dialog';
+import WorkspaceDialog from './WorkspaceDialog';
 import {createDomainCommand} from '@/state/domain-command.mjs';
 import {stateLabel} from '@/v3/domain-presentation.mjs';
 import {useWorkspace, afterPaint} from '../page';
@@ -55,7 +55,8 @@ export default function CommandDialog({action, onClose}: any) {
   ...action, owner, ownerCurrent: () => w.state.session?.actorId === owner,
  }), [owner, action.identity]);
  const state: any = useSyncExternalStore(model.subscribe, model.getSnapshot, model.getSnapshot);
- const reviewHeading = useRef<HTMLHeadingElement | null>(null);
+ const reviewHeading = useRef<HTMLHeadingElement | null>(null),errorHeading = useRef<HTMLDivElement | null>(null),formId=useId();
+ useEffect(()=>{if(state.error)void afterPaint(()=>{if(errorHeading.current?.isConnected){errorHeading.current.scrollIntoView({block:'nearest'});errorHeading.current.focus({preventScroll:true});}});},[state.error]);
  useEffect(() => {
   if (state.review) void afterPaint(() => {
    if (reviewHeading.current?.isConnected) {
@@ -71,28 +72,28 @@ export default function CommandDialog({action, onClose}: any) {
  const pending = state.pending?.value;
  const snapshot = action.snapshot;
  const latest = state.review?.object;
- return <Dialog open onOpenChange={open => !open && onClose()}>
-  <DialogContent className="react-workspace max-h-[90dvh] overflow-y-auto">
-   <DialogTitle>{action.title}</DialogTitle>
-   <DialogDescription>{action.description || '核对当前输入后提交。原提交结果未知时，会保留原内容与身份。'}</DialogDescription>
+ return <WorkspaceDialog open onOpenChange={open=>!open&&onClose()} busy={state.busy} title={action.title}
+  description={action.description || '核对当前输入后提交。原提交结果未知时，会保留原内容与身份。'}
+  footer={state.draft&&<>
+   <Button type="submit" form={formId} disabled={state.busy || !!state.pending || state.readbackPending || state.needsRebase || state.finished}>{action.submitLabel || '确认提交'}</Button>
+   {state.pending && !state.pending.rejection && <Button type="button" variant="outline" disabled={state.busy} onClick={()=>void model.submit(true)}>核对或重试原提交</Button>}
+   {state.pending && !state.pending.rejection && action.reconcilePending && <Button type="button" variant="outline" disabled={state.busy} onClick={()=>void model.checkPending()}>查询原提交状态</Button>}
+   {state.readbackPending && <Button type="button" variant="outline" disabled={state.busy} onClick={()=>void model.finishReadback()}>只读恢复页面结果</Button>}
+  </>}>
    <div className="grid gap-4">
-    {state.error && <Feedback kind={state.readbackPending || state.pending && !state.pending.rejection ? 'action-required' : state.needsRebase || state.pending?.rejection ? 'warning' : 'error'}>{state.error}</Feedback>}
+    {state.error && <div ref={errorHeading} tabIndex={-1}><Feedback kind={state.readbackPending || state.pending && !state.pending.rejection ? 'action-required' : state.needsRebase || state.pending?.rejection ? 'warning' : 'error'}>{state.error}</Feedback></div>}
     {state.notice && !state.error && <OperationStatus kind="information">{state.notice}</OperationStatus>}
-    {state.draft && <form className="grid gap-4" onSubmit={event => { event.preventDefault(); void model.submit(); }}>
+    {state.draft && <form id={formId} className="grid gap-4" onSubmit={event => { event.preventDefault(); void model.submit(); }}>
      {action.fields ? action.fields(state.draft, model.edit) : <RecordEditor
       value={Object.fromEntries((action.editable || ['reason']).map((key: string) => [key, state.draft[key]]))}
       fieldLabels={action.labels || {reason: '操作理由'}}
       onChange={(value: any) => model.edit(value)}
      />}
      <div className="flex flex-wrap gap-3">
-      <Button type="submit" disabled={state.busy || !!state.pending || state.readbackPending || state.needsRebase || state.finished}>{action.submitLabel || '确认提交'}</Button>
-      {state.pending && !state.pending.rejection && <Button type="button" variant="outline" disabled={state.busy} onClick={() => void model.submit(true)}>核对或重试原提交</Button>}
-      {state.pending && !state.pending.rejection && action.reconcilePending && <Button type="button" variant="outline" disabled={state.busy} onClick={() => void model.checkPending()}>查询原提交状态</Button>}
       {syncAvailable && <>
        <CommandSyncAction state={state} onReview={model.reviewLatest} />
        <CommandSyncAction state={state} onReview={model.reviewLatest} placement="recovery" />
       </>}
-      {state.readbackPending && <Button type="button" variant="outline" disabled={state.busy} onClick={() => void model.finishReadback()}>只读恢复页面结果</Button>}
      </div>
     </form>}
     {(pending != null || snapshot != null || latest != null) &&
@@ -105,6 +106,5 @@ export default function CommandDialog({action, onClose}: any) {
      <Button type="button" disabled={state.busy} onClick={() => model.confirmLatest()}>已核对，采用最新基线</Button>
     </section>}
    </div>
-  </DialogContent>
- </Dialog>;
+ </WorkspaceDialog>;
 }

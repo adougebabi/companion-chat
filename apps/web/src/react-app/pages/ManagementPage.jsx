@@ -301,7 +301,7 @@ function createManagementPageController(props, context, lifecycle) {
           (!filters.value.who || filters.value.who === r.character) &&
           (!filters.value.status ||
             filters.value.status === statusLabel(r.status)) &&
-          [r.label, r.searchTerms, r.correlationId, r._record?.data?.parent_run_id, r.input, r.character, r.model, r.reason, r.response]
+          [r.label, r.searchTerms, r.correlationId, r._record?.data?.logical_run_id, r._record?.data?.metrics?.run_id, r._record?.data?.parent_run_id, r.input, r.character, r.model, r.reason, r.response]
             .join(" ")
             .toLowerCase()
             .includes(search.value.trim().toLowerCase()),

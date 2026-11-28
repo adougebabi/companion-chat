@@ -1,7 +1,8 @@
 import {useEffect,useRef,useState} from 'react';
 import {Activity,ArrowLeft,CheckCircle2,Clock3,RefreshCw,Search,AlertCircle,Loader2} from 'lucide-react';
 import {Button} from '@/components/ui/button';
-import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
+import {ResponsiveTabsList} from '@/components/patterns';
+import {Tabs,TabsTrigger} from '@/components/ui/tabs';
 import {Input} from '@/components/ui/input';
 import {Surface,ChoiceSelect} from '../controls';
 import {useWorkspace} from '../page';
@@ -60,8 +61,7 @@ export default function DiagnosticsWorkspace({view,children}){
  const hasReadTasks=taskSources.some(({source})=>source.ready);
  const metricAvailable=(id,count)=>count>0||tasksReady||(id==='attention'&&attentionAvailable&&attentionTasks.ready);
  const navigate=next=>{const query=new URLSearchParams([...params].filter(([key])=>['view','taskId','correlationId','returnTo'].includes(key)));for(const [key,value] of Object.entries(next)){if(value===null)query.delete(key);else query.set(key,String(value));}w.navigatePath('/diag?'+query);};
- return <div className="replica-diagnostics"><div className="replica-management-section-header"><div className="replica-settings-head"><div><h2>诊断与任务</h2><p>查看执行到了哪里，在需要时继续原任务。</p></div><Button asChild variant="outline" size="sm" className="replica-diagnostic-environment"><a href="#/diag/events">查看运行记录</a></Button></div>
- <Tabs value={mode} onValueChange={value=>{setMode(value);navigate({view:value,taskId:null});}}><TabsList variant="line"><TabsTrigger value="tasks">任务中心{tasksReady&&<span className="replica-diagnostic-count" title="当前筛选下已读取任务数">{rows.length}</span>}</TabsTrigger><TabsTrigger value="calls">模型调用记录</TabsTrigger><TabsTrigger value="health">服务诊断</TabsTrigger></TabsList></Tabs></div>
+ return <div className="replica-diagnostics"><div className="replica-management-section-header"><div className="ui-actions justify-between"><Tabs className="min-w-0 flex-1" value={mode} onValueChange={value=>{setMode(value);navigate({view:value,taskId:null});}}><ResponsiveTabsList variant="line" value={mode} aria-label="诊断分区"><TabsTrigger value="tasks">任务中心{tasksReady&&<span className="replica-diagnostic-count" title="当前筛选下已读取任务数">{rows.length}</span>}</TabsTrigger><TabsTrigger value="calls">模型调用记录</TabsTrigger><TabsTrigger value="health">服务诊断</TabsTrigger></ResponsiveTabsList></Tabs><Button asChild variant="link" size="sm" className="replica-diagnostic-environment"><a href="#/diag/events">系统事件</a></Button></div></div>
  {(mode==='tasks'||mode==='health')&&<DiagnosticCreationContext returnTo={returnTo||''}/>}
  {back&&<Surface className="replica-diagnostic-context"><div><h3>{initialization?'新相识 · 初始化任务':'来自业务页面的任务记录'}</h3><p>已有资料和原任务会保留，配置与恢复操作在实际业务入口完成。</p></div><Button variant="outline" onClick={()=>w.navigatePath(back)}><ArrowLeft size={14}/>{initialization?'返回初始化流程':'返回来源页'}</Button></Surface>}
  {mode==='calls'&&<div className="replica-diagnostic-calls">{children}</div>}

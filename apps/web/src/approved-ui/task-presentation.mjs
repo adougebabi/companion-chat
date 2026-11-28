@@ -203,7 +203,8 @@ export function taskEventReason(entry){
  if(!reason&&!code)return '';
  // Dispatcher/start codes describe routing, not a failure. Without a recorded
  // cause, only an actual failure state may receive the failure fallback.
- if(!reason&&entry.status&&!['failed','dead_letter','error','timeout','timed_out'].includes(entry.status))return '';
+ const failed=['failed','dead_letter','error','timeout','timed_out'].includes(entry.status);
+ if(!failed)return reason?safeDiagnosticReason(reason,'',''):'';
  const fallback='';
  const message=safeDiagnosticReason(reason,code,fallback);return typeof message==='string'&&message?message:'本次执行未完成，详细原因已保留在原始记录中。';
 }

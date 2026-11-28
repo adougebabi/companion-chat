@@ -122,3 +122,38 @@ test('关系修订用中文描述当前记录和历史，完整诊断保留版�
   }]]);
   assert.deepEqual(destinations, [`#/c/${fid}/people`]);
 });
+
+for(const phase of ['read-leave','save-leave','save-owner','restore-leave'])test('relationship async completion cannot affect a departed scope: '+phase,async t=>{
+ const unsubscribe=subscribeOverlays(()=>{});
+ const env=installDOM(),previous=get(),fid='relation-late-role',relation={id:'relation-late',revision:7,summary:'书店里的熟人',metrics:{intimacy:0},role:{label:'熟人'}};
+ const host=document.body.appendChild(document.createElement('main'));
+ let release;const pending=new Promise(resolve=>{release=resolve;});
+ let saves=0,restores=0,refreshes=0;const destinations=[];
+ replaceSnapshot({...previous,session:{actorId:'relation-owner'},relations:{[relation.id]:{...relation,charId:fid,targetActorId:'actor-late'}}});
+ configureDomainService('world',{refresh:async()=>{}});
+ configureDomainService('npc',{
+  readRelation:async()=>{if(phase==='read-leave')await pending;return {relation,history:[{revision:3,summary:'初次见面'}]};},
+  saveRelation:async()=>{saves++;await pending;},restoreRelation:async()=>{restores++;await pending;},
+ });
+ const route=approvedRoute('#/c/'+fid+'/people/relation/'+relation.id),render=await route.feature.load();
+ const dispose=render(host,{charId:fid,params:route.feature.params,navigate:path=>destinations.push(path),refresh:()=>refreshes++});
+ t.after(()=>{dispose();unsubscribe();replaceSnapshot(previous);env.restore();});
+ await new Promise(resolve=>setImmediate(resolve));
+ if(phase==='read-leave'){
+  dispose();release();await new Promise(resolve=>setImmediate(resolve));assert.equal(host.querySelector('form'),null);return;
+ }
+ const form=host.querySelector('form');form.elements.reason.value='核对最近相处';form.elements.evidenceRefs.value='owner:note';
+ let completion;
+ if(phase.startsWith('save')){
+  completion=form.onsubmit({target:form,preventDefault(){}});
+  await form.onsubmit({target:form,preventDefault(){}});
+  await Promise.resolve();assert.equal(saves,1,'busy prevents a duplicate mutation');
+ }else{
+  completion=host.querySelector('[data-restore-relation]').onclick();
+  await Promise.resolve();const [confirmation]=overlaySnapshot();closeOverlay(confirmation.id,true);
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(restores,1);
+ }
+ if(phase==='save-owner')replaceSnapshot({...get(),session:{actorId:'another-owner'}});else dispose();
+ release();await completion;
+ assert.deepEqual(destinations,[]);assert.equal(refreshes,0);
+});

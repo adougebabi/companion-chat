@@ -1,4 +1,4 @@
-import { DetailSheet } from '@/components/patterns';
+import { DetailSheet, ResponsiveTabsList } from '@/components/patterns';
 import { useIsMobile } from '../hooks/use-mobile';
 import { ProfileNote } from "../shared/ProfileRecordSummary";
 import {ResultFeedback} from '../shared/Presentation';
@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Surface, FieldInput, Textarea, Disclosure, Badge } from "../controls";
 import { useWorkspace } from "../page";
 import { jsonValueSnapshot } from "@/state/view-model";
@@ -838,7 +838,7 @@ export default function DiaryPage() {
       />
       <Tabs value={tab} onValueChange={setTab} className="lp-stack">
         <div className="lp-toolbar">
-          <TabsList variant="line" className="replica-segment-tabs">
+          <ResponsiveTabsList value={tab} variant="line">
             <TabsTrigger value="diary">
               {c.name}的日记{" "}
               <span>
@@ -848,7 +848,7 @@ export default function DiaryPage() {
               </span>
             </TabsTrigger>
             <TabsTrigger value="shared">共同经历</TabsTrigger>
-          </TabsList>
+          </ResponsiveTabsList>
           {tab === "shared" && (
             <>
               <Button
